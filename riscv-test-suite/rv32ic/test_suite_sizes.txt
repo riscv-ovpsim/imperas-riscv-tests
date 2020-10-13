@@ -1,0 +1,50 @@
+# Imperas RISC-V Architecture Tests for RV32IC
+
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| I-C-LUI-01                         |     5,124 |       1,278  |           560  |                 379  |
+| I-C-J-01                           |     5,124 |       3,006  |           560  |                 705  |
+| I-C-ANDI-01                        |     5,124 |       1,854  |           560  |                 559  |
+| I-C-BEQZ-01                        |     5,124 |       3,710  |           560  |               1,127  |
+| I-C-BNEZ-01                        |     5,124 |       3,710  |           560  |                 888  |
+| I-C-SRAI-01                        |     5,124 |       1,854  |           560  |                 559  |
+| I-C-EBREAK-01                      |     4,612 |         382  |            16  |                  72  |
+| I-C-LW-01                          |     5,380 |       3,710  |           560  |               1,059  |
+| I-C-MV-01                          |     5,124 |       2,302  |           560  |                 720  |
+| I-C-LI-01                          |     5,124 |       1,854  |           560  |                 559  |
+| I-C-SUB-01                         |     5,124 |       2,302  |           560  |                 720  |
+| I-C-SLLI-01                        |     5,124 |       1,854  |           560  |                 559  |
+| I-C-XOR-01                         |     5,124 |       2,302  |           560  |                 720  |
+| I-C-JALR-01                        |     5,124 |       4,222  |           560  |                 977  |
+| I-C-LWSP-01                        |     5,380 |       3,646  |           560  |               1,059  |
+| I-C-SW-01                          |     5,124 |       3,646  |           560  |               1,081  |
+| I-C-SWSP-01                        |     5,124 |       3,646  |           560  |               1,081  |
+| I-C-ADDI-01                        |     5,124 |       1,854  |           560  |                 559  |
+| I-C-SRLI-01                        |     5,124 |       1,854  |           560  |                 559  |
+| I-C-ADD-01                         |     5,124 |       2,302  |           560  |                 720  |
+| I-C-NOP-01                         |     4,612 |         510  |           128  |                 131  |
+| I-C-AND-01                         |     5,124 |       2,302  |           560  |                 720  |
+| I-C-OR-01                          |     5,124 |       2,302  |           560  |                 720  |
+| I-C-JR-01                          |     5,124 |       4,222  |           560  |                 977  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

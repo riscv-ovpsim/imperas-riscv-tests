@@ -467,14 +467,11 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
-static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_present);
 
 //
 // Set default value of raw Uns32 parameters
 //
 static RISCV_UNS32_PDEFAULT_CFG_FN(trigger_num);
-static RISCV_UNS32_PDEFAULT_CFG_FN(mcontrol_maskmax);
-static RISCV_UNS32_PDEFAULT_CFG_FN(tinfo);
 static RISCV_UNS32_PDEFAULT_CFG_FN(tvec_align);
 static RISCV_UNS32_PDEFAULT_CFG_FN(counteren_mask);
 static RISCV_UNS32_PDEFAULT_CFG_FN(noinhibit_mask);
@@ -638,24 +635,6 @@ static RISCV_PDEFAULT_FN(default_scontext_bits) {
 
     setUns32ParamDefault(param, cfg->scontext_bits);
     setUns32ParamMax(param, (cfg->arch&ISA_XLEN_64) ? 64 : 32);
-}
-
-//
-// Set default and maximum value of mvalue_bits
-//
-static RISCV_PDEFAULT_FN(default_mvalue_bits) {
-
-    setUns32ParamDefault(param, cfg->mvalue_bits);
-    setUns32ParamMax(param, (cfg->arch&ISA_XLEN_64) ? 13 : 6);
-}
-
-//
-// Set default and maximum value of svalue_bits
-//
-static RISCV_PDEFAULT_FN(default_svalue_bits) {
-
-    setUns32ParamDefault(param, cfg->svalue_bits);
-    setUns32ParamMax(param, (cfg->arch&ISA_XLEN_64) ? 34 : 16);
 }
 
 //
@@ -885,13 +864,8 @@ static riscvParameter parameters[] = {
     {  RVPV_V,       default_align_whole,          VMI_BOOL_PARAM_SPEC  (riscvParamValues, align_whole,          False,                     "Whether whole-register load addresses must be aligned using the encoded EEW")},
     {  RVPV_S,       0,                            VMI_UNS32_PARAM_SPEC (riscvParamValues, ASID_cache_size,      8, 0,          256,        "Specifies the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
     {  RVPV_PRE,     default_trigger_num,          VMI_UNS32_PARAM_SPEC (riscvParamValues, trigger_num,          0, 0,          255,        "Specify the number of implemented hardware triggers")},
-    {  RVPV_TRIG,    default_tinfo,                VMI_UNS32_PARAM_SPEC (riscvParamValues, tinfo,                0, 0,          0xffff,     "Override tinfo register (for all triggers)")},
     {  RVPV_TRIG,    default_mcontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontext_bits,        0, 0,          0,          "Specify the number of implemented bits in mcontext (if zero, mcontext is not implemented)")},
     {  RVPV_TRIG_S,  default_scontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, scontext_bits,        0, 0,          0,          "Specify the number of implemented bits in scontext (if zero, scontext is not implemented)")},
-    {  RVPV_TRIG,    default_mvalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, mvalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.mvalue (if zero, textra.mselect is tied to zero)")},
-    {  RVPV_TRIG_S,  default_svalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, svalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.svalue (if zero, textra.sselect is tied to zero)")},
-    {  RVPV_TRIG,    default_mcontrol_maskmax,     VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontrol_maskmax,     0, 0,          63,         "Specify mcontrol.maskmax value")},
-    {  RVPV_TRIG,    default_tcontrol_present,     VMI_BOOL_PARAM_SPEC  (riscvParamValues, tcontrol_present,     False,                     "Whether tcontrol register is present")},
     {  RVPV_S,       default_ASID_bits,            VMI_UNS32_PARAM_SPEC (riscvParamValues, ASID_bits,            0, 0,          0,          "Specify the number of implemented ASID bits")},
     {  RVPV_H,       default_VMID_bits,            VMI_UNS32_PARAM_SPEC (riscvParamValues, VMID_bits,            0, 0,          0,          "Specify the number of implemented VMID bits")},
     {  RVPV_A,       default_lr_sc_grain,          VMI_UNS32_PARAM_SPEC (riscvParamValues, lr_sc_grain,          1, 1,          (1<<16),    "Specify byte granularity of ll/sc lock region (constrained to a power of two)")},

@@ -149,12 +149,9 @@ typedef riscvDomainSetVM *riscvDomainSetVMP;
 // Trigger register set
 //
 typedef struct riscvTriggerS {
-    CSR_REG_DECL (tdata1);
-    CSR_REG_DECL (tdata2);
-    CSR_REG_DECL (tdata3);
-    CSR_REG_DECL (tinfo);
-    CSR_REG_DECL (mcontext);
-    CSR_REG_DECL (scontext);
+    CSR_REG_DECL(tdata1);
+    CSR_REG_DECL(tdata2);
+    CSR_REG_DECL(tdata3);
 } riscvTrigger, *riscvTriggerP;
 
 //

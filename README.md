@@ -29,8 +29,8 @@ This simulator is for use in running tests - especially the RISC-V compliance te
 It includes full commercial features including variant selection, semi-hosting, functional coverage reporting, and RISC-V International compliance suite signature dump facilities. 
 
 RISC-V 32 and 64bit ratified instruction extensions are selectable (including IMAFDCNSUE). 
-See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/riscv-ovpsim/README.md) and 
-           [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
+See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim/README.md) and 
+           [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
 
 #### riscvOVPsimPlus
 This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also 'near-ratified' ISA extensions: V-vector, B-bitmanip. 
@@ -38,8 +38,8 @@ This extends the functionality of riscvOVPsim and provides many more features in
 (Extensions still with a lot to be developed before ratification including K-crypto, P-DSP(wip), and user custom extensions, are available in Imperas simulators from [Imperas](https://www.imperas.com/riscv)).
 
 For more information see the 
-   [riscv-ovpsim-plus/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/riscv-ovpsim-plus/README.md) and 
-[riscvOVPsimPlus_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/riscv-ovpsim-plus/doc/riscvOVPsimPlus_User_Guide.pdf) for more information.
+   [riscv-ovpsim-plus/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim-plus/README.md) and 
+[riscvOVPsimPlus_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim-plus/doc/riscvOVPsimPlus_User_Guide.pdf) for more information.
 
 If you need a copy of riscvOVPsimPlus - get it from the [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus).
 
@@ -49,7 +49,8 @@ To run the tests you need to have a configured target (e.g. riscvOVPsim and a to
 A pre-compiled GCC for RISC-V can be obtained from the [Imperas GitHub](https://github.com/Imperas/riscv-toolchains). There are multiple branches. For example, for the toolchain to support all ISA including the vector instruction v0.9 use:
 
     git clone https://github.com/Imperas/riscv-toolchains.git --branch rvv-0.9.x
-    
+    mv riscv-toolchains riscv-toolchains-rvv-0.9.x
+
 and then set up:
 
     export TOPDIR=<your dir>
@@ -153,6 +154,10 @@ Most of the tools are CPU- and OS-aware, allowing different operations based on 
 Please visit [imperas.com/SDK](https://www.imperas.com/msdk-advanced-multicore-software-development-kit) for more information or contact info@imperas.com.
 
 # Comments about Imperas RISC-V simulation
+
+"An architectural validation suite is not a complete verification test plan for a RISC-V processor but shares many similar attributes and its adoption is always useful at any stage of a project. Any test plan requires 4 items - a device to test, some tests, a reference to compare against and a test plan. An easy-to-configure reference model that supports coverage driven analysis, like Imperas riscvOVPsim, is central to any test plan."
+**Bull McSPadden, Principal VLSI Verification Engineer at Seagate Technology, and co-chair if the RISC-V Internationals Technical Committee task group for compliance**
+
 "For the automotive market our customers expect the highest standards of quality and design assurance. NSITEXE selected the Imperas Vector Extensions Compliance test cases and RISC-V Reference Model as a foundation for our simulation-based design verification (DV) plans."
 **Hideki Sugimoto, CTO of NSITEXE, Inc., a group company of DENSO Corporation**
 

@@ -613,10 +613,6 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, mstatus, MPP, cxt->modeY);
     WR_CSR_FIELD64(riscv, mstatus, MPV, VY);
     WR_CSR_FIELD64(riscv, mstatus, GVA, riscv->GVA);
-
-    // update tcontrol.mpte and tcontrol.mte
-    WR_CSR_FIELDC(riscv, tcontrol, mpte, RD_CSR_FIELDC(riscv, tcontrol, mte));
-    WR_CSR_FIELDC(riscv, tcontrol, mte, 0);
 }
 
 //
@@ -1191,9 +1187,6 @@ void riscvMRET(riscvP riscv) {
 
     // clear mstatus.MPRV if required
     clearMPRV(riscv, newMode);
-
-    // update tcontrol.mte
-    WR_CSR_FIELDC(riscv, tcontrol, mte, RD_CSR_FIELDC(riscv, tcontrol, mpte));
 
     // do common return actions
     doERETCommon(riscv, newMode, RD_CSR_M(riscv, mepc));

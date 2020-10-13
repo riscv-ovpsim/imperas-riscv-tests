@@ -78,13 +78,8 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(ASID_cache_size);
     VMI_UNS32_PARAM(ASID_bits);
     VMI_UNS32_PARAM(trigger_num);
-    VMI_UNS32_PARAM(tinfo);
     VMI_UNS32_PARAM(mcontext_bits);
     VMI_UNS32_PARAM(scontext_bits);
-    VMI_UNS32_PARAM(mvalue_bits);
-    VMI_UNS32_PARAM(svalue_bits);
-    VMI_UNS32_PARAM(mcontrol_maskmax);
-    VMI_BOOL_PARAM(tcontrol_present);
     VMI_UNS32_PARAM(VMID_bits);
     VMI_UNS32_PARAM(PMP_grain);
     VMI_UNS32_PARAM(PMP_registers);
@@ -121,8 +116,6 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(SLEN);
     VMI_UNS32_PARAM(VLEN);
     VMI_UNS32_PARAM(SEW_min);
-    VMI_UNS32_PARAM(K_scalar_profile);
-    VMI_UNS32_PARAM(K_vector_profile);
     VMI_BOOL_PARAM(MXL_writable);
     VMI_BOOL_PARAM(SXL_writable);
     VMI_BOOL_PARAM(UXL_writable);
@@ -141,6 +134,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zbr);
     VMI_BOOL_PARAM(Zbs);
     VMI_BOOL_PARAM(Zbt);
+    VMI_UNS32_PARAM(K_scalar_profile);
+    VMI_UNS32_PARAM(K_vector_profile);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);
