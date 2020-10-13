@@ -1,0 +1,39 @@
+# Imperas RISC-V Architecture Tests for RV64M
+
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| I-REMU-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-MULHSU-01                        |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-DIVW-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-DIVUW-01                         |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-MULW-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-MUL-01                           |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-REMUW-01                         |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-MULHU-01                         |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-DIV-01                           |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-MULH-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-DIVU-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-REM-01                           |     6,660 |       6,404  |         2,128  |               1,578  |
+| I-REMW-01                          |     6,660 |       6,404  |         2,128  |               1,578  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

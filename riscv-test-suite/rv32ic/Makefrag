@@ -43,8 +43,8 @@ rv32ic_sc_tests = \
 	I-C-SRLI-01 \
 	I-C-SW-01 \
 	I-C-SWSP-01 \
-	I-C-NOP-01 \
 	I-C-EBREAK-01 \
+	I-C-NOP-01 \
 
 rv32ic_tests = $(addsuffix .elf, $(rv32ic_sc_tests))
 
