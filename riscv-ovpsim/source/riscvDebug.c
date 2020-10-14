@@ -594,6 +594,8 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     RISCV_FIELD_IMPL_IGNORE(vBase);
     RISCV_FIELD_IMPL_IGNORE(jumpBase);
     RISCV_FIELD_IMPL_IGNORE(currentArch);
+    RISCV_FIELD_IMPL_IGNORE(triggerVA);
+    RISCV_FIELD_IMPL_IGNORE(triggerLV);
 }
 
 

@@ -27,13 +27,13 @@ Instruction category: arithmetic
   c-li : 1,206
   c-lui : 1,438
   c-add : 680
-  c-mv : 136
   c-sub : 137
+  c-mv : 136
 Instruction category: logical 
   c-andi : 136
-  c-xor : 136
-  c-and : 136
   c-or : 136
+  c-and : 136
+  c-xor : 136
 Instruction category: branch 
   c-bnez : 160
   c-beqz : 136
@@ -49,8 +49,8 @@ Instruction category: store
   c-swsp : 267
 Instruction category: shift 
   c-slli : 160
-  c-srai : 136
   c-srli : 136
+  c-srai : 136
 
 Other instructions (those not the focus of this suite)
   csrrs : 98
@@ -62,9 +62,9 @@ Other instructions (those not the focus of this suite)
   beq : 96
   mret : 25
   sw : 3,033
+  lui : 1,069
   fence : 24
   ecall : 24
-  lui : 1,069
-  jal : 244
   lw : 408
+  jal : 244
 

@@ -50,8 +50,8 @@ rv64ic_sc_tests = \
 	I-C-SD-01 \
 	I-C-SWSP-01 \
 	I-C-SDSP-01 \
-	I-C-EBREAK-01 \
 	I-C-NOP-01 \
+	I-C-EBREAK-01 \
 
 rv64ic_tests = $(addsuffix .elf, $(rv64ic_sc_tests))
 

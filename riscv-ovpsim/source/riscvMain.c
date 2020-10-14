@@ -262,8 +262,13 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->ASID_bits           = params->ASID_bits;
     cfg->VMID_bits           = params->VMID_bits;
     cfg->trigger_num         = params->trigger_num;
+    cfg->tinfo               = params->tinfo;
     cfg->mcontext_bits       = params->mcontext_bits;
     cfg->scontext_bits       = params->scontext_bits;
+    cfg->mvalue_bits         = params->mvalue_bits;
+    cfg->svalue_bits         = params->svalue_bits;
+    cfg->mcontrol_maskmax    = params->mcontrol_maskmax;
+    cfg->tcontrol_present    = params->tcontrol_present;
     cfg->PMP_grain           = params->PMP_grain;
     cfg->PMP_registers       = params->PMP_registers;
     cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");

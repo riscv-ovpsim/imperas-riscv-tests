@@ -27,15 +27,15 @@ Instruction category: arithmetic
   addi : 20,008
   lui : 7,108
   addiw : 11,417
+  addw : 264
   add : 2,948
   sub : 530
-  addw : 264
   subw : 264
 Instruction category: logical 
-  xori : 265
   andi : 288
-  and : 265
   ori : 265
+  xori : 265
+  and : 265
   or : 265
   xor : 265
 Instruction category: branch 
@@ -54,35 +54,35 @@ Instruction category: jump
   jal : 1,019
   jalr : 273
 Instruction category: load 
-  lbu : 270
-  lhu : 270
   ld : 1,329
-  lw : 270
   lh : 269
+  lw : 270
+  lhu : 270
   lb : 265
+  lbu : 270
 Instruction category: store 
   sd : 13,012
   sw : 452
-  sb : 264
   sh : 268
+  sb : 264
 Instruction category: shift 
   slli : 6,581
-  srliw : 264
+  sraiw : 264
+  sll : 265
+  sllw : 264
+  srlw : 264
   sraw : 264
   srai : 265
-  sraiw : 264
+  slliw : 264
+  srliw : 264
   srli : 265
-  sll : 265
   sra : 265
   srl : 265
-  srlw : 264
-  sllw : 264
-  slliw : 264
 Instruction category: compare 
   slti : 265
-  slt : 265
-  sltu : 265
   sltiu : 265
+  sltu : 265
+  slt : 265
 
 Other instructions (those not the focus of this suite)
   csrrs : 309

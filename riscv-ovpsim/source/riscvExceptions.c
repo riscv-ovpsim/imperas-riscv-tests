@@ -613,6 +613,10 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, mstatus, MPP, cxt->modeY);
     WR_CSR_FIELD64(riscv, mstatus, MPV, VY);
     WR_CSR_FIELD64(riscv, mstatus, GVA, riscv->GVA);
+
+    // update tcontrol.mpte and tcontrol.mte
+    WR_CSR_FIELDC(riscv, tcontrol, mpte, RD_CSR_FIELDC(riscv, tcontrol, mte));
+    WR_CSR_FIELDC(riscv, tcontrol, mte, 0);
 }
 
 //
@@ -1081,7 +1085,7 @@ void riscvInstructionAddressMisaligned(riscvP riscv, Uns64 tval) {
 }
 
 //
-// Take ECALL exception
+// Execute ECALL instruction
 //
 void riscvECALL(riscvP riscv) {
 
@@ -1187,6 +1191,9 @@ void riscvMRET(riscvP riscv) {
 
     // clear mstatus.MPRV if required
     clearMPRV(riscv, newMode);
+
+    // update tcontrol.mte
+    WR_CSR_FIELDC(riscv, tcontrol, mte, RD_CSR_FIELDC(riscv, tcontrol, mpte));
 
     // do common return actions
     doERETCommon(riscv, newMode, RD_CSR_M(riscv, mepc));
@@ -1530,7 +1537,19 @@ void riscvDRET(riscvP riscv) {
 }
 
 //
-// Take EBREAK exception
+// Take breakpoint exception
+//
+void riscvBreakpointException(riscvP riscv) {
+
+    // from privileged version 1.12, EBREAK no longer sets mtval to the PC
+    Uns64 tval = (RISCV_PRIV_VERSION(riscv)<RVPV_1_12) ? getPC(riscv) : 0;
+
+    // handle EBREAK as normal exception
+    riscvTakeException(riscv, riscv_E_Breakpoint, tval);
+}
+
+//
+// Execute EBREAK instruction
 //
 void riscvEBREAK(riscvP riscv) {
 
@@ -1565,11 +1584,8 @@ void riscvEBREAK(riscvP riscv) {
 
     } else {
 
-        // from privileged version 1.12, EBREAK no longer sets mtval to the PC
-        Uns64 tval = (RISCV_PRIV_VERSION(riscv)<RVPV_1_12) ? getPC(riscv) : 0;
-
         // handle EBREAK as normal exception
-        riscvTakeException(riscv, riscv_E_Breakpoint, tval);
+        riscvBreakpointException(riscv);
     }
 }
 

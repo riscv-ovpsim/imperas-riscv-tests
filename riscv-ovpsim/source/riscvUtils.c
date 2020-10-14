@@ -31,6 +31,7 @@
 #include "riscvMessage.h"
 #include "riscvMode.h"
 #include "riscvStructure.h"
+#include "riscvTrigger.h"
 #include "riscvUtils.h"
 #include "riscvVariant.h"
 #include "riscvVM.h"
@@ -163,6 +164,9 @@ void riscvSetCurrentArch(riscvP riscv) {
     if(modeIsXLEN64(riscv, RISCV_MODE_VU)) {
         arch |= ISA_VUXL64;
     }
+
+    // handle trigger state
+    arch |= riscvGetCurrentTriggers(riscv);
 
     if(riscv->currentArch != arch) {
 
