@@ -35,7 +35,7 @@ riscvArchitecture riscvGetCurrentTriggers(riscvP riscv);
 //
 // Handle possible execute trigger for faulting address
 //
-void riscvTriggerX0(riscvP riscv, Addr VA);
+Bool riscvTriggerX0(riscvP riscv, Addr VA, Bool complete);
 
 //
 // Handle possible execute trigger for 2-byte instruction
@@ -56,4 +56,9 @@ void riscvTriggerLA(riscvP riscv, Uns32 bytes);
 // Handle possible load value trigger
 //
 void riscvTriggerLV(riscvP riscv, Uns32 bytes);
+
+//
+// Handle possible store trigger
+//
+void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes);
 

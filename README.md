@@ -60,13 +60,18 @@ and then set up:
     export RISCV_TOOLCHAIN=${TOPDIR}/riscv-toolchains-rvv-0.9.x/Linux64
     export PATH=${PATH}:${RISCV_TOOLCHAIN}/bin
 
+and then to clone this repository:
+
+    git clone https://github.com/riscv-ovpsim/imperas-riscv-tests
+
 and then to run:
 
-    cd into the install directory
-    
+    cd imperas-riscv-tests
+
     make help
-    make clean simulate verify cover RISCV_ISA=rv32i \
-        RISCV_DEVICE=rv32i RISCV_TARGET=riscvOVPsim
+    make clean simulate verify cover \
+        RISCV_ISA=rv32i RISCV_DEVICE=rv32i \
+        RISCV_TARGET=riscvOVPsim
     
 ### Imperas test suites
 When verifying a CPU design - you can never have enough tests...

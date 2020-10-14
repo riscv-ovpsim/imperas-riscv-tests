@@ -1,0 +1,147 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32VF RISC-V "V" Vector Extension:
+    1,022 test source files
+    17 different instruction categories
+    103 different instructions
+    617,323 total instructions
+
+Instruction category: OPV_SFAS single-width floating-point add/subtract
+  vfadd.vf : 426
+  vfsub.vf : 426
+  vfadd.vv : 426
+  vfrsub.vf : 426
+  vfsub.vv : 426
+Instruction category: OPV_FPC floating-point classify
+  vfclass.v : 426
+Instruction category: OPV_SFITC single-width floating-point/integer type-convert
+  vfcvt.f.xu.v : 426
+  vfcvt.f.x.v : 426
+  vfcvt.x.f.v : 426
+  vfcvt.xu.f.v : 426
+Instruction category: OPV_CONFIG config
+Instruction category: OPV_SMDFAS single-width floating-point multiply/divide widening floating-point add/subtract
+  vfrdiv.vf : 426
+  vfmul.vf : 426
+  vfmul.vv : 426
+  vfdiv.vf : 426
+  vfdiv.vv : 426
+Instruction category: OPV_SFFMA single-width floating-point fused multiply-add
+  vfmadd.vf : 426
+  vfnmsub.vv : 426
+  vfnmacc.vv : 426
+  vfnmacc.vf : 426
+  vfmsub.vf : 426
+  vfnmsac.vv : 426
+  vfmsac.vv : 426
+  vfmsac.vf : 426
+  vfnmadd.vf : 426
+  vfnmsub.vf : 426
+  vfnmadd.vv : 426
+  vfmsub.vv : 426
+  vfmacc.vf : 426
+  vfmadd.vv : 426
+  vfmacc.vv : 426
+  vfnmsac.vf : 426
+Instruction category: OPV_FMM floating-point min/max
+  vfmax.vv : 426
+  vfmax.vf : 426
+  vfmin.vv : 426
+  vfmin.vf : 426
+Instruction category: OPV_FPME floating-point merge
+  vfmerge.vfm : 202
+Instruction category: OPV_FPMO floating-point move
+  vfmv.v.f : 224
+Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
+  vfncvt.f.xu.w : 150
+  vfncvt.x.f.w : 150
+  vfncvt.f.x.w : 150
+  vfncvt.f.f.w : 150
+  vfncvt.xu.f.w : 150
+  vfncvt.rod.f.f.w : 150
+Instruction category: OPV_FSI floating-point sign-injection
+  vfsgnjx.vf : 426
+  vfsgnjn.vf : 426
+  vfsgnjx.vv : 426
+  vfsgnj.vv : 426
+  vfsgnjn.vv : 426
+  vfsgnj.vf : 426
+Instruction category: OPV_SQRT floating-point square-root
+  vfsqrt.v : 426
+Instruction category: OPV_WFAS widening floating-point add/subtract
+  vfwadd.wf : 150
+  vfwadd.vv : 150
+  vfwadd.vf : 150
+  vfwadd.wv : 150
+  vfwsub.wv : 150
+  vfwsub.vf : 150
+  vfwsub.wf : 150
+  vfwsub.vv : 150
+Instruction category: OPV_WFITC widening floating-point/integer type-convert
+  vfwcvt.f.x.v : 150
+  vfwcvt.f.xu.v : 150
+  vfwcvt.f.f.v : 150
+  vfwcvt.x.f.v : 150
+  vfwcvt.xu.f.v : 150
+Instruction category: OPV_WFFMA widening floating-point fused multiply-add
+  vfwmacc.vv : 150
+  vfwnmacc.vv : 150
+  vfwnmacc.vf : 150
+  vfwmsac.vf : 150
+  vfwmsac.vv : 150
+  vfwnmsac.vv : 150
+  vfwmacc.vf : 150
+  vfwnmsac.vf : 150
+Instruction category: OPV_WFM widening floating-point multiply
+  vfwmul.vf : 150
+  vfwmul.vv : 150
+Instruction category: OPV_FC floating-point compare
+  vmflt.vv : 426
+  vmfeq.vv : 426
+  vmfeq.vf : 426
+  vmfne.vv : 426
+  vmfge.vf : 426
+  vmfne.vf : 426
+  vmflt.vf : 426
+  vmfgt.vf : 426
+  vmfle.vf : 426
+  vmfle.vv : 426
+
+Other instructions (those not the focus of this suite)
+  jal : 1,022
+  csrrs : 5,110
+  bne : 1,022
+  auipc : 33,542
+  addi : 197,026
+  csrrw : 8,176
+  csrrwi : 6,132
+  slli : 1,022
+  blt : 1,022
+  beq : 2,044
+  lui : 12,939
+  or : 1,022
+  mret : 1,022
+  vsetvli : 93,520
+  vle.v : 76,664
+  fmv.s.x : 12,426
+  add : 107,712
+  vse.v : 26,928
+  fence : 1,022
+  ecall : 1,022
+

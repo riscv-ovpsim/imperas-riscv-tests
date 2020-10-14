@@ -37,6 +37,7 @@
 #include "riscvFunctions.h"
 #include "riscvMessage.h"
 #include "riscvStructure.h"
+#include "riscvTrigger.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
 #include "riscvVMConstants.h"
@@ -2188,9 +2189,10 @@ static void doNMI(riscvP riscv);
 //
 VMI_IFETCH_FN(riscvIFetchExcept) {
 
-    riscvP riscv   = (riscvP)processor;
-    Uns64  thisPC  = address;
-    Bool   fetchOK = False;
+    riscvP riscv    = (riscvP)processor;
+    Uns64  thisPC   = address;
+    Bool   fetchOK  = False;
+    Bool   triggerX = riscv->currentArch & ISA_TM_X;
 
     // clear interrupt acknowledge signal if it is asserted
     if(riscv->netValue.irq_ack) {
@@ -2198,17 +2200,13 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         riscv->netValue.irq_ack = False;
     }
 
-    if(riscv->netValue.stepreq) {
+    if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
 
-        // enter Debug mode out of reset
-        if(complete) {
-            riscv->netValue.stepreq = False;
-            enterDM(riscv, DMC_STEP);
-        }
+        // execute address trap (priority 3, handled in riscvTriggerX0)
 
     } else if(riscv->netValue.resethaltreqS) {
 
-        // enter Debug mode out of reset
+        // enter Debug mode out of reset (priority 2)
         if(complete) {
             riscv->netValue.resethaltreqS = False;
             enterDM(riscv, DMC_RESETHALTREQ);
@@ -2216,9 +2214,17 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
 
     } else if(riscv->netValue.haltreq && !inDebugMode(riscv)) {
 
-        // enter Debug mode
+        // enter Debug mode (priority 1)
         if(complete) {
             enterDM(riscv, DMC_HALTREQ);
+        }
+
+    } else if(riscv->netValue.stepreq) {
+
+        // enter Debug mode on single-step (priority 0)
+        if(complete) {
+            riscv->netValue.stepreq = False;
+            enterDM(riscv, DMC_STEP);
         }
 
     } else if(RD_CSR_FIELDC(riscv, dcsr, nmip) && !inDebugMode(riscv)) {

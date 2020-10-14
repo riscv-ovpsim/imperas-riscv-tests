@@ -74,14 +74,18 @@ riscvArchitecture riscvGetCurrentTriggers(riscvP riscv) {
 
             memPriv priv = RD_REG_FIELD_TRIGGER(trigger, tdata1, mcontrol.priv);
 
-            if(priv&MEM_PRIV_R) {
-                arch |= ISA_TM_L;
-            }
             if(priv&MEM_PRIV_W) {
                 arch |= ISA_TM_S;
             }
             if(priv&MEM_PRIV_X) {
                 arch |= ISA_TM_X;
+            }
+            if(!(priv&MEM_PRIV_R)) {
+                // no action
+            } else if(RD_REG_FIELD_TRIGGER(trigger, tdata1, mcontrol.select)) {
+                arch |= ISA_TM_LV;
+            } else {
+                arch |= ISA_TM_LA;
             }
         }
     }
@@ -92,8 +96,11 @@ riscvArchitecture riscvGetCurrentTriggers(riscvP riscv) {
         Bool doFlush = False;
 
         // determine whether state changes require dictionaries to be flushed
-        if((arch & ISA_TM_L) && !riscv->checkTriggerL) {
-            doFlush = riscv->checkTriggerL = True;
+        if((arch & ISA_TM_LA) && !riscv->checkTriggerLA) {
+            doFlush = riscv->checkTriggerLA = True;
+        }
+        if((arch & ISA_TM_LV) && !riscv->checkTriggerLV) {
+            doFlush = riscv->checkTriggerLV = True;
         }
         if((arch & ISA_TM_S) && !riscv->checkTriggerS) {
             doFlush = riscv->checkTriggerS = True;
@@ -295,7 +302,7 @@ static Uns32 getTriggerAction(riscvTriggerP trigger) {
 // Take action for a trigger if required
 // TODO: handle actions after the current instruction completes
 //
-static void doTriggerAction(riscvP riscv) {
+static Bool doTriggerAction(riscvP riscv, Bool complete) {
 
     Uns64 iCount  = getCycleCount(riscv);
     Bool  doBkpt  = False;
@@ -318,11 +325,16 @@ static void doTriggerAction(riscvP riscv) {
         }
     }
 
-    if(doDebug) {
+    if(!complete) {
+        // no action
+    } else if(doDebug) {
         riscvSetDM(riscv, True);
     } else if(doBkpt) {
         riscvBreakpointException(riscv);
     }
+
+    // indicate if some exception is taken
+    return doDebug || doBkpt;
 }
 
 //
@@ -331,16 +343,18 @@ static void doTriggerAction(riscvP riscv) {
 // executed on an address that will fault. 'value' is valid only if valueValid
 // is True.
 //
-static void doTriggerADMATCH(
+static Bool doTriggerADMATCH(
     riscvP  riscv,
     Uns64   VA,
     Uns64   value,
     Uns32   bytes,
     memPriv priv,
-    Bool    valueValid
+    Bool    valueValid,
+    Bool    complete
 ) {
-    riscvMode mode       = getCurrentMode3(riscv);
+    riscvMode mode      = getCurrentMode3(riscv);
     Bool      someMatch = False;
+    Bool      except    = False;
     Uns32     i;
 
     // identify any ADMATCH triggers that have been activated
@@ -374,43 +388,58 @@ static void doTriggerADMATCH(
     // if some trigger has matched, scan again to see whether action is
     // required
     if(someMatch) {
-        doTriggerAction(riscv);
+        except = doTriggerAction(riscv, complete);
     }
+
+    return except;
 }
 
 //
 // Handle possible execute trigger for faulting address
 //
-void riscvTriggerX0(riscvP riscv, Addr VA) {
-    doTriggerADMATCH(riscv, VA, 0, 0, MEM_PRIV_X, False);
+Bool riscvTriggerX0(riscvP riscv, Addr VA, Bool complete) {
+    return doTriggerADMATCH(riscv, VA, 0, 0, MEM_PRIV_X, False, complete);
 }
 
 //
 // Handle possible execute trigger for 2-byte instruction
 //
 void riscvTriggerX2(riscvP riscv, Addr VA, Uns32 value) {
-    doTriggerADMATCH(riscv, VA, value, 2, MEM_PRIV_X, True);
+    doTriggerADMATCH(riscv, VA, value, 2, MEM_PRIV_X, True, True);
 }
 
 //
 // Handle possible execute trigger for 4-byte instruction
 //
 void riscvTriggerX4(riscvP riscv, Addr VA, Uns32 value) {
-    doTriggerADMATCH(riscv, VA, value, 4, MEM_PRIV_X, True);
+    doTriggerADMATCH(riscv, VA, value, 4, MEM_PRIV_X, True, True);
 }
 
 //
 // Handle possible load address trigger
 //
 void riscvTriggerLA(riscvP riscv, Uns32 bytes) {
-    doTriggerADMATCH(riscv, riscv->triggerVA, 0, bytes, MEM_PRIV_R, False);
+    doTriggerADMATCH(
+        riscv, riscv->triggerVA, 0, bytes, MEM_PRIV_R, False, True
+    );
 }
 
 //
 // Handle possible load value trigger
 //
 void riscvTriggerLV(riscvP riscv, Uns32 bytes) {
-    doTriggerADMATCH(riscv, riscv->triggerVA, riscv->triggerLV, bytes, MEM_PRIV_R, True);
+    doTriggerADMATCH(
+        riscv, riscv->triggerVA, riscv->triggerLV, bytes, MEM_PRIV_R, True, True
+    );
+}
+
+//
+// Handle possible store trigger
+//
+void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes) {
+    doTriggerADMATCH(
+        riscv, riscv->triggerVA, value, bytes, MEM_PRIV_W, True, True
+    );
 }
 
 

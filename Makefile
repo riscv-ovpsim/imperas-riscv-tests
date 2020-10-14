@@ -12,12 +12,23 @@ empty:=
 comma:= ,
 space:= $(empty) $(empty)
 
+
+export ROOTDIR = $(shell pwd)
+
 ifeq ($(RISCV_TARGET),)
-    TARGET_SIM=$(ROOTDIR)/riscv-ovpsim/bin/$(ARCH)/riscvOVPsim.exe
-    ifeq ($(shell command -v $(TARGET_SIM) 2> /dev/null),)
+    # Check riscvOVPsim present
+    ifneq ($(wildcard $(ROOTDIR)/riscv-ovpsim/bin/*/riscvOVPsim.exe),)
         export RISCV_TARGET=riscvOVPsim
+    else
+        # Check riscvOVPsimPlus present
+        ifneq ($(wildcard $(ROOTDIR)/riscv-ovpsim-plus/bin/*/riscvOVPsimPlus.exe),)
+            export RISCV_TARGET=riscvOVPsimPlus
+        else
+            ERROR:=$(error Cannot find either default RISCV_TARGET riscvOVPsim or riscvOVPsimPlus)
+        endif
     endif
 endif
+
 export RISCV_DEVICE       ?= rv32i
 export RISCV_PREFIX       ?= riscv64-unknown-elf-
 export RISCV_TARGET_FLAGS ?=
@@ -39,7 +50,6 @@ ifeq ($(RISCV_ASSERT),1)
 endif
 export RVTEST_DEFINES
 
-export ROOTDIR    = $(shell pwd)
 export WORK       = $(ROOTDIR)/work
 export SUITEDIR   = $(ROOTDIR)/riscv-test-suite/$(RISCV_ISA)
 export TARGETDIR ?= $(ROOTDIR)/riscv-target
@@ -86,19 +96,29 @@ simulate:
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
+		RISCV_ISA=$(RISCV_ISA) \
 		run -C $(SUITEDIR)
 
 verify: simulate
-	riscv-test-env/verify.sh
+	riscv-test-env/verify.sh \
+		RISCV_TARGET=$(RISCV_TARGET) \
+		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_PREFIX=$(RISCV_PREFIX) \
+		RISCV_ISA=$(RISCV_ISA) \
 
 cover:
-	riscv-test-env/cover.sh
+	riscv-test-env/cover.sh \
+		RISCV_TARGET=$(RISCV_TARGET) \
+		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_PREFIX=$(RISCV_PREFIX) \
+		RISCV_ISA=$(RISCV_ISA) \
 
 clean:
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
+		RISCV_ISA=$(RISCV_ISA) \
 		clean -C $(SUITEDIR)
 
 help:
