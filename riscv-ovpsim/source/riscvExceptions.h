@@ -76,12 +76,17 @@ void riscvVirtualInstruction(riscvP riscv);
 void riscvInstructionAddressMisaligned(riscvP riscv, Uns64 tval);
 
 //
-// Take ECALL exception
+// Take breakpoint exception
+//
+void riscvBreakpointException(riscvP riscv);
+
+//
+// Execute ECALL instruction
 //
 void riscvECALL(riscvP riscv);
 
 //
-// Take EBREAK exception
+// Execute EBREAK instruction
 //
 void riscvEBREAK(riscvP riscv);
 

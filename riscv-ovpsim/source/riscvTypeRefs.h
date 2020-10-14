@@ -47,4 +47,5 @@ DEFINE_S (riscvMorphState);
 DEFINE_S (riscvParamValues);
 DEFINE_S (riscvPendEnab);
 DEFINE_S (riscvTLB);
+DEFINE_S (riscvTrigger);
 

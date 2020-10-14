@@ -230,6 +230,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (tdata1),       // 0x7A1
     CSR_ID      (tdata2),       // 0x7A2
     CSR_ID      (tdata3),       // 0x7A3
+    CSR_ID      (tinfo),        // 0x7A4
+    CSR_ID      (tcontrol),     // 0x7A5
     CSR_ID      (mcontext),     // 0x7A8
     CSR_ID      (scontext),     // 0x7AA
 
@@ -1534,18 +1536,220 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tselect);
 
 // -----------------------------------------------------------------------------
 // tdata1       (id 0x7A1)
+// -----------------------------------------------------------------------------
+
+// trigger types
+typedef enum triggerTypeE {
+    TT_NONE      = 0,    // disabled
+    TT_ADMATCH   = 2,    // address/data match
+    TT_ICOUNT    = 3,    // instruction count
+    TT_INTERRUPT = 4,    // interrupt
+    TT_EXCEPT    = 5,    // exception
+} triggerType;
+
+// 32-bit view
+typedef union {
+
+    // common view
+    struct {
+        Uns32       _u1     : 27;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
+    };
+
+    // mcontrol view
+    struct {
+        Uns32       priv    :  3;
+        Uns32       modes   :  4;
+        Uns32       match   :  4;
+        Uns32       chain   :  1;
+        Uns32       action  :  4;
+        Uns32       sizelo  :  2;
+        Uns32       timing  :  1;
+        Uns32       select  :  1;
+        Uns32       hit     :  1;
+        Uns32       maskmax :  6;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
+    } mcontrol;
+
+    // icount view
+    struct {
+        Uns32       action :  6;
+        Uns32       modes  :  4;
+        Uns32       count  : 14;
+        Uns32       hit    :  1;
+        Uns32       _u1    :  2;
+        Uns32       dmode  :  1;
+        triggerType type   :  4;
+    } icount;
+
+    // itrigger view
+    struct {
+        Uns32       action :  6;
+        Uns32       modes  :  4;
+        Uns32       _u1    : 16;
+        Uns32       hit    :  1;
+        Uns32       dmode  :  1;
+        triggerType type   :  4;
+    } itrigger;
+
+    // etrigger view
+    struct {
+        Uns32       action :  6;
+        Uns32       modes  :  4;
+        Uns32       nmi    :  1;
+        Uns32       _u1    : 15;
+        Uns32       hit    :  1;
+        Uns32       dmode  :  1;
+        triggerType type   :  4;
+    } etrigger;
+
+} CSR_REG_TYPE_32(tdata1);
+
+// 64-bit view
+typedef union {
+
+    // common view
+    struct {
+        Uns64       _u1     : 59;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    };
+
+    // mcontrol view
+    struct {
+        Uns64       priv    :  3;
+        Uns64       modes   :  4;
+        Uns64       match   :  4;
+        Uns64       chain   :  1;
+        Uns64       action  :  4;
+        Uns64       sizelo  :  2;
+        Uns64       timing  :  1;
+        Uns64       select  :  1;
+        Uns64       hit     :  1;
+        Uns64       sizehi  :  2;
+        Uns64       _u1     : 30;
+        Uns64       maskmax :  6;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    } mcontrol;
+
+    // icount view
+    struct {
+        Uns64       action  :  6;
+        Uns64       modes   :  4;
+        Uns64       count   : 14;
+        Uns64       hit     :  1;
+        Uns64       _u1     : 34;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    } icount;
+
+    // itrigger view
+    struct {
+        Uns64       action  :  6;
+        Uns64       modes   :  4;
+        Uns64       _u1     : 48;
+        Uns64       hit     :  1;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    } itrigger;
+
+    // etrigger view
+    struct {
+        Uns64       action  :  6;
+        Uns64       modes   :  4;
+        Uns64       nmi     :  1;
+        Uns64       _u1     : 47;
+        Uns64       hit     :  1;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    } etrigger;
+
+} CSR_REG_TYPE_64(tdata1);
+
+// define 32/64 bit type
+CSR_REG_STRUCT_DECL_32_64(tdata1);
+
+// define write masks
+#define WM32_tdata1 0x00000000
+#define WM64_tdata1 0x00000000
+
+// -----------------------------------------------------------------------------
 // tdata2       (id 0x7A2)
+// -----------------------------------------------------------------------------
+
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata2);
+
+// define write masks
+#define WM32_tdata2     -1
+#define WM64_tdata2     -1
+
+// -----------------------------------------------------------------------------
 // tdata3       (id 0x7A3)
 // -----------------------------------------------------------------------------
 
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata1);
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata2);
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata3);
+// 32-bit view
+typedef struct {
+    Uns32 sselect :  2;
+    Uns32 svalue  : 16;
+    Uns32 _u1     :  7;
+    Uns32 mselect :  1;
+    Uns32 mvalue  :  6;
+} CSR_REG_TYPE_32(tdata3);
+
+// 64-bit view
+typedef struct {
+    Uns64 sselect :  2;
+    Uns64 svalue  : 34;
+    Uns64 _u1     : 14;
+    Uns64 mselect :  1;
+    Uns64 mvalue  : 13;
+} CSR_REG_TYPE_64(tdata3);
+
+// define 32/64 bit type
+CSR_REG_STRUCT_DECL_32_64(tdata3);
 
 // define write masks
-#define WM32_tdata1     0x00000000
-#define WM32_tdata2     0x00000000
 #define WM32_tdata3     0x00000000
+#define WM64_tdata3     0x00000000
+
+// -----------------------------------------------------------------------------
+// tinfo        (id 0x7A4)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 info : 16;
+    Uns32 _u1  : 16;
+} CSR_REG_TYPE_32(tinfo);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(tinfo);
+
+// define write masks
+#define WM32_tinfo      0x00000000
+
+// -----------------------------------------------------------------------------
+// tcontrol     (id 0x7A5)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 _u1  :  3;
+    Uns32 mte  :  1;
+    Uns32 _u2  :  3;
+    Uns32 mpte :  1;
+    Uns32 _u3  : 24;
+} CSR_REG_TYPE_32(tcontrol);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(tcontrol);
+
+// define write masks
+#define WM32_tcontrol   0x00000088
+#define WM64_tcontrol   0x00000088
 
 // -----------------------------------------------------------------------------
 // mcontext     (id 0x7A8)
@@ -1654,8 +1858,7 @@ typedef struct riscvCSRsS {
 
     // TRIGGER CSRS
     CSR_REG_DECL  (tselect);        // 0x7A0
-    CSR_REG_DECL  (mcontext);       // 0x7A8
-    CSR_REG_DECL  (scontext);       // 0x7AA
+    CSR_REG_DECL  (tcontrol);       // 0x7A5
 
     // DEBUG MODE CSRS
     CSR_REG_DECL  (dcsr);           // 0x7B0
@@ -2160,6 +2363,81 @@ typedef struct riscvCSRMasksS {
     } else {                                                \
         WR_CSR_FIELD_S(_CPU, _RNAME, _FIELD, _VALUE);       \
     }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TRIGGER REGISTER ACCESS MACROS, CONSTANT FIELD POSITION
+////////////////////////////////////////////////////////////////////////////////
+
+// get trigger value
+#define RD_REG_TRIGGER(_TRIGGER, _R) ( \
+    RD_RAWC(_TRIGGER->_R))
+
+// set trigger value
+#define WR_REG_TRIGGER(_TRIGGER, _R, _VALUE) \
+    WR_RAWC(_TRIGGER->_R, _VALUE)
+
+// get trigger field
+#define RD_REG_FIELD_TRIGGER(_TRIGGER, _R, _FIELD) ( \
+    RD_RAW_FIELDC(_TRIGGER->_R, _FIELD))
+
+// set trigger field
+#define WR_REG_FIELD_TRIGGER(_TRIGGER, _R, _FIELD, _VALUE) \
+    WR_RAW_FIELDC(_TRIGGER->_R, _FIELD, _VALUE)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TRIGGER REGISTER ACCESS MACROS, 64-BIT ONLY
+////////////////////////////////////////////////////////////////////////////////
+
+// get trigger value
+#define RD_REG_TRIGGER64(_TRIGGER, _R) ( \
+    RD_RAW64(_TRIGGER->_R))
+
+// set trigger value
+#define WR_REG_TRIGGER64(_TRIGGER, _R, _VALUE) \
+    WR_RAW64(_TRIGGER->_R, _VALUE)
+
+// get trigger field
+#define RD_REG_FIELD_TRIGGER64(_TRIGGER, _R, _FIELD) ( \
+    RD_RAW_FIELD64(_TRIGGER->_R, _FIELD))
+
+// set trigger field
+#define WR_REG_FIELD_TRIGGER64(_TRIGGER, _R, _FIELD, _VALUE) \
+    WR_RAW_FIELD64(_TRIGGER->_R, _FIELD, _VALUE)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TRIGGER REGISTER ACCESS MACROS, VARIABLE FIELD POSITION BASED ON MODAL XLEN
+////////////////////////////////////////////////////////////////////////////////
+
+// is the trigger mode 32-bit?
+#define TRIGGER_IS_32M(_CPU) \
+    RISCV_XLEN_IS_32M(_CPU, RISCV_MODE_M)
+
+// get trigger value
+#define RD_REG_TRIGGER_MODE(_CPU, _TRIGGER, _R) ( \
+    RD_RAW_MODE(_CPU, RISCV_MODE_M, _TRIGGER->_R))
+
+// set trigger value
+#define WR_REG_TRIGGER_MODE(_CPU, _TRIGGER, _R, _VALUE) \
+    WR_RAW_MODE(_CPU, RISCV_MODE_M, _TRIGGER->_R, _VALUE)
+
+// get raw trigger field
+#define RD_RAW_FIELD_TRIGGER_MODE(_CPU, _R, _FIELD) ( \
+    RD_RAW_FIELD_MODE(_CPU, RISCV_MODE_M, _R, _FIELD))
+
+// set raw trigger field
+#define WR_RAW_FIELD_TRIGGER_MODE(_CPU, _R, _FIELD, _VALUE) \
+    WR_RAW_FIELD_MODE(_CPU, RISCV_MODE_M, _R, _FIELD, _VALUE)
+
+// get trigger field
+#define RD_REG_FIELD_TRIGGER_MODE(_CPU, _TRIGGER, _R, _FIELD) ( \
+    RD_RAW_FIELD_TRIGGER_MODE(_CPU, _TRIGGER->_R, _FIELD))
+
+// set trigger field
+#define WR_REG_FIELD_TRIGGER_MODE(_CPU, _TRIGGER, _R, _FIELD, _VALUE) \
+    WR_RAW_FIELD_TRIGGER_MODE(_CPU, _TRIGGER->_R, _FIELD, _VALUE)
 
 
 ////////////////////////////////////////////////////////////////////////////////

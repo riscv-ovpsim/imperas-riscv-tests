@@ -106,11 +106,16 @@ typedef struct riscvConfigS {
     Uns32             VLEN;             // VLEN (vector extension)
     Uns32             SEW_min;          // minimum SEW (vector extension)
     Uns32             ASID_cache_size;  // ASID cache size
+    Uns16             tinfo;            // tinfo default value (all triggers)
     Uns8              ASID_bits;        // number of implemented ASID bits
     Uns8              VMID_bits;        // number of implemented VMID bits
     Uns8              trigger_num;      // number of implemented triggers
     Uns8              mcontext_bits;    // implemented bits in mcontext
     Uns8              scontext_bits;    // implemented bits in scontext
+    Uns8              mvalue_bits;      // implemented bits in textra.mvalue
+    Uns8              svalue_bits;      // implemented bits in textra.svalue
+    Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
+    Bool              tcontrol_present; // is tcontrol register implemented?
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL
     Bool              UXL_writable;     // writable bits in mstatus.UXL

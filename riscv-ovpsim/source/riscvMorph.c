@@ -39,6 +39,7 @@
 #include "riscvMorph.h"
 #include "riscvRegisters.h"
 #include "riscvStructure.h"
+#include "riscvTrigger.h"
 #include "riscvTypeRefs.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
@@ -202,17 +203,48 @@ inline static void validateBlockMask(riscvArchitecture arch) {
 }
 
 //
-// Return endian for data accesses in the current mode
+// Validate feature is enabled using block mask if required
 //
-memEndian riscvGetCurrentDataEndianMT(riscvP riscv) {
-
-    // validate endianness blockMask if required
-    if(riscv->checkEndian) {
-        validateBlockMask(ISA_BE);
+static Bool checkFeatureMT(
+    riscvP            riscv,
+    Bool              doCheckMT,
+    riscvArchitecture feature
+) {
+    // validate feature blockMask if required
+    if(doCheckMT) {
+        validateBlockMask(feature);
     }
 
-    // return current data endianness
-    return riscvGetCurrentDataEndian(riscv);
+    // return current feature state
+    return riscv->currentArch & feature;
+}
+
+//
+// Return morph-time endianness for data accesses in the current mode
+//
+memEndian riscvGetCurrentDataEndianMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkEndian, ISA_BE);
+}
+
+//
+// Is morph-time trigger load check required in the current mode?
+//
+inline static Bool triggerLoadMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkTriggerL, ISA_TM_L);
+}
+
+//
+// Is morph-time trigger store check required in the current mode?
+//
+inline static Bool triggerStoreMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkTriggerS, ISA_TM_S);
+}
+
+//
+// Is morph-time trigger execute check required in the current mode?
+//
+inline static Bool triggerExecuteMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkTriggerX, ISA_TM_X);
 }
 
 //
@@ -1810,6 +1842,24 @@ static memEndian getLoadStoreEndianMT(riscvMorphStateP state) {
 }
 
 //
+// Compose the access virtual address in the trigger VA pseudo-register and
+// update ra and offset to regerence that register
+//
+static void emitTriggerVA(riscvMorphStateP state, vmiReg *raP, Uns64 *offsetP) {
+
+    Uns32  vaBits = riscvGetXlenMode(state->riscv);
+    vmiReg va     = RISCV_TRIGGER_VA;
+
+    // compose trigger VA and extend to 64 bits if required
+    vmimtBinopRRC(vaBits, vmi_ADD, va, *raP, *offsetP, 0);
+    vmimtMoveExtendRR(64, va, vaBits, va, False);
+
+    // use trigger VA as address
+    *raP     = va;
+    *offsetP = 0;
+}
+
+//
 // Load value from memory for explicit memBits and offset
 //
 static void emitLoadCommonMBO(
@@ -1821,9 +1871,17 @@ static void emitLoadCommonMBO(
     Uns64            offset,
     memConstraint    constraint
 ) {
-    Bool       sExtend = !state->info.unsExt;
-    memDomainP domain  = getLoadStoreDomainMT(state);
-    memEndian  endian  = getLoadStoreEndianMT(state);
+    Bool       sExtend   = !state->info.unsExt;
+    memDomainP domain    = getLoadStoreDomainMT(state);
+    memEndian  endian    = getLoadStoreEndianMT(state);
+    Bool       trigger   = triggerLoadMT(state->riscv);
+    vmiReg     rdTmp     = rd;
+
+    // generate trigger VA and load result into temporary if required
+    if(trigger) {
+        emitTriggerVA(state, &ra, &offset);
+        rdTmp = RISCV_TRIGGER_LV;
+    }
 
     // if a transactional domain access, perform try-load in current data
     // domain (to update VM and PMP structures and generate access exceptions)
@@ -1833,8 +1891,23 @@ static void emitLoadCommonMBO(
 
     // emit code to perform load
     vmimtLoadRRODomain(
-        domain, rdBits, memBits, offset, rd, ra, endian, sExtend, constraint
+        domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
     );
+
+    // invoke load value trigger if required
+    if(trigger) {
+
+        // extend temporary result to 64 bits
+        vmimtMoveExtendRR(64, rdTmp, rdBits, rdTmp, False);
+
+        // call trigger function
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
+
+        // commit result
+        vmimtMoveRR(rdBits, rd, rdTmp);
+    }
 }
 
 //
@@ -10841,6 +10914,34 @@ VMI_START_END_BLOCK_FN(riscvEndBlock) {
 }
 
 //
+// Insert optional call to instruction fetch trigger
+//
+static Bool doExecuteTrigger(riscvP riscv, Uns32 instruction, Uns32 bytes) {
+
+    if(triggerExecuteMT(riscv)) {
+
+        vmiCallFn cb = 0;
+
+        if(bytes==2) {
+            cb = (vmiCallFn)riscvTriggerX2;
+        } else if(bytes==4) {
+            cb = (vmiCallFn)riscvTriggerX4;
+        }
+
+        // sanity check instruction size
+        VMI_ASSERT(cb, "illegal instruction size %u bytes", bytes);
+
+        // emit call to instruction trigger check
+        vmimtArgProcessor();
+        vmimtArgSimPC(64);
+        vmimtArgUns32(instruction);
+        vmimtCallAttrs((vmiCallFn)cb, VMCA_NA);
+    }
+
+    return False;
+}
+
+//
 // Instruction Morpher
 //
 VMI_MORPH_FN(riscvMorph) {
@@ -10875,6 +10976,10 @@ VMI_MORPH_FN(riscvMorph) {
     if(disableMorph(&state)) {
 
         // no action if in disassembly mode
+
+    } else if(doExecuteTrigger(riscv, state.info.instruction, state.info.bytes)) {
+
+        // execute trigger precedes Illegal Instruction check
 
     } else if(state.info.type==RV_IT_LAST) {
 
@@ -10941,6 +11046,10 @@ void riscvMorphExternal(
     if(RISCV_DISASSEMBLE(riscv)) {
 
         // no action if in disassembly mode
+
+    } else if(doExecuteTrigger(riscv, state->info.instruction, state->info.bytes)) {
+
+        // execute trigger precedes Illegal Instruction check
 
     } else if(!riscvInstructionEnabled(riscv, state->info.arch)) {
 

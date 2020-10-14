@@ -41,6 +41,7 @@
 #define RISCV_DISASSEMBLE_MASK      0x00000001
 #define RISCV_DEBUG_MMU_MASK        0x00000002
 #define RISCV_DEBUG_EXCEPT_MASK     0x00000004
+#define RISCV_DEBUG_TRIGGER_MASK    0x00000008
 
 //
 // Processor flag selection macros
@@ -48,6 +49,7 @@
 #define RISCV_DISASSEMBLE(_P)   ((_P)->flags & RISCV_DISASSEMBLE_MASK)
 #define RISCV_DEBUG_MMU(_P)     ((_P)->flags & RISCV_DEBUG_MMU_MASK)
 #define RISCV_DEBUG_EXCEPT(_P)  ((_P)->flags & RISCV_DEBUG_EXCEPT_MASK)
+#define RISCV_DEBUG_TRIGGER(_P) ((_P)->flags & RISCV_DEBUG_TRIGGER_MASK)
 
 //
 // Debug flags that should be disabled during save/restore
@@ -149,10 +151,14 @@ typedef riscvDomainSetVM *riscvDomainSetVMP;
 // Trigger register set
 //
 typedef struct riscvTriggerS {
-    CSR_REG_DECL(tdata1);
-    CSR_REG_DECL(tdata2);
-    CSR_REG_DECL(tdata3);
-} riscvTrigger, *riscvTriggerP;
+    Uns64         matchICount;
+    CSR_REG_DECL (tdata1);
+    CSR_REG_DECL (tdata2);
+    CSR_REG_DECL (tdata3);
+    CSR_REG_DECL (tinfo);
+    CSR_REG_DECL (mcontext);
+    CSR_REG_DECL (scontext);
+} riscvTrigger;
 
 //
 // Maximum supported value of VLEN and number of vector registers (vector
@@ -196,6 +202,9 @@ typedef struct riscvS {
     Bool               useTMode      :1;// has transaction mode been enabled?
     Bool               rmCheckValid  :1;// whether RM valid check required
     Bool               checkEndian   :1;// whether endian check required
+    Bool               checkTriggerL :1;// whether trigger load check
+    Bool               checkTriggerS :1;// whether trigger store check
+    Bool               checkTriggerX :1;// whether trigger execute check
     riscvVTypeFmt      vtypeFormat   :1;// vtype format (vector extension)
     Uns16              pmKey;           // polymorphic key
     Uns8               xlenMask;        // XLEN mask (per mode5)
@@ -318,6 +327,8 @@ typedef struct riscvS {
 
     // Trigger module
     riscvTriggerP      triggers;        // triggers (configurable size)
+    Uns64              triggerVA;       // computed VA for load/store
+    Uns64              triggerLV;       // load value
 
     // Vector extension
     Uns8               vFieldMask;          	// vector field mask

@@ -65,5 +65,7 @@
 #define RISCV_OFFSETS_LMULx4    RISCV_CPU_REG(offsetsLMULx4)
 #define RISCV_OFFSETS_LMULx8    RISCV_CPU_REG(offsetsLMULx8)
 #define RISCV_BLOCK_MASK        RISCV_CPU_REG(currentArch)
+#define RISCV_TRIGGER_VA        RISCV_CPU_REG(triggerVA)
+#define RISCV_TRIGGER_LV        RISCV_CPU_REG(triggerLV)
 
 

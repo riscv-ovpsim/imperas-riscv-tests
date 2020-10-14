@@ -154,7 +154,7 @@ void riscvWriteRegSize(
 void riscvWriteReg(riscvP riscv, riscvRegDesc r, Bool signExtend);
 
 //
-// Return endian for data accesses in the current mode
+// Return morph-time endianness for data accesses in the current mode
 //
 memEndian riscvGetCurrentDataEndianMT(riscvP riscv);
 

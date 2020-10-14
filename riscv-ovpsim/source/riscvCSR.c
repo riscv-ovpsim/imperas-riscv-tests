@@ -39,6 +39,7 @@
 #include "riscvMorph.h"
 #include "riscvRegisters.h"
 #include "riscvStructure.h"
+#include "riscvTrigger.h"
 #include "riscvVariant.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
@@ -75,12 +76,22 @@ static riscvCSRId getCSRId(riscvCSRAttrsCP attrs);
 
 //
 // Return the 4-state processor mode with which the CSR should be associated
+// (before any adjustment for absent modes)
+//
+inline static riscvMode getCSRMode4Raw(riscvCSRAttrsCP attrs) {
+
+    CSRFields fields = {attrs->csrNum};
+
+    return (attrs->access==ISA_S) ? RISCV_MODE_S : fields.mode;
+}
+
+//
+// Return the 4-state processor mode with which the CSR should be associated
 //
 static riscvMode getCSRMode4(riscvCSRAttrsCP attrs, riscvP riscv) {
 
-    riscvArchitecture arch   = riscv->configInfo.arch;
-    CSRFields         fields = {attrs->csrNum};
-    riscvMode         mode   = fields.mode;
+    riscvArchitecture arch = riscv->configInfo.arch;
+    riscvMode         mode = getCSRMode4Raw(attrs);
 
     // promote User-accessible registers to Supervisor mode if User mode is
     // absent
@@ -3046,10 +3057,114 @@ static void resetVLVType(riscvP riscv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Return modes masked to those implemented on the processor
+//
+static Uns32 maskModes(riscvP riscv, Uns32 modes) {
+
+    riscvArchitecture arch = riscv->configInfo.arch;
+    Uns32             mask = 0;
+
+    if(arch&ISA_M) {mask |= 1<<RISCV_MODE_M;}
+    if(arch&ISA_S) {mask |= 1<<RISCV_MODE_S;}
+    if(arch&ISA_U) {mask |= 1<<RISCV_MODE_U;}
+
+    return modes & mask;
+}
+
+//
+// Return currently-enabled trigger structure
+//
+inline static riscvTriggerP getCurrentTrigger(riscvP riscv) {
+    return &riscv->triggers[RD_CSRC(riscv, tselect)];
+}
+
+//
+// Is access to the given trigger allowed in the current mode?
+//
+static Bool mayWriteTrigger(riscvP riscv, riscvTriggerP trigger) {
+
+    Bool ok = (
+        // access always allowed by an artifact write
+        riscv->artifactAccess ||
+        // access always allowed in debug mode
+        inDebugMode(riscv) ||
+        // access allowed only if dmode is 0
+        !RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata1, dmode)
+    );
+
+    // report illegal accesses if required
+    if(!ok && riscv->verbose) {
+        vmiMessage("W", CPU_PREFIX"_ITRA",
+            SRCREF_FMT
+            "Illegal trigger register access (dmode=0 for current trigger)",
+            SRCREF_ARGS(riscv, getPC(riscv))
+        );
+    }
+
+    return ok;
+}
+
+//
+// Is assignment of tdata1.dmode allowed?
+//
+static Bool mayWriteDMode(riscvP riscv, Bool dmode) {
+
+    Bool ok = (
+        // not attempting to set tdata1.dmode
+        !dmode ||
+        // access always allowed by an artifact write
+        riscv->artifactAccess ||
+        // access always allowed in debug mode
+        inDebugMode(riscv)
+    );
+
+    // report illegal accesses if required
+    if(!ok && riscv->verbose) {
+        vmiMessage("W", CPU_PREFIX"_IDMU",
+            SRCREF_FMT
+            "Illegal attempt to update tdata1.dmode in Machine mode",
+            SRCREF_ARGS(riscv, getPC(riscv))
+        );
+    }
+
+    return ok;
+}
+
+//
+// Is the specified trigger type supported?
+//
+static Bool validateTriggerType(
+    riscvP        riscv,
+    riscvTriggerP trigger,
+    triggerType   type
+) {
+    Bool ok = RD_REG_TRIGGER(trigger, tinfo) & (1<<type);
+
+    // report illegal trigger type if required
+    if(!ok && riscv->verbose) {
+        vmiMessage("W", CPU_PREFIX"_ITT",
+            SRCREF_FMT
+            "Illegal attempt to use unsupported trigger type %u",
+            SRCREF_ARGS(riscv, getPC(riscv)),
+            type
+        );
+    }
+
+    return ok;
+}
+
+//
 // Are trigger registers present?
 //
 inline static RISCV_CSR_PRESENTFN(triggerP) {
     return getTriggerNum(riscv);
+}
+
+//
+// Is mcontext register present?
+//
+inline static RISCV_CSR_PRESENTFN(tcontrolP) {
+    return getTriggerNum(riscv) && riscv->configInfo.tcontrol_present;
 }
 
 //
@@ -3073,11 +3188,339 @@ static RISCV_CSR_WRITEFN(tselectW) {
 
     // clamp to implemented triggers
     if(newValue<riscv->configInfo.trigger_num) {
-        WR_CSRC(riscv, dcsr, newValue);
+        WR_CSRC(riscv, tselect, newValue);
     }
 
     // return written value
-    return RD_CSRC(riscv, dcsr);
+    return RD_CSRC(riscv, tselect);
+}
+
+//
+// Read tdata1
+//
+static RISCV_CSR_READFN(tdata1R) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata1);
+}
+
+//
+// Write tdata1
+//
+static RISCV_CSR_WRITEFN(tdata1W) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    // assign raw value to structure
+    CSR_REG_DECL(tdata1) = {newValue};
+
+    // get selected trigger type
+    triggerType type = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type);
+
+    if(!mayWriteTrigger(riscv, trigger)) {
+
+        // ignore attempt to update Debug trigger in Machine mode
+
+    } else if(!validateTriggerType(riscv, trigger, type)) {
+
+        // ignore attempt to change to unsupported trigger type
+
+    } else {
+
+        // validate attempt to update dmode
+        if(!mayWriteDMode(riscv, RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode))) {
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode, 0);
+        }
+
+        // get effective dmode
+        Bool dmode = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode);
+
+        // handle type-specific updates
+        switch(type) {
+
+            case TT_NONE:
+
+                // all fields are zero if type is TT_NONE
+                WR_RAW64(tdata1, 0);
+
+                break;
+
+            case TT_ADMATCH:
+
+                // clear always-zero fields
+                if(!TRIGGER_IS_32M(riscv)) {
+                    WR_RAW_FIELD64(tdata1, mcontrol._u1, 0);
+                }
+
+                // dmode=0 requires action=0, and action must not exceed 1
+                if(!dmode || (RD_RAW_FIELDC(tdata1, mcontrol.action)>1)) {
+                    WR_RAW_FIELDC(tdata1, mcontrol.action, 0);
+                }
+
+                // assign read-only maskmax field
+                WR_RAW_FIELDC(
+                    tdata1,
+                    mcontrol.maskmax,
+                    riscv->configInfo.mcontrol_maskmax
+                );
+
+                // mask effective modes
+                WR_RAW_FIELDC(
+                    tdata1,
+                    mcontrol.modes,
+                    maskModes(riscv, RD_RAW_FIELDC(tdata1, mcontrol.modes))
+                );
+
+                break;
+
+            default:
+
+                // ignore write if value is invalid
+                tdata1 = trigger->tdata1;
+
+                break;
+        }
+
+        // handle value change
+        if(RD_RAW64(trigger->tdata1) != RD_RAW64(tdata1)) {
+            WR_RAW64(trigger->tdata1, RD_RAW64(tdata1));
+            riscvSetCurrentArch(riscv);
+        }
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata1);
+}
+
+//
+// Read tdata2
+//
+static RISCV_CSR_READFN(tdata2R) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
+}
+
+//
+// Write tdata2
+//
+static RISCV_CSR_WRITEFN(tdata2W) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    if(!mayWriteTrigger(riscv, trigger)) {
+
+        // no action
+
+    } else if(RD_RAW64(trigger->tdata2) != newValue) {
+
+        // handle value change
+        WR_RAW64(trigger->tdata2, newValue);
+        riscvSetCurrentArch(riscv);
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
+}
+
+//
+// Read tdata3
+//
+static RISCV_CSR_READFN(tdata3R) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata3);
+}
+
+//
+// Write tdata3
+//
+static RISCV_CSR_WRITEFN(tdata3W) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    if(mayWriteTrigger(riscv, trigger)) {
+
+        // assign raw value to structure
+        CSR_REG_DECL(tdata3) = {newValue};
+
+        // get configuration parameters
+        Uns32 mvalue_bits = riscv->configInfo.mvalue_bits;
+        Uns32 svalue_bits = riscv->configInfo.svalue_bits;
+
+        // handle M-mode fields
+        if(mvalue_bits) {
+
+            // get new field values
+            Uns32 mselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mselect);
+            Uns32 mvalue  = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mvalue);
+
+            // mask mvalue
+            mvalue &= ((1<<mvalue_bits)-1);
+
+            // update fields
+            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mselect, mselect);
+            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mvalue,  mvalue);
+        }
+
+        // handle S-mode fields
+        if(!svalue_bits) {
+            // no action
+        } else if(!(riscv->configInfo.arch&ISA_S)) {
+            // no action
+        } else {
+
+            // get new svalue
+            Uns64 svalue = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue);
+
+            // mask svalue
+            svalue &= ((1ULL<<svalue_bits)-1);
+
+            // update svalue
+            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, svalue,  svalue);
+
+            if(RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect)<=2) {
+
+                // get new sselect value
+                Uns32 sselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect);
+
+                // update sselect
+                WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, sselect, sselect);
+            }
+        }
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata3);
+}
+
+//
+// Read tinfo
+//
+static RISCV_CSR_READFN(tinfoR) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, tinfo);
+}
+
+//
+// Read mcontext
+//
+static RISCV_CSR_READFN(mcontextR) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, mcontext);
+}
+
+//
+// Write mcontext
+//
+static RISCV_CSR_WRITEFN(mcontextW) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    // mask to implemented bits
+    newValue &= RD_CSR_MASK64(riscv, mcontext);
+
+    if(mayWriteTrigger(riscv, trigger)) {
+        WR_REG_TRIGGER_MODE(riscv, trigger, mcontext, newValue);
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, mcontext);
+}
+
+//
+// Read scontext
+//
+static RISCV_CSR_READFN(scontextR) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return RD_REG_TRIGGER_MODE(riscv, trigger, scontext);
+}
+
+//
+// Write scontext
+//
+static RISCV_CSR_WRITEFN(scontextW) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    // mask to implemented bits
+    newValue &= RD_CSR_MASK64(riscv, scontext);
+
+    if(mayWriteTrigger(riscv, trigger)) {
+        WR_REG_TRIGGER_MODE(riscv, trigger, scontext, newValue);
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, scontext);
+}
+
+//
+// Configure trigger state
+//
+static void configureTriggers(riscvP riscv) {
+
+    Uns32 tinfo = riscv->configInfo.tinfo;
+    Uns32 i;
+
+    for(i=0; i<riscv->configInfo.trigger_num; i++) {
+
+        riscvTriggerP trigger = &riscv->triggers[i];
+
+        WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info, tinfo);
+    }
+}
+
+//
+// Reset trigger state
+//
+static void resetTriggers(riscvP riscv) {
+
+    Uns32 i;
+
+    // force artifact access mode to allow clearing debug mode state
+    riscv->artifactAccess = True;
+
+    // reset all triggers
+    for(i=0; i<riscv->configInfo.trigger_num; i++) {
+
+        riscvTriggerP trigger = &riscv->triggers[i];
+        Uns32         types   = RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info);
+        triggerType   type    = 0;
+
+        // clear trigger match count
+        trigger->matchICount = -1;
+
+        // select this trigger
+        tselectW(0, riscv, i);
+
+        // determine type for trigger at reset
+        while(types && !(types&1)) {
+            type++;
+            types >>= 1;
+        }
+
+        // construct reset value
+        CSR_REG_DECL(tdata1) = {0};
+        WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type, type);
+
+        // apply reset value
+        tdata1W(0, riscv, RD_RAW64(tdata1));
+    }
+
+    // terminate artifact access mode
+    riscv->artifactAccess = False;
+
+    // reset trigger select
+    tselectW(0, riscv, 0);
 }
 
 
@@ -3527,12 +3970,14 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__3_31 (mhpmevent,    0x320, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Performance Monitor Event Select ",             0,           0,           mhpmR,        0,        mhpmW         ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
-    CSR_ATTR_T__     (tselect,      0x7A0, 0,           0,          1_10,   0,0,0,0,0,0, "Debug/Trace Trigger Register Select",                   triggerP,    0,           0,            0,        tselectW      ),
-    CSR_ATTR_NIP     (tdata1,       0x7A1, 0,           0,          1_10,   0,0,0,0,0,0, "Debug/Trace Trigger Data 1",                            triggerP                                                        ),
-    CSR_ATTR_NIP     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,0,0, "Debug/Trace Trigger Data 2",                            triggerP                                                        ),
-    CSR_ATTR_NIP     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,0,0, "Debug/Trace Trigger Data 3",                            triggerP                                                        ),
-    CSR_ATTR_TV_     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,0,0, "Trigger Machine Context",                               mcontextP,   0,           0,            0,        0             ),
-    CSR_ATTR_TV_     (scontext,     0x7AA, ISA_S,       ISA_S,      1_10,   0,0,0,0,0,0, "Trigger Supervisor Context",                            scontextP,   0,           0,            0,        0             ),
+    CSR_ATTR_T__     (tselect,      0x7A0, 0,           0,          1_10,   0,0,0,0,0,0, "Trigger Register Select",                               triggerP,    0,           0,            0,        tselectW      ),
+    CSR_ATTR_P__     (tdata1,       0x7A1, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 1",                                        triggerP,    0,           tdata1R,      0,        tdata1W       ),
+    CSR_ATTR_P__     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 2",                                        triggerP,    0,           tdata2R,      0,        tdata2W       ),
+    CSR_ATTR_P__     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 3",                                        triggerP,    0,           tdata3R,      0,        tdata3W       ),
+    CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Info",                                          triggerP,    0,           tinfoR,       0,        0             ),
+    CSR_ATTR_TC_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
+    CSR_ATTR_P__     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Machine Context",                               mcontextP,   0,           mcontextR,    0,        mcontextW     ),
+    CSR_ATTR_P__     (scontext,     0x7AA, ISA_S,       ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontextP,   0,           scontextR,    0,        scontextW     ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_TV_     (dcsr,         0x7B0, 0,           0,          1_10,   0,0,0,0,0,0, "Debug Control and Status",                              debugP,      0,           0,            0,        dcsrW         ),
@@ -4231,6 +4676,9 @@ void riscvCSRReset(riscvP riscv) {
     // update current architecture on change to misa or mstatus
     riscvSetCurrentArch(riscv);
 
+    // perform trigger reset
+    resetTriggers(riscv);
+
     // reset dcsr
     dcsrWInt(riscv, RISCV_MODE_MACHINE, True);
 
@@ -4820,7 +5268,14 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
 
     // allocate trigger structures if required
     if(cfg->trigger_num) {
+
         riscv->triggers = STYPE_CALLOC_N(riscvTrigger, cfg->trigger_num);
+
+        // configure triggers
+        configureTriggers(riscv);
+
+        // perform trigger reset
+        resetTriggers(riscv);
     }
 
     //--------------------------------------------------------------------------
@@ -5147,7 +5602,7 @@ static riscvArchitecture getInaccessibleCSRFeaturesMT(
     riscvMode         mode     = getCSRMode5(attrs, riscv);
 
     // switch to access requirements if required
-    if(access && vxRequiresFS(riscv)) {
+    if((access&ISA_FS) && vxRequiresFS(riscv)) {
         required = access;
     }
 
@@ -5193,8 +5648,8 @@ riscvCSRAttrsCP riscvValidateCSRAccess(
     Bool   read,
     Bool   write
 ) {
-    CSRFields         fields = {csrNum};
-    riscvCSRAttrsCP   attrs  = getCSRAttrs(riscv, csrNum);
+    riscvCSRAttrsCP   attrs = getCSRAttrs(riscv, csrNum);
+    riscvMode         mode  = attrs ? getCSRMode4Raw(attrs) : 0;
     riscvArchitecture missing;
 
     if(invalidDebugCSRAccess(riscv, csrNum)) {
@@ -5221,7 +5676,7 @@ riscvCSRAttrsCP riscvValidateCSRAccess(
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "CSR_NWA", "CSR has no write access");
         return 0;
 
-    } else if(getCurrentMode4(riscv)>=fields.mode) {
+    } else if(getCurrentMode4(riscv)>=mode) {
 
         // CSR access ok - return either CSR or its virtual alias
         if(inVMode(riscv) && attrs->aliasV) {
@@ -5230,7 +5685,7 @@ riscvCSRAttrsCP riscvValidateCSRAccess(
 
         return attrs;
 
-    } else if((fields.mode==RISCV_MODE_M) || !inVMode(riscv)) {
+    } else if((mode==RISCV_MODE_M) || !inVMode(riscv)) {
 
         // attempt to access any CSR from lower-privilege non-virtual mode, or
         // attempt to access M-mode CSR from virtual mode
