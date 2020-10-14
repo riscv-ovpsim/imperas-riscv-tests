@@ -1,0 +1,242 @@
+# Imperas RISC-V Architecture Tests for RV32VB
+
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| I-VLHU-V-SEW16_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSB-V-SEW16_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VSH-V-SEW32_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VSB-V-SEW16_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VSE-V-SEW8_LMUL2                 |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VSB-V-SEW32_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VLBU-V-SEW32_LMUL2_M             |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLH-V-SEW16_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLB-V-SEW16_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLW-V-SEW32_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSETVL-SEW8_LMUL8                |    11,780 |       1,540  |         4,096  |                 354  |
+| I-VSE-V-SEW8_LMUL8                 |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSH-V-SEW32_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VSETVLI-SEW16_LMUL2              |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLB-V-SEW32_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLE-V-SEW16_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSW-V-SEW32_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VSE-V-SEW8_LMUL1                 |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VLB-V-SEW8_LMUL1                 |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSH-V-SEW32_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSE-V-SEW32_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSH-V-SEW32_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VSB-V-SEW8_LMUL4                 |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VSE-V-SEW32_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VLBU-V-SEW8_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLBU-V-SEW32_LMUL8_M             |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLH-V-SEW16_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VSETVLI-SEW8_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW32_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW8_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLW-V-SEW32_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSETVL-SEW8_LMUL2                |     7,428 |       2,756  |         2,048  |                 658  |
+| I-VSE-V-SEW16_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VLBU-V-SEW32_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLH-V-SEW32_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLE-V-SEW16_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSW-V-SEW32_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VLE-V-SEW8_LMUL2_M               |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VSE-V-SEW8_LMUL2_M               |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VSB-V-SEW16_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLBU-V-SEW32_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLB-V-SEW8_LMUL2_M               |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLB-V-SEW16_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSB-V-SEW8_LMUL8_M               |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VLB-V-SEW8_LMUL8_M               |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VSETVL-SEW16_LMUL8               |    11,780 |       1,540  |         4,096  |                 354  |
+| I-VLE-V-SEW16_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLE-V-SEW8_LMUL8_M               |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLHU-V-SEW16_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLHU-V-SEW32_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSE-V-SEW8_LMUL4                 |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VLB-V-SEW32_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLHU-V-SEW16_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSB-V-SEW32_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSB-V-SEW32_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VLB-V-SEW8_LMUL4                 |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSETVL-SEW16_LMUL2               |     7,428 |       2,756  |         2,048  |                 658  |
+| I-VLW-V-SEW32_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSW-V-SEW32_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLHU-V-SEW16_LMUL8_M             |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLE-V-SEW32_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLB-V-SEW8_LMUL2                 |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLBU-V-SEW16_LMUL4_M             |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLBU-V-SEW8_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLBU-V-SEW16_LMUL8_M             |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLWU-V-SEW32_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLE-V-SEW16_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VSB-V-SEW32_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VLB-V-SEW16_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLWU-V-SEW32_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSB-V-SEW16_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSH-V-SEW16_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VSETVL-SEW32_LMUL2               |     7,428 |       2,756  |         2,048  |                 658  |
+| I-VLE-V-SEW32_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLW-V-SEW32_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSH-V-SEW16_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VLH-V-SEW16_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW16_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLB-V-SEW8_LMUL1_M               |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VSH-V-SEW32_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLE-V-SEW8_LMUL2                 |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSB-V-SEW32_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VLE-V-SEW32_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VSB-V-SEW16_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLBU-V-SEW16_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSH-V-SEW16_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLHU-V-SEW16_LMUL2_M             |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLB-V-SEW32_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW8_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLH-V-SEW16_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VSH-V-SEW32_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSE-V-SEW8_LMUL8_M               |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VSE-V-SEW16_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSW-V-SEW32_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSB-V-SEW32_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLE-V-SEW16_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLWU-V-SEW32_LMUL1_M             |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLE-V-SEW32_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLH-V-SEW16_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VSB-V-SEW8_LMUL1_M               |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLB-V-SEW16_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLB-V-SEW32_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSE-V-SEW32_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VLH-V-SEW32_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLB-V-SEW32_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLE-V-SEW32_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSE-V-SEW32_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VLB-V-SEW32_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLHU-V-SEW16_LMUL1_M             |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLHU-V-SEW16_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLBU-V-SEW8_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VSW-V-SEW32_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VLE-V-SEW16_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLH-V-SEW32_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLWU-V-SEW32_LMUL8_M             |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VSB-V-SEW8_LMUL2_M               |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLE-V-SEW32_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSH-V-SEW16_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VLWU-V-SEW32_LMUL2_M             |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLB-V-SEW16_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VSE-V-SEW16_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VSB-V-SEW8_LMUL4_M               |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VLW-V-SEW32_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VSH-V-SEW16_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSETVLI-SEW8_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VSE-V-SEW32_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VSE-V-SEW16_LMUL4_M              |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VSH-V-SEW16_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VLHU-V-SEW32_LMUL1_M             |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLH-V-SEW32_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLB-V-SEW16_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSE-V-SEW32_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSE-V-SEW16_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSB-V-SEW32_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VSB-V-SEW8_LMUL8                 |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSETVLI-SEW32_LMUL4              |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLE-V-SEW16_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLE-V-SEW8_LMUL8                 |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLE-V-SEW8_LMUL4_M               |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLBU-V-SEW8_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSETVLI-SEW32_LMUL1              |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLB-V-SEW32_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VSETVLI-SEW8_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSW-V-SEW32_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLB-V-SEW8_LMUL4_M               |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLE-V-SEW32_LMUL1_M              |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLW-V-SEW32_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLBU-V-SEW16_LMUL2_M             |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLE-V-SEW8_LMUL1_M               |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLE-V-SEW32_LMUL8                |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSETVLI-SEW32_LMUL2              |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSB-V-SEW8_LMUL2                 |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VSB-V-SEW8_LMUL1                 |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSETVLI-SEW16_LMUL8              |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSW-V-SEW32_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VSETVL-SEW8_LMUL1                |     5,892 |       2,756  |         1,024  |                 658  |
+| I-VSH-V-SEW32_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VSE-V-SEW16_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VSB-V-SEW16_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VLHU-V-SEW32_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSETVL-SEW8_LMUL4                |    10,244 |       2,756  |         4,096  |                 658  |
+| I-VSH-V-SEW16_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSE-V-SEW8_LMUL4_M               |    10,756 |       9,988  |         3,584  |               2,458  |
+| I-VLHU-V-SEW32_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLE-V-SEW8_LMUL1                 |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLBU-V-SEW32_LMUL4_M             |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSE-V-SEW16_LMUL8_M              |    11,268 |       7,556  |         3,072  |               1,850  |
+| I-VLBU-V-SEW32_LMUL1_M             |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VLW-V-SEW32_LMUL8_M              |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLB-V-SEW16_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLHU-V-SEW32_LMUL8_M             |    11,268 |       1,412  |         3,072  |                 326  |
+| I-VLBU-V-SEW16_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLWU-V-SEW32_LMUL4_M             |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSW-V-SEW32_LMUL8                |    11,780 |       9,604  |         4,096  |               2,370  |
+| I-VSE-V-SEW32_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VSETVLI-SEW32_LMUL8              |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW16_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLB-V-SEW32_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLHU-V-SEW32_LMUL8               |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VLBU-V-SEW8_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLB-V-SEW16_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLB-V-SEW8_LMUL8                 |    11,780 |       1,476  |         4,096  |                 338  |
+| I-VSE-V-SEW32_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLE-V-SEW16_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLWU-V-SEW32_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSE-V-SEW16_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VSB-V-SEW16_LMUL1                |     5,892 |       4,548  |         1,024  |               1,106  |
+| I-VSETVL-SEW16_LMUL1               |     5,892 |       2,756  |         1,024  |                 658  |
+| I-VLH-V-SEW32_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLHU-V-SEW16_LMUL4_M             |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLH-V-SEW16_LMUL4_M              |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VLW-V-SEW32_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSB-V-SEW32_LMUL1_M              |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VLH-V-SEW16_LMUL1                |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLE-V-SEW8_LMUL4                 |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSH-V-SEW32_LMUL2                |     7,428 |       6,596  |         2,048  |               1,618  |
+| I-VLBU-V-SEW16_LMUL1_M             |     6,916 |       3,204  |         1,024  |                 764  |
+| I-VSE-V-SEW8_LMUL1_M               |     6,916 |       5,060  |         1,024  |               1,229  |
+| I-VSETVLI-SEW16_LMUL1              |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLWU-V-SEW32_LMUL1               |     5,892 |       2,628  |         1,024  |                 626  |
+| I-VLH-V-SEW16_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VLH-V-SEW32_LMUL2_M              |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLHU-V-SEW32_LMUL4_M             |    10,756 |       2,884  |         3,584  |                 694  |
+| I-VSB-V-SEW16_LMUL4                |    10,244 |      10,692  |         4,096  |               2,642  |
+| I-VSETVL-SEW32_LMUL8               |    11,780 |       1,540  |         4,096  |                 354  |
+| I-VLBU-V-SEW32_LMUL4               |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VSH-V-SEW16_LMUL2_M              |     8,452 |       6,788  |         2,048  |               1,672  |
+| I-VLH-V-SEW32_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSETVL-SEW32_LMUL1               |     5,892 |       2,756  |         1,024  |                 658  |
+| I-VSETVL-SEW32_LMUL4               |    10,244 |       2,756  |         4,096  |                 658  |
+| I-VSETVL-SEW16_LMUL4               |    10,244 |       2,756  |         4,096  |                 658  |
+| I-VLHU-V-SEW32_LMUL2_M             |     8,452 |       3,076  |         2,048  |                 742  |
+| I-VLH-V-SEW32_LMUL4                |    10,244 |       2,628  |         4,096  |                 626  |
+| I-VLBU-V-SEW8_LMUL2                |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSETVLI-SEW8_LMUL2               |     7,428 |       2,628  |         2,048  |                 626  |
+| I-VSETVLI-SEW16_LMUL4              |    10,244 |       2,628  |         4,096  |                 626  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

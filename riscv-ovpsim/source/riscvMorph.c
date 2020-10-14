@@ -227,10 +227,17 @@ memEndian riscvGetCurrentDataEndianMT(riscvP riscv) {
 }
 
 //
-// Is morph-time trigger load check required in the current mode?
+// Is morph-time trigger load address check required in the current mode?
 //
-inline static Bool triggerLoadMT(riscvP riscv) {
-    return checkFeatureMT(riscv, riscv->checkTriggerL, ISA_TM_L);
+inline static Bool triggerLoadAddressMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkTriggerLA, ISA_TM_LA);
+}
+
+//
+// Is morph-time trigger load value check required in the current mode?
+//
+inline static Bool triggerLoadValueMT(riscvP riscv) {
+    return checkFeatureMT(riscv, riscv->checkTriggerLV, ISA_TM_LV);
 }
 
 //
@@ -1874,13 +1881,20 @@ static void emitLoadCommonMBO(
     Bool       sExtend   = !state->info.unsExt;
     memDomainP domain    = getLoadStoreDomainMT(state);
     memEndian  endian    = getLoadStoreEndianMT(state);
-    Bool       trigger   = triggerLoadMT(state->riscv);
+    Bool       triggerLA = triggerLoadAddressMT(state->riscv);
+    Bool       triggerLV = triggerLoadValueMT(state->riscv);
     vmiReg     rdTmp     = rd;
 
-    // generate trigger VA and load result into temporary if required
-    if(trigger) {
+    // generate trigger VA if required
+    if(triggerLA || triggerLV) {
         emitTriggerVA(state, &ra, &offset);
-        rdTmp = RISCV_TRIGGER_LV;
+    }
+
+    // invoke load address trigger if required
+    if(triggerLA) {
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLA, VMCA_NA);
     }
 
     // if a transactional domain access, perform try-load in current data
@@ -1889,25 +1903,26 @@ static void emitLoadCommonMBO(
         vmimtTryLoadRC(memBits, offset, ra, constraint);
     }
 
+    // load result into temporary if load value trigger is active
+    if(triggerLV) {
+        rdTmp = RISCV_TRIGGER_LV;
+    }
+
     // emit code to perform load
     vmimtLoadRRODomain(
         domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
     );
 
     // invoke load value trigger if required
-    if(trigger) {
-
-        // extend temporary result to 64 bits
+    if(triggerLV) {
         vmimtMoveExtendRR(64, rdTmp, rdBits, rdTmp, False);
-
-        // call trigger function
         vmimtArgProcessor();
         vmimtArgUns32(memBits/8);
         vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
-
-        // commit result
-        vmimtMoveRR(rdBits, rd, rdTmp);
     }
+
+    // commit result
+    vmimtMoveRR(rdBits, rd, rdTmp);
 }
 
 //
@@ -1921,8 +1936,21 @@ static void emitStoreCommonMBO(
     Uns64            offset,
     memConstraint    constraint
 ) {
-    memDomainP domain = getLoadStoreDomainMT(state);
-    memEndian  endian = getLoadStoreEndianMT(state);
+    memDomainP domain   = getLoadStoreDomainMT(state);
+    memEndian  endian   = getLoadStoreEndianMT(state);
+    Bool       triggerS = triggerStoreMT(state->riscv);
+
+    if(triggerS) {
+
+        // generate trigger VA
+        emitTriggerVA(state, &ra, &offset);
+
+        // call trigger function
+        vmimtArgProcessor();
+        vmimtArgRegSimAddress(memBits, rs);
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerS, VMCA_NA);
+    }
 
     // if a transactional domain access, perform try-store in current data
     // domain (to update VM and PMP structures and generate access exceptions)

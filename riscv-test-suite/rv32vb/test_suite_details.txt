@@ -1,0 +1,60 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32VB RISC-V "V" Vector Extension:
+    216 test source files
+    2 different instruction categories
+    31 different instructions
+    219,267 total instructions
+
+Instruction category: OPV_STRI unit-strided load store
+  vle.v : 12,108
+  vlhu.v : 426
+  vse.v : 6,423
+  vsb.v : 639
+  vsh.v : 426
+  vlbu.v : 639
+  vlh.v : 426
+  vlb.v : 639
+  vlw.v : 213
+  vsw.v : 213
+  vlwu.v : 213
+Instruction category: OPV_CONFIG config
+  vsetvli : 19,440
+  vsetvl : 336
+
+Other instructions (those not the focus of this suite)
+  jal : 216
+  csrrs : 1,080
+  bne : 216
+  auipc : 6,864
+  addi : 94,803
+  csrrw : 1,728
+  csrrwi : 1,296
+  slli : 216
+  blt : 216
+  beq : 432
+  lui : 432
+  or : 216
+  mret : 216
+  add : 21,219
+  fence : 216
+  ecall : 216
+  lw : 46,872
+  vadd.vi : 672
+

@@ -1,0 +1,64 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32VR RISC-V "V" Vector Extension:
+    292 test source files
+    2 different instruction categories
+    35 different instructions
+    171,856 total instructions
+
+Instruction category: OPV_IRED integer reduction arithmetic
+  vredxor.vs : 639
+  vredmax.vs : 639
+  vredsum.vs : 639
+  vredor.vs : 639
+  vfredmax.vs : 426
+  vredmin.vs : 639
+  vredmaxu.vs : 639
+  vfredsum.vs : 426
+  vfredosum.vs : 426
+  vfredmin.vs : 426
+  vredand.vs : 639
+  vredminu.vs : 639
+Instruction category: OPV_IWRED integer widening reduction arithmetic
+  vwredsum.vs : 300
+  vfwredsum.vs : 150
+  vwredsumu.vs : 300
+  vfwredosum.vs : 150
+
+Other instructions (those not the focus of this suite)
+  jal : 292
+  csrrs : 1,460
+  bne : 292
+  auipc : 9,608
+  addi : 53,300
+  csrrw : 2,336
+  csrrwi : 1,752
+  slli : 292
+  blt : 292
+  beq : 584
+  lui : 584
+  or : 292
+  mret : 292
+  vsetvli : 26,800
+  vle.v : 26,800
+  add : 30,864
+  vse.v : 7,716
+  fence : 292
+  ecall : 292
+

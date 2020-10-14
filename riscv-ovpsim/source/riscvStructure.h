@@ -202,7 +202,8 @@ typedef struct riscvS {
     Bool               useTMode      :1;// has transaction mode been enabled?
     Bool               rmCheckValid  :1;// whether RM valid check required
     Bool               checkEndian   :1;// whether endian check required
-    Bool               checkTriggerL :1;// whether trigger load check
+    Bool               checkTriggerLA:1;// whether trigger load address check
+    Bool               checkTriggerLV:1;// whether trigger load value check
     Bool               checkTriggerS :1;// whether trigger store check
     Bool               checkTriggerX :1;// whether trigger execute check
     riscvVTypeFmt      vtypeFormat   :1;// vtype format (vector extension)

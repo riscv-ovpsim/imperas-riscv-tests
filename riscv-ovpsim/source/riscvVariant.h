@@ -43,10 +43,11 @@
 #define UXL64_CHAR              ('Z'+13)
 #define VSXL64_CHAR             ('Z'+14)
 #define VUXL64_CHAR             ('Z'+15)
-#define TM_L_CHAR               ('Z'+16)
-#define TM_S_CHAR               ('Z'+17)
-#define TM_X_CHAR               ('Z'+18)
-#define RISCV_FAND_CHAR         ('Z'+19)
+#define TM_LA_CHAR              ('Z'+16)
+#define TM_LV_CHAR              ('Z'+17)
+#define TM_S_CHAR               ('Z'+18)
+#define TM_X_CHAR               ('Z'+19)
+#define RISCV_FAND_CHAR         ('Z'+20)
 #define RISCV_FEATURE_INDEX(_C) ((_C)-'A')
 #define RISCV_FEATURE_BIT(_C)   (1ULL<<RISCV_FEATURE_INDEX(_C))
 #define XLEN_SHIFT              RISCV_FEATURE_INDEX(XLEN32_CHAR)
@@ -85,7 +86,8 @@ typedef enum riscvArchitectureE {
     ISA_XL64   = (ISA_MXL64|ISA_SXL64|ISA_UXL64|ISA_VSXL64|ISA_VUXL64),
 
     // TRIGGER SENSITIVITY
-    ISA_TM_L   = RISCV_FEATURE_BIT(TM_L_CHAR),
+    ISA_TM_LA  = RISCV_FEATURE_BIT(TM_LA_CHAR),
+    ISA_TM_LV  = RISCV_FEATURE_BIT(TM_LV_CHAR),
     ISA_TM_S   = RISCV_FEATURE_BIT(TM_S_CHAR),
     ISA_TM_X   = RISCV_FEATURE_BIT(TM_X_CHAR),
 
