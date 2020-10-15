@@ -179,7 +179,7 @@ Please visit [imperas.com/SDK](https://www.imperas.com/msdk-advanced-multicore-s
 # Comments about Imperas RISC-V simulation
 
 "An architectural validation suite is not a complete verification test plan for a RISC-V processor but shares many similar attributes and its adoption is always useful at any stage of a project. Any test plan requires 4 items - a device to test, some tests, a reference to compare against and a test plan. An easy-to-configure reference model that supports coverage driven analysis, like Imperas riscvOVPsim, is central to any test plan."
-**Bull McSPadden, Principal VLSI Verification Engineer at Seagate Technology, and co-chair if the RISC-V Internationals Technical Committee task group for compliance**
+**Bill McSpadden, Principal VLSI Verification Engineer at Seagate Technology, and co-chair of the RISC-V Internationals Technical Committee task group for compliance**
 
 "For the automotive market our customers expect the highest standards of quality and design assurance. NSITEXE selected the Imperas Vector Extensions Compliance test cases and RISC-V Reference Model as a foundation for our simulation-based design verification (DV) plans."
 **Hideki Sugimoto, CTO of NSITEXE, Inc., a group company of DENSO Corporation**
