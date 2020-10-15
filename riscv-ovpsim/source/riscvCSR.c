@@ -3161,24 +3161,24 @@ inline static RISCV_CSR_PRESENTFN(triggerP) {
 }
 
 //
-// Is mcontext register present?
+// Is tcontrol register present?
 //
 inline static RISCV_CSR_PRESENTFN(tcontrolP) {
-    return getTriggerNum(riscv) && riscv->configInfo.tcontrol_present;
+    return getTriggerNum(riscv) && !riscv->configInfo.tcontrol_undefined;
 }
 
 //
 // Is mcontext register present?
 //
 inline static RISCV_CSR_PRESENTFN(mcontextP) {
-    return getTriggerNum(riscv) && riscv->configInfo.mcontext_bits;
+    return getTriggerNum(riscv) && !riscv->configInfo.mcontext_undefined;
 }
 
 //
 // Is scontext register present?
 //
 inline static RISCV_CSR_PRESENTFN(scontextP) {
-    return getTriggerNum(riscv) && riscv->configInfo.scontext_bits;
+    return getTriggerNum(riscv) && !riscv->configInfo.scontext_undefined;
 }
 
 //
@@ -3210,7 +3210,12 @@ static RISCV_CSR_READFN(tdata1R) {
 //
 static RISCV_CSR_WRITEFN(tdata1W) {
 
-    riscvTriggerP trigger = getCurrentTrigger(riscv);
+    riscvTriggerP trigger  = getCurrentTrigger(riscv);
+    Uns64         oldValue = RD_REG_TRIGGER64(trigger, tdata1);
+    Uns64         mask     = RD_CSR_MASK_M(riscv, tdata1);
+
+    // get new value using writable bit mask
+    newValue = ((newValue & mask) | (oldValue & ~mask));
 
     // assign raw value to structure
     CSR_REG_DECL(tdata1) = {newValue};
@@ -3977,7 +3982,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Info",                                          triggerP,    0,           tinfoR,       0,        0             ),
     CSR_ATTR_TC_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
     CSR_ATTR_P__     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Machine Context",                               mcontextP,   0,           mcontextR,    0,        mcontextW     ),
-    CSR_ATTR_P__     (scontext,     0x7AA, ISA_S,       ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontextP,   0,           scontextR,    0,        scontextW     ),
+    CSR_ATTR_P__     (scontext,     0x7AA, 0,           ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontextP,   0,           scontextR,    0,        scontextW     ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_TV_     (dcsr,         0x7B0, 0,           0,          1_10,   0,0,0,0,0,0, "Debug Control and Status",                              debugP,      0,           0,            0,        dcsrW         ),
@@ -5277,6 +5282,12 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
         // perform trigger reset
         resetTriggers(riscv);
     }
+
+    //--------------------------------------------------------------------------
+    // tdata1 write mask
+    //--------------------------------------------------------------------------
+
+    WR_CSR_MASKC(riscv, tdata1, cfg->csrMask.tdata1.u64.bits ? : -1);
 
     //--------------------------------------------------------------------------
     // mcontext and scontext write masks

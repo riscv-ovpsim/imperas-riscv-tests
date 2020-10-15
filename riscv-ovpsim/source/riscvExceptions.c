@@ -2200,11 +2200,11 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         riscv->netValue.irq_ack = False;
     }
 
-    if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
+    /*if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
 
         // execute address trap (priority 3, handled in riscvTriggerX0)
 
-    } else if(riscv->netValue.resethaltreqS) {
+    } else*/ if(riscv->netValue.resethaltreqS) {
 
         // enter Debug mode out of reset (priority 2)
         if(complete) {
@@ -2226,6 +2226,10 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
             riscv->netValue.stepreq = False;
             enterDM(riscv, DMC_STEP);
         }
+
+    } else if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
+
+        // execute address trap (priority 3, handled in riscvTriggerX0)
 
     } else if(RD_CSR_FIELDC(riscv, dcsr, nmip) && !inDebugMode(riscv)) {
 

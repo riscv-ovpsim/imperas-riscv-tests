@@ -69,6 +69,9 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(time_undefined);
     VMI_BOOL_PARAM(cycle_undefined);
     VMI_BOOL_PARAM(instret_undefined);
+    VMI_BOOL_PARAM(tcontrol_undefined);
+    VMI_BOOL_PARAM(mcontext_undefined);
+    VMI_BOOL_PARAM(scontext_undefined);
     VMI_BOOL_PARAM(enable_CSR_bus);
     VMI_STRING_PARAM(CSR_remap);
     VMI_BOOL_PARAM(d_requires_f);
@@ -84,7 +87,6 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(mvalue_bits);
     VMI_UNS32_PARAM(svalue_bits);
     VMI_UNS32_PARAM(mcontrol_maskmax);
-    VMI_BOOL_PARAM(tcontrol_present);
     VMI_UNS32_PARAM(VMID_bits);
     VMI_UNS32_PARAM(PMP_grain);
     VMI_UNS32_PARAM(PMP_registers);

@@ -43,35 +43,6 @@ For more information see the
 
 If you need a copy of riscvOVPsimPlus - get it from the [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus).
 
-### Running the tests
-To run the tests you need to have a configured target (e.g. riscvOVPsim and a tool chain set up).
-
-A pre-compiled GCC for RISC-V can be obtained from the [Imperas GitHub](https://github.com/Imperas/riscv-toolchains). There are multiple branches. For example, for the toolchain to support all ISA including the vector instruction v0.9 use:
-
-    git clone https://github.com/Imperas/riscv-toolchains.git --branch rvv-0.9.x
-    mv riscv-toolchains riscv-toolchains-rvv-0.9.x
-
-and then set up:
-
-    export TOPDIR=<your dir>
-    # for vector rvv-0.9.x
-    RISCV_TUPLE=riscv64-unknown-elf
-    export RISCV_PREFIX=${RISCV_TUPLE}-
-    export RISCV_TOOLCHAIN=${TOPDIR}/riscv-toolchains-rvv-0.9.x/Linux64
-    export PATH=${PATH}:${RISCV_TOOLCHAIN}/bin
-
-and then to clone this repository:
-
-    git clone https://github.com/riscv-ovpsim/imperas-riscv-tests
-
-and then to run:
-
-    cd imperas-riscv-tests
-
-    make help
-    make clean simulate verify cover \
-        RISCV_ISA=rv32i RISCV_DEVICE=rv32i \
-        RISCV_TARGET=riscvOVPsim
     
 ### Imperas test suites
 When verifying a CPU design - you can never have enough tests...
@@ -96,6 +67,53 @@ To use the test suites, we recommend adding a similar target directory to drive 
 For the GitHub version that you can use for running, for example, the RISCV.org compliance test suites, visit [github.com/riscv-ovpsim/imperas-riscv-tests](https://github.com/riscv-ovpsim/imperas-riscv-tests).
 
 For the more advanced version, with full tracing and extra features, and the latest ISA extensions such as V-vector and B-bitmanip, you need **riscvOVPsimPlus** so visit [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus). This is still free, and as it is hosted on OVPworld it requires OVP registration.
+
+### Running the tests
+To run the tests you need to have a configured target (e.g. riscvOVPsim and a tool chain set up).
+
+A pre-compiled GCC, for 64-bit Linux hosts, for RISC-V can be obtained from the [Imperas GitHub](https://github.com/Imperas/riscv-toolchains). There are multiple branches.
+
+For example, for the toolchain to support all ISA including the vector instruction v0.8 use:
+
+    git clone https://github.com/Imperas/riscv-toolchains.git --branch rvv-0.8.x
+    mv riscv-toolchains riscv-toolchains-rvv-0.8.x
+
+For example, for the toolchain to support all ISA including the vector instruction v0.9 use:
+
+    git clone https://github.com/Imperas/riscv-toolchains.git --branch rvv-0.9.x
+    mv riscv-toolchains riscv-toolchains-rvv-0.9.x
+
+and then set up (for 0.8.x for base and current vector tests):
+
+    export TOPDIR=<your dir in which you cloned riscv-toolchains>
+
+    # for vector rvv-0.8.x
+    RISCV_TUPLE=riscv64-unknown-elf
+    export RISCV_PREFIX=${RISCV_TUPLE}-
+    export RISCV_TOOLCHAIN=${TOPDIR}/riscv-toolchains-rvv-0.8.x/Linux64/sifive-riscv-none-gcc
+    export PATH=${PATH}:${RISCV_TOOLCHAIN}/bin
+
+and then to obtain the tests, you will have either:
+
+  riscvOVPSim - cloned the repository from GitHub:
+
+    git clone https://github.com/riscv-ovpsim/imperas-riscv-tests
+    
+  riscvOVPsimPlus - unzipped the riscvOVPsimPlus.zip file from the OVPWorld website
+  
+    unzip riscvOVPsimPlus.zip
+
+and then to run:
+
+    cd imperas-riscv-tests
+
+    make help
+    make clean simulate verify cover \
+        RISCV_ISA=rv32i RISCV_DEVICE=rv32i
+        
+    and set RISCV_TARGET to either riscvOVPsim or riscvOVPsimPlus, for example RISCV_TARGET=riscvOVPsim
+
+
 
 # Using Imperas simulators for Hardware Design Verification (HW DV)
 

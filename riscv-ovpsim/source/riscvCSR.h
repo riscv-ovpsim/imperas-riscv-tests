@@ -1920,6 +1920,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mtinst);         // 0x34A
 
     // TRIGGER CSRS
+    CSR_REG_DECL  (tdata1);         // 0x7A8
     CSR_REG_DECL  (mcontext);       // 0x7A8
     CSR_REG_DECL  (scontext);       // 0x7AA
 

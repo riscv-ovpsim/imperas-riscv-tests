@@ -52,7 +52,6 @@
     .mvalue_bits      = ((_ARCH)&RV64) ? 13 : 6,    \
     .svalue_bits      = ((_ARCH)&RV64) ? 34 : 16,   \
     .mcontrol_maskmax = 63,                         \
-    .tcontrol_present = True,                       \
 }
 
 //
