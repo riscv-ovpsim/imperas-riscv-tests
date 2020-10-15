@@ -268,7 +268,6 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->mvalue_bits         = params->mvalue_bits;
     cfg->svalue_bits         = params->svalue_bits;
     cfg->mcontrol_maskmax    = params->mcontrol_maskmax;
-    cfg->tcontrol_present    = params->tcontrol_present;
     cfg->PMP_grain           = params->PMP_grain;
     cfg->PMP_registers       = params->PMP_registers;
     cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");
@@ -300,6 +299,9 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->cycle_undefined     = params->cycle_undefined;
     cfg->time_undefined      = params->time_undefined;
     cfg->instret_undefined   = params->instret_undefined;
+    cfg->tcontrol_undefined  = params->tcontrol_undefined;
+    cfg->mcontext_undefined  = params->mcontext_undefined;
+    cfg->scontext_undefined  = params->scontext_undefined;
     cfg->enable_CSR_bus      = params->enable_CSR_bus;
     cfg->d_requires_f        = params->d_requires_f;
     cfg->xret_preserves_lr   = params->xret_preserves_lr;

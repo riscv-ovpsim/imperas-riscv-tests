@@ -357,9 +357,13 @@ static Bool doTriggerADMATCH(
     Bool      except    = False;
     Uns32     i;
 
-    // identify any ADMATCH triggers that have been activated
-    for(i=0; i<riscv->configInfo.trigger_num; i++) {
+    if(inDebugMode(riscv)) {
 
+        // triggers do not fire while in debug mode
+
+    } else for(i=0; i<riscv->configInfo.trigger_num; i++) {
+
+        // identify any ADMATCH triggers that have been activated
         riscvTriggerP trigger  = &riscv->triggers[i];
         Uns32         modeMask = 1<<mode;
         Bool          match    = False;

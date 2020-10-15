@@ -115,7 +115,6 @@ typedef struct riscvConfigS {
     Uns8              mvalue_bits;      // implemented bits in textra.mvalue
     Uns8              svalue_bits;      // implemented bits in textra.svalue
     Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
-    Bool              tcontrol_present; // is tcontrol register implemented?
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL
     Bool              UXL_writable;     // writable bits in mstatus.UXL
@@ -135,6 +134,9 @@ typedef struct riscvConfigS {
     Bool              cycle_undefined;  // whether cycle CSR is undefined
     Bool              time_undefined;   // whether time CSR is undefined
     Bool              instret_undefined;// whether instret CSR is undefined
+    Bool              tcontrol_undefined;// whether tcontrol CSR is undefined
+    Bool              mcontext_undefined;// whether mcontext CSR is undefined
+    Bool              scontext_undefined;// whether scontext CSR is undefined
     Bool              d_requires_f;     // when misa D requires F to be set
     Bool              xret_preserves_lr;// whether xRET preserves current LR
     Bool              require_vstart0;  // require vstart 0 if uninterruptible?
@@ -185,6 +187,7 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (mtvt);            // mtvec mask
         CSR_REG_DECL (stvt);            // stvec mask
         CSR_REG_DECL (utvt);            // utvec mask
+        CSR_REG_DECL (tdata1);          // tdata1 mask
     } csrMask;
 
     // custom documentation

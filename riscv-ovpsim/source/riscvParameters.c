@@ -449,6 +449,9 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(tval_ii_code);
 static RISCV_BOOL_PDEFAULT_CFG_FN(cycle_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(time_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(instret_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(mcontext_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(scontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(enable_CSR_bus);
 static RISCV_BOOL_PDEFAULT_CFG_FN(d_requires_f);
 static RISCV_BOOL_PDEFAULT_CFG_FN(xret_preserves_lr);
@@ -467,7 +470,6 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
-static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_present);
 
 //
 // Set default value of raw Uns32 parameters
@@ -877,6 +879,9 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     default_cycle_undefined,      VMI_BOOL_PARAM_SPEC  (riscvParamValues, cycle_undefined,      False,                     "Specify that the cycle CSR is undefined (reads to it are emulated by a Machine mode trap)")},
     {  RVPV_ALL,     default_time_undefined,       VMI_BOOL_PARAM_SPEC  (riscvParamValues, time_undefined,       False,                     "Specify that the time CSR is undefined (reads to it are emulated by a Machine mode trap)")},
     {  RVPV_ALL,     default_instret_undefined,    VMI_BOOL_PARAM_SPEC  (riscvParamValues, instret_undefined,    False,                     "Specify that the instret CSR is undefined (reads to it are emulated by a Machine mode trap)")},
+    {  RVPV_TRIG,    default_tcontrol_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, tcontrol_undefined,   False,                     "Specify that the tcontrol CSR is undefined")},
+    {  RVPV_TRIG,    default_mcontext_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, mcontext_undefined,   False,                     "Specify that the mcontext CSR is undefined")},
+    {  RVPV_TRIG,    default_scontext_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, scontext_undefined,   False,                     "Specify that the scontext CSR is undefined")},
     {  RVPV_ALL,     default_enable_CSR_bus,       VMI_BOOL_PARAM_SPEC  (riscvParamValues, enable_CSR_bus,       False,                     "Add artifact CSR bus port, allowing CSR registers to be externally implemented")},
     {  RVPV_ALL,     0,                            VMI_STRING_PARAM_SPEC(riscvParamValues, CSR_remap,            "",                        "Comma-separated list of CSR number mappings, each of the form <csrName>=<number>")},
     {  RVPV_FP,      default_d_requires_f,         VMI_BOOL_PARAM_SPEC  (riscvParamValues, d_requires_f,         False,                     "If D and F extensions are separately enabled in the misa CSR, whether D is enabled only if F is enabled")},
@@ -891,7 +896,6 @@ static riscvParameter parameters[] = {
     {  RVPV_TRIG,    default_mvalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, mvalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.mvalue (if zero, textra.mselect is tied to zero)")},
     {  RVPV_TRIG_S,  default_svalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, svalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.svalue (if zero, textra.sselect is tied to zero)")},
     {  RVPV_TRIG,    default_mcontrol_maskmax,     VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontrol_maskmax,     0, 0,          63,         "Specify mcontrol.maskmax value")},
-    {  RVPV_TRIG,    default_tcontrol_present,     VMI_BOOL_PARAM_SPEC  (riscvParamValues, tcontrol_present,     False,                     "Whether tcontrol register is present")},
     {  RVPV_S,       default_ASID_bits,            VMI_UNS32_PARAM_SPEC (riscvParamValues, ASID_bits,            0, 0,          0,          "Specify the number of implemented ASID bits")},
     {  RVPV_H,       default_VMID_bits,            VMI_UNS32_PARAM_SPEC (riscvParamValues, VMID_bits,            0, 0,          0,          "Specify the number of implemented VMID bits")},
     {  RVPV_A,       default_lr_sc_grain,          VMI_UNS32_PARAM_SPEC (riscvParamValues, lr_sc_grain,          1, 1,          (1<<16),    "Specify byte granularity of ll/sc lock region (constrained to a power of two)")},

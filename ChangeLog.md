@@ -6,10 +6,9 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2020-October-14
-Release 20201014.0
+Date 2020-September-21
+Release 20200918.0
 
-First public release of initial test suites
 
 
 
