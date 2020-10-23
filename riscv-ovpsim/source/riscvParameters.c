@@ -210,6 +210,12 @@ static vmiEnumParameter bitmanipVariants[] = {
         .value       = RVBV_0_93,
         .description = "Bit Manipulation Architecture Version draft-20200129",
     },
+    [RVBV_MASTER] = {
+        .name        = "master",
+        .value       = RVBV_MASTER,
+        .description = "Bit Manipulation Master Branch as of commit "
+                       RVBV_MASTER_TAG" (this is subject to change)",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -449,9 +455,13 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(tval_ii_code);
 static RISCV_BOOL_PDEFAULT_CFG_FN(cycle_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(time_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(instret_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(tinfo_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mcontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(scontext_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(amo_trigger);
+static RISCV_BOOL_PDEFAULT_CFG_FN(no_hit);
+static RISCV_BOOL_PDEFAULT_CFG_FN(no_sselect_2);
 static RISCV_BOOL_PDEFAULT_CFG_FN(enable_CSR_bus);
 static RISCV_BOOL_PDEFAULT_CFG_FN(d_requires_f);
 static RISCV_BOOL_PDEFAULT_CFG_FN(xret_preserves_lr);
@@ -879,9 +889,13 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     default_cycle_undefined,      VMI_BOOL_PARAM_SPEC  (riscvParamValues, cycle_undefined,      False,                     "Specify that the cycle CSR is undefined (reads to it are emulated by a Machine mode trap)")},
     {  RVPV_ALL,     default_time_undefined,       VMI_BOOL_PARAM_SPEC  (riscvParamValues, time_undefined,       False,                     "Specify that the time CSR is undefined (reads to it are emulated by a Machine mode trap)")},
     {  RVPV_ALL,     default_instret_undefined,    VMI_BOOL_PARAM_SPEC  (riscvParamValues, instret_undefined,    False,                     "Specify that the instret CSR is undefined (reads to it are emulated by a Machine mode trap)")},
+    {  RVPV_TRIG,    default_tinfo_undefined,      VMI_BOOL_PARAM_SPEC  (riscvParamValues, tinfo_undefined,      False,                     "Specify that the tinfo CSR is undefined")},
     {  RVPV_TRIG,    default_tcontrol_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, tcontrol_undefined,   False,                     "Specify that the tcontrol CSR is undefined")},
     {  RVPV_TRIG,    default_mcontext_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, mcontext_undefined,   False,                     "Specify that the mcontext CSR is undefined")},
     {  RVPV_TRIG,    default_scontext_undefined,   VMI_BOOL_PARAM_SPEC  (riscvParamValues, scontext_undefined,   False,                     "Specify that the scontext CSR is undefined")},
+    {  RVPV_TRIG,    default_amo_trigger,          VMI_BOOL_PARAM_SPEC  (riscvParamValues, amo_trigger,          False,                     "Specify whether AMO load/store operations activate triggers")},
+    {  RVPV_TRIG,    default_no_hit,               VMI_BOOL_PARAM_SPEC  (riscvParamValues, no_hit,               False,                     "Specify that tdata1.hit is unimplemented")},
+    {  RVPV_TRIG_S,  default_no_sselect_2,         VMI_BOOL_PARAM_SPEC  (riscvParamValues, no_sselect_2,         False,                     "Specify that textra.sselect=2 is not supported (no trigger match by ASID)")},
     {  RVPV_ALL,     default_enable_CSR_bus,       VMI_BOOL_PARAM_SPEC  (riscvParamValues, enable_CSR_bus,       False,                     "Add artifact CSR bus port, allowing CSR registers to be externally implemented")},
     {  RVPV_ALL,     0,                            VMI_STRING_PARAM_SPEC(riscvParamValues, CSR_remap,            "",                        "Comma-separated list of CSR number mappings, each of the form <csrName>=<number>")},
     {  RVPV_FP,      default_d_requires_f,         VMI_BOOL_PARAM_SPEC  (riscvParamValues, d_requires_f,         False,                     "If D and F extensions are separately enabled in the misa CSR, whether D is enabled only if F is enabled")},
@@ -891,8 +905,8 @@ static riscvParameter parameters[] = {
     {  RVPV_S,       0,                            VMI_UNS32_PARAM_SPEC (riscvParamValues, ASID_cache_size,      8, 0,          256,        "Specifies the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
     {  RVPV_PRE,     default_trigger_num,          VMI_UNS32_PARAM_SPEC (riscvParamValues, trigger_num,          0, 0,          255,        "Specify the number of implemented hardware triggers")},
     {  RVPV_TRIG,    default_tinfo,                VMI_UNS32_PARAM_SPEC (riscvParamValues, tinfo,                0, 0,          0xffff,     "Override tinfo register (for all triggers)")},
-    {  RVPV_TRIG,    default_mcontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontext_bits,        0, 0,          0,          "Specify the number of implemented bits in mcontext (if zero, mcontext is not implemented)")},
-    {  RVPV_TRIG_S,  default_scontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, scontext_bits,        0, 0,          0,          "Specify the number of implemented bits in scontext (if zero, scontext is not implemented)")},
+    {  RVPV_TRIG,    default_mcontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontext_bits,        0, 0,          0,          "Specify the number of implemented bits in mcontext")},
+    {  RVPV_TRIG_S,  default_scontext_bits,        VMI_UNS32_PARAM_SPEC (riscvParamValues, scontext_bits,        0, 0,          0,          "Specify the number of implemented bits in scontext")},
     {  RVPV_TRIG,    default_mvalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, mvalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.mvalue (if zero, textra.mselect is tied to zero)")},
     {  RVPV_TRIG_S,  default_svalue_bits,          VMI_UNS32_PARAM_SPEC (riscvParamValues, svalue_bits,          0, 0,          0,          "Specify the number of implemented bits in textra.svalue (if zero, textra.sselect is tied to zero)")},
     {  RVPV_TRIG,    default_mcontrol_maskmax,     VMI_UNS32_PARAM_SPEC (riscvParamValues, mcontrol_maskmax,     0, 0,          63,         "Specify mcontrol.maskmax value")},

@@ -43,6 +43,7 @@
 #include "riscvMorph.h"
 #include "riscvParameters.h"
 #include "riscvStructure.h"
+#include "riscvTrigger.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
 #include "riscvVMConstants.h"
@@ -299,9 +300,13 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->cycle_undefined     = params->cycle_undefined;
     cfg->time_undefined      = params->time_undefined;
     cfg->instret_undefined   = params->instret_undefined;
+    cfg->tinfo_undefined     = params->tinfo_undefined;
     cfg->tcontrol_undefined  = params->tcontrol_undefined;
     cfg->mcontext_undefined  = params->mcontext_undefined;
     cfg->scontext_undefined  = params->scontext_undefined;
+    cfg->amo_trigger         = params->amo_trigger;
+    cfg->no_hit              = params->no_hit;
+    cfg->no_sselect_2        = params->no_sselect_2;
     cfg->enable_CSR_bus      = params->enable_CSR_bus;
     cfg->d_requires_f        = params->d_requires_f;
     cfg->xret_preserves_lr   = params->xret_preserves_lr;
@@ -338,6 +343,22 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     REQUIRE_COMMERCIAL(riscv, params, Zvamo);
     REQUIRE_COMMERCIAL(riscv, params, Zvqmac);
     REQUIRE_COMMERCIAL(riscv, params, Zvediv);
+
+    // trigger module parameters require a commercial product
+    REQUIRE_COMMERCIAL(riscv, params, tinfo_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, tcontrol_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, mcontext_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, scontext_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, amo_trigger);
+    REQUIRE_COMMERCIAL(riscv, params, no_hit);
+    REQUIRE_COMMERCIAL(riscv, params, no_sselect_2);
+    REQUIRE_COMMERCIAL(riscv, params, trigger_num);
+    REQUIRE_COMMERCIAL(riscv, params, tinfo);
+    REQUIRE_COMMERCIAL(riscv, params, mcontext_bits);
+    REQUIRE_COMMERCIAL(riscv, params, scontext_bits);
+    REQUIRE_COMMERCIAL(riscv, params, mvalue_bits);
+    REQUIRE_COMMERCIAL(riscv, params, svalue_bits);
+    REQUIRE_COMMERCIAL(riscv, params, mcontrol_maskmax);
 
     // handle SLEN (always the same as VLEN from version 1.0)
     if(!riscvVFSupport(riscv, RVVF_SLEN_IS_VLEN)) {
@@ -753,6 +774,9 @@ VMI_SAVE_STATE_FN(riscvSaveState) {
     // save K-extension state not covered by register read/write API
     riscvCryptoSave(riscv, cxt, phase);
 
+    // save Trigger Module state not covered by register read/write API
+    riscvTriggerSave(riscv, cxt, phase);
+
     // end of SMP cluster
     if(phase==SRT_END) {
         vmirtIterAllProcessors(processor, endSave, 0);
@@ -810,6 +834,9 @@ VMI_RESTORE_STATE_FN(riscvRestoreState) {
 
     // restore K-extension state not covered by register read/write API
     riscvCryptoRestore(riscv, cxt, phase);
+
+    // restore Trigger Module state not covered by register read/write API
+    riscvTriggerRestore(riscv, cxt, phase);
 
     // end of SMP cluster
     if(phase==SRT_END) {

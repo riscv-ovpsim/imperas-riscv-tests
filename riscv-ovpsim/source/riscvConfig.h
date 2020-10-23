@@ -134,9 +134,13 @@ typedef struct riscvConfigS {
     Bool              cycle_undefined;  // whether cycle CSR is undefined
     Bool              time_undefined;   // whether time CSR is undefined
     Bool              instret_undefined;// whether instret CSR is undefined
+    Bool              tinfo_undefined;  // whether tinfo CSR is undefined
     Bool              tcontrol_undefined;// whether tcontrol CSR is undefined
     Bool              mcontext_undefined;// whether mcontext CSR is undefined
     Bool              scontext_undefined;// whether scontext CSR is undefined
+    Bool              amo_trigger;      // whether triggers used with AMO
+    Bool              no_hit;           // whether tdata1.hit is unimplemented
+    Bool              no_sselect_2;     // whether textra.sselect=2 is illegal
     Bool              d_requires_f;     // when misa D requires F to be set
     Bool              xret_preserves_lr;// whether xRET preserves current LR
     Bool              require_vstart0;  // require vstart 0 if uninterruptible?

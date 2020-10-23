@@ -68,14 +68,15 @@
 // Container for net values
 //
 typedef struct riscvNetValueS {
-    Bool reset;         // level of reset signal
-    Bool haltreq;       // haltreq (Debug mode)
-    Bool stepreq;       // stepreq (Debug mode)
-    Bool resethaltreq;  // resethaltreq (Debug mode)
-    Bool resethaltreqS; // resethaltreq (Debug mode, sampled at reset)
-    Bool deferint;      // defer taking interrupts (artifact)
-    Bool enableCLIC;    // is CLIC enabled?
-    Bool irq_ack;       // IRQ acknowledge (output)
+    Bool reset         : 1; // level of reset signal
+    Bool haltreq       : 1; // haltreq (Debug mode)
+    Bool stepreq       : 1; // stepreq (Debug mode)
+    Bool triggerAfter  : 1; // pending trigger after (Trigger module)
+    Bool resethaltreq  : 1; // resethaltreq (Debug mode)
+    Bool resethaltreqS : 1; // resethaltreq (Debug mode, sampled at reset)
+    Bool deferint      : 1; // defer taking interrupts (artifact)
+    Bool enableCLIC    : 1; // is CLIC enabled?
+    Bool irq_ack       : 1; // IRQ acknowledge (output)
 } riscvNetValue;
 
 //

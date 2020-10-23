@@ -2153,6 +2153,198 @@ void riscvDoc(riscvP rootProcessor) {
     }
 
     ////////////////////////////////////////////////////////////////////////////
+    // TRIGGER MODULE
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(cfg->trigger_num) {
+
+        vmiDocNodeP trigger = vmidocAddSection(Root, "Trigger Module");
+
+        vmidocAddText(
+            trigger,
+            "This model is configured with a trigger module, implementing a "
+            "subset of the behavior described in Chapter 5 of the RISC-V "
+            "External Debug Support specification with version specified by "
+            "parameter \"debug_version\" (see References)."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // RESTRICTIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP restrictions = vmidocAddSection(
+                trigger, "Trigger Module Restrictions"
+            );
+
+            vmidocAddText(
+                restrictions,
+                "The model currently supports tdata1 of type 0 and 2 "
+                "(mcontrol) only. Type 3 (icount), type 4 (itrigger) and type "
+                "5 (etrigger) are not currently supported."
+            );
+        }
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                trigger, "Trigger Module Parameters"
+            );
+
+            // document trigger_num
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"trigger_num\" is used to specify the number of "
+                "implemented triggers. In this variant, \"trigger_num\" is %u.",
+                riscv->configInfo.trigger_num
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tinfo
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"tinfo\" is used to specify the value of the "
+                "read-only \"tinfo\" register, which indicates the trigger "
+                "types supported. In this variant, \"tinfo\" is 0x%02x.",
+                riscv->configInfo.tinfo
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tinfo_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"tinfo_undefined\" is used to specify whether the "
+                "\"tinfo\" register is undefined, in which case reads of it "
+                "trap to Machine mode. In this variant, \"tinfo_undefined\" "
+                "is %u.",
+                riscv->configInfo.tinfo_undefined
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tcontrol_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"tcontrol_undefined\" is used to specify whether "
+                "the \"tcontrol\" register is undefined, in which case "
+                "accesses to it trap to Machine mode. In this variant, "
+                "\"tcontrol_undefined\" is %u.",
+                riscv->configInfo.tcontrol_undefined
+            );
+            vmidocAddText(Parameters, string);
+
+            // document mcontext_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"mcontext_undefined\" is used to specify whether "
+                "the \"mcontext\" register is undefined, in which case "
+                "accesses to it trap to Machine mode. In this variant, "
+                "\"mcontext_undefined\" is %u.",
+                riscv->configInfo.mcontext_undefined
+            );
+            vmidocAddText(Parameters, string);
+
+            // document scontext_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"scontext_undefined\" is used to specify whether "
+                "the \"scontext\" register is undefined, in which case "
+                "accesses to it trap to Machine mode. In this variant, "
+                "\"scontext_undefined\" is %u.",
+                riscv->configInfo.scontext_undefined
+            );
+            vmidocAddText(Parameters, string);
+
+            // document amo_trigger
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"amo_trigger\" is used to specify whether load/"
+                "store triggers are activated for AMO instructions. In this "
+                "variant, \"amo_trigger\" is %u.",
+                riscv->configInfo.amo_trigger
+            );
+            vmidocAddText(Parameters, string);
+
+            // document no_hit
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"no_hit\" is used to specify whether the \"hit\" "
+                "bit in tdata1 is unimplemented. In this variant, \"no_hit\" "
+                "is %u.",
+                riscv->configInfo.no_hit
+            );
+            vmidocAddText(Parameters, string);
+
+            // document no_sselect_2
+            if(cfg->arch&ISA_S) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter \"no_sselect_2\" is used to specify whether the "
+                    "\"sselect\" field in \"textra32\"/\"textra64\" registers is "
+                    "unable to hold value 2 (indicating match by ASID is not "
+                    "allowed). In this variant, \"no_sselect_2\" is %u.",
+                    riscv->configInfo.no_sselect_2
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document mcontext_bits
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"mcontext_bits\" is used to specify the number of "
+                "writable bits in the \"mcontext\" register. In this variant, "
+                "\"mcontext_bits\" is %u.",
+                riscv->configInfo.mcontext_bits
+            );
+            vmidocAddText(Parameters, string);
+
+            // document scontext_bits
+            if(cfg->arch&ISA_S) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter \"scontext_bits\" is used to specify the number "
+                    "of writable bits in the \"scontext\" register. In this "
+                    "variant, \"scontext_bits\" is %u.",
+                    riscv->configInfo.scontext_bits
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document mvalue_bits
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"mvalue_bits\" is used to specify the number of "
+                "writable bits in the \"mvalue\" field in \"textra32\"/"
+                "\"textra64\" registers; if zero, the \"mselect\" field is "
+                "tied to zero. In this variant, \"mvalue_bits\" is %u.",
+                riscv->configInfo.mvalue_bits
+            );
+            vmidocAddText(Parameters, string);
+
+            // document svalue_bits
+            if(cfg->arch&ISA_S) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter \"svalue_bits\" is used to specify the number of "
+                    "writable bits in the \"svalue\" field in \"textra32\"/"
+                    "\"textra64\" registers; if zero, the \"sselect\" is tied "
+                    "to zero. In this variant, \"svalue_bits\" is %u.",
+                    riscv->configInfo.svalue_bits
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document mcontrol_maskmax
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"mcontrol_maskmax\" is used to specify the value "
+                "of field \"maskmax\" in the \"mcontrol\" register. In this "
+                "variant, \"mcontrol_maskmax\" is %u.",
+                riscv->configInfo.mcontrol_maskmax
+            );
+            vmidocAddText(Parameters, string);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     // DEBUG MASK
     ////////////////////////////////////////////////////////////////////////////
 
