@@ -3074,8 +3074,22 @@ static Uns32 maskModes(riscvP riscv, Uns32 modes) {
 //
 // Return currently-enabled trigger structure
 //
+inline static riscvTriggerP getIndexedTrigger(riscvP riscv, Int32 i) {
+    return (i>=0) ? &riscv->triggers[i] : 0;
+}
+
+//
+// Return currently-enabled trigger structure
+//
 inline static riscvTriggerP getCurrentTrigger(riscvP riscv) {
-    return &riscv->triggers[RD_CSRC(riscv, tselect)];
+    return getIndexedTrigger(riscv, RD_CSRC(riscv, tselect));
+}
+
+//
+// Return preceding trigger structure
+//
+inline static riscvTriggerP getPreviousTrigger(riscvP riscv) {
+    return getIndexedTrigger(riscv, RD_CSRC(riscv, tselect)-1);
 }
 
 //
@@ -3110,10 +3124,10 @@ static Bool mayWriteTrigger(riscvP riscv, riscvTriggerP trigger) {
 static Bool mayWriteDMode(riscvP riscv, Bool dmode) {
 
     Bool ok = (
-        // not attempting to set tdata1.dmode
-        !dmode ||
         // access always allowed by an artifact write
         riscv->artifactAccess ||
+        // not attempting to set tdata1.dmode
+        !dmode ||
         // access always allowed in debug mode
         inDebugMode(riscv)
     );
@@ -3123,6 +3137,39 @@ static Bool mayWriteDMode(riscvP riscv, Bool dmode) {
         vmiMessage("W", CPU_PREFIX"_IDMU",
             SRCREF_FMT
             "Illegal attempt to update tdata1.dmode in Machine mode",
+            SRCREF_ARGS(riscv, getPC(riscv))
+        );
+    }
+
+    return ok;
+}
+
+//
+// Is this write legal in a chain?
+//
+static Bool mayWriteChain(riscvP riscv, Bool dmode, riscvTriggerP prev) {
+
+    Bool ok = (
+        // access always allowed by an artifact write
+        riscv->artifactAccess ||
+        // not attempting to set tdata1.dmode
+        !dmode ||
+        // no previous trigger
+        !prev ||
+        // previous trigger has dmode of 1
+        RD_REG_FIELD_TRIGGER_MODE(riscv, prev, tdata1, dmode) ||
+        // previous trigger is not an address match trigger
+        (RD_REG_FIELD_TRIGGER_MODE(riscv, prev, tdata1, type) != TT_ADMATCH) ||
+        // previous trigger is not chained to this
+        !RD_REG_FIELD_TRIGGER(prev, tdata1, mcontrol.chain)
+    );
+
+    // report illegal accesses if required
+    if(!ok && riscv->verbose) {
+        vmiMessage("W", CPU_PREFIX"_IDM1",
+            SRCREF_FMT
+            "Illegal attempt to update tdata1.dmode=1 when previous trigger "
+            "has dmode=0 and chain=1",
             SRCREF_ARGS(riscv, getPC(riscv))
         );
     }
@@ -3158,6 +3205,13 @@ static Bool validateTriggerType(
 //
 inline static RISCV_CSR_PRESENTFN(triggerP) {
     return getTriggerNum(riscv);
+}
+
+//
+// Is tinfo register present?
+//
+inline static RISCV_CSR_PRESENTFN(tinfoP) {
+    return getTriggerNum(riscv) && !riscv->configInfo.tinfo_undefined;
 }
 
 //
@@ -3242,7 +3296,12 @@ static RISCV_CSR_WRITEFN(tdata1W) {
         Bool dmode = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode);
 
         // handle type-specific updates
-        switch(type) {
+        if(!mayWriteChain(riscv, dmode, getPreviousTrigger(riscv))) {
+
+            // ignore write if value is invalid
+            tdata1 = trigger->tdata1;
+
+        } else switch(type) {
 
             case TT_NONE:
 
@@ -3261,6 +3320,11 @@ static RISCV_CSR_WRITEFN(tdata1W) {
                 // dmode=0 requires action=0, and action must not exceed 1
                 if(!dmode || (RD_RAW_FIELDC(tdata1, mcontrol.action)>1)) {
                     WR_RAW_FIELDC(tdata1, mcontrol.action, 0);
+                }
+
+                // mask out hit field if required
+                if(riscv->configInfo.no_hit) {
+                    WR_RAW_FIELDC(tdata1, mcontrol.hit, 0);
                 }
 
                 // assign read-only maskmax field
@@ -3364,35 +3428,36 @@ static RISCV_CSR_WRITEFN(tdata3W) {
             Uns32 mvalue  = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mvalue);
 
             // mask mvalue
-            mvalue &= ((1<<mvalue_bits)-1);
+            mvalue &= getAddressMask(mvalue_bits);
 
             // update fields
             WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mselect, mselect);
             WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mvalue,  mvalue);
         }
 
-        // handle S-mode fields
-        if(!svalue_bits) {
-            // no action
-        } else if(!(riscv->configInfo.arch&ISA_S)) {
-            // no action
-        } else {
+        if(!(riscv->configInfo.arch&ISA_S)) {
 
-            // get new svalue
-            Uns64 svalue = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue);
+            // no action
+
+        } else if(svalue_bits) {
+
+            // get new field values
+            Uns32 sselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect);
+            Uns64 svalue  = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue);
 
             // mask svalue
-            svalue &= ((1ULL<<svalue_bits)-1);
+            svalue &= getAddressMask(svalue_bits);
 
             // update svalue
-            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, svalue,  svalue);
+            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, svalue, svalue);
 
-            if(RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect)<=2) {
-
-                // get new sselect value
-                Uns32 sselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect);
-
-                // update sselect
+            // sselect can be 1 if svalue_bits!=0 or 2 if triggers can match
+            // based on the current ASID
+            if(
+                (sselect==0) ||
+                ((sselect==1) &&  riscv->configInfo.scontext_bits) ||
+                ((sselect==2) && !riscv->configInfo.no_sselect_2)
+            ) {
                 WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, sselect, sselect);
             }
         }
@@ -3469,6 +3534,23 @@ static RISCV_CSR_WRITEFN(scontextW) {
 }
 
 //
+// Get the trigger type at reset
+//
+static triggerType getTriggerResetType(riscvP riscv, riscvTriggerP trigger) {
+
+    Uns32       types = RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info);
+    triggerType type  = 0;
+
+    // determine type for trigger at reset
+    while(types && !(types&1)) {
+        type++;
+        types >>= 1;
+    }
+
+    return type;
+}
+
+//
 // Configure trigger state
 //
 static void configureTriggers(riscvP riscv) {
@@ -3480,7 +3562,12 @@ static void configureTriggers(riscvP riscv) {
 
         riscvTriggerP trigger = &riscv->triggers[i];
 
+        // initialize tinfo
         WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info, tinfo);
+
+        // initialize tdata1 (depends on tinfo)
+        triggerType type = getTriggerResetType(riscv, trigger);
+        WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata1, type, type);
     }
 }
 
@@ -3498,8 +3585,6 @@ static void resetTriggers(riscvP riscv) {
     for(i=0; i<riscv->configInfo.trigger_num; i++) {
 
         riscvTriggerP trigger = &riscv->triggers[i];
-        Uns32         types   = RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info);
-        triggerType   type    = 0;
 
         // clear trigger match count
         trigger->matchICount = -1;
@@ -3507,13 +3592,8 @@ static void resetTriggers(riscvP riscv) {
         // select this trigger
         tselectW(0, riscv, i);
 
-        // determine type for trigger at reset
-        while(types && !(types&1)) {
-            type++;
-            types >>= 1;
-        }
-
-        // construct reset value
+        // construct tdata1 reset value
+        triggerType type = getTriggerResetType(riscv, trigger);
         CSR_REG_DECL(tdata1) = {0};
         WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type, type);
 
@@ -3979,8 +4059,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (tdata1,       0x7A1, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 1",                                        triggerP,    0,           tdata1R,      0,        tdata1W       ),
     CSR_ATTR_P__     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 2",                                        triggerP,    0,           tdata2R,      0,        tdata2W       ),
     CSR_ATTR_P__     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 3",                                        triggerP,    0,           tdata3R,      0,        tdata3W       ),
-    CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Info",                                          triggerP,    0,           tinfoR,       0,        0             ),
-    CSR_ATTR_TC_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
+    CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Info",                                          tinfoP,      0,           tinfoR,       0,        0             ),
+    CSR_ATTR_TC_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,0,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
     CSR_ATTR_P__     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Machine Context",                               mcontextP,   0,           mcontextR,    0,        mcontextW     ),
     CSR_ATTR_P__     (scontext,     0x7AA, 0,           ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontextP,   0,           scontextR,    0,        scontextW     ),
 

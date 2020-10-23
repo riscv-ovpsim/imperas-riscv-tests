@@ -3550,8 +3550,8 @@ static void pmpProtect(
 }
 
 //
-// Set privileges in PMP domain for the given mode, or, if updatePriv is False,
-// only remove permissions on adjacent regions
+// Set privileges in PMP domain for the given mode, or, if update does not
+// include PMPU_SET_PRIV, only remove permissions on adjacent regions
 //
 static void setPMPPriv(
     riscvP    riscv,
@@ -3580,7 +3580,7 @@ static void setPMPPriv(
 
     } else {
 
-        // get privileges for dats and code domains (NOTE: include RW
+        // get privileges for data and code domains (NOTE: include RW
         // permissions in code domain to allow application load)
         memPriv privRW = priv&MEM_PRIV_RW;
         memPriv privX  = priv&MEM_PRIV_X ? MEM_PRIV_RWX : MEM_PRIV_NONE;

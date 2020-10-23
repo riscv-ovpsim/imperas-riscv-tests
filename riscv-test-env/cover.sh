@@ -28,6 +28,9 @@ map[rv64vx]=RVVx
 map[rv64vm]=RVVm
 map[rv64vr]=RVVr
 
+map[rv32b]=RVZba,RVZbb,RVZbc,RVZbe,RVZbf,RVZbp,RVZbs,RVZbt
+map[rv64b]=RVZba,RVZba64,RVZbb,RVZbb64,RVZbc,RVZbe,RVZbe64,RVZbf,RVZbm64,RVZbp,RVZbp64,RVZbs,RVZbs64,RVZbt,RVZbt64
+
 declare -A varMap
 varMap[rv32i]=RV32I
 varMap[rv32m]=RV32IM
@@ -55,6 +58,9 @@ varMap[rv64vr]=RV64GCV
 varMap[rv64vx]=RV64GCV
 varMap[rv64vf]=RV64GCV
 varMap[rv64vm]=RV64GCV
+
+varMap[rv32b]=RV32GCB
+varMap[rv64b]=RV64GCB
 
 if [[ ${COVERTYPE} == "" ]]; then
     COVERTYPE=basic

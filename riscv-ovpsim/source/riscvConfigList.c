@@ -46,7 +46,7 @@
     .VMID_bits        = ((_ARCH)&RV64) ? 14 : 7,    \
     .numHarts         = RV_NUMHARTS_0,              \
     .trigger_num      = 4,                          \
-    .tinfo            = 0x3d, /* types 0, 2-5 */    \
+    .tinfo            = 0x05, /* types 0 and 2 */   \
     .mcontext_bits    = ((_ARCH)&RV64) ? 13 : 6,    \
     .scontext_bits    = ((_ARCH)&RV64) ? 34 : 16,   \
     .mvalue_bits      = ((_ARCH)&RV64) ? 13 : 6,    \

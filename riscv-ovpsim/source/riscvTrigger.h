@@ -62,3 +62,26 @@ void riscvTriggerLV(riscvP riscv, Uns32 bytes);
 //
 void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes);
 
+//
+// Handle any trigger activated after the previous instruction completes
+//
+Bool riscvTriggerAfter(riscvP riscv, Bool complete);
+
+//
+// Save Trigger Module state not covered by register read/write API
+//
+void riscvTriggerSave(
+    riscvP              riscv,
+    vmiSaveContextP     cxt,
+    vmiSaveRestorePhase phase
+);
+
+//
+// Restore Trigger Module state not covered by register read/write API
+//
+void riscvTriggerRestore(
+    riscvP              riscv,
+    vmiRestoreContextP  cxt,
+    vmiSaveRestorePhase phase
+);
+

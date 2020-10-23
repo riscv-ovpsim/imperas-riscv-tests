@@ -1390,8 +1390,6 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(       CLMULR_R, "|0000101|.....|.....|010|.....|011.011|"),
     DECODE32_ENTRY(       CLMULH_R, "|0000101|.....|.....|011|.....|011.011|"),
     DECODE32_ENTRY(          MIN_R, "|0000101|.....|.....|100|.....|0110011|"),
-    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|101|.....|0110011|"),
-    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|110|.....|0110011|"),
     DECODE32_ENTRY(         MAXU_R, "|0000101|.....|.....|111|.....|0110011|"),
     DECODE32_ENTRY(         SHFL_R, "|0000100|.....|.....|001|.....|011.011|"),
     DECODE32_ENTRY(       UNSHFL_R, "|0000100|.....|.....|101|.....|011.011|"),
@@ -1402,7 +1400,6 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(        ADDWU_R, "|0000101|.....|.....|000|.....|0111011|"),
     DECODE32_ENTRY(        SUBWU_R, "|0100101|.....|.....|000|.....|0111011|"),
     DECODE32_ENTRY(       ADDU_W_R, "|0000100|.....|.....|000|.....|0111011|"),
-    DECODE32_ENTRY(       SUBU_W_R, "|0100100|.....|.....|000|.....|0111011|"),
 
     // B-extension I-type instructions
     //                               |       imm32|  rs1|fun|   rd| opcode|
@@ -1876,6 +1873,37 @@ const static decodeEntry32 decodeBitmanipPostV092[] = {
     DECODE32_ENTRY(        SHADD_R, "|0010000|.....|.....|1.0|.....|0110011|"),
     DECODE32_ENTRY(     SHADDU_W_R, "|0010000|.....|.....|010|.....|0111011|"),
     DECODE32_ENTRY(     SHADDU_W_R, "|0010000|.....|.....|1.0|.....|0111011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// until version 0.93
+//
+const static decodeEntry32 decodeBitmanipUntilV093[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|101|.....|0110011|"),
+    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|110|.....|0110011|"),
+    DECODE32_ENTRY(       SUBU_W_R, "|0100100|.....|.....|000|.....|0111011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// after version 0.93
+//
+const static decodeEntry32 decodeBitmanipPostV093[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|110|.....|0110011|"),
+    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|101|.....|0110011|"),
 
     // table termination entry
     {0}
@@ -3125,6 +3153,13 @@ static vmidDecodeTableP createExtDecodeTable32(
         insertEntries32(table, &decodeBitmanipPostV092[0]);
     }
 
+    // handle bitmanip-extension-dependent table entries until/after 0.93
+    if(bitmanip_version<=RVBV_0_93) {
+        insertEntries32(table, &decodeBitmanipUntilV093[0]);
+    } else {
+        insertEntries32(table, &decodeBitmanipPostV093[0]);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // VERSION-DEPENDENT VECTOR EXTENSION ENTRIES
     ////////////////////////////////////////////////////////////////////////////
@@ -3189,7 +3224,7 @@ static riscvIType32 getInstructionType32(riscvP riscv, riscvInstrInfoP info) {
 
     static vmidDecodeTableP decodeTables[RVVV_LAST][RVBV_LAST];
 
-    // select decode table depending on vector instruction version
+    // select decode table depending on instruction versions
     riscvVectVer     vect_version     = riscv->configInfo.vect_version;
     riscvBitManipVer bitmanip_version = riscv->configInfo.bitmanip_version;
 

@@ -809,11 +809,17 @@ void riscvTakeException(
             isInt     : isInterrupt(exception)
         };
 
-        // adjust baseInstructions based on the exception code to take into
-        // account whether the previous instruction has retired, unless
-        // inhibited by mcountinhibit.IR
-        if(!retiredCode(riscv, exception) && !riscvInhibitInstret(riscv)) {
-            riscv->baseInstructions++;
+        // do required actions for instructions that do not retire
+        if(!retiredCode(riscv, exception)) {
+
+            // reset step breakpoint for next instruction if required
+            riscvSetStepBreakpoint(riscv);
+
+            // adjust baseInstructions to account for the previous instruction
+            // not retiring, unless inhibited by mcountinhibit.IR
+            if(!riscvInhibitInstret(riscv)) {
+                riscv->baseInstructions++;
+            }
         }
 
         // latch or clear Access Fault detail depending on exception type
@@ -2200,11 +2206,11 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         riscv->netValue.irq_ack = False;
     }
 
-    /*if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
+    if(riscv->netValue.triggerAfter && riscvTriggerAfter(riscv, complete)) {
 
-        // execute address trap (priority 3, handled in riscvTriggerX0)
+        // trigger after preceding instruction (highest priority)
 
-    } else*/ if(riscv->netValue.resethaltreqS) {
+    } else if(riscv->netValue.resethaltreqS) {
 
         // enter Debug mode out of reset (priority 2)
         if(complete) {
@@ -2258,7 +2264,6 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     if(fetchOK) {
         return VMI_FETCH_NONE;
     } else if(complete) {
-        riscvSetStepBreakpoint(riscv);
         return VMI_FETCH_EXCEPTION_COMPLETE;
     } else {
         return VMI_FETCH_EXCEPTION_PENDING;

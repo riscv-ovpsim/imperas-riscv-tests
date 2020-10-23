@@ -71,6 +71,8 @@ typedef enum riscvVShapeE {
     RVVW_V2F_V1F_V1F_IW,    // 2*SEW = SEW   op SEW, implicit widening
     RVVW_V2F_V1F_V1F,       // 2*SEW = SEW   op SEW
     RVVW_V2F_V2F_V1F,       // 2*SEW = 2*SEW op SEW
+    RVVW_V1F_V1F_V1I_UP,    // SEW, VFSLIDEUP instructions
+    RVVW_V1F_V1F_V1I_DN,    // SEW, VFSLIDEDOWN instructions
 
                             // CONVERSIONS
     RVVW_V1F_V1I,           // SEW   = SEW,   Fd=Is

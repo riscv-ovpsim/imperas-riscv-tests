@@ -11,6 +11,12 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- The trigger module has been partially implemented - see variant-specific 
+  documentation.
+- Some Vector Extension issues have been corrected:
+  - vfslide1up.vf and vfslide1down.vf now correctly detect illegal floating
+    point SEW.
+
 Date 2020-September-21
 Release 20200918.0
 ===

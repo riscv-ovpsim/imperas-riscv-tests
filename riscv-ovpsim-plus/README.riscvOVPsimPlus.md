@@ -4,8 +4,8 @@ A Complete, Fully Functional, Configurable RISC-V Simulator
 ===
 
 Author: Imperas Software, Ltd., using OVP Open Standard APIs  
-Date   : 14 Oct 2020 
-Version: 20201014.0  
+Date   : 21 Oct 2020 
+Version: 20201021.0  
 
 License: Model source included under Apache 2.0 open source license  
 License: Simulator riscvOVPsimPlus licensed under Open Virtual Platforms (OVP) Fixed Platform Kits license

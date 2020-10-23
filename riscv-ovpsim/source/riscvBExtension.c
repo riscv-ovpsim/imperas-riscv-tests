@@ -611,60 +611,66 @@ typedef struct opDescS {
 // Entries with subset only, version-invariant
 //
 #define OPENTRYxV_S(_NAME, _S) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S(_S),                \
-    [RVBV_0_91] = OPENTRY_S(_S),                \
-    [RVBV_0_92] = OPENTRY_S(_S),                \
-    [RVBV_0_93] = OPENTRY_S(_S)                 \
+    [RVBV_0_90]   = OPENTRY_S(_S),              \
+    [RVBV_0_91]   = OPENTRY_S(_S),              \
+    [RVBV_0_92]   = OPENTRY_S(_S),              \
+    [RVBV_0_93]   = OPENTRY_S(_S),              \
+    [RVBV_MASTER] = OPENTRY_S(_S),              \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S_CB(_S, _CB),        \
-    [RVBV_0_91] = OPENTRY_S_CB(_S, _CB),        \
-    [RVBV_0_92] = OPENTRY_S_CB(_S, _CB),        \
-    [RVBV_0_93] = OPENTRY_S_CB(_S, _CB)         \
+    [RVBV_0_90]   = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_91]   = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_92]   = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_93]   = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_MASTER] = OPENTRY_S_CB(_S, _CB),      \
 }
 
 //
 // Entries with subset and 32/64 bit version-dependent callbacks
 //
 #define OPENTRYxV_S_CBxV(_NAME, _S, _CB90, _CB91, _CB92, _CB93) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S_CB(_S, _CB90),      \
-    [RVBV_0_91] = OPENTRY_S_CB(_S, _CB91),      \
-    [RVBV_0_92] = OPENTRY_S_CB(_S, _CB92),      \
-    [RVBV_0_93] = OPENTRY_S_CB(_S, _CB93)       \
+    [RVBV_0_90]   = OPENTRY_S_CB(_S, _CB90),    \
+    [RVBV_0_91]   = OPENTRY_S_CB(_S, _CB91),    \
+    [RVBV_0_92]   = OPENTRY_S_CB(_S, _CB92),    \
+    [RVBV_0_93]   = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_MASTER] = OPENTRY_S_CB(_S, _CB93),    \
 }
 
 //
 // Entries with version-dependent subset
 //
 #define OPENTRYxV_SxV(_NAME, _S90, _S91, _S92, _S93) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S(_S90),              \
-    [RVBV_0_91] = OPENTRY_S(_S91),              \
-    [RVBV_0_92] = OPENTRY_S(_S92),              \
-    [RVBV_0_93] = OPENTRY_S(_S93)               \
+    [RVBV_0_90]   = OPENTRY_S(_S90),            \
+    [RVBV_0_91]   = OPENTRY_S(_S91),            \
+    [RVBV_0_92]   = OPENTRY_S(_S92),            \
+    [RVBV_0_93]   = OPENTRY_S(_S93),            \
+    [RVBV_MASTER] = OPENTRY_S(_S93),            \
 }
 
 //
 // Entries with version-dependent subset and 32/64 bit callbacks
 //
 #define OPENTRYxV_SxV_CB(_NAME, _S90, _S91, _S92, _S93, _CB) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S_CB(_S90, _CB),      \
-    [RVBV_0_91] = OPENTRY_S_CB(_S91, _CB),      \
-    [RVBV_0_92] = OPENTRY_S_CB(_S92, _CB),      \
-    [RVBV_0_93] = OPENTRY_S_CB(_S93, _CB)       \
+    [RVBV_0_90]   = OPENTRY_S_CB(_S90, _CB),    \
+    [RVBV_0_91]   = OPENTRY_S_CB(_S91, _CB),    \
+    [RVBV_0_92]   = OPENTRY_S_CB(_S92, _CB),    \
+    [RVBV_0_93]   = OPENTRY_S_CB(_S93, _CB),    \
+    [RVBV_MASTER] = OPENTRY_S_CB(_S93, _CB),    \
 }
 
 //
 // Entries with subset and 64 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVBOP_##_NAME] = { \
-    [RVBV_0_90] = OPENTRY_S_CB64(_S, _CB64),    \
-    [RVBV_0_91] = OPENTRY_S_CB64(_S, _CB64),    \
-    [RVBV_0_92] = OPENTRY_S_CB64(_S, _CB64),    \
-    [RVBV_0_93] = OPENTRY_S_CB64(_S, _CB64)     \
+    [RVBV_0_90]   = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_91]   = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_92]   = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_93]   = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_MASTER] = OPENTRY_S_CB64(_S, _CB64),  \
 }
 
 //

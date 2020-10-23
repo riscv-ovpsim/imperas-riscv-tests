@@ -245,6 +245,12 @@ typedef enum riscvVectVerE {
 } riscvVectVer;
 
 //
+// Date and tag of master version
+//
+#define RVBV_MASTER_DATE    "26 August 2020"
+#define RVBV_MASTER_TAG     "c1bd8ee"
+
+//
 // Supported Bit Manipulation Architecture versions
 //
 typedef enum riscvBitManipVerE {
@@ -252,6 +258,7 @@ typedef enum riscvBitManipVerE {
     RVBV_0_91,                          // version 0.91
     RVBV_0_92,                          // version 0.92
     RVBV_0_93,                          // version 0.93
+    RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
     RVBV_DEFAULT = RVBV_0_92,           // default version
 } riscvBitManipVer;

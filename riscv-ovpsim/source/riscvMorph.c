@@ -178,6 +178,7 @@ typedef struct riscvMorphStateS {
     riscvMorphAttrCP attrs;         // instruction attributes
     riscvP           riscv;         // current processor
     Bool             inDelaySlot;   // whether in delay slot
+    Bool             doLSTrig;      // whether load/store triggers enabled
     Uns8             tmpIndex;      // next unallocated temporary index
     riscvVExternalFn externalCB;    // external implementation callback
     void            *userData;      // for externally-implemented operations
@@ -1879,10 +1880,11 @@ static void emitLoadCommonMBO(
     memConstraint    constraint
 ) {
     Bool       sExtend   = !state->info.unsExt;
+    Bool       doLSTrig  = state->doLSTrig;
     memDomainP domain    = getLoadStoreDomainMT(state);
     memEndian  endian    = getLoadStoreEndianMT(state);
-    Bool       triggerLA = triggerLoadAddressMT(state->riscv);
-    Bool       triggerLV = triggerLoadValueMT(state->riscv);
+    Bool       triggerLA = doLSTrig && triggerLoadAddressMT(state->riscv);
+    Bool       triggerLV = doLSTrig && triggerLoadValueMT(state->riscv);
     vmiReg     rdTmp     = rd;
 
     // generate trigger VA if required
@@ -1936,9 +1938,10 @@ static void emitStoreCommonMBO(
     Uns64            offset,
     memConstraint    constraint
 ) {
+    Bool       doLSTrig = state->doLSTrig;
     memDomainP domain   = getLoadStoreDomainMT(state);
     memEndian  endian   = getLoadStoreEndianMT(state);
-    Bool       triggerS = triggerStoreMT(state->riscv);
+    Bool       triggerS = doLSTrig && triggerStoreMT(state->riscv);
 
     if(triggerS) {
 
@@ -2494,16 +2497,35 @@ static void emitAMOCommonInt(
     Uns32            bits,
     atomicCode       code
 ) {
+    riscvP        riscv      = state->riscv;
+    Bool          doLSTrig   = riscv->configInfo.amo_trigger;
+    Bool          triggerLA  = doLSTrig && triggerLoadAddressMT(riscv);
+    Bool          triggerLV  = doLSTrig && triggerLoadValueMT(riscv);
+    Bool          triggerS   = doLSTrig && triggerStoreMT(riscv);
     memConstraint constraint = getLoadStoreConstraintAMO(state);
-    vmiReg        tmp1       = newTmp(state);
+    vmiReg        tmp1       = RISCV_TRIGGER_LV;
     vmiReg        tmp2       = newTmp(state);
+    Uns32         memBits    = state->info.memBits;
 
     // emit operation atomic code
     emitAtomicCode(state, code);
 
     // for this instruction, memBits is bits if unspecified or SEW
-    if(!state->info.memBits || (state->info.memBits==-1)) {
-        state->info.memBits = bits;
+    if(!memBits || (memBits==-1)) {
+        memBits = state->info.memBits = bits;
+    }
+
+    // generate trigger VA if required
+    if(triggerLA || triggerLV || triggerS) {
+        Uns64 offset = 0;
+        emitTriggerVA(state, &ra, &offset);
+    }
+
+    // invoke load address trigger if required
+    if(triggerLA) {
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLA, VMCA_NA);
     }
 
     // this is an atomic operation
@@ -2512,14 +2534,41 @@ static void emitAMOCommonInt(
     // generate Store/AMO exception in preference to Load exception
     emitTryStoreCommon(state, ra, constraint);
 
-    // generate results using tmp1 and tmp2
+    // disable load/store triggers
+    state->doLSTrig = False;
+
+    // do initial load
     emitLoadCommon(state, tmp1, bits, ra, constraint);
+
+    // invoke load value trigger if required
+    if(triggerLV) {
+        vmimtMoveExtendRR(64, tmp1, bits, tmp1, False);
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
+    }
+
+    // do AMO operation
     opCB(state, bits, tmp2, tmp1, rs);
+
+    // invoke store trigger if required
+    if(triggerS) {
+        vmimtArgProcessor();
+        vmimtArgRegSimAddress(memBits, rs);
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerS, VMCA_NA);
+    }
+
+    // do store
     emitStoreCommon(state, tmp2, ra, constraint);
+
+    // commit result
     vmimtMoveRR(bits, rd, tmp1);
 
+    // enable load/store triggers
+    state->doLSTrig = True;
+
     // free temporaries
-    freeTmp(state);
     freeTmp(state);
 
     // indicate end of atomic operation
@@ -5017,6 +5066,13 @@ static RISCV_MORPH_FN(emitBinopRRCW) {
 }
 
 //
+// For binops widening a half-width operand, is rs2 widened?
+//
+inline static Bool clearWRRRRS2(riscvMorphStateP state) {
+    return state->riscv->configInfo.bitmanip_version<=RVBV_0_93;
+}
+
+//
 // Implement generic Binop widening half-width operand (three registers)
 //
 static RISCV_MORPH_FN(emitBinopWRRR) {
@@ -5028,8 +5084,13 @@ static RISCV_MORPH_FN(emitBinopWRRR) {
     Uns32       bitsD = bitsS*2;
     vmiReg      tmp   = newTmp(state);
 
-    vmimtMoveExtendRR(bitsD, tmp, bitsS, rs2.r, False);
-    vmimtBinopRRR(bitsD, state->attrs->binop, rd.r, rs1.r, tmp, 0);
+    if(clearWRRRRS2(state)) {
+        vmimtMoveExtendRR(bitsD, tmp, bitsS, rs2.r, False);
+        vmimtBinopRRR(bitsD, state->attrs->binop, rd.r, rs1.r, tmp, 0);
+    } else {
+        vmimtMoveExtendRR(bitsD, tmp, bitsS, rs1.r, False);
+        vmimtBinopRRR(bitsD, state->attrs->binop, rd.r, tmp, rs2.r, 0);
+    }
 
     writeUnpackedSize(rd, bitsD);
 }
@@ -5943,6 +6004,8 @@ static const shapeInfo shapeDetails[RVVW_LAST] = {
     [RVVW_V2F_V1F_V1F_IW]   = {1, {2,1,1}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, {0,0,0}, 0, 1, 0, 0, 0, 0, 0, 0, OT___  },
     [RVVW_V2F_V1F_V1F]      = {1, {2,1,1}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT___  },
     [RVVW_V2F_V2F_V1F]      = {1, {2,2,1}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT___  },
+    [RVVW_V1F_V1F_V1I_UP]   = {1, {1,1,1}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, {0,1,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT_SM71},
+    [RVVW_V1F_V1F_V1I_DN]   = {1, {1,1,1}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, {0,1,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT__M71},
 
     // CONVERSIONS
     [RVVW_V1F_V1I]          = {1, {1,1,1}, {0,0,0}, {1,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT___  },
@@ -10872,8 +10935,8 @@ const static riscvMorphAttr dispatchTable[] = {
 
     // V-extension FVF-type instructions
     [RV_IT_VFMV_S_F]         = {morph:emitScalarOp, opTCB:emitVFMVSF,                                vShape:RVVW_S1F_V1I_V1I},
-    [RV_IT_VFSLIDE1UP_VF]    = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVFSLIDE1CB, vShape:RVVW_V1I_V1I_V1I_UP},
-    [RV_IT_VFSLIDE1DOWN_VF]  = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVFSLIDE1CB, vShape:RVVW_V1I_V1I_V1I_DN},
+    [RV_IT_VFSLIDE1UP_VF]    = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVFSLIDE1CB, vShape:RVVW_V1F_V1F_V1I_UP},
+    [RV_IT_VFSLIDE1DOWN_VF]  = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVFSLIDE1CB, vShape:RVVW_V1F_V1F_V1I_DN},
 
     // V-extension MVX-type instructions
     [RV_IT_VMV_S_X]          = {morph:emitScalarOp, opTCB:emitVMVSX,                                 vShape:RVVW_S1I_V1I_V1I},
@@ -10984,6 +11047,7 @@ VMI_MORPH_FN(riscvMorph) {
     state.attrs       = &dispatchTable[state.info.type];
     state.riscv       = riscv;
     state.inDelaySlot = inDelaySlot;
+    state.doLSTrig    = True;
     state.tmpIndex    = 0;
 
     // clear mask of X registers targeted by this instruction
