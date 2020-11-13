@@ -149,16 +149,56 @@ typedef memDomainP riscvDomainSetVM[RISCV_VMMODE_LAST][2];
 typedef riscvDomainSetVM *riscvDomainSetVMP;
 
 //
+// Trigger tdata1 register in unpacked form (contains fields for all trigger
+// types in uniform way)
+//
+typedef struct riscvTData1UPS {
+    triggerType type    :  4;
+    Uns32       modes   :  6;
+    Uns32       match   :  4;
+    Uns32       action  :  4;
+    Uns32       size    :  4;
+    Uns32       priv    :  3;
+    Bool        chain   :  1;
+    Bool        timing  :  1;
+    Bool        select  :  1;
+    Bool        hit     :  1;
+    Bool        dmode   :  1;
+    Bool        nmi     :  1;
+    Bool        pending :  1;
+    Bool        icmatch :  1;
+    Uns32       count   : 14;
+} riscvTData1UP;
+
+//
+// Trigger tdata3 register in unpacked form (contains fields for all trigger
+// types in uniform way)
+//
+typedef struct riscvTData3UPS {
+    Uns64 sselect  :  2;
+    Uns64 mhselect :  3;
+    Uns64 svalue   : 34;
+    Uns64 mhvalue  : 13;
+} riscvTData3UP;
+
+//
 // Trigger register set
 //
 typedef struct riscvTriggerS {
-    Uns64         matchICount;
-    CSR_REG_DECL (tdata1);
+
+    // instruction count when trigger matches
+    Uns64 matchICount;
+
+    // tdata1 and tdata3 fields in unpacked form
+    riscvTData1UP tdata1UP;
+    riscvTData3UP tdata3UP;
+
+    // raw trigger fields
     CSR_REG_DECL (tdata2);
-    CSR_REG_DECL (tdata3);
     CSR_REG_DECL (tinfo);
     CSR_REG_DECL (mcontext);
     CSR_REG_DECL (scontext);
+
 } riscvTrigger;
 
 //
@@ -336,6 +376,7 @@ typedef struct riscvS {
     Uns8               vFieldMask;          	// vector field mask
     Uns8               vActiveMask;         	// vector active element mask
     Bool               vFirstFault;          	// vector first fault active?
+    Bool               vPreserve;               // vsetvl{i} preserving vl?
     Uns64              vTmp;                 	// vector operation temporary
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)

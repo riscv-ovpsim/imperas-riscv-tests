@@ -250,6 +250,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->vect_version        = params->vector_version;
     cfg->bitmanip_version    = params->bitmanip_version;
     cfg->hyp_version         = params->hypervisor_version;
+    cfg->crypto_version      = params->crypto_version;
     cfg->dbg_version         = params->debug_version;
     cfg->fp16_version        = params->fp16_version;
     cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
@@ -286,6 +287,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->debug_mode          = params->debug_mode;
     cfg->debug_address       = params->debug_address;
     cfg->dexc_address        = params->dexc_address;
+    cfg->debug_eret_mode     = params->debug_eret_mode;
     cfg->updatePTEA          = params->updatePTEA;
     cfg->updatePTED          = params->updatePTED;
     cfg->unaligned           = params->unaligned;
@@ -304,6 +306,8 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->tcontrol_undefined  = params->tcontrol_undefined;
     cfg->mcontext_undefined  = params->mcontext_undefined;
     cfg->scontext_undefined  = params->scontext_undefined;
+    cfg->mscontext_undefined = params->mscontext_undefined;
+    cfg->hcontext_undefined  = params->hcontext_undefined;
     cfg->amo_trigger         = params->amo_trigger;
     cfg->no_hit              = params->no_hit;
     cfg->no_sselect_2        = params->no_sselect_2;
@@ -312,6 +316,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->xret_preserves_lr   = params->xret_preserves_lr;
     cfg->require_vstart0     = params->require_vstart0;
     cfg->align_whole         = params->align_whole;
+    cfg->vill_trap           = params->vill_trap;
     cfg->ELEN                = powerOfTwo(params->ELEN, "ELEN");
     cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN, "VLEN");
     cfg->SEW_min             = powerOfTwo(params->SEW_min, "SEW_min");

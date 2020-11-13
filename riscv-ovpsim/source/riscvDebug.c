@@ -591,6 +591,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     // exclude artifact registers
     RISCV_FIELD_IMPL_IGNORE(pmKey);
     RISCV_FIELD_IMPL_IGNORE(vFirstFault);
+    RISCV_FIELD_IMPL_IGNORE(vPreserve);
     RISCV_FIELD_IMPL_IGNORE(vBase);
     RISCV_FIELD_IMPL_IGNORE(jumpBase);
     RISCV_FIELD_IMPL_IGNORE(currentArch);

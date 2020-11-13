@@ -77,11 +77,17 @@ typedef enum riscvKExtOpE {
     RVKOP_SSHA512_SIG1, // sha512sig1
     RVKOP_SSHA512_SUM0, // sha512sum0
     RVKOP_SSHA512_SUM1, // sha512sum1
-    RVKOP_POLLENTROPY,  // pollentropy
 
     RVKOP_LAST,         // KEEP LAST: for sizing
 
 } riscvKExtOp;
+
+//
+// Do PollEntropy (NOTE: unlike hardware, this is designed to produce a
+// deterministic, not-particularly-random sequence, always returning ES16
+// status)
+//
+Uns32 riscvPollEntropy(riscvP riscv);
 
 //
 // Return implementation callback for K-extension operation and bits

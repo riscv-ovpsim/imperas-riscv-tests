@@ -248,18 +248,6 @@
 }
 
 //
-// Rd, shamtw (WX=1)
-//
-#define ATTR32_RD_SHAMTW_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
-    opcode   : _OPCODE,             \
-    format   : FMT_R1_SIMM,         \
-    type     : RV_IT_##_GENERIC,    \
-    arch     : _ARCH,               \
-    r1       : RS_X_11_7,           \
-    cs       : CS_SHAMT_24_20,      \
-}
-
-//
 // Rd, Rs1, SSHIFT
 //
 #define ATTR32_RD_RS1_SSHIFT(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \

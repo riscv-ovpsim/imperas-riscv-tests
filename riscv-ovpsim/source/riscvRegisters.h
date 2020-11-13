@@ -60,6 +60,7 @@
 #define RISCV_VTMP              RISCV_CPU_TEMP(vTmp)
 #define RISCV_VSTATE            RISCV_CPU_TEMP(vState)
 #define RISCV_FF                RISCV_CPU_REG(vFirstFault)
+#define RISCV_PRESERVE          RISCV_CPU_REG(vPreserve)
 #define RISCV_VLMAX             RISCV_CPU_TEMP(vlMax)
 #define RISCV_OFFSETS_LMULx2    RISCV_CPU_REG(offsetsLMULx2)
 #define RISCV_OFFSETS_LMULx4    RISCV_CPU_REG(offsetsLMULx4)

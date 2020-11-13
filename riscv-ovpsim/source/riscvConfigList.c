@@ -26,32 +26,32 @@
 // Specify named variant
 //
 #define RISC_VARIANT(_NAME, _PMP_REGS, _ARCH) { \
-    .name             = _NAME,                      \
-    .arch             = _ARCH,                      \
-    .archMask         = RV_ARCH_MASK_DEFAULT,       \
-    .counteren_mask   = -1,                         \
-    .user_version     = RVUV_DEFAULT,               \
-    .priv_version     = RVPV_DEFAULT,               \
-    .bitmanip_version = RVBV_DEFAULT,               \
-    .hyp_version      = RVHV_DEFAULT,               \
-    .vect_version     = RVVV_DEFAULT,               \
-    .dbg_version      = RVDBG_DEFAULT,              \
-    .Zvlsseg          = 1,                          \
-    .Zvamo            = 1,                          \
-    .Zvediv           = 0,                          \
-    .Zvqmac           = 1,                          \
-    .PMP_registers    = _PMP_REGS,                  \
-    .tval_ii_code     = True,                       \
-    .ASID_bits        = ((_ARCH)&RV64) ? 16 : 9,    \
-    .VMID_bits        = ((_ARCH)&RV64) ? 14 : 7,    \
-    .numHarts         = RV_NUMHARTS_0,              \
-    .trigger_num      = 4,                          \
-    .tinfo            = 0x05, /* types 0 and 2 */   \
-    .mcontext_bits    = ((_ARCH)&RV64) ? 13 : 6,    \
-    .scontext_bits    = ((_ARCH)&RV64) ? 34 : 16,   \
-    .mvalue_bits      = ((_ARCH)&RV64) ? 13 : 6,    \
-    .svalue_bits      = ((_ARCH)&RV64) ? 34 : 16,   \
-    .mcontrol_maskmax = 63,                         \
+    .name             = _NAME,                          \
+    .arch             = _ARCH,                          \
+    .archMask         = RV_ARCH_MASK_DEFAULT,           \
+    .counteren_mask   = -1,                             \
+    .user_version     = RVUV_DEFAULT,                   \
+    .priv_version     = RVPV_DEFAULT,                   \
+    .bitmanip_version = RVBV_DEFAULT,                   \
+    .hyp_version      = RVHV_DEFAULT,                   \
+    .vect_version     = RVVV_DEFAULT,                   \
+    .dbg_version      = RVDBG_DEFAULT,                  \
+    .Zvlsseg          = 1,                              \
+    .Zvamo            = 1,                              \
+    .Zvediv           = 0,                              \
+    .Zvqmac           = 1,                              \
+    .PMP_registers    = _PMP_REGS,                      \
+    .tval_ii_code     = True,                           \
+    .ASID_bits        = ((_ARCH)&RV64) ? 16 : 9,        \
+    .VMID_bits        = ((_ARCH)&RV64) ? 14 : 7,        \
+    .numHarts         = RV_NUMHARTS_0,                  \
+    .trigger_num      = 4,                              \
+    .tinfo            = 0x7d, /* types 0, 2-6 */        \
+    .mcontext_bits    = ((_ARCH)&RV64) ? 13 : 6,        \
+    .scontext_bits    = ((_ARCH)&RV64) ? 34 : 16,       \
+    .mvalue_bits      = ((_ARCH)&RV64) ? 13 : 6,        \
+    .svalue_bits      = ((_ARCH)&RV64) ? 34 : 16,       \
+    .mcontrol_maskmax = 63,                             \
 }
 
 //

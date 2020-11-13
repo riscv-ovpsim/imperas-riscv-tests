@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Instructions: 13
+Extension : RVM, instructions: 13
     div            
         cross          
             rs1_rs2        
@@ -1695,7 +1695,7 @@ Coverage points missed:
   mulhu/rd/sign/neg
 Coverage points missed: 1/1378
 
-Info TOTAL INSTRUCTION COVERAGE : 
+Info TOTAL INSTRUCTION COVERAGE : RVM
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 13/13 : 100.00%

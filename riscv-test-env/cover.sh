@@ -3,12 +3,12 @@
 declare -A map
 map[rv32i]=RVI
 map[rv32m]=RVM
-map[rv32ic]=RVIC,RV32IC
+map[rv32ic]=RVIC
 map[rv32Zicsr]=RVZicsr
 map[rv32Zifencei]=RVZifencei
-map[rv64i]=RVI,RV64I
-map[rv64m]=RVM,RV64M
-map[rv64ic]=RVIC,RV64IC
+map[rv64i]=RVI
+map[rv64m]=RVM
+map[rv64ic]=RVIC
 map[rv64Zicsr]=RVZicsr
 map[rv64Zifencei]=RVZifencei
 
@@ -29,7 +29,10 @@ map[rv64vm]=RVVm
 map[rv64vr]=RVVr
 
 map[rv32b]=RVZba,RVZbb,RVZbc,RVZbe,RVZbf,RVZbp,RVZbs,RVZbt
-map[rv64b]=RVZba,RVZba64,RVZbb,RVZbb64,RVZbc,RVZbe,RVZbe64,RVZbf,RVZbm64,RVZbp,RVZbp64,RVZbs,RVZbs64,RVZbt,RVZbt64
+map[rv64b]=RVZba,RVZbb,RVZbc,RVZbe,RVZbf,RVZbp,RVZbs,RVZbt,RVZbm
+
+map[rv32k]=RVK
+map[rv64k]=RVK
 
 declare -A varMap
 varMap[rv32i]=RV32I
@@ -61,6 +64,9 @@ varMap[rv64vm]=RV64GCV
 
 varMap[rv32b]=RV32GCB
 varMap[rv64b]=RV64GCB
+
+varMap[rv32k]=RV32GCB
+varMap[rv64k]=RV64GCB
 
 if [[ ${COVERTYPE} == "" ]]; then
     COVERTYPE=basic

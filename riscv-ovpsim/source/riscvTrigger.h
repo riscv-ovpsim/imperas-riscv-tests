@@ -68,6 +68,21 @@ void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes);
 Bool riscvTriggerAfter(riscvP riscv, Bool complete);
 
 //
+// Handle any trigger activated on an interrupt
+//
+void riscvTriggerInterrupt(riscvP riscv, riscvMode modeY, Uns32 ecode);
+
+//
+// Handle any trigger activated on an exception
+//
+void riscvTriggerException(riscvP riscv, riscvMode modeY, Uns32 ecode);
+
+//
+// Handle any trigger activated on an NMI
+//
+void riscvTriggerNMI(riscvP riscv);
+
+//
 // Save Trigger Module state not covered by register read/write API
 //
 void riscvTriggerSave(

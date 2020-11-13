@@ -212,6 +212,21 @@
       .fill 1, 8, -1; \
     .popsection
 
+//Tests for a instructions with a single register operand
+#define TEST_R_OP(inst, destreg, reg1, correctval, val1, swreg, offset, testreg) \
+    TEST_CASE(testreg, destreg, correctval, swreg, offset, \
+      li  reg1, MASK_XLEN(val1); \
+      inst destreg, reg1; \
+    )
+
+//Tests for a instructions with register-register-immediate operand
+#define TEST_RRI_OP(inst, destreg, reg1, reg2, imm, correctval, val1, val2, swreg, offset, testreg) \
+    TEST_CASE(testreg, destreg, correctval, swreg, offset, \
+      li  reg1, MASK_XLEN(val1); \
+      li  reg2, MASK_XLEN(val2); \
+      inst destreg, reg1, reg2, imm; \
+    )
+
 //Tests for a instructions with register-register operand
 #define TEST_RR_OP(inst, destreg, reg1, reg2, correctval, val1, val2, swreg, offset, testreg) \
     TEST_CASE(testreg, destreg, correctval, swreg, offset, \

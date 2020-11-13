@@ -23,23 +23,23 @@ Architectural Test Suite Data for RV32VR RISC-V "V" Vector Extension:
     171,856 total instructions
 
 Instruction category: OPV_IRED integer reduction arithmetic
-  vredxor.vs : 639
-  vredmax.vs : 639
-  vredsum.vs : 639
-  vredor.vs : 639
   vfredmax.vs : 426
-  vredmin.vs : 639
-  vredmaxu.vs : 639
-  vfredsum.vs : 426
-  vfredosum.vs : 426
   vfredmin.vs : 426
+  vfredosum.vs : 426
+  vfredsum.vs : 426
   vredand.vs : 639
+  vredmax.vs : 639
+  vredmaxu.vs : 639
+  vredmin.vs : 639
   vredminu.vs : 639
+  vredor.vs : 639
+  vredsum.vs : 639
+  vredxor.vs : 639
 Instruction category: OPV_IWRED integer widening reduction arithmetic
-  vwredsum.vs : 300
-  vfwredsum.vs : 150
-  vwredsumu.vs : 300
   vfwredosum.vs : 150
+  vfwredsum.vs : 150
+  vwredsum.vs : 300
+  vwredsumu.vs : 300
 
 Other instructions (those not the focus of this suite)
   jal : 292

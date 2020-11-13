@@ -77,6 +77,7 @@ typedef struct riscvConfigS {
     riscvFP16Ver      fp16_version;     // 16-bit floating point version
     riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
     riscvDMMode       debug_mode;       // is Debug mode implemented?
+    riscvDERETMode    debug_eret_mode;  // debug mode MRET, SRET or DRET action
     const char      **members;          // cluster member variants
 
     // configuration not visible in CSR state
@@ -138,6 +139,8 @@ typedef struct riscvConfigS {
     Bool              tcontrol_undefined;// whether tcontrol CSR is undefined
     Bool              mcontext_undefined;// whether mcontext CSR is undefined
     Bool              scontext_undefined;// whether scontext CSR is undefined
+    Bool              mscontext_undefined;// whether mscontext CSR is undefined
+    Bool              hcontext_undefined;// whether hcontext CSR is undefined
     Bool              amo_trigger;      // whether triggers used with AMO
     Bool              no_hit;           // whether tdata1.hit is unimplemented
     Bool              no_sselect_2;     // whether textra.sselect=2 is illegal
@@ -145,6 +148,7 @@ typedef struct riscvConfigS {
     Bool              xret_preserves_lr;// whether xRET preserves current LR
     Bool              require_vstart0;  // require vstart 0 if uninterruptible?
     Bool              align_whole;      // whole register load aligned to hint?
+    Bool              vill_trap;        // trap instead of setting vill?
     Bool              enable_CSR_bus;   // enable CSR implementation bus
     Bool              mcounteren_present;// force mcounteren to be present
     Bool              PMP_undefined;    // force all PMP registers undefined

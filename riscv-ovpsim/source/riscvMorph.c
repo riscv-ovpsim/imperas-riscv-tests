@@ -17,6 +17,9 @@
  *
  */
 
+// standard header files
+#include <stdio.h>
+
 // Imperas header files
 #include "hostapi/impAlloc.h"
 
@@ -509,34 +512,14 @@ static const char *getFeatureDesc(riscvArchitecture feature) {
 // Take Illegal Instruction exception irrespective of feature presence
 //
 static void illegalInstruction(riscvP riscv) {
-
-    // report FS state
-    if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_ILL",
-            SRCREF_FMT "Illegal instruction",
-            SRCREF_ARGS(riscv, getPC(riscv))
-        );
-    }
-
-    // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    riscvIllegalInstructionMessage(riscv, 0);
 }
 
 //
 // Take Illegal Instruction exception in special case that FS=0
 //
 static void illegalInstructionFS0(riscvP riscv) {
-
-    // report FS state
-    if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_NFS",
-            SRCREF_FMT "Illegal instruction - mstatus.FS=0",
-            SRCREF_ARGS(riscv, getPC(riscv))
-        );
-    }
-
-    // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    riscvIllegalInstructionMessage(riscv, "mstatus.FS=0");
 }
 
 //
@@ -546,17 +529,15 @@ static void illegalInstructionAbsentArch(
     riscvP            riscv,
     riscvArchitecture missing
 ) {
-    // report the absent or disabled feature by name
+    char reason[64];
+
+    reason[0] = 0;
+
     if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_ADF",
-            SRCREF_FMT "Illegal instruction - %s absent or inactive",
-            SRCREF_ARGS(riscv, getPC(riscv)),
-            getFeatureDesc(missing)
-        );
+        sprintf(reason, "%s absent or inactive", getFeatureDesc(missing));
     }
 
-    // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    riscvIllegalInstructionMessage(riscv, reason);
 }
 
 //
@@ -901,17 +882,24 @@ static Bool checkHaveUModeMT(riscvP riscv) {
 typedef TRAP_FN((*trapFn));
 
 //
+// Emit verbose reason for trapped instruction
+//
+static void trapVerbose(riscvP riscv, const char *reason) {
+    vmiMessage("W", CPU_PREFIX "_TI",
+        SRCREF_FMT "Trapped because %s",
+        SRCREF_ARGS(riscv, getPC(riscv)),
+        reason
+    );
+}
+
+//
 // Function called when instruction causes an Illegal Instruction trap
 //
 static TRAP_FN(trapIllegal) {
 
-    // report the absent or disabled feature by name
+    // report the trapped feature
     if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_TI",
-            SRCREF_FMT "Trapped because %s",
-            SRCREF_ARGS(riscv, getPC(riscv)),
-            reason
-        );
+        trapVerbose(riscv, reason);
     }
 
     // take Illegal Instruction trap
@@ -923,13 +911,9 @@ static TRAP_FN(trapIllegal) {
 //
 static TRAP_FN(trapVirtual) {
 
-    // report the absent or disabled feature by name
+    // report the trapped feature
     if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_TI",
-            SRCREF_FMT "Trapped because %s",
-            SRCREF_ARGS(riscv, getPC(riscv)),
-            reason
-        );
+        trapVerbose(riscv, reason);
     }
 
     // take Virtual Instruction trap
@@ -1248,7 +1232,7 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
             riscvRequireArchPresentMT(riscv, ISA_XLEN_64);
         }
 
-        // register indices >= 15 are illegal for E extension (the inverse of
+        // register indices >= 16 are illegal for E extension (the inverse of
         // the I feature)
         if((index<16) || riscvRequireArchPresentMT(riscv, ISA_I)) {
             result = index ? RISCV_GPR(index) : VMI_NOREG;
@@ -4925,27 +4909,6 @@ static RISCV_MORPH_FN(emit3264RRS) {
 }
 
 //
-// Emit operation using 32/64 bit callback (one register, processor and
-// constant), Machine mode only
-//
-static RISCV_MORPH_FN(emit3264RPCM) {
-
-    unpackedReg rd   = unpackRX(state, 0);
-    Uns64       c    = state->info.c;
-    Uns32       bits = rd.bits;
-    vmiCallFn   cb   = state->attrs->opCB(state, bits);
-
-    // this instruction must be executed in Machine mode
-    requireModeMT(state->riscv, RISCV_MODE_M);
-
-    vmimtArgProcessor();
-    vmimtArgUns32(c);
-    vmimtCallResultAttrs(cb, bits, rd.r, VMCA_PURE);
-
-    writeUnpacked(rd);
-}
-
-//
 // Emit operation using 32/64 bit callback (two registers and constant)
 //
 static RISCV_MORPH_FN(emit3264RRC) {
@@ -7095,10 +7058,9 @@ static vmiLabelP handleNonZeroVStart(
         vmiReg      vstart = CSR_REG_MT(vstart);
         riscvVShape vShape = state->attrs->vShape;
 
-        if((state->info.isWhole==RV_WD_MV) || noVStartCheck(vShape)) {
+        if(noVStartCheck(vShape)) {
 
-            // whole-register operations and some scalar operations do not
-            // require vstart<vl check
+            // some scalar operations do not require vstart<vl check
             vmimtMoveRC(64, vstart, 0);
 
         } else {
@@ -7874,14 +7836,22 @@ static Uns32 setVLSEWLMUL(riscvP riscv, Uns64 vl, Uns32 vtypeBits) {
         vtype.u.u32 = 0;
     }
 
-    // update vtype CSR
-    riscvSetVType(riscv, vill, vtype);
+    if(vill && riscv->configInfo.vill_trap) {
 
-    // update vl CSR
-    riscvSetVL(riscv, vl);
+        // take Illegal Instruction exception
+        riscvIllegalInstructionMessage(riscv, "Illegal update to vtype");
 
-    // set matching polymorphic key and clamped vl
-    riscvRefreshVectorPMKey(riscv);
+    } else if(riscvSetVLForVType(riscv, vl, vtype)) {
+
+        // validate vl CSR update assuming the new vtype (may cause Illegal
+        // Instruction if vl should be preserved but would have to be reduced)
+
+        // update vtype CSR
+        riscvSetVType(riscv, vill, vtype);
+
+        // set matching polymorphic key and clamped vl
+        riscvRefreshVectorPMKey(riscv);
+    }
 
     return RD_CSRC(riscv, vl);
 }
@@ -7915,6 +7885,13 @@ static void emitSetVLRS1Arg(riscvMorphStateP state) {
 static vmiCallFn handleVSetVLArg1(riscvMorphStateP state) {
 
     setVLOption option = getSetVLOption(state);
+
+    // indicate whether this operation preserves VL (determines whether a
+    // consequent change in VLmight cause an Illegal Instruction)
+    vmimtMoveRC(8, RISCV_PRESERVE, option==SVT_PRESERVE);
+
+    // emit processor argument
+    vmimtArgProcessor();
 
     if(option==SVT_SET) {
 
@@ -7958,7 +7935,6 @@ static void emitVSetVLRRRCB(riscvMorphStateP state) {
     Uns32       dBits = 32;
 
     // call function (may cause exception for invalid SEW)
-    vmimtArgProcessor();
     vmiCallFn cb = handleVSetVLArg1(state);
     vmimtArgReg(32, rs2.r);
     vmimtCallResultAttrs(cb, dBits, rd.r, VMCA_NO_INVALIDATE);
@@ -7979,7 +7955,6 @@ static void emitVSetVLRRCCB(riscvMorphStateP state) {
     Uns32       dBits = 32;
 
     // call update function (SEW is known to be valid)
-    vmimtArgProcessor();
     vmiCallFn cb = handleVSetVLArg1(state);
     vmimtArgUns32(vtype.u.u32);
     vmimtCallResultAttrs(cb, dBits, rd.r, VMCA_NO_INVALIDATE);
@@ -8214,7 +8189,7 @@ static Bool emitVLdStCheckWhole(riscvMorphStateP state, iterDescP id) {
 
     if(!state->info.isWhole) {
 
-        // no action unless whole register load or  store
+        // no action unless whole register load or store
 
     } else if(state->info.nf && vectorRestrictWhole(riscv)) {
 
@@ -10688,9 +10663,6 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_SSHA512_SIG1_R]   = {morph:emit3264RR,   opCB:getKOpCB, iClass:OCL_IC_INTEGER, kExtOp:RVKOP_SSHA512_SIG1 },
     [RV_IT_SSHA512_SUM0_R]   = {morph:emit3264RR,   opCB:getKOpCB, iClass:OCL_IC_INTEGER, kExtOp:RVKOP_SSHA512_SUM0 },
     [RV_IT_SSHA512_SUM1_R]   = {morph:emit3264RR,   opCB:getKOpCB, iClass:OCL_IC_INTEGER, kExtOp:RVKOP_SSHA512_SUM1 },
-
-    // K-extension I-type POLLENTROPY instruction
-    [RV_IT_POLLENTROPY_I]    = {morph:emit3264RPCM, opCB:getKOpCB, iClass:OCL_IC_INTEGER, kExtOp:RVKOP_POLLENTROPY},
 
     // V-extension R-type instructions
     [RV_IT_VSETVL_R]         = {morph:emitVSetVLRRR},

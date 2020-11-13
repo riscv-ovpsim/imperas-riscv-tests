@@ -137,6 +137,7 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
             [RVVF_ELEN_GT_VLEN]       = 1,
             [RVVF_VLR_HINT]           = 1,
             [RVVF_VTYPE_10]           = 1,
+            [RVVF_SETVLZ_ILLEGAL]     = 1,
         },
     };
 
