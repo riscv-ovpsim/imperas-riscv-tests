@@ -26,21 +26,21 @@ Instruction category: arithmetic
   auipc : 2,538
   addi : 11,461
   lui : 4,737
-  add : 1,268
   sub : 274
+  add : 1,268
 Instruction category: logical 
-  andi : 160
   ori : 137
+  andi : 160
   xori : 137
+  xor : 137
   and : 137
   or : 137
-  xor : 137
 Instruction category: branch 
   bne : 187
   blt : 218
   beq : 331
-  bltu : 139
   bge : 139
+  bltu : 139
   bgeu : 139
 Instruction category: system 
   ecall : 49
@@ -52,26 +52,26 @@ Instruction category: jump
   jalr : 145
 Instruction category: load 
   lw : 559
-  lh : 141
-  lhu : 142
   lb : 137
+  lh : 141
   lbu : 142
+  lhu : 142
 Instruction category: store 
   sw : 5,432
-  sh : 140
   sb : 136
+  sh : 140
 Instruction category: shift 
   slli : 216
+  srli : 137
   sll : 137
   srai : 137
-  srli : 137
   sra : 137
   srl : 137
 Instruction category: compare 
   slti : 137
   sltiu : 137
-  sltu : 137
   slt : 137
+  sltu : 137
 
 Other instructions (those not the focus of this suite)
   csrrs : 265

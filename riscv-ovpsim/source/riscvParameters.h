@@ -39,14 +39,16 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(vector_version);
     VMI_ENUM_PARAM(bitmanip_version);
     VMI_ENUM_PARAM(hypervisor_version);
+    VMI_ENUM_PARAM(crypto_version);
     VMI_ENUM_PARAM(debug_version);
     VMI_ENUM_PARAM(fp16_version);
     VMI_ENUM_PARAM(mstatus_fs_mode);
     VMI_BOOL_PARAM(verbose);
     VMI_UNS32_PARAM(numHarts);
-    VMI_BOOL_PARAM(debug_mode);
+    VMI_ENUM_PARAM(debug_mode);
     VMI_UNS64_PARAM(debug_address);
     VMI_UNS64_PARAM(dexc_address);
+    VMI_ENUM_PARAM(debug_eret_mode);
     VMI_BOOL_PARAM(updatePTEA);
     VMI_BOOL_PARAM(updatePTED);
     VMI_BOOL_PARAM(unaligned);
@@ -73,6 +75,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(tcontrol_undefined);
     VMI_BOOL_PARAM(mcontext_undefined);
     VMI_BOOL_PARAM(scontext_undefined);
+    VMI_BOOL_PARAM(mscontext_undefined);
+    VMI_BOOL_PARAM(hcontext_undefined);
     VMI_BOOL_PARAM(amo_trigger);
     VMI_BOOL_PARAM(no_hit);
     VMI_BOOL_PARAM(no_sselect_2);
@@ -82,6 +86,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(xret_preserves_lr);
     VMI_BOOL_PARAM(require_vstart0);
     VMI_BOOL_PARAM(align_whole);
+    VMI_BOOL_PARAM(vill_trap);
     VMI_UNS32_PARAM(ASID_cache_size);
     VMI_UNS32_PARAM(ASID_bits);
     VMI_UNS32_PARAM(trigger_num);
@@ -204,6 +209,11 @@ const char *riscvGetBitManipVersionDesc(riscvP riscv);
 // Return Bit Manipulation Architecture description
 //
 const char *riscvGetHypervisorVersionDesc(riscvP riscv);
+
+//
+// Return Cryptographic Architecture description
+//
+const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 
 //
 // Return Debug Architecture description

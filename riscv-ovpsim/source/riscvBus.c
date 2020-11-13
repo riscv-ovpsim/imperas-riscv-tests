@@ -130,20 +130,6 @@ void riscvNewLeafBusPorts(riscvP riscv) {
             "Artifact bus allowing external implementation of CSR registers"
         );
     }
-
-    // add port for external entropy source if required
-    if(cryptoPresent(riscv)) {
-        riscv->entropyPort = newBusPort(
-            &tail,
-            "entropy",
-            vmi_BP_MASTER,
-            vmi_DOM_OTHER,
-            2, 2, 2,
-            False,
-            "Artifact bus allowing external Entropy input (implemented by "
-            "4-byte read from address 0)"
-        );
-    }
 }
 
 //
@@ -193,9 +179,3 @@ memDomainP riscvGetExternalCSRDomain(riscvP riscv) {
     return portToDomain(riscv->csrPort);
 }
 
-//
-// Return any domain connected to the artifact port implementing Entropy
-//
-memDomainP riscvGetExternalEntropyDomain(riscvP riscv) {
-    return portToDomain(riscv->entropyPort);
-}

@@ -809,17 +809,11 @@ void riscvTakeException(
             isInt     : isInterrupt(exception)
         };
 
-        // do required actions for instructions that do not retire
-        if(!retiredCode(riscv, exception)) {
-
-            // reset step breakpoint for next instruction if required
-            riscvSetStepBreakpoint(riscv);
-
-            // adjust baseInstructions to account for the previous instruction
-            // not retiring, unless inhibited by mcountinhibit.IR
-            if(!riscvInhibitInstret(riscv)) {
-                riscv->baseInstructions++;
-            }
+        // adjust baseInstructions based on the exception code to take into
+        // account whether the previous instruction has retired, unless
+        // inhibited by mcountinhibit.IR
+        if(!retiredCode(riscv, exception) && !riscvInhibitInstret(riscv)) {
+            riscv->baseInstructions++;
         }
 
         // latch or clear Access Fault detail depending on exception type
@@ -936,6 +930,9 @@ void riscvTakeException(
             writeNet(riscv, riscv->irq_id_Handle, cxt.ecodeMod);
             writeNet(riscv, riscv->irq_ack_Handle, 1);
             riscv->netValue.irq_ack = True;
+            riscvTriggerInterrupt(riscv, cxt.modeY, cxt.ecodeMod);
+        } else {
+            riscvTriggerException(riscv, cxt.modeY, cxt.ecodeMod);
         }
     }
 }
@@ -1067,6 +1064,24 @@ static void takeInstructionException(riscvP riscv, riscvException exception) {
 }
 
 //
+// Emit verbose reason for Illegal Instruction
+//
+static void illegalVerbose(riscvP riscv, const char *reason) {
+    if(reason) {
+        vmiMessage("W", CPU_PREFIX "_ILL",
+            SRCREF_FMT "Illegal instruction - %s",
+            SRCREF_ARGS(riscv, getPC(riscv)),
+            reason
+        );
+    } else {
+        vmiMessage("W", CPU_PREFIX "_ILL",
+            SRCREF_FMT "Illegal instruction",
+            SRCREF_ARGS(riscv, getPC(riscv))
+        );
+    }
+}
+
+//
 // Take Illegal Instruction exception
 //
 void riscvIllegalInstruction(riscvP riscv) {
@@ -1074,10 +1089,38 @@ void riscvIllegalInstruction(riscvP riscv) {
 }
 
 //
+// Take Illegal Instruction exception for the given reason
+//
+void riscvIllegalInstructionMessage(riscvP riscv, const char *reason) {
+
+    // emit verbose message if required
+    if(riscv->verbose) {
+        illegalVerbose(riscv, reason);
+    }
+
+    // take Illegal Instruction exception
+    riscvIllegalInstruction(riscv);
+}
+
+//
 // Take Virtual Instruction exception
 //
 void riscvVirtualInstruction(riscvP riscv) {
     takeInstructionException(riscv, riscv_E_VirtualInstruction);
+}
+
+//
+// Take Virtual Instruction exception for the given reason
+//
+void riscvVirtualInstructionMessage(riscvP riscv, const char *reason) {
+
+    // emit verbose message if required
+    if(riscv->verbose) {
+        illegalVerbose(riscv, reason);
+    }
+
+    // take Virtual Instruction exception
+    riscvVirtualInstruction(riscv);
 }
 
 //
@@ -1153,10 +1196,34 @@ static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc) {
 }
 
 //
-// Perform any special actions when exception return is executed in Debug mode
-// (currently a NOP in this model)
+// Handle MRET, SRET or URET in Debug mode (behavior is unspecified; this model
+// can treat this as a NOP, jump to dexc_address or trap to dexc_address)
 //
-#define HANDLE_DMODE_RET(_P) if(inDebugMode(_P)) {return;}
+static void handleDebugModeERET(riscvP riscv) {
+
+    switch(riscv->configInfo.debug_eret_mode) {
+
+        case RVDRM_JUMP:
+            setPC(riscv, riscv->configInfo.dexc_address);
+            break;
+
+        case RVDRM_TRAP:
+            riscvIllegalInstructionMessage(riscv, "in debug mode");
+            break;
+
+        default:
+            break;
+    }
+}
+
+//
+// Perform any special actions when exception return is executed in Debug mode
+//
+#define HANDLE_DMODE_RET(_P) \
+    if(inDebugMode(_P)) {           \
+        handleDebugModeERET(_P);    \
+        return;                     \
+    }
 
 //
 // Return from M-mode exception
@@ -1493,6 +1560,13 @@ void riscvSetDMStall(riscvP riscv, Bool DMStall) {
 }
 
 //
+// Is debug step breakpoint enabled?
+//
+inline static Bool enableDebugStep(riscvP riscv) {
+    return !inDebugMode(riscv) && RD_CSR_FIELDC(riscv, dcsr, step);
+}
+
+//
 // Instruction step breakpoint callback
 //
 static VMI_ICOUNT_FN(riscvStepExcept) {
@@ -1500,7 +1574,7 @@ static VMI_ICOUNT_FN(riscvStepExcept) {
     riscvP riscv  = (riscvP)processor;
     Bool   doStep = False;
 
-    if(!inDebugMode(riscv) && RD_CSR_FIELDC(riscv, dcsr, step)) {
+    if(enableDebugStep(riscv)) {
         vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
         doStep = True;
     }
@@ -1513,7 +1587,7 @@ static VMI_ICOUNT_FN(riscvStepExcept) {
 //
 void riscvSetStepBreakpoint(riscvP riscv) {
 
-    if(!inDebugMode(riscv) && RD_CSR_FIELDC(riscv, dcsr, step)) {
+    if(enableDebugStep(riscv)) {
         vmirtSetModelTimer(riscv->stepTimer, 1);
     }
 }
@@ -1524,21 +1598,8 @@ void riscvSetStepBreakpoint(riscvP riscv) {
 void riscvDRET(riscvP riscv) {
 
     if(!inDebugMode(riscv)) {
-
-        // report FS state
-        if(riscv->verbose) {
-            vmiMessage("W", CPU_PREFIX "_NDM",
-                SRCREF_FMT "Illegal instruction - not debug mode",
-                SRCREF_ARGS(riscv, getPC(riscv))
-            );
-        }
-
-        // take Illegal Instruction exception
-        riscvIllegalInstruction(riscv);
-
+        riscvIllegalInstructionMessage(riscv, "not debug mode");
     } else {
-
-        // leave Debug mode
         leaveDM(riscv);
     }
 }
@@ -2206,9 +2267,29 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         riscv->netValue.irq_ack = False;
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    // actions *after* preceding instruction
+    ////////////////////////////////////////////////////////////////////////////
+
     if(riscv->netValue.triggerAfter && riscvTriggerAfter(riscv, complete)) {
 
-        // trigger after preceding instruction (highest priority)
+        // trigger after preceding instruction
+
+    } else if(riscv->netValue.stepreq) {
+
+        // enter Debug mode on single-step after preceding instruction
+        if(complete) {
+            riscv->netValue.stepreq = False;
+            enterDM(riscv, DMC_STEP);
+        }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // actions *before* next instruction
+    ////////////////////////////////////////////////////////////////////////////
+
+    } else if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
+
+        // execute address trap (priority 4, handled in riscvTriggerX0)
 
     } else if(riscv->netValue.resethaltreqS) {
 
@@ -2224,18 +2305,6 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         if(complete) {
             enterDM(riscv, DMC_HALTREQ);
         }
-
-    } else if(riscv->netValue.stepreq) {
-
-        // enter Debug mode on single-step (priority 0)
-        if(complete) {
-            riscv->netValue.stepreq = False;
-            enterDM(riscv, DMC_STEP);
-        }
-
-    } else if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
-
-        // execute address trap (priority 3, handled in riscvTriggerX0)
 
     } else if(RD_CSR_FIELDC(riscv, dcsr, nmip) && !inDebugMode(riscv)) {
 
@@ -2264,6 +2333,7 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     if(fetchOK) {
         return VMI_FETCH_NONE;
     } else if(complete) {
+        riscvSetStepBreakpoint(riscv);
         return VMI_FETCH_EXCEPTION_COMPLETE;
     } else {
         return VMI_FETCH_EXCEPTION_PENDING;
@@ -2646,6 +2716,9 @@ static void doNMI(riscvP riscv) {
 
     // set address at which to execute
     setPCException(riscv, riscv->configInfo.nmi_address);
+
+    // activate NMI trigger if required
+    riscvTriggerNMI(riscv);
 }
 
 

@@ -17,6 +17,9 @@
  *
  */
 
+// standard header files
+#include <stdio.h>
+
 // basic types
 #include "hostapi/impTypes.h"
 
@@ -774,17 +777,16 @@ static void illegalInstructionAbsentSubset(
     riscvP           riscv,
     riscvBitManipSet requiredSet
 ) {
-    // report the absent or disabled subset by name
+    char reason[64];
+
+    reason[0] = 0;
+
     if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_ASS",
-            SRCREF_FMT "Illegal instruction - %s absent",
-            SRCREF_ARGS(riscv, getPC(riscv)),
-            getSubsetDesc(requiredSet)
-        );
+        sprintf(reason, "%s absent", getSubsetDesc(requiredSet));
     }
 
     // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    riscvIllegalInstructionMessage(riscv, reason);
 }
 
 //

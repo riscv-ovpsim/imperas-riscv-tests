@@ -224,8 +224,8 @@ typedef enum riscvPrivVerE {
 //
 // Date and tag of master version
 //
-#define RVVV_MASTER_DATE    "22 July 2020"
-#define RVVV_MASTER_TAG     "b8cd98b"
+#define RVVV_MASTER_DATE    "7 November 2020"
+#define RVVV_MASTER_TAG     "511d0b8"
 
 //
 // Supported Vector Architecture versions
@@ -284,9 +284,9 @@ typedef enum riscvBitManipSetE {
 // Supported Cryptographic Architecture versions
 //
 typedef enum riscvCryptoVerE {
-    RVKV_0_5_0,                         // version 0.5.0
+    RVKV_0_7_1,                         // version 0.7.1
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_0_5_0,          // default version
+    RVKV_DEFAULT = RVKV_0_7_1,          // default version
 } riscvCryptoVer;
 
 //
@@ -363,6 +363,15 @@ typedef enum riscvDMModeE {
     RVDM_HALT,                          // Debug mode implemented as halt
 } riscvDMMode;
 
+//
+// Supported Debug mode implementation options
+//
+typedef enum riscvDERETModeE {
+    RVDRM_NOP,                          // treat as NOP
+    RVDRM_JUMP,                         // jump to dexc_address
+    RVDRM_TRAP,                         // trap to dexc_address
+} riscvDERETMode;
+
 // macro returning User Architecture version
 #define RISCV_USER_VERSION(_P)      ((_P)->configInfo.user_version)
 
@@ -377,6 +386,9 @@ typedef enum riscvDMModeE {
 
 // macro returning Hypervisor Architecture version
 #define RISCV_HYP_VERSION(_P)       ((_P)->configInfo.hyp_version)
+
+// macro returning Cryptographic Architecture version
+#define RISCV_CRYPTO_VERSION(_P)    ((_P)->configInfo.crypto_version)
 
 // macro returning Debug Architecture version
 #define RISCV_DBG_VERSION(_P)       ((_P)->configInfo.dbg_version)
@@ -415,6 +427,7 @@ typedef enum riscvVFeatureE {
     RVVF_ELEN_GT_VLEN,      // is ELEN>VLEN legal?
     RVVF_VLR_HINT,          // do VLR instructions encode hints?
     RVVF_VTYPE_10,          // is vtype in 1.0 format?
+    RVVF_SETVLZ_ILLEGAL,    // setvl* preserving vl illegal if preserve fails
     RVVF_LAST,              // for sizing
 } riscvVFeature;
 

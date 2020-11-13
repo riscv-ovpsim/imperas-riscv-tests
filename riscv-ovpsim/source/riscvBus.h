@@ -51,8 +51,3 @@ void riscvFreeBusPorts(riscvP riscv);
 //
 memDomainP riscvGetExternalCSRDomain(riscvP riscv);
 
-//
-// Return any domain connected to the artifact port implementing Entropy
-//
-memDomainP riscvGetExternalEntropyDomain(riscvP riscv);
-

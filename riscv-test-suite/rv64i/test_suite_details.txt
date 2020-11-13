@@ -27,24 +27,24 @@ Instruction category: arithmetic
   addi : 20,008
   lui : 7,108
   addiw : 11,417
-  addw : 264
-  add : 2,948
   sub : 530
+  add : 2,948
   subw : 264
+  addw : 264
 Instruction category: logical 
-  andi : 288
   ori : 265
+  andi : 288
   xori : 265
-  and : 265
-  or : 265
   xor : 265
+  or : 265
+  and : 265
 Instruction category: branch 
   bne : 326
   bge : 326
   beq : 503
   blt : 298
-  bltu : 267
   bgeu : 267
+  bltu : 267
 Instruction category: system 
   ecall : 60
   ebreak : 1
@@ -54,33 +54,33 @@ Instruction category: jump
   jal : 1,019
   jalr : 273
 Instruction category: load 
-  ld : 1,329
+  lb : 265
   lh : 269
   lw : 270
-  lhu : 270
-  lb : 265
   lbu : 270
+  lhu : 270
+  ld : 1,329
 Instruction category: store 
   sd : 13,012
-  sw : 452
-  sh : 268
   sb : 264
+  sh : 268
+  sw : 452
 Instruction category: shift 
   slli : 6,581
-  sraiw : 264
-  sll : 265
-  sllw : 264
-  srlw : 264
-  sraw : 264
-  srai : 265
-  slliw : 264
-  srliw : 264
   srli : 265
-  sra : 265
+  srai : 265
+  sll : 265
   srl : 265
+  srliw : 264
+  sra : 265
+  slliw : 264
+  srlw : 264
+  sllw : 264
+  sraw : 264
+  sraiw : 264
 Instruction category: compare 
-  slti : 265
   sltiu : 265
+  slti : 265
   sltu : 265
   slt : 265
 

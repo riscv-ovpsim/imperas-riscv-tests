@@ -193,6 +193,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (marchid),      // 0xF12
     CSR_ID      (mimpid),       // 0xF13
     CSR_ID      (mhartid),      // 0xF14
+    CSR_ID      (mentropy),     // 0xF15
     CSR_ID      (mstatus),      // 0x300
     CSR_ID      (misa),         // 0x301
     CSR_ID      (medeleg),      // 0x302
@@ -233,7 +234,11 @@ typedef enum riscvCSRIdE {
     CSR_ID      (tinfo),        // 0x7A4
     CSR_ID      (tcontrol),     // 0x7A5
     CSR_ID      (mcontext),     // 0x7A8
-    CSR_ID      (scontext),     // 0x7AA
+    CSR_ID      (mnoise),       // 0x7A9
+    CSR_ID      (mscontext),    // 0x7AA
+    CSR_ID      (scontext13),   // 0x5A8
+    CSR_ID      (scontext14),   // 0x5A8
+    CSR_ID      (hcontext),     // 0x6A8
 
     CSR_ID      (dcsr),         // 0x7B0
     CSR_ID      (dpc),          // 0x7B1
@@ -478,7 +483,12 @@ void riscvRefreshVectorPMKey(riscvP riscv);
 void riscvSetVType(riscvP riscv, Bool vill, riscvVType vtype);
 
 //
-// Update vl CSR and aliases of it
+// Update vl CSR and aliases of it for the given vtype
+//
+Bool riscvSetVLForVType(riscvP riscv, Uns64 vl, riscvVType vtype);
+
+//
+// Update vl CSR and aliases of it for the current vtype
 //
 void riscvSetVL(riscvP riscv, Uns64 vl);
 
@@ -1349,6 +1359,43 @@ CSR_REG_STRUCT_DECL_64(hartid);
 // define alias types
 typedef CSR_REG_TYPE(hartid) CSR_REG_TYPE(mhartid);
 
+// -----------------------------------------------------------------------------
+// mnoise        (id 0x7A9)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 _u1        : 31;
+    Uns32 NOISE_TEST :  1;
+} CSR_REG_TYPE_32(noise);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(noise);
+
+// define alias types
+typedef CSR_REG_TYPE(noise) CSR_REG_TYPE(mnoise);
+
+// define write masks
+#define WM32_mnoise 0x80000000
+#define WM64_mnoise 0x80000000
+
+// -----------------------------------------------------------------------------
+// mentropy      (id 0xF15)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 seed   : 16;
+    Uns32 custom :  8;
+    Uns32 _u1    :  6;
+    Uns32 OPST   :  2;
+} CSR_REG_TYPE_32(entropy);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(entropy);
+
+// define alias types
+typedef CSR_REG_TYPE(entropy) CSR_REG_TYPE(mentropy);
 
 // -----------------------------------------------------------------------------
 // dcsr         (id 0x7B0)
@@ -1544,7 +1591,8 @@ typedef enum triggerTypeE {
     TT_ADMATCH   = 2,    // address/data match
     TT_ICOUNT    = 3,    // instruction count
     TT_INTERRUPT = 4,    // interrupt
-    TT_EXCEPT    = 5,    // exception
+    TT_EXCEPTION = 5,    // exception
+    TT_MCONTROL6 = 6,    // address/data match (type 6)
 } triggerType;
 
 // 32-bit view
@@ -1575,35 +1623,59 @@ typedef union {
 
     // icount view
     struct {
-        Uns32       action :  6;
-        Uns32       modes  :  4;
-        Uns32       count  : 14;
-        Uns32       hit    :  1;
-        Uns32       _u1    :  2;
-        Uns32       dmode  :  1;
-        triggerType type   :  4;
+        Uns32       action  :  6;
+        Uns32       modes   :  4;
+        Uns32       count   : 14;
+        Uns32       hit     :  1;
+        Uns32       vu      :  1;
+        Uns32       vs      :  1;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
     } icount;
 
     // itrigger view
     struct {
-        Uns32       action :  6;
-        Uns32       modes  :  4;
-        Uns32       _u1    : 16;
-        Uns32       hit    :  1;
-        Uns32       dmode  :  1;
-        triggerType type   :  4;
+        Uns32       action  :  6;
+        Uns32       modes   :  4;
+        Uns32       _u1     :  1;
+        Uns32       vu      :  1;
+        Uns32       vs      :  1;
+        Uns32       _u2     : 13;
+        Uns32       hit     :  1;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
     } itrigger;
 
     // etrigger view
     struct {
-        Uns32       action :  6;
-        Uns32       modes  :  4;
-        Uns32       nmi    :  1;
-        Uns32       _u1    : 15;
-        Uns32       hit    :  1;
-        Uns32       dmode  :  1;
-        triggerType type   :  4;
+        Uns32       action  :  6;
+        Uns32       modes   :  4;
+        Uns32       nmi     :  1;
+        Uns32       vu      :  1;
+        Uns32       vs      :  1;
+        Uns32       _u1     : 13;
+        Uns32       hit     :  1;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
     } etrigger;
+
+    // mcontrol6 view
+    struct {
+        Uns32       priv    :  3;
+        Uns32       modes   :  4;
+        Uns32       match   :  4;
+        Uns32       chain   :  1;
+        Uns32       action  :  4;
+        Uns32       size    :  4;
+        Uns32       timing  :  1;
+        Uns32       select  :  1;
+        Uns32       hit     :  1;
+        Uns32       vu      :  1;
+        Uns32       vs      :  1;
+        Uns32       _u1     :  2;
+        Uns32       dmode   :  1;
+        triggerType type    :  4;
+    } mcontrol6;
 
 } CSR_REG_TYPE_32(tdata1);
 
@@ -1641,7 +1713,9 @@ typedef union {
         Uns64       modes   :  4;
         Uns64       count   : 14;
         Uns64       hit     :  1;
-        Uns64       _u1     : 34;
+        Uns64       vu      :  1;
+        Uns64       vs      :  1;
+        Uns64       _u1     : 32;
         Uns64       dmode   :  1;
         triggerType type    :  4;
     } icount;
@@ -1650,7 +1724,10 @@ typedef union {
     struct {
         Uns64       action  :  6;
         Uns64       modes   :  4;
-        Uns64       _u1     : 48;
+        Uns64       _u1     :  1;
+        Uns64       vu      :  1;
+        Uns64       vs      :  1;
+        Uns64       _u2     : 45;
         Uns64       hit     :  1;
         Uns64       dmode   :  1;
         triggerType type    :  4;
@@ -1661,11 +1738,31 @@ typedef union {
         Uns64       action  :  6;
         Uns64       modes   :  4;
         Uns64       nmi     :  1;
-        Uns64       _u1     : 47;
+        Uns64       vu      :  1;
+        Uns64       vs      :  1;
+        Uns64       _u1     : 45;
         Uns64       hit     :  1;
         Uns64       dmode   :  1;
         triggerType type    :  4;
     } etrigger;
+
+    // mcontrol6 view
+    struct {
+        Uns64       priv    :  3;
+        Uns64       modes   :  4;
+        Uns64       match   :  4;
+        Uns64       chain   :  1;
+        Uns64       action  :  4;
+        Uns64       size    :  4;
+        Uns64       timing  :  1;
+        Uns64       select  :  1;
+        Uns64       hit     :  1;
+        Uns64       vu      :  1;
+        Uns64       vs      :  1;
+        Uns64       _u1     : 34;
+        Uns64       dmode   :  1;
+        triggerType type    :  4;
+    } mcontrol6;
 
 } CSR_REG_TYPE_64(tdata1);
 
@@ -1692,20 +1789,20 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata2);
 
 // 32-bit view
 typedef struct {
-    Uns32 sselect :  2;
-    Uns32 svalue  : 16;
-    Uns32 _u1     :  7;
-    Uns32 mselect :  1;
-    Uns32 mvalue  :  6;
+    Uns32 sselect  :  2;
+    Uns32 svalue   : 16;
+    Uns32 _u1      :  5;
+    Uns32 mhselect :  3;
+    Uns32 mhvalue  :  6;
 } CSR_REG_TYPE_32(tdata3);
 
 // 64-bit view
 typedef struct {
-    Uns64 sselect :  2;
-    Uns64 svalue  : 34;
-    Uns64 _u1     : 14;
-    Uns64 mselect :  1;
-    Uns64 mvalue  : 13;
+    Uns64 sselect  :  2;
+    Uns64 svalue   : 34;
+    Uns64 _u1      : 12;
+    Uns64 mhselect :  3;
+    Uns64 mhvalue  : 13;
 } CSR_REG_TYPE_64(tdata3);
 
 // define 32/64 bit type
@@ -1741,7 +1838,9 @@ typedef struct {
     Uns32 mte  :  1;
     Uns32 _u2  :  3;
     Uns32 mpte :  1;
-    Uns32 _u3  : 24;
+    Uns32 scxe :  1;
+    Uns32 hcxe :  1;
+    Uns32 _u3  : 22;
 } CSR_REG_TYPE_32(tcontrol);
 
 // define 32 bit type
@@ -1860,6 +1959,9 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (tselect);        // 0x7A0
     CSR_REG_DECL  (tcontrol);       // 0x7A5
 
+    // CRYPTOGRAPHIC CSRS
+    CSR_REG_DECL  (mnoise);         // 0x7A9
+
     // DEBUG MODE CSRS
     CSR_REG_DECL  (dcsr);           // 0x7B0
     CSR_REG_DECL  (dpc);            // 0x7B1
@@ -1920,6 +2022,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mtinst);         // 0x34A
 
     // TRIGGER CSRS
+    CSR_REG_DECL  (tcontrol);       // 0x7A5
     CSR_REG_DECL  (tdata1);         // 0x7A8
     CSR_REG_DECL  (mcontext);       // 0x7A8
     CSR_REG_DECL  (scontext);       // 0x7AA

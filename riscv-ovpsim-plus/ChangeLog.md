@@ -11,6 +11,40 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- The vector version master branch currently has these additional differences
+  compared to the previous 0.9 version:
+  - V-commit 511d0b8: ordered/unordered indexed vector memory instructions
+    added.
+
+Date 2020-November-04
+Release 20201103.0
+===
+
+- Some Vector Extension issues have been corrected:
+  - whole-register move instructions now respect the current setting of vstart
+    (elements with index < vstart are not modified).
+- The vector version master branch has these additional differences compared to
+  the previous 0.9 version:
+  - V-commit 579fef9: vsetvli x0, x0, imm instruction is reserved if it would
+    cause vl to change.
+- New parameter vill_trap can be used to specify that illegal updates to the
+  vtype register cause an Illegal Instruction trap instead of setting 
+  vtype.vill=1.
+
+- changes to the included intercept libraries, customControl and signatureDump,
+  to clean the function.
+  - customControl
+     - can stop simulation on execution of terminate() or write_to_host()
+     - can detect pass/fail status in register on ecall
+     - continues to provide character stream on custom instruction
+  -signatureDump
+     - provides signature dump at end of simulation or on execution of write_to_host()
+     - includes new signatureGranularity parameter to slect 4 or 16 byte line size
+  
+Date 2020-September-23
+Release 20201021.0
+===
+
 - The trigger module has been partially implemented - see variant-specific 
   documentation.
 - Some Vector Extension issues have been corrected:

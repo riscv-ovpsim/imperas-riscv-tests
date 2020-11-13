@@ -2952,9 +2952,9 @@ static riscvException tlbLookupS1(
     riscvMode      mode,
     tlbEntryP      entry,
     memPriv        requiredPriv,
-    memAccessAttrs attrs
+    memAccessAttrs attrs,
+    Bool           V
 ) {
-    Bool           V      = activeTLBIsVirtual(riscv);
     VAMode         vaMode = RD_CSR_FIELD_V(riscv, satp, V, MODE);
     riscvException result = 0;
 
@@ -3015,10 +3015,12 @@ static riscvException tlbLookup(
     memPriv        requiredPriv,
     memAccessAttrs attrs
 ) {
+    Bool           S2 = activeTLBIsVS2(riscv);
+    Bool           V  = !S2 && activeTLBIsVirtual(riscv);
     riscvException result;
 
-    if(!activeTLBIsVS2(riscv)) {
-        result = tlbLookupS1(riscv, mode, entry, requiredPriv, attrs);
+    if(!S2) {
+        result = tlbLookupS1(riscv, mode, entry, requiredPriv, attrs, V);
     } else {
         result = tlbLookupS2(riscv, mode, entry, requiredPriv, attrs);
     }

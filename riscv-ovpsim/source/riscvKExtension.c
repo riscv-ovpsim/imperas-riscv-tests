@@ -17,6 +17,9 @@
  *
  */
 
+// standard header files
+#include <stdio.h>
+
 // basic types
 #include "hostapi/impTypes.h"
 
@@ -760,21 +763,15 @@ static Uns64 doSSHA512_SUM1(Uns64 a) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Do POLLENTROPY (NOTE: unlike hardware, this is designed to produce a
+// Do PollEntropy (NOTE: unlike hardware, this is designed to produce a
 // deterministic, not-particularly-random sequence, always returning ES16
 // status)
 //
-static Int32 doPOLLENTROPY(riscvP riscv, Uns32 shamt) {
+Uns32 riscvPollEntropy(riscvP riscv) {
 
-    memDomainP domain = riscvGetExternalEntropyDomain(riscv);
-    Int32      result;
+    Uns32 result = 0;
 
-    if(domain) {
-
-        // get externally-supplied entropy value
-        result = vmirtRead4ByteDomain(domain, 0, MEM_ENDIAN_LITTLE, MEM_AA_TRUE);
-
-    } else {
+    if(!RD_CSR_FIELDC(riscv, mnoise, NOISE_TEST)) {
 
         // generate entropy value
         Uns32 lfsr = riscv->entropyLFSR;
@@ -793,20 +790,6 @@ static Int32 doPOLLENTROPY(riscvP riscv, Uns32 shamt) {
     }
 
     return result;
-}
-
-//
-// Do POLLENTROPY (32-bit registers)
-//
-static Int32 doPOLLENTROPY32(riscvP riscv, Uns32 shamt) {
-    return doPOLLENTROPY(riscv, shamt);
-}
-
-//
-// Do POLLENTROPY (64-bit registers)
-//
-static Int64 doPOLLENTROPY64(riscvP riscv, Uns32 shamt) {
-    return doPOLLENTROPY(riscv, shamt);
 }
 
 
@@ -861,28 +844,28 @@ typedef struct opDescS {
 // Entries with subset only, version-invariant
 //
 #define OPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
-    [RVKV_0_5_0] = OPENTRY_S(_S),               \
+    [RVKV_0_7_1] = OPENTRY_S(_S),               \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
-    [RVKV_0_5_0] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_7_1] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
 // Entries with subset and 32 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
-    [RVKV_0_5_0] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_7_1] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
 // Entries with subset and 64 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
-    [RVKV_0_5_0] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_7_1] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //
@@ -935,8 +918,6 @@ static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
     OPENTRYxV_S_CB64 (SSHA512_SIG1,  S13,  SSHA512_SIG1  ),
     OPENTRYxV_S_CB64 (SSHA512_SUM0,  S13,  SSHA512_SUM0  ),
     OPENTRYxV_S_CB64 (SSHA512_SUM1,  S13,  SSHA512_SUM1  ),
-
-    OPENTRYxV_S_CB   (POLLENTROPY,   ALL,  POLLENTROPY   ),
 };
 
 //
@@ -1000,17 +981,16 @@ static void illegalInstructionAbsentSubset(
     riscvP         riscv,
     riscvCryptoSet requiredSet
 ) {
-    // report the absent or disabled subset by name
+    char reason[64];
+
+    reason[0] = 0;
+
     if(riscv->verbose) {
-        vmiMessage("W", CPU_PREFIX "_ASS",
-            SRCREF_FMT "Illegal instruction - %s absent",
-            SRCREF_ARGS(riscv, getPC(riscv)),
-            getSubsetDesc(requiredSet)
-        );
+        sprintf(reason, "%s absent", getSubsetDesc(requiredSet));
     }
 
     // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    riscvIllegalInstructionMessage(riscv, reason);
 }
 
 //

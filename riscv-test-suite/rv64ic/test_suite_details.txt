@@ -28,14 +28,14 @@ Instruction category: arithmetic
   c-lui : 2,467
   c-addiw : 1,138
   c-add : 2,376
-  c-sub : 265
-  c-mv : 264
   c-addw : 264
+  c-mv : 264
+  c-sub : 265
   c-subw : 264
 Instruction category: logical 
-  c-andi : 264
-  c-or : 264
   c-and : 264
+  c-or : 264
+  c-andi : 264
   c-xor : 264
 Instruction category: branch 
   c-bnez : 295
@@ -47,15 +47,15 @@ Instruction category: jump
   c-jalr : 264
   c-jr : 264
 Instruction category: load 
-  c-ldsp : 264
   c-lwsp : 264
+  c-ldsp : 264
 Instruction category: store 
   c-sdsp : 538
   c-swsp : 264
 Instruction category: shift 
   c-slli : 3,355
-  c-srli : 264
   c-srai : 264
+  c-srli : 264
 
 Other instructions (those not the focus of this suite)
   csrrs : 126
@@ -71,8 +71,8 @@ Other instructions (those not the focus of this suite)
   lui : 1,253
   fence : 31
   ecall : 31
-  lw : 264
   jal : 478
-  sw : 300
   ld : 1,320
+  lw : 264
+  sw : 300
 

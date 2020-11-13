@@ -23,20 +23,20 @@ Architectural Test Suite Data for RV32VM RISC-V "V" Vector Extension:
     185,484 total instructions
 
 Instruction category: OPV_MASK mask
-  vmnor.mm : 336
-  vmandnot.mm : 336
-  vmand.mm : 336
-  vmsbf.m : 639
+  vfirst.m : 639
   viota.m : 639
-  vmxor.mm : 336
+  vmand.mm : 336
+  vmandnot.mm : 336
+  vmnand.mm : 336
+  vmnor.mm : 336
   vmor.mm : 336
   vmornot.mm : 336
-  vfirst.m : 639
-  vpopc.m : 639
-  vmsof.m : 639
-  vmsif.m : 639
-  vmnand.mm : 336
   vmxnor.mm : 336
+  vmxor.mm : 336
+  vmsbf.m : 639
+  vmsif.m : 639
+  vmsof.m : 639
+  vpopc.m : 639
 Instruction category: OPV_INDXEX index
   vid.v : 639
 
@@ -55,11 +55,11 @@ Other instructions (those not the focus of this suite)
   or : 264
   mret : 264
   vsetvli : 23,064
-  vle.v : 17,214
   add : 24,678
-  vse.v : 5,883
-  lw : 21,504
+  vle.v : 17,214
+  sw : 1,278
   fence : 264
   ecall : 264
-  sw : 1,278
+  vse.v : 5,883
+  lw : 21,504
 

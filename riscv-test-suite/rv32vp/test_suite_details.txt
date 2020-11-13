@@ -23,28 +23,28 @@ Architectural Test Suite Data for RV32VP RISC-V "V" Vector Extension:
     147,365 total instructions
 
 Instruction category: OPV_GACO gather
-  vrgather.vv : 639
   vcompress.vm : 336
   vrgather.vi : 639
+  vrgather.vv : 639
   vrgather.vx : 639
 Instruction category: OPV_PERMU permutation
-  vmv.x.s : 96
-  vfmv.s.f : 224
   vfmv.f.s : 224
+  vfmv.s.f : 224
   vmv.s.x : 96
+  vmv.x.s : 96
 Instruction category: OPV_CONFIG config
 Instruction category: OPV_VMV whole vector register move
   vmv1r.v : 32
+  vmv4r.v : 32
   vmv2r.v : 32
   vmv8r.v : 16
-  vmv4r.v : 32
 Instruction category: OPV_SLIDE slide
   vslide1down.vx : 639
-  vslidedown.vx : 639
-  vslideup.vx : 639
   vslide1up.vx : 639
-  vslideup.vi : 639
   vslidedown.vi : 639
+  vslidedown.vx : 639
+  vslideup.vi : 639
+  vslideup.vx : 639
 
 Other instructions (those not the focus of this suite)
   jal : 254
@@ -66,7 +66,7 @@ Other instructions (those not the focus of this suite)
   vse.v : 6,519
   fence : 254
   ecall : 254
+  fmv.x.s : 224
   sw : 320
   fmv.s.x : 224
-  fmv.x.s : 224
 

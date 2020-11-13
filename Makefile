@@ -121,6 +121,15 @@ clean:
 		RISCV_ISA=$(RISCV_ISA) \
 		clean -C $(SUITEDIR)
 
+allclean:
+	for isa in $(RISCV_ISA_ALL); do \
+		$(MAKE) $(JOBS) RISCV_ISA=$$isa clean; \
+			rc=$$?; \
+			if [ $$rc -ne 0 ]; then \
+				exit $$rc; \
+			fi \
+	done
+
 help:
 	@echo "eg, make"
 	@echo "RISCV_TARGET='riscvOVPsim|riscvOVPsimPlus|...'"

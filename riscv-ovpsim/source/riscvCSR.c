@@ -35,6 +35,7 @@
 #include "riscvCSR.h"
 #include "riscvCSRTypes.h"
 #include "riscvExceptions.h"
+#include "riscvKExtension.h"
 #include "riscvMessage.h"
 #include "riscvMorph.h"
 #include "riscvRegisters.h"
@@ -2203,54 +2204,22 @@ static Bool hpmAccessValid(riscvCSRAttrsCP attrs, riscvP riscv) {
     } else if(!(mask & riscv->configInfo.counteren_mask)) {
 
         // counter is unimplemented
-        if(riscv->verbose) {
-            vmiMessage("W", CPU_PREFIX "_IHPMU",
-                SRCREF_FMT "Illegal instruction (CSR unimplemented)",
-                SRCREF_ARGS(riscv, getPC(riscv))
-            );
-        }
-
-        // take Illegal Instruction exception
-        riscvIllegalInstruction(riscv);
+        riscvIllegalInstructionMessage(riscv, "CSR unimplemented");
 
     } else if((mode<RISCV_MODE_M) && !(mask & RD_CSRC(riscv, mcounteren))) {
 
         // counter is disabled by mcounteren
-        if(riscv->verbose) {
-            vmiMessage("W", CPU_PREFIX "_IHPMA",
-                SRCREF_FMT "Illegal instruction (access disabled by mcounteren)",
-                SRCREF_ARGS(riscv, getPC(riscv))
-            );
-        }
-
-        // take Illegal Instruction exception
-        riscvIllegalInstruction(riscv);
+        riscvIllegalInstructionMessage(riscv, "access disabled by mcounteren");
 
     } else if(inVMode(riscv) && !(mask & RD_CSRC(riscv, hcounteren))) {
 
         // counter is disabled by hcounteren
-        if(riscv->verbose) {
-            vmiMessage("W", CPU_PREFIX "_IHPMA",
-                SRCREF_FMT "Illegal instruction (access disabled by hcounteren)",
-                SRCREF_ARGS(riscv, getPC(riscv))
-            );
-        }
-
-        // take Virtual Instruction exception
-        riscvVirtualInstruction(riscv);
+        riscvVirtualInstructionMessage(riscv, "access disabled by hcounteren");
 
     } else if((mode<RISCV_MODE_S) && !(mask & RD_CSRC(riscv, scounteren))) {
 
         // counter is disabled by scounteren
-        if(riscv->verbose) {
-            vmiMessage("W", CPU_PREFIX "_IHPMA",
-                SRCREF_FMT "Illegal instruction (access disabled by scounteren)",
-                SRCREF_ARGS(riscv, getPC(riscv))
-            );
-        }
-
-        // take Illegal Instruction exception
-        riscvIllegalInstruction(riscv);
+        riscvIllegalInstructionMessage(riscv, "access disabled by scounteren");
 
     } else {
 
@@ -2811,8 +2780,17 @@ static RISCV_CSR_WRITEFN(hgatpW) {
 //
 // Return the maximum number of PMP registers
 //
-inline static Uns32 getMaxPMPRegs(riscvP riscv) {
-    return (riscv->configInfo.priv_version>=RVPV_1_12) ? 64 : 16;
+static Uns32 getMaxPMPRegs(riscvP riscv) {
+
+    Uns32 result;
+
+    if(riscv->configInfo.PMP_undefined) {
+        result = riscv->configInfo.PMP_registers;
+    } else {
+        result = (riscv->configInfo.priv_version>=RVPV_1_12) ? 64 : 16;
+    }
+
+    return result;
 }
 
 //
@@ -2830,24 +2808,17 @@ inline static Uns32 pmpaddrIndex(riscvCSRAttrsCP attrs) {
 }
 
 //
-// Are PMP registers undefined?
-//
-inline static Bool PMPUndefined(riscvP riscv) {
-    return riscv->configInfo.PMP_undefined;
-}
-
-//
 // Is pmpcfg register present?
 //
 inline static RISCV_CSR_PRESENTFN(pmpcfgP) {
-    return !PMPUndefined(riscv) && (pmpcfgIndex(attrs) < (getMaxPMPRegs(riscv)/4));
+    return pmpcfgIndex(attrs) < (getMaxPMPRegs(riscv)/4);
 }
 
 //
 // Is pmpaddr register present?
 //
 inline static RISCV_CSR_PRESENTFN(pmpaddrP) {
-    return !PMPUndefined(riscv) && (pmpaddrIndex(attrs) < getMaxPMPRegs(riscv));
+    return pmpaddrIndex(attrs) < getMaxPMPRegs(riscv);
 }
 
 //
@@ -3017,19 +2988,50 @@ void riscvSetVType(riscvP riscv, Bool vill, riscvVType vtype) {
 }
 
 //
-// Update VL and aliases of it
+// Update VL and aliases of it for the given vtype
 //
-void riscvSetVL(riscvP riscv, Uns64 vl) {
+static Bool setVL(riscvP riscv, Uns64 vl, riscvVType vtype) {
 
-    Uns32 maxVL = getMaxVL(riscv);
+    Uns32 maxVL = riscvGetMaxVL(riscv, vtype);
+    Bool  ok    = True;
 
-    // clamp vl to maximum supported number of elements
-    if(vl > maxVL) {
+    if(vl<=maxVL) {
+
+        // no action
+
+    } else if(!(riscv->vPreserve && riscvVFSupport(riscv, RVVF_SETVLZ_ILLEGAL))) {
+
+        // clamp vl to maximum supported number of elements
         vl = maxVL;
+
+    } else {
+
+        ok = False;
+
+        // take Illegal Instruction exception
+        riscvIllegalInstructionMessage(riscv, "Illegal attempt to preserve vl");
     }
 
     // update vl CSR
-    WR_CSRC(riscv, vl, vl);
+    if(ok) {
+        WR_CSRC(riscv, vl, vl);
+    }
+
+    return ok;
+}
+
+//
+// Update VL and aliases of it for the given vtype
+//
+Bool riscvSetVLForVType(riscvP riscv, Uns64 vl, riscvVType vtype) {
+    return setVL(riscv, vl, vtype);
+}
+
+//
+// Update vl CSR and aliases of it for the current vtype
+//
+void riscvSetVL(riscvP riscv, Uns64 vl) {
+    setVL(riscv, vl, getCurrentVType(riscv));
 }
 
 //
@@ -3059,7 +3061,7 @@ static void resetVLVType(riscvP riscv) {
 //
 // Return modes masked to those implemented on the processor
 //
-static Uns32 maskModes(riscvP riscv, Uns32 modes) {
+static Uns32 composeModes(riscvP riscv, Uns32 modes, Bool vu, Bool vs) {
 
     riscvArchitecture arch = riscv->configInfo.arch;
     Uns32             mask = 0;
@@ -3068,7 +3070,14 @@ static Uns32 maskModes(riscvP riscv, Uns32 modes) {
     if(arch&ISA_S) {mask |= 1<<RISCV_MODE_S;}
     if(arch&ISA_U) {mask |= 1<<RISCV_MODE_U;}
 
-    return modes & mask;
+    modes &= mask;
+
+    if(arch&ISA_H) {
+        if(vu) {modes |= 1<<RISCV_MODE_VU;}
+        if(vs) {modes |= 1<<RISCV_MODE_VS;}
+    }
+
+    return modes;
 }
 
 //
@@ -3103,7 +3112,7 @@ static Bool mayWriteTrigger(riscvP riscv, riscvTriggerP trigger) {
         // access always allowed in debug mode
         inDebugMode(riscv) ||
         // access allowed only if dmode is 0
-        !RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata1, dmode)
+        !trigger->tdata1UP.dmode
     );
 
     // report illegal accesses if required
@@ -3157,11 +3166,9 @@ static Bool mayWriteChain(riscvP riscv, Bool dmode, riscvTriggerP prev) {
         // no previous trigger
         !prev ||
         // previous trigger has dmode of 1
-        RD_REG_FIELD_TRIGGER_MODE(riscv, prev, tdata1, dmode) ||
-        // previous trigger is not an address match trigger
-        (RD_REG_FIELD_TRIGGER_MODE(riscv, prev, tdata1, type) != TT_ADMATCH) ||
+        prev->tdata1UP.dmode ||
         // previous trigger is not chained to this
-        !RD_REG_FIELD_TRIGGER(prev, tdata1, mcontrol.chain)
+        !prev->tdata1UP.chain
     );
 
     // report illegal accesses if required
@@ -3178,14 +3185,19 @@ static Bool mayWriteChain(riscvP riscv, Bool dmode, riscvTriggerP prev) {
 }
 
 //
-// Is the specified trigger type supported?
+// Is trigger type encoded in the given value supported?
 //
 static Bool validateTriggerType(
     riscvP        riscv,
     riscvTriggerP trigger,
-    triggerType   type
+    Uns64         value
 ) {
-    Bool ok = RD_REG_TRIGGER(trigger, tinfo) & (1<<type);
+    // assign raw value to structure
+    CSR_REG_DECL(tdata1) = {value};
+
+    // get selected trigger type
+    triggerType type = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type);
+    Bool        ok   = RD_REG_TRIGGER(trigger, tinfo) & (1<<type);
 
     // report illegal trigger type if required
     if(!ok && riscv->verbose) {
@@ -3198,6 +3210,324 @@ static Bool validateTriggerType(
     }
 
     return ok;
+}
+
+//
+// Unpack tdata1 value into common format
+//
+static riscvTData1UP unpackTData1(riscvP riscv, Uns64 newValue) {
+
+    CSR_REG_DECL(tdata1) = {newValue};
+
+    // information required to compose mode
+    Uns32 modes = 0;
+    Bool  vu    = False;
+    Bool  vs    = False;
+
+    // initialize common fields
+    riscvTData1UP tdata1UP = {
+        type  : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type),
+        dmode : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode)
+    };
+
+    // validate illegal attempt to update dmode
+    if(!mayWriteDMode(riscv, tdata1UP.dmode)) {
+        tdata1UP.dmode = 0;
+    }
+
+    // unpack type-specific fields
+    switch(tdata1UP.type) {
+
+        case TT_ADMATCH:
+
+            // extract mode fields
+            modes = RD_RAW_FIELDC(tdata1, mcontrol.modes);
+
+            // compose other fields
+            tdata1UP.match  = RD_RAW_FIELDC(tdata1, mcontrol.match);
+            tdata1UP.action = RD_RAW_FIELDC(tdata1, mcontrol.action);
+            tdata1UP.size   = RD_RAW_FIELDC(tdata1, mcontrol.sizelo);
+            tdata1UP.priv   = RD_RAW_FIELDC(tdata1, mcontrol.priv);
+            tdata1UP.chain  = RD_RAW_FIELDC(tdata1, mcontrol.chain);
+            tdata1UP.timing = RD_RAW_FIELDC(tdata1, mcontrol.timing);
+            tdata1UP.select = RD_RAW_FIELDC(tdata1, mcontrol.select);
+            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, mcontrol.hit);
+
+            // include 64-bit size component
+            if(!TRIGGER_IS_32M(riscv)) {
+                tdata1UP.size += RD_RAW_FIELD64(tdata1, mcontrol.sizehi)*4;
+            }
+
+            break;
+
+        case TT_ICOUNT:
+
+            // extract mode fields
+            modes = RD_RAW_FIELDC(tdata1, icount.modes);
+            vu    = RD_RAW_FIELDC(tdata1, icount.vu);
+            vs    = RD_RAW_FIELDC(tdata1, icount.vs);
+
+            // compose other fields
+            tdata1UP.action = RD_RAW_FIELDC(tdata1, icount.action);
+            tdata1UP.timing = 1;
+            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, icount.hit);
+
+            // from version 0.14.0, pending field indicates whether ICOUNT
+            // breakpoint has fired
+            if(RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) {
+                tdata1UP.pending = (modes&(1<<RISCV_MODE_H)) && True;
+            }
+
+            // assign read-only count field (single-step only)
+            tdata1UP.count  = 1;
+
+            break;
+
+        case TT_INTERRUPT:
+
+            // extract mode fields
+            modes = RD_RAW_FIELDC(tdata1, itrigger.modes);
+            vu    = RD_RAW_FIELDC(tdata1, itrigger.vu);
+            vs    = RD_RAW_FIELDC(tdata1, itrigger.vs);
+
+            // compose other fields
+            tdata1UP.action = RD_RAW_FIELDC(tdata1, itrigger.action);
+            tdata1UP.timing = 1;
+
+            // hit field is at XLEN-specific location
+            tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit);
+
+            break;
+
+        case TT_EXCEPTION:
+
+            // extract mode fields
+            modes = RD_RAW_FIELDC(tdata1, etrigger.modes);
+            vu    = RD_RAW_FIELDC(tdata1, etrigger.vu);
+            vs    = RD_RAW_FIELDC(tdata1, etrigger.vs);
+
+            // compose other fields
+            tdata1UP.action = RD_RAW_FIELDC(tdata1, etrigger.action);
+            tdata1UP.timing = 1;
+            tdata1UP.nmi    = RD_RAW_FIELDC(tdata1, etrigger.nmi);
+
+            // hit field is at XLEN-specific location
+            tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit);
+
+            break;
+
+        case TT_MCONTROL6:
+
+            // extract mode fields
+            modes = RD_RAW_FIELDC(tdata1, mcontrol6.modes);
+            vu    = RD_RAW_FIELDC(tdata1, mcontrol6.vu);
+            vs    = RD_RAW_FIELDC(tdata1, mcontrol6.vs);
+
+            // compose other fields
+            tdata1UP.match  = RD_RAW_FIELDC(tdata1, mcontrol6.match);
+            tdata1UP.action = RD_RAW_FIELDC(tdata1, mcontrol6.action);
+            tdata1UP.size   = RD_RAW_FIELDC(tdata1, mcontrol6.size);
+            tdata1UP.priv   = RD_RAW_FIELDC(tdata1, mcontrol6.priv);
+            tdata1UP.chain  = RD_RAW_FIELDC(tdata1, mcontrol6.chain);
+            tdata1UP.timing = RD_RAW_FIELDC(tdata1, mcontrol6.timing);
+            tdata1UP.select = RD_RAW_FIELDC(tdata1, mcontrol6.select);
+            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, mcontrol6.hit);
+
+            break;
+
+        default:
+
+            // all fields are zero if type is illegal or TT_NONE
+            tdata1UP.type  = 0;
+            tdata1UP.dmode = 0;
+
+            break;
+    }
+
+    // mask effective modes
+    tdata1UP.modes = composeModes(riscv, modes, vu, vs);
+
+    // mask out hit field if required
+    if(riscv->configInfo.no_hit) {
+        tdata1UP.hit = 0;
+    }
+
+    // dmode=0 requires action=0, and action must not exceed 1
+    if(!tdata1UP.dmode || ((tdata1UP.action)>1)) {
+        tdata1UP.action = 0;
+    }
+
+    return tdata1UP;
+}
+
+//
+// Pack tdata1 value from common format
+//
+static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
+
+    CSR_REG_DECL(tdata1) = {0};
+
+    // extract vu and vs from mode mask
+    Uns32 modes = tdata1UP.modes;
+    Bool  vu    = modes & (1<<RISCV_MODE_VU);
+    Bool  vs    = modes & (1<<RISCV_MODE_VS);
+
+    // pack common fields
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type,  tdata1UP.type);
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode, tdata1UP.dmode);
+
+    // pack type-specific fields
+    switch(tdata1UP.type) {
+
+        case TT_ADMATCH:
+
+            WR_RAW_FIELDC(tdata1, mcontrol.modes,  modes);
+            WR_RAW_FIELDC(tdata1, mcontrol.match,  tdata1UP.match);
+            WR_RAW_FIELDC(tdata1, mcontrol.action, tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, mcontrol.sizelo, tdata1UP.size);
+            WR_RAW_FIELDC(tdata1, mcontrol.priv,   tdata1UP.priv);
+            WR_RAW_FIELDC(tdata1, mcontrol.chain,  tdata1UP.chain);
+            WR_RAW_FIELDC(tdata1, mcontrol.timing, tdata1UP.timing);
+            WR_RAW_FIELDC(tdata1, mcontrol.select, tdata1UP.select);
+            WR_RAW_FIELDC(tdata1, mcontrol.hit,    tdata1UP.hit);
+
+            // include 64-bit size component
+            if(!TRIGGER_IS_32M(riscv)) {
+                WR_RAW_FIELD64(tdata1, mcontrol.sizehi, tdata1UP.size/4);
+            }
+
+            // include constant maskmax
+            Uns32 maskmax = riscv->configInfo.mcontrol_maskmax;
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, mcontrol.maskmax, maskmax);
+
+            break;
+
+        case TT_ICOUNT:
+
+            // from version 0.14.0, pending field indicates whether ICOUNT
+            // breakpoint has fired
+            if((RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) && tdata1UP.pending) {
+                modes |= (1<<RISCV_MODE_H);
+            }
+
+            WR_RAW_FIELDC(tdata1, icount.modes,  modes);
+            WR_RAW_FIELDC(tdata1, icount.action, tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, icount.hit,    tdata1UP.hit);
+            WR_RAW_FIELDC(tdata1, icount.vu,     vu);
+            WR_RAW_FIELDC(tdata1, icount.vs,     vs);
+            WR_RAW_FIELDC(tdata1, icount.count,  tdata1UP.count);
+
+            break;
+
+        case TT_INTERRUPT:
+
+            WR_RAW_FIELDC(tdata1, itrigger.modes,  modes);
+            WR_RAW_FIELDC(tdata1, itrigger.action, tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, itrigger.vu,     vu);
+            WR_RAW_FIELDC(tdata1, itrigger.vs,     vs);
+
+            // hit field is at XLEN-specific location
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit, tdata1UP.hit);
+
+            break;
+
+        case TT_EXCEPTION:
+
+            WR_RAW_FIELDC(tdata1, etrigger.modes,  modes);
+            WR_RAW_FIELDC(tdata1, etrigger.action, tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, etrigger.vu,     vu);
+            WR_RAW_FIELDC(tdata1, etrigger.vs,     vs);
+            WR_RAW_FIELDC(tdata1, etrigger.nmi,    tdata1UP.nmi);
+
+            // hit field is at XLEN-specific location
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit, tdata1UP.hit);
+
+            break;
+
+        case TT_MCONTROL6:
+
+            WR_RAW_FIELDC(tdata1, mcontrol6.modes,  modes);
+            WR_RAW_FIELDC(tdata1, mcontrol6.match,  tdata1UP.match);
+            WR_RAW_FIELDC(tdata1, mcontrol6.action, tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, mcontrol6.size,   tdata1UP.size);
+            WR_RAW_FIELDC(tdata1, mcontrol6.priv,   tdata1UP.priv);
+            WR_RAW_FIELDC(tdata1, mcontrol6.chain,  tdata1UP.chain);
+            WR_RAW_FIELDC(tdata1, mcontrol6.timing, tdata1UP.timing);
+            WR_RAW_FIELDC(tdata1, mcontrol6.select, tdata1UP.select);
+            WR_RAW_FIELDC(tdata1, mcontrol6.hit,    tdata1UP.hit);
+            WR_RAW_FIELDC(tdata1, mcontrol6.vu,     vu);
+            WR_RAW_FIELDC(tdata1, mcontrol6.vs,     vs);
+
+            break;
+
+        default:
+
+            // all fields are zero if type is illegal or TT_NONE
+            break;
+    }
+
+    return RD_RAW64(tdata1);
+}
+
+//
+// Unpack tdata3 value into common format
+//
+static riscvTData3UP unpackTData3(riscvP riscv, Uns64 newValue) {
+
+    CSR_REG_DECL(tdata3) = {newValue};
+
+    // initialize fields
+    riscvTData3UP tdata3UP = {
+        sselect  : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect),
+        svalue   : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue),
+        mhselect : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mhselect),
+        mhvalue  : RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mhvalue),
+    };
+
+    // get configuration parameters for mvalue_bits and svalue_bits
+    Bool  S           = riscv->configInfo.arch&ISA_S;
+    Uns32 mvalue_bits = riscv->configInfo.mvalue_bits;
+    Uns32 svalue_bits = S ? riscv->configInfo.svalue_bits : 0;
+
+    // mask value fields
+    tdata3UP.mhvalue &= getAddressMask(mvalue_bits);
+    tdata3UP.svalue  &= getAddressMask(svalue_bits);
+
+    // handle M-mode field select
+    if(!mvalue_bits) {
+        tdata3UP.mhselect = 0;
+    } else if(!(riscv->configInfo.arch&ISA_H)) {
+        tdata3UP.mhselect &= 4;
+    } else if((tdata3UP.mhselect&3)==3) {
+        tdata3UP.mhselect = 0;
+    }
+
+    // handle S-mode field select
+    if(
+        !svalue_bits ||
+        ((tdata3UP.sselect==1) && !riscv->configInfo.scontext_bits) ||
+        ((tdata3UP.sselect==2) && riscv->configInfo.no_sselect_2)   ||
+        (tdata3UP.sselect==3)
+    ) {
+        tdata3UP.sselect = 0;
+    }
+
+    return tdata3UP;
+}
+
+//
+// Pack tdata3 value from common format
+//
+static Uns64 packTData3(riscvP riscv, riscvTData3UP tdata3UP) {
+
+    CSR_REG_DECL(tdata3) = {0};
+
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect,  tdata3UP.sselect);
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue,   tdata3UP.svalue);
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mhselect, tdata3UP.mhselect);
+    WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mhvalue,  tdata3UP.mhvalue);
+
+    return RD_RAW64(tdata3);
 }
 
 //
@@ -3231,8 +3561,58 @@ inline static RISCV_CSR_PRESENTFN(mcontextP) {
 //
 // Is scontext register present?
 //
-inline static RISCV_CSR_PRESENTFN(scontextP) {
+inline static Bool scontextP(riscvP riscv) {
     return getTriggerNum(riscv) && !riscv->configInfo.scontext_undefined;
+}
+
+//
+// Is scontext register present (prior to version 0.14.0)?
+//
+inline static RISCV_CSR_PRESENTFN(scontext13P) {
+    return (RISCV_DBG_VERSION(riscv)<RVDBG_0_14_0) && scontextP(riscv);
+}
+
+//
+// Is scontext register present (from version 0.14.0)?
+//
+inline static RISCV_CSR_PRESENTFN(scontext14P) {
+    return (RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) && scontextP(riscv);
+}
+
+//
+// Is mscontext register present (from version 0.14.0)?
+//
+inline static RISCV_CSR_PRESENTFN(mscontextP) {
+    return scontext14P(attrs, riscv) && !riscv->configInfo.mscontext_undefined;
+}
+
+//
+// Is hcontext register present?
+//
+inline static RISCV_CSR_PRESENTFN(hcontextP) {
+    return getTriggerNum(riscv) && !riscv->configInfo.hcontext_undefined;
+}
+
+//
+// Return effective value of tcontrol.scxe
+//
+inline static Bool getSCXE(riscvP riscv) {
+    return (
+        riscv->artifactAccess ||
+        (RISCV_DBG_VERSION(riscv)<RVDBG_0_14_0) ||
+        RD_CSR_FIELDC(riscv, tcontrol, scxe)
+    );
+}
+
+//
+// Return effective value of tcontrol.hcxe
+//
+inline static Bool getHCXE(riscvP riscv) {
+    return (
+        riscv->artifactAccess ||
+        (RISCV_DBG_VERSION(riscv)<RVDBG_0_14_0) ||
+        RD_CSR_FIELDC(riscv, tcontrol, hcxe)
+    );
 }
 
 //
@@ -3256,7 +3636,8 @@ static RISCV_CSR_READFN(tdata1R) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
-    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata1);
+    // return composed value
+    return packTData1(riscv, trigger->tdata1UP);
 }
 
 //
@@ -3265,101 +3646,42 @@ static RISCV_CSR_READFN(tdata1R) {
 static RISCV_CSR_WRITEFN(tdata1W) {
 
     riscvTriggerP trigger  = getCurrentTrigger(riscv);
-    Uns64         oldValue = RD_REG_TRIGGER64(trigger, tdata1);
-    Uns64         mask     = RD_CSR_MASK_M(riscv, tdata1);
-
-    // get new value using writable bit mask
-    newValue = ((newValue & mask) | (oldValue & ~mask));
-
-    // assign raw value to structure
-    CSR_REG_DECL(tdata1) = {newValue};
-
-    // get selected trigger type
-    triggerType type = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, type);
+    Uns64         oldValue = packTData1(riscv, trigger->tdata1UP);
 
     if(!mayWriteTrigger(riscv, trigger)) {
 
-        // ignore attempt to update Debug trigger in Machine mode
-
-    } else if(!validateTriggerType(riscv, trigger, type)) {
-
-        // ignore attempt to change to unsupported trigger type
+        // retain original value
+        newValue = oldValue;
 
     } else {
 
-        // validate attempt to update dmode
-        if(!mayWriteDMode(riscv, RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode))) {
-            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode, 0);
-        }
+        Uns64 mask = RD_CSR_MASK_M(riscv, tdata1);
 
-        // get effective dmode
-        Bool dmode = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, dmode);
+        // get new value using writable bit mask
+        newValue = ((newValue & mask) | (oldValue & ~mask));
 
-        // handle type-specific updates
-        if(!mayWriteChain(riscv, dmode, getPreviousTrigger(riscv))) {
+        if(validateTriggerType(riscv, trigger, newValue)) {
 
-            // ignore write if value is invalid
-            tdata1 = trigger->tdata1;
+            // unpack value into common format
+            riscvTData1UP tdata1UP = unpackTData1(riscv, newValue);
 
-        } else switch(type) {
+            // handle type-specific updates
+            if(mayWriteChain(riscv, tdata1UP.dmode, getPreviousTrigger(riscv))) {
 
-            case TT_NONE:
+                // pack unpacked value
+                newValue = packTData1(riscv, tdata1UP);
 
-                // all fields are zero if type is TT_NONE
-                WR_RAW64(tdata1, 0);
-
-                break;
-
-            case TT_ADMATCH:
-
-                // clear always-zero fields
-                if(!TRIGGER_IS_32M(riscv)) {
-                    WR_RAW_FIELD64(tdata1, mcontrol._u1, 0);
+                // handle value change
+                if(newValue != oldValue) {
+                    trigger->tdata1UP = tdata1UP;
+                    riscvSetCurrentArch(riscv);
                 }
-
-                // dmode=0 requires action=0, and action must not exceed 1
-                if(!dmode || (RD_RAW_FIELDC(tdata1, mcontrol.action)>1)) {
-                    WR_RAW_FIELDC(tdata1, mcontrol.action, 0);
-                }
-
-                // mask out hit field if required
-                if(riscv->configInfo.no_hit) {
-                    WR_RAW_FIELDC(tdata1, mcontrol.hit, 0);
-                }
-
-                // assign read-only maskmax field
-                WR_RAW_FIELDC(
-                    tdata1,
-                    mcontrol.maskmax,
-                    riscv->configInfo.mcontrol_maskmax
-                );
-
-                // mask effective modes
-                WR_RAW_FIELDC(
-                    tdata1,
-                    mcontrol.modes,
-                    maskModes(riscv, RD_RAW_FIELDC(tdata1, mcontrol.modes))
-                );
-
-                break;
-
-            default:
-
-                // ignore write if value is invalid
-                tdata1 = trigger->tdata1;
-
-                break;
-        }
-
-        // handle value change
-        if(RD_RAW64(trigger->tdata1) != RD_RAW64(tdata1)) {
-            WR_RAW64(trigger->tdata1, RD_RAW64(tdata1));
-            riscvSetCurrentArch(riscv);
+            }
         }
     }
 
-    // return written value
-    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata1);
+    // return composed value
+    return newValue;
 }
 
 //
@@ -3379,15 +3701,19 @@ static RISCV_CSR_WRITEFN(tdata2W) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
-    if(!mayWriteTrigger(riscv, trigger)) {
+    if(mayWriteTrigger(riscv, trigger)) {
 
-        // no action
+        // non-artifact write of mcontrol6 trigger behaves specially
+        if(!riscv->artifactAccess && (trigger->tdata1UP.type==TT_MCONTROL6)) {
 
-    } else if(RD_RAW64(trigger->tdata2) != newValue) {
+            Uns64 allOnes = TRIGGER_IS_32M(riscv) ? (Uns32)-1 : (Uns64)-1;
 
-        // handle value change
+            if(newValue==allOnes) {
+                newValue = -1ULL << riscv->configInfo.mcontrol_maskmax;
+            }
+        }
+
         WR_RAW64(trigger->tdata2, newValue);
-        riscvSetCurrentArch(riscv);
     }
 
     // return written value
@@ -3401,7 +3727,8 @@ static RISCV_CSR_READFN(tdata3R) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
-    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata3);
+    // return composed value
+    return packTData3(riscv, trigger->tdata3UP);
 }
 
 //
@@ -3412,59 +3739,11 @@ static RISCV_CSR_WRITEFN(tdata3W) {
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
     if(mayWriteTrigger(riscv, trigger)) {
-
-        // assign raw value to structure
-        CSR_REG_DECL(tdata3) = {newValue};
-
-        // get configuration parameters
-        Uns32 mvalue_bits = riscv->configInfo.mvalue_bits;
-        Uns32 svalue_bits = riscv->configInfo.svalue_bits;
-
-        // handle M-mode fields
-        if(mvalue_bits) {
-
-            // get new field values
-            Uns32 mselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mselect);
-            Uns32 mvalue  = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, mvalue);
-
-            // mask mvalue
-            mvalue &= getAddressMask(mvalue_bits);
-
-            // update fields
-            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mselect, mselect);
-            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, mvalue,  mvalue);
-        }
-
-        if(!(riscv->configInfo.arch&ISA_S)) {
-
-            // no action
-
-        } else if(svalue_bits) {
-
-            // get new field values
-            Uns32 sselect = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, sselect);
-            Uns64 svalue  = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata3, svalue);
-
-            // mask svalue
-            svalue &= getAddressMask(svalue_bits);
-
-            // update svalue
-            WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, svalue, svalue);
-
-            // sselect can be 1 if svalue_bits!=0 or 2 if triggers can match
-            // based on the current ASID
-            if(
-                (sselect==0) ||
-                ((sselect==1) &&  riscv->configInfo.scontext_bits) ||
-                ((sselect==2) && !riscv->configInfo.no_sselect_2)
-            ) {
-                WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata3, sselect, sselect);
-            }
-        }
+        trigger->tdata3UP = unpackTData3(riscv, newValue);
     }
 
-    // return written value
-    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata3);
+    // return composed value
+    return packTData3(riscv, trigger->tdata3UP);
 }
 
 //
@@ -3506,13 +3785,44 @@ static RISCV_CSR_WRITEFN(mcontextW) {
 }
 
 //
+// Read hcontext
+//
+static RISCV_CSR_READFN(hcontextR) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    return getHCXE(riscv) ? RD_REG_TRIGGER_MODE(riscv, trigger, mcontext) : 0;
+}
+
+//
+// Write hcontext
+//
+static RISCV_CSR_WRITEFN(hcontextW) {
+
+    riscvTriggerP trigger = getCurrentTrigger(riscv);
+
+    if(getHCXE(riscv)) {
+
+        // mask to implemented bits
+        newValue &= RD_CSR_MASK64(riscv, mcontext);
+
+        if(mayWriteTrigger(riscv, trigger)) {
+            WR_REG_TRIGGER_MODE(riscv, trigger, mcontext, newValue);
+        }
+    }
+
+    // return written value
+    return RD_REG_TRIGGER_MODE(riscv, trigger, mcontext);
+}
+
+//
 // Read scontext
 //
 static RISCV_CSR_READFN(scontextR) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
-    return RD_REG_TRIGGER_MODE(riscv, trigger, scontext);
+    return getSCXE(riscv) ? RD_REG_TRIGGER_MODE(riscv, trigger, scontext) : 0;
 }
 
 //
@@ -3522,11 +3832,14 @@ static RISCV_CSR_WRITEFN(scontextW) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
-    // mask to implemented bits
-    newValue &= RD_CSR_MASK64(riscv, scontext);
+    if(getSCXE(riscv)) {
 
-    if(mayWriteTrigger(riscv, trigger)) {
-        WR_REG_TRIGGER_MODE(riscv, trigger, scontext, newValue);
+        // mask to implemented bits
+        newValue &= RD_CSR_MASK64(riscv, scontext);
+
+        if(mayWriteTrigger(riscv, trigger)) {
+            WR_REG_TRIGGER_MODE(riscv, trigger, scontext, newValue);
+        }
     }
 
     // return written value
@@ -3566,8 +3879,7 @@ static void configureTriggers(riscvP riscv) {
         WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info, tinfo);
 
         // initialize tdata1 (depends on tinfo)
-        triggerType type = getTriggerResetType(riscv, trigger);
-        WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tdata1, type, type);
+        trigger->tdata1UP.type = getTriggerResetType(riscv, trigger);
     }
 }
 
@@ -3665,6 +3977,18 @@ static RISCV_CSR_WRITEFN(dcsrW) {
 
     // return written value
     return RD_CSRC(riscv, dcsr);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// CRYPTOGRAPHIC EXTENSION REGISTERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Read mentropy
+//
+static RISCV_CSR_READFN(mentropyR) {
+    return riscvPollEntropy(riscv);
 }
 
 
@@ -3821,6 +4145,35 @@ static RISCV_CSR_WRITEFN(dcsrW) {
     _ENDB,_NOTR,_TVMT,_WRD,_NOSR,_V, _DESC,         \
     _PRESENT, _WSTATE, _RCB, _RWCB, _WCB            \
 ) [CSR_ID(_ID)] = { \
+    name          : #_ID,                           \
+    desc          : _DESC,                          \
+    csrNum        : _NUM,                           \
+    arch          : _ARCH,                          \
+    access        : _ACCESS,                        \
+    version       : RVPV_##_VERSION,                \
+    wEndBlock     : _ENDB,                          \
+    noSaveRestore : _NOSR,                          \
+    noTraceChange : _NOTR,                          \
+    TVMT          : _TVMT,                          \
+    aliasV        : _V,                             \
+    writeRd       : _WRD,                           \
+    presentCB     : _PRESENT,                       \
+    readCB        : _RCB,                           \
+    readWriteCB   : _RWCB,                          \
+    writeCB       : _WCB,                           \
+    wstateCB      : _WSTATE,                        \
+    writeMaskC32  : -1,                             \
+    writeMaskC64  : -1                              \
+}
+
+//
+// Implemented using callbacks only, register is suffixed
+//
+#define CSR_ATTR_PS_( \
+    _ID, _SUFFIX, _NUM, _ARCH, _ACCESS, _VERSION,   \
+    _ENDB,_NOTR,_TVMT,_WRD,_NOSR,_V, _DESC,         \
+    _PRESENT, _WSTATE, _RCB, _RWCB, _WCB            \
+) [CSR_ID(_ID##_SUFFIX)] = { \
     name          : #_ID,                           \
     desc          : _DESC,                          \
     csrNum        : _NUM,                           \
@@ -4002,6 +4355,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (marchid,      0xF12, 0,           0,          1_10,   0,0,0,0,0,0, "Architecture ID",                                       0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mimpid,       0xF13, 0,           0,          1_10,   0,0,0,0,0,0, "Implementation ID",                                     0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mhartid,      0xF14, 0,           0,          1_10,   0,0,0,0,0,0, "Hardware Thread ID",                                    0,           0,           0,            0,        0             ),
+    CSR_ATTR_P__     (mentropy,     0xF15, ISA_K,       0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          0,           0,           mentropyR,    0,        0             ),
     CSR_ATTR_TV_     (mstatus,      0x300, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Status",                                        0,           riscvRstFS,  mstatusR,     0,        mstatusW      ),
     CSR_ATTR_T__     (misa,         0x301, 0,           0,          1_10,   1,0,0,0,0,0, "ISA and Extensions",                                    0,           0,           0,            0,        misaW         ),
     CSR_ATTR_TV_     (medeleg,      0x302, ISA_SorN,    0,          1_10,   0,0,0,0,0,0, "Machine Exception Delegation",                          0,           0,           0,            0,        0             ),
@@ -4025,6 +4379,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TV_     (mtinst,       0x34A, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Trap Instruction",                              0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mclicbase,    0x34B, 0,           0,          1_10,   0,0,0,0,0,0, "Machine CLIC Base Address",                             clicMCBP,    0,           0,            0,        mclicbaseW    ),
     CSR_ATTR_T__     (mtval2,       0x34B, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Second Trap Value",                             0,           0,           0,            0,        0             ),
+    CSR_ATTR_TC_     (mnoise,       0x7A9, ISA_K,       0,          1_10,   0,0,0,0,0,0, "GetNoise Test Interface",                               0,           0,           0,            0,        0             ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_P__     (pmpcfg0,      0x3A0, 0,           0,          1_10,   0,0,0,0,0,0, "Physical Memory Protection Configuration 0",            pmpcfgP,     0,           pmpcfgR,      0,        pmpcfgW       ),
@@ -4060,9 +4415,12 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 2",                                        triggerP,    0,           tdata2R,      0,        tdata2W       ),
     CSR_ATTR_P__     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Data 3",                                        triggerP,    0,           tdata3R,      0,        tdata3W       ),
     CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Info",                                          tinfoP,      0,           tinfoR,       0,        0             ),
-    CSR_ATTR_TC_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,0,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
+    CSR_ATTR_TV_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,0,0, "Trigger Control",                                       tcontrolP,   0,           0,            0,        0             ),
     CSR_ATTR_P__     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Machine Context",                               mcontextP,   0,           mcontextR,    0,        mcontextW     ),
-    CSR_ATTR_P__     (scontext,     0x7AA, 0,           ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontextP,   0,           scontextR,    0,        scontextW     ),
+    CSR_ATTR_P__     (mscontext,    0x7AA, 0,           ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Machine Context Alias",                         mscontextP,  0,           scontextR,    0,        scontextW     ),
+    CSR_ATTR_PS_     (scontext,13,  0x7AA, 0,           ISA_S,      1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontext13P, 0,           scontextR,    0,        scontextW     ),
+    CSR_ATTR_PS_     (scontext,14,  0x5A8, 0,           0,          1_10,   0,0,0,0,1,0, "Trigger Supervisor Context",                            scontext14P, 0,           scontextR,    0,        scontextW     ),
+    CSR_ATTR_P__     (hcontext,     0x6A8, ISA_H,       0,          1_10,   0,0,0,0,1,0, "Trigger Hypervisor Context",                            hcontextP,   0,           hcontextR,    0,        hcontextW     ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_TV_     (dcsr,         0x7B0, 0,           0,          1_10,   0,0,0,0,0,0, "Debug Control and Status",                              debugP,      0,           0,            0,        dcsrW         ),
@@ -5361,6 +5719,23 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
 
         // perform trigger reset
         resetTriggers(riscv);
+    }
+
+    //--------------------------------------------------------------------------
+    // tcontrol write mask
+    //--------------------------------------------------------------------------
+
+    WR_CSR_MASKC(riscv, tcontrol, WM32_tcontrol);
+
+    if(RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) {
+
+        if((arch&ISA_S) && !cfg->scontext_undefined) {
+            WR_CSR_MASK_FIELDC_1(riscv, tcontrol, scxe);
+        }
+
+        if((arch&ISA_H) && !cfg->hcontext_undefined) {
+            WR_CSR_MASK_FIELDC_1(riscv, tcontrol, hcxe);
+        }
     }
 
     //--------------------------------------------------------------------------

@@ -66,9 +66,19 @@ void riscvReset(riscvP riscv);
 void riscvIllegalInstruction(riscvP riscv);
 
 //
+// Take Illegal Instruction exception for the given reason
+//
+void riscvIllegalInstructionMessage(riscvP riscv, const char *reason);
+
+//
 // Take Virtual Instruction exception
 //
 void riscvVirtualInstruction(riscvP riscv);
+
+//
+// Take Virtual Instruction exception for the given reason
+//
+void riscvVirtualInstructionMessage(riscvP riscv, const char *reason);
 
 //
 // Take Instruction Address Misaligned exception

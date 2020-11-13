@@ -23,43 +23,43 @@ Architectural Test Suite Data for RV32VX RISC-V "V" Vector Extension:
     409,454 total instructions
 
 Instruction category: OPV_SAVS single-width averaging add subtract
+  vaadd.vv : 639
   vaadd.vx : 639
   vasub.vv : 639
   vasub.vx : 639
-  vaadd.vv : 639
 Instruction category: OPV_SWI single-width average add, subtract unsigned
+  vaaddu.vv : 639
   vaaddu.vx : 639
   vasubu.vv : 639
-  vaaddu.vv : 639
   vasubu.vx : 639
 Instruction category: OPV_NFPC narrowing fixed-point clip
-  vnclipu.wv : 300
-  vnclipu.wi : 300
+  vnclip.wi : 300
   vnclip.wv : 300
   vnclip.wx : 300
-  vnclip.wi : 300
+  vnclipu.wi : 300
+  vnclipu.wv : 300
   vnclipu.wx : 300
 Instruction category: OPV_SAS single-width saturating add substract
-  vsaddu.vx : 639
-  vssubu.vx : 639
-  vsadd.vv : 639
   vsadd.vi : 639
-  vssubu.vv : 639
-  vssub.vv : 639
-  vsaddu.vv : 639
+  vsadd.vv : 639
   vsadd.vx : 639
-  vssub.vx : 639
   vsaddu.vi : 639
+  vsaddu.vv : 639
+  vsaddu.vx : 639
+  vssub.vv : 639
+  vssub.vx : 639
+  vssubu.vv : 639
+  vssubu.vx : 639
 Instruction category: OPV_FMRS single-width fractional multiply with rounding and saturation
-  vsmul.vx : 639
   vsmul.vv : 639
+  vsmul.vx : 639
 Instruction category: OPV_SWSS single-width scaling shift
-  vssrl.vi : 639
-  vssra.vx : 639
-  vssra.vv : 639
   vssra.vi : 639
-  vssrl.vx : 639
+  vssra.vv : 639
+  vssra.vx : 639
+  vssrl.vi : 639
   vssrl.vv : 639
+  vssrl.vx : 639
 
 Other instructions (those not the focus of this suite)
   jal : 696
