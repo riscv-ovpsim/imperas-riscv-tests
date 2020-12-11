@@ -1200,14 +1200,16 @@ static RISCV_CSR_READFN(mipR) {
 // Read mip (read/write context)
 //
 static RISCV_CSR_READFN(mipRW) {
-    return ipRW(riscv, -1, WM32_mip, useCLICM(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, mip);
+    return ipRW(riscv, -1, wMask, useCLICM(riscv));
 }
 
 //
 // Write mip
 //
 static RISCV_CSR_WRITEFN(mipW) {
-    return ipW(riscv, newValue, WM32_mip, useCLICM(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, mip);
+    return ipW(riscv, newValue, wMask, useCLICM(riscv));
 }
 
 //
@@ -1235,14 +1237,16 @@ static RISCV_CSR_READFN(sipR) {
 // Read sip (read/write context)
 //
 static RISCV_CSR_READFN(sipRW) {
-    return ipRW(riscv, getSIRMask(riscv), WM32_sip, useCLICS(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, sip);
+    return ipRW(riscv, getSIRMask(riscv), wMask, useCLICS(riscv));
 }
 
 //
 // Write sip
 //
 static RISCV_CSR_WRITEFN(sipW) {
-    return ipW(riscv, newValue, getSIRMask(riscv) & WM32_sip, useCLICS(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, sip);
+    return ipW(riscv, newValue, getSIRMask(riscv) & wMask, useCLICS(riscv));
 }
 
 //
@@ -1256,14 +1260,16 @@ static RISCV_CSR_READFN(uipR) {
 // Read uip (read/write context)
 //
 static RISCV_CSR_READFN(uipRW) {
-    return ipRW(riscv, getUIRMask(riscv), WM32_uip, useCLICU(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, uip);
+    return ipRW(riscv, getUIRMask(riscv), wMask, useCLICU(riscv));
 }
 
 //
 // Write uip
 //
 static RISCV_CSR_WRITEFN(uipW) {
-    return ipW(riscv, newValue, getUIRMask(riscv) & WM32_uip, useCLICU(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, uip);
+    return ipW(riscv, newValue, getUIRMask(riscv) & wMask, useCLICU(riscv));
 }
 
 //
@@ -1277,14 +1283,16 @@ static RISCV_CSR_READFN(hipR) {
 // Read hip (read/write context)
 //
 static RISCV_CSR_READFN(hipRW) {
-    return ipRW(riscv, getHIRMask(riscv), WM32_hip, useCLICH(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, hip);
+    return ipRW(riscv, getHIRMask(riscv), wMask, useCLICH(riscv));
 }
 
 //
 // Write hip
 //
 static RISCV_CSR_WRITEFN(hipW) {
-    return ipW(riscv, newValue, getHIRMask(riscv) & WM32_hip, useCLICH(riscv));
+    Uns64 wMask = RD_CSR_MASK64(riscv, hip);
+    return ipW(riscv, newValue, getHIRMask(riscv) & wMask, useCLICH(riscv));
 }
 
 //
@@ -5743,6 +5751,15 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     //--------------------------------------------------------------------------
 
     WR_CSR_MASKC(riscv, tdata1, cfg->csrMask.tdata1.u64.bits ? : -1);
+
+    //--------------------------------------------------------------------------
+    // mip, sip, uip and hip write masks
+    //--------------------------------------------------------------------------
+
+    WR_CSR_MASKC(riscv, mip, cfg->csrMask.mip.u64.bits ? : WM32_mip);
+    WR_CSR_MASKC(riscv, sip, cfg->csrMask.sip.u64.bits ? : WM32_sip);
+    WR_CSR_MASKC(riscv, uip, cfg->csrMask.uip.u64.bits ? : WM32_uip);
+    WR_CSR_MASKC(riscv, hip, cfg->csrMask.hip.u64.bits ? : WM32_hip);
 
     //--------------------------------------------------------------------------
     // mcontext and scontext write masks

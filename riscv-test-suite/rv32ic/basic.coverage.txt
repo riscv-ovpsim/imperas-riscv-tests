@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVIC, instructions: 25
+Extension : C, instructions: 25
     c_add          
         rd             
             gpr            
@@ -773,7 +773,7 @@ Coverage points missed:
   c_swsp/rs2/gpr/sp
 Coverage points missed: 25/546
 
-Info TOTAL INSTRUCTION COVERAGE : RVIC
+Info TOTAL INSTRUCTION COVERAGE : C
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 23/25 :  92.00%

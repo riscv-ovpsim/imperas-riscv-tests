@@ -85,6 +85,11 @@ void riscvEmitVirtualInstructionMode(riscvP riscv);
 void riscvEmitIllegalInstructionMessage(riscvP riscv, const char *reason);
 
 //
+// Emit code to take a Virtual Instruction exception for the given reason
+//
+void riscvEmitVirtualInstructionMessage(riscvP riscv, const char *reason);
+
+//
 // Emit Illegal Instruction message and take Illegal Instruction exception
 //
 void riscvEmitIllegalInstructionMessageDesc(riscvP riscv, illegalDescP desc);
@@ -201,7 +206,18 @@ vmiReg riscvGetFPFlagsMT(riscvP riscv);
 // Validate the given rounding mode is legal and emit an Illegal Instruction
 // exception call if not
 //
+Bool riscvEmitRequireMode(riscvP riscv, riscvMode mode);
+
+//
+// Validate the given rounding mode is legal and emit an Illegal Instruction
+// exception call if not
+//
 Bool riscvEmitCheckLegalRM(riscvP riscv, riscvRMDesc rm);
+
+//
+// Emit trap when mstatus.TVM=1 in Supervisor mode
+//
+void riscvEmitTrapTVM(riscvP riscv);
 
 
 ////////////////////////////////////////////////////////////////////////////////

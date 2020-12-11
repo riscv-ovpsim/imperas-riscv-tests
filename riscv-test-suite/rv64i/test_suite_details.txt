@@ -19,76 +19,96 @@
 Architectural Test Suite Data for RV64I RV64I Base Integer Instruction Set:
     59 test source files
     10 different instruction categories
-    57 different instructions
+    77 different instructions
     81,451 total instructions
 
 Instruction category: arithmetic 
   auipc : 5,411
-  addi : 20,008
+  addi : 16,203
   lui : 7,108
   addiw : 11,417
-  sub : 530
+  sub : 528
   add : 2,948
-  subw : 264
   addw : 264
+  subw : 263
 Instruction category: logical 
-  ori : 265
   andi : 288
-  xori : 265
+  ori : 265
+  xori : 259
   xor : 265
-  or : 265
   and : 265
+  or : 265
 Instruction category: branch 
-  bne : 326
-  bge : 326
-  beq : 503
-  blt : 298
+  beq : 443
+  bne : 266
   bgeu : 267
   bltu : 267
+  bge : 265
+  blt : 265
 Instruction category: system 
   ecall : 60
   ebreak : 1
 Instruction category: synch 
   fence : 59
 Instruction category: jump 
-  jal : 1,019
-  jalr : 273
+  jal : 263
+  jalr : 263
 Instruction category: load 
   lb : 265
-  lh : 269
   lw : 270
+  lh : 269
   lbu : 270
-  lhu : 270
   ld : 1,329
+  lhu : 270
 Instruction category: store 
   sd : 13,012
-  sb : 264
   sh : 268
+  sb : 264
   sw : 452
 Instruction category: shift 
   slli : 6,581
   srli : 265
-  srai : 265
   sll : 265
+  srai : 265
   srl : 265
-  srliw : 264
   sra : 265
   slliw : 264
+  srliw : 264
+  sraiw : 264
+  sraw : 264
   srlw : 264
   sllw : 264
-  sraw : 264
-  sraiw : 264
 Instruction category: compare 
-  sltiu : 265
+  sltiu : 260
   slti : 265
-  sltu : 265
-  slt : 265
+  slt : 263
+  sltu : 264
 
 Other instructions (those not the focus of this suite)
-  csrrs : 309
-  csrrw : 446
-  csrrwi : 295
+  j : 756
+  csrr : 250
+  bnez : 60
+  csrw : 442
+  csrwi : 295
+  mv : 3,778
+  bgez : 60
+  beqz : 60
+  csrs : 59
   mret : 84
+  jr : 9
+  blez : 1
+  bltz : 32
+  bgtz : 1
+  nop : 27
+  not : 6
+  seqz : 5
+  sltz : 1
+  sgtz : 1
+  snez : 1
+  neg : 2
   sext.w : 135
-  csrrci : 1
+  negw : 1
+  csrrw : 4
+  csrci : 1
+  ret : 1
 

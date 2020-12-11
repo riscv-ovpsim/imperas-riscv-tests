@@ -19,39 +19,42 @@
 Architectural Test Suite Data for RV64M C Compressed Integer Instructions:
     13 test source files
     1 different instruction categories
-    29 different instructions
+    32 different instructions
     20,514 total instructions
 
 Instruction category: arithmetic 
-  mul : 264
   mulhsu : 264
-  div : 264
-  mulhu : 264
-  mulh : 264
   rem : 264
-  divu : 264
+  mul : 264
   remu : 264
-  remw : 264
+  mulh : 264
+  mulhu : 264
+  div : 264
+  divu : 264
   mulw : 264
+  remw : 264
   divuw : 264
   divw : 264
   remuw : 264
 
 Other instructions (those not the focus of this suite)
-  jal : 13
-  csrrs : 52
-  bne : 13
+  j : 13
+  csrr : 39
+  bnez : 13
   auipc : 780
-  addi : 4,888
-  csrrw : 91
-  csrrwi : 65
+  addi : 3,146
+  csrw : 91
+  csrwi : 65
+  mv : 1,742
   slli : 2,626
-  bge : 13
-  beq : 52
+  bgez : 13
+  beqz : 13
   lui : 1,573
   addiw : 3,445
+  csrs : 13
   mret : 13
   sd : 3,432
   fence : 13
   ecall : 13
+  beq : 39
 

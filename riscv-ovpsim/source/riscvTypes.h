@@ -28,6 +28,56 @@
 typedef Uns64 riscvAddr;
 
 //
+// Active TLB
+//
+typedef enum riscvTLBIdE {
+
+    RISCV_TLB_HS,       // HS TLB
+    RISCV_TLB_VS1,      // VS stage 1 virtual TLB
+    RISCV_TLB_VS2,      // VS stage 2 virtual TLB
+
+    // KEEP LAST: for sizing
+    RISCV_TLB_LAST
+
+} riscvTLBId;
+
+//
+// Processor disable reasons (bitmask)
+//
+typedef enum riscvDisableReasonE {
+
+    RVD_ACTIVE  = 0x0,  // processor running
+    RVD_WFI     = 0x1,  // processor halted in WFI
+    RVD_RESET   = 0x2,  // processor halted in reset
+    RVD_DEBUG   = 0x4,  // processor halted for debug
+    RVD_CUSTOMI = 0x8,  // processor halted for interruptible custom reason
+
+    // states from which to restart
+    RVD_RESTART_WFI   = (RVD_WFI|RVD_CUSTOMI),
+    RVD_RESTART_NMI   = (RVD_WFI|RVD_CUSTOMI),
+    RVD_RESTART_RESET = (RVD_WFI|RVD_CUSTOMI|RVD_RESET)
+
+} riscvDisableReason;
+
+//
+// Code indicating active atomic memory operation
+//
+typedef enum atomicCodeE {
+    ACODE_NONE,
+    ACODE_MIN,
+    ACODE_MAX,
+    ACODE_MINU,
+    ACODE_MAXU,
+    ACODE_ADD,
+    ACODE_XOR,
+    ACODE_OR,
+    ACODE_AND,
+    ACODE_SWAP,
+    ACODE_LR,
+    ACODE_SC,
+} atomicCode;
+
+//
 // This is used to categorize rounding mode semantics
 //
 typedef enum riscvRMDescE {

@@ -33,9 +33,9 @@ See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-
            [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
 
 #### riscvOVPsimPlus
-This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also 'near-ratified' ISA extensions: V-vector, B-bitmanip. 
+This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also 'near-ratified' ISA extensions: V-vector, B-bitmanip, K-crypto(scalar). 
 
-(Extensions still with a lot to be developed before ratification including K-crypto, P-DSP(wip), and user custom extensions, are available in Imperas simulators from [Imperas](https://www.imperas.com/riscv)).
+(Extensions still with a lot to be developed before ratification including K-crypto (vector), P-DSP(wip), and user custom extensions, are available in Imperas simulators from [Imperas](https://www.imperas.com/riscv)).
 
 For more information see the 
    [riscv-ovpsim-plus/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim-plus/README.md) and 
@@ -66,7 +66,7 @@ To use the test suites, we recommend adding a similar target directory to drive 
 ### Downloading the simulator and tests
 For the GitHub version that you can use for running, for example, the RISCV.org compliance test suites, visit [github.com/riscv-ovpsim/imperas-riscv-tests](https://github.com/riscv-ovpsim/imperas-riscv-tests).
 
-For the more advanced version, with full tracing and extra features, and the latest ISA extensions such as V-vector and B-bitmanip, you need **riscvOVPsimPlus** so visit [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus). This is still free, and as it is hosted on OVPworld it requires OVP registration.
+For the more advanced version, with full tracing and extra features, and the latest ISA extensions such as V-vector, B-bitmanip and K-crypto(scalar), you need **riscvOVPsimPlus** so visit [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus). This is still free, and as it is hosted on OVPworld it requires OVP registration.
 
 ### Running the tests
 To run the tests you need to have a configured target (e.g. riscvOVPsim and a tool chain set up).

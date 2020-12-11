@@ -23,6 +23,7 @@
 #include "hostapi/impTypes.h"
 
 // model header files
+#include "riscvModelCallbacks.h"
 #include "riscvTypeRefs.h"
 
 //
@@ -149,6 +150,16 @@ void riscvVMResetPMP(riscvP riscv);
 // Refresh the current data domain to reflect current mstatus.MPRV setting
 //
 void riscvVMRefreshMPRVDomain(riscvP riscv);
+
+//
+// Create a new TLB entry
+//
+RISCV_NEW_TLB_ENTRY_FN(riscvVMNewTLBEntry);
+
+//
+// Free an old TLB entry
+//
+RISCV_FREE_TLB_ENTRY_FN(riscvVMFreeTLBEntry);
 
 //
 // Save VM state not covered by register read/write API

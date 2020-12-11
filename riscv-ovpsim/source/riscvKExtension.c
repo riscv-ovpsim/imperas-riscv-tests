@@ -844,28 +844,32 @@ typedef struct opDescS {
 // Entries with subset only, version-invariant
 //
 #define OPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_1] = OPENTRY_S(_S),               \
+    [RVKV_0_7_2] = OPENTRY_S(_S),               \
+    [RVKV_0_8_0] = OPENTRY_S(_S),               \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_1] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_7_2] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_8_0] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
 // Entries with subset and 32 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_1] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_7_2] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_8_0] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
 // Entries with subset and 64 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_1] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_7_2] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_8_0] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //
@@ -919,13 +923,6 @@ static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
     OPENTRYxV_S_CB64 (SSHA512_SUM0,  S13,  SSHA512_SUM0  ),
     OPENTRYxV_S_CB64 (SSHA512_SUM1,  S13,  SSHA512_SUM1  ),
 };
-
-//
-// Return current program counter
-//
-inline static Uns64 getPC(riscvP riscv) {
-    return vmirtGetPC((vmiProcessorP)riscv);
-}
 
 //
 // Get operation description for this operation
@@ -983,10 +980,11 @@ static void illegalInstructionAbsentSubset(
 ) {
     char reason[64];
 
-    reason[0] = 0;
-
     if(riscv->verbose) {
-        sprintf(reason, "%s absent", getSubsetDesc(requiredSet));
+        snprintf(
+            SNPRINTF_TGT(reason), "%s absent",
+            getSubsetDesc(requiredSet)
+        );
     }
 
     // take Illegal Instruction exception

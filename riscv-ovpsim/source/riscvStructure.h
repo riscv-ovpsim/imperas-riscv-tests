@@ -256,6 +256,7 @@ typedef struct riscvS {
     Uns8               SFMT;            // SF set by JIT instructions
     Uns8               SFCSR;           // SF set by CSR write
     Uns8               SF;              // operation saturation flag
+    Uns8               atomic;          // atomic operation code
     Bool               DM;              // whether in Debug mode
     Bool               DMStall;         // whether stalled in Debug mode
     Bool               commercial;      // whether commercial feature in use
@@ -277,6 +278,7 @@ typedef struct riscvS {
     Uns32              swip;            // software interrupt pending bits
     Uns64              exceptionMask;   // mask of all implemented exceptions
     Uns64              interruptMask;   // mask of all implemented interrupts
+    Uns64              disableMask;     // mask of externally-disabled interrupts
     riscvPendEnab      pendEnab;        // pending and enabled interrupt
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
     riscvCLIC          clic;            // source interrupt indicated from CLIC
@@ -332,6 +334,7 @@ typedef struct riscvS {
     riscvDomainSetP    pmpDomains;      // pmp domains (per physical mode)
     riscvDomainSetP    physDomains;     // physical domains (per physical mode)
     riscvDomainSetVM   vmDomains;       // mapped domains (per virtual mode)
+    memDomainP         guestPTWDomain;  // guest page table walk domain
     memDomainP         hlvxDomains[2];  // HLVX mapped domains (S and U)
     memDomainP         tmDomain;        // transaction mode domain
     memDomainP         CLICDomain;      // CLIC domain
@@ -344,7 +347,6 @@ typedef struct riscvS {
     riscvTLBId         activeTLB  : 2;  // currently-active TLB context
     Bool               PTWActive  : 1;  // page table walk active
     Bool               PTWBadAddr : 1;  // page table walk address was bad
-    Bool               s2Active   : 1;  // stage 2 access active
     Bool               hlvxActive : 1;  // HLVX access active
     Bool               GVA        : 1;  // is guest virtual address?
     Uns64              GPA;             // faulting guest physical address
@@ -380,6 +382,9 @@ typedef struct riscvS {
     Uns64              vTmp;                 	// vector operation temporary
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
+
+    // PSE integration
+    vmipseArgBlockP    argBlockPSE;     // PSE integration callbacks
 
 } riscv;
 
@@ -565,6 +570,13 @@ inline static Int32 getCurrentSVLMUL(riscvP riscv) {
 }
 
 //
+// Is Supervisor mode present?
+//
+inline static Bool supervisorPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_S;
+}
+
+//
 // Is Hypervisor extension present?
 //
 inline static Bool hypervisorPresent(riscvP riscv) {
@@ -576,6 +588,13 @@ inline static Bool hypervisorPresent(riscvP riscv) {
 //
 inline static Bool hypervisorEnabled(riscvP riscv) {
     return riscv->currentArch & ISA_H;
+}
+
+//
+// Is bit manipulation extension present?
+//
+inline static Bool bitmanipPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_B;
 }
 
 //

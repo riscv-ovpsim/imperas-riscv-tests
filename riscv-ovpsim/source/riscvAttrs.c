@@ -19,6 +19,7 @@
 
 // VMI header files
 #include "vmi/vmiAttrs.h"
+#include "vmi/vmiPSETypes.h"
 
 // model header files
 #include "riscvBlockState.h"
@@ -61,6 +62,11 @@ static const char *dictNames[] = {
     // terminator
     [RISCV_DMODE_LAST]  = 0
 };
+
+//
+// PSE ABI support attributes
+//
+extern const vmipseAttrs riscvPSEAttrs;
 
 const vmiIASAttr modelAttrs = {
 
@@ -175,6 +181,11 @@ const vmiIASAttr modelAttrs = {
     ////////////////////////////////////////////////////////////////////////
 
     .visibility         = VMI_VISIBLE,
-    .releaseStatus      = VMI_OVP
+    .releaseStatus      = VMI_OVP,
 
+    ////////////////////////////////////////////////////////////////////////////
+    // PSE INTEGRATION SUPPORT
+    ////////////////////////////////////////////////////////////////////////////
+
+    .pseAttrs           = &riscvPSEAttrs
 };

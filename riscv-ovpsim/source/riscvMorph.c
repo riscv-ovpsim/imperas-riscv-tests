@@ -412,6 +412,22 @@ void riscvEmitIllegalInstructionMessage(riscvP riscv, const char *reason) {
 }
 
 //
+// Emit code to take a Virtual Instruction exception for the given reason
+//
+void riscvEmitVirtualInstructionMessage(riscvP riscv, const char *reason) {
+
+    // emit message in verbose mode
+    if(riscv->verbose) {
+        vmimtArgProcessor();
+        vmimtArgNatAddress(reason);
+        vmimtCall((vmiCallFn)illegalInstructionMessage);
+    }
+
+    // take Virtual Instruction exception
+    emitVirtualInstruction();
+}
+
+//
 // Emit Illegal Instruction description message
 //
 static void illegalInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
@@ -509,6 +525,26 @@ static const char *getFeatureDesc(riscvArchitecture feature) {
 }
 
 //
+// Take Illegal Instruction exception when feature is absent or not enabled
+//
+static void illegalInstructionInactiveArch(
+    riscvP            riscv,
+    riscvArchitecture missing,
+    const char       *detail
+) {
+    char reason[128];
+
+    if(riscv->verbose) {
+        snprintf(
+            SNPRINTF_TGT(reason), "%s %s",
+            getFeatureDesc(missing), detail
+        );
+    }
+
+    riscvIllegalInstructionMessage(riscv, reason);
+}
+
+//
 // Take Illegal Instruction exception irrespective of feature presence
 //
 static void illegalInstruction(riscvP riscv) {
@@ -523,21 +559,33 @@ static void illegalInstructionFS0(riscvP riscv) {
 }
 
 //
-// Take Illegal Instruction exception when feature is absent or not enabled
+// Take Illegal Instruction exception when feature is disabled
+//
+static void illegalInstructionDisabledArch(
+    riscvP            riscv,
+    riscvArchitecture disabled
+) {
+    illegalInstructionInactiveArch(riscv, disabled, "is disabled");
+}
+
+//
+// Take Illegal Instruction exception when feature is absent
 //
 static void illegalInstructionAbsentArch(
     riscvP            riscv,
     riscvArchitecture missing
 ) {
-    char reason[64];
+    illegalInstructionInactiveArch(riscv, missing, "is absent");
+}
 
-    reason[0] = 0;
-
-    if(riscv->verbose) {
-        sprintf(reason, "%s absent or inactive", getFeatureDesc(missing));
-    }
-
-    riscvIllegalInstructionMessage(riscv, reason);
+//
+// Emit code to take Illegal Instruction exception when feature is absent or not
+// enabled
+//
+static void emitIllegalInstructionDisabledArch(riscvArchitecture disabled) {
+    vmimtArgProcessor();
+    vmimtArgUns32(disabled);
+    vmimtCallAttrs((vmiCallFn)illegalInstructionDisabledArch, VMCA_EXCEPTION);
 }
 
 //
@@ -606,8 +654,8 @@ static Bool isFeaturePresentMT(riscvP riscv, riscvArchitecture feature) {
 //
 Bool riscvRequireArchPresentMT(riscvP riscv, riscvArchitecture required) {
 
-    Bool all = required & ISA_and;
-    Bool ok  = True;
+    Bool              all = required & ISA_and;
+    riscvArchitecture bad = 0;
 
     // mask off indication of whether *all* A-Z features are required
     required &= ~ISA_and;
@@ -618,7 +666,7 @@ Bool riscvRequireArchPresentMT(riscvP riscv, riscvArchitecture required) {
         riscvArchitecture actual   = current & required;
         riscvArchitecture absent   = required & ~actual;
         riscvArchitecture features = RISCV_FEATURE_MASK;
-        riscvArchitecture bad      = 0;
+        riscvArchitecture disabled;
 
         if(all) {
             // all features must match exactly
@@ -635,13 +683,16 @@ Bool riscvRequireArchPresentMT(riscvP riscv, riscvArchitecture required) {
         emitBlockMask(riscv, required);
 
         // handle absent or disabled feature
-        if(bad) {
+        if(!bad) {
+            // no action
+        } else if((disabled=(bad&riscv->configInfo.arch))) {
+            emitIllegalInstructionDisabledArch(disabled);
+        } else {
             emitIllegalInstructionAbsentArch(bad);
-            ok = False;
         }
     }
 
-    return ok;
+    return !bad;
 }
 
 //
@@ -763,6 +814,14 @@ static Bool requireModeMT(riscvP riscv, riscvMode required) {
     }
 
     return ok;
+}
+
+//
+// Validate the given rounding mode is legal and emit an Illegal Instruction
+// exception call if not
+//
+Bool riscvEmitRequireMode(riscvP riscv, riscvMode mode) {
+    return requireModeMT(riscv, getBaseMode(mode));
 }
 
 //
@@ -998,6 +1057,27 @@ static void emitTrapInstructionMaskHSorVS(
     } else if(getCurrentMode5(riscv)!=RISCV_MODE_M) {
         emitTrapInstructionMaskInt(rHS, mask, cond, reasonHS, trapIllegal);
     }
+}
+
+//
+// Emit trap when mstatus.TVM=1 in Supervisor mode
+//
+static void emitTrapTVM(riscvP riscv) {
+    EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TVM, 1);
+}
+
+//
+// Emit trap when mstatus.TSR=1 in Supervisor mode
+//
+static void emitTrapTSR(riscvP riscv) {
+    EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TSR, 1);
+}
+
+//
+// Emit trap when mstatus.TVM=1 in Supervisor mode
+//
+void riscvEmitTrapTVM(riscvP riscv) {
+    emitTrapTVM(riscv);
 }
 
 
@@ -2405,24 +2485,6 @@ static RISCV_MORPH_FN(emitJALR) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Code indicating active atomic memory operation
-//
-typedef enum atomicCodeE {
-    ACODE_NONE,
-    ACODE_MIN,
-    ACODE_MAX,
-    ACODE_MINU,
-    ACODE_MAXU,
-    ACODE_ADD,
-    ACODE_XOR,
-    ACODE_OR,
-    ACODE_AND,
-    ACODE_SWAP,
-    ACODE_LR,
-    ACODE_SC,
-} atomicCode;
-
-//
 // Get atomic operation code for current binop
 //
 static atomicCode getBinopAtomicCode(riscvMorphStateP state) {
@@ -2449,6 +2511,10 @@ static void emitAtomicCode(riscvMorphStateP state, atomicCode code) {
     riscvP riscv  = state->riscv;
     Uns32  handle = riscv->AMOActiveHandle;
 
+    // update atomic operation code
+    vmimtMoveRC(8, RISCV_ATOMIC, code);
+
+    // notify platform of active atomic operation
     if(handle) {
         vmimtArgProcessor();
         vmimtArgUns32(handle);
@@ -2824,6 +2890,7 @@ static RISCV_MORPH_FN(emitLR) {
     // call common code to perform load
     emitLoadCommon(state, rd.r, rdBits, ra.r, constraint);
 
+    // extend result to required size
     writeUnpacked(rd);
 
     // indicate end of atomic operation
@@ -2856,6 +2923,7 @@ static RISCV_MORPH_FN(emitSC) {
     // complete SC attempt
     endEA(state, rd.r, rdBits, done);
 
+    // extend result to required size
     writeUnpacked(rd);
 
     // indicate end of atomic operation
@@ -2935,7 +3003,7 @@ static RISCV_MORPH_FN(emitSRET) {
     requireModeMT(riscv, RISCV_MODE_S);
 
     // instruction is trapped if mstatus.TSR=1
-    EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TSR, 1);
+    emitTrapTSR(riscv);
 
     emitException(inVMode(riscv) ? riscvVSRET : riscvHSRET);
 }
@@ -2996,9 +3064,9 @@ static void emitFENCECommon(
     // this instruction must be executed in Machine mode or Supervisor mode
     requireModeMT(riscv, RISCV_MODE_S);
 
-    // instruction is trapped if mstatus.TVM=1 of required
+    // instruction is trapped if mstatus.TVM=1 if required
     if(doTrap) {
-        EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TVM, 1);
+        emitTrapTVM(riscv);
     }
 
     // emit processor argument
@@ -3133,7 +3201,7 @@ static void emitCSRRCommon(riscvMorphStateP state, vmiReg rs1, Bool write) {
 
         // handle traps if mstatus.TVM=1 (e.g. satp register)
         if(attrs->TVMT) {
-            EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TVM, 1);
+            emitTrapTVM(riscv);
         }
 
         // emit code to read the CSR if required
@@ -11064,25 +11132,21 @@ VMI_MORPH_FN(riscvMorph) {
 
     } else if(state.attrs->morph) {
 
-        riscvExtCBP extCB;
-
         // call derived model preMorph functions if required
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            if(extCB->preMorph) {
-                extCB->preMorph(riscv, extCB->clientData);
-            }
-        }
+        ITER_EXT_CB(
+            riscv, extCB, preMorph,
+            extCB->preMorph(riscv, extCB->clientData);
+        )
 
         // translate the instruction
         vmimtInstructionClassAdd(state.attrs->iClass);
         state.attrs->morph(&state);
 
         // call derived model postMorph functions if required
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            if(extCB->postMorph) {
-                extCB->postMorph(riscv, extCB->clientData);
-            }
-        }
+        ITER_EXT_CB(
+            riscv, extCB, postMorph,
+            extCB->postMorph(riscv, extCB->clientData);
+        )
 
     } else {
 

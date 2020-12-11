@@ -286,7 +286,7 @@ DEFINE_CS(extCSRAttrs);
         writeCB       : _WCB,                       \
         reg           : XCSR_REG_MT(_ID),           \
         writeMaskC32  : -1,                         \
-        writeMaskC32  : -1                          \
+        writeMaskC64  : -1                          \
     }                                               \
 }
 
@@ -555,3 +555,22 @@ DEFINE_CS(extCSRAttrs);
 #define XCSR_MASK_MT(_ID)   EXT_REG(csrMask._ID)
 
 
+////////////////////////////////////////////////////////////////////////////////
+// ADDRESS TRANSLATION SUPPORT ROUTINES
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Address mapping to store in a TLB
+//
+typedef struct riscvExtVMMappingS {
+    Uns64   lowVA;          // low VA
+    Uns64   highVA;         // high VA
+    Uns64   PA;             // low PA
+    Uns16   entryId : 16;   // custom unique identifier
+    memPriv priv    :  8;   // access privileges
+    Bool    V       :  1;   // valid bit
+    Bool    U       :  1;   // User-mode access
+    Bool    G       :  1;   // global entry
+    Bool    A       :  1;   // accessed
+    Bool    D       :  1;   // dirty
+} riscvExtVMMapping;

@@ -239,10 +239,15 @@ static vmiEnumParameter hypervisorVariants[] = {
 // Supported Hypervisor Architecture variants
 //
 static vmiEnumParameter cryptoVariants[] = {
-    [RVKV_0_7_1] = {
-        .name        = "0.7.1",
-        .value       = RVKV_0_7_1,
-        .description = "Cryptographic Architecture Version 0.7.1",
+    [RVKV_0_7_2] = {
+        .name        = "0.7.2",
+        .value       = RVKV_0_7_2,
+        .description = "Cryptographic Architecture Version 0.7.2",
+    },
+    [RVKV_0_8_0] = {
+        .name        = "0.8.0",
+        .value       = RVKV_0_8_0,
+        .description = "Cryptographic Architecture Version 0.8.0",
     },
     // KEEP LAST: terminator
     {0}
@@ -552,6 +557,16 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(force_sideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_ideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_edeleg)
 
+
+//
+// Specify whether tval register is set to zero by ebreak
+//
+static RISCV_PDEFAULT_FN(default_tval_zero_ebreak) {
+
+    setBoolParamDefault(
+        param, cfg->tval_zero_ebreak || (cfg->priv_version>=RVPV_1_12)
+    );
+}
 
 //
 // Set default number of PMP registers
@@ -981,6 +996,7 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     default_ecode_mask,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_mask,           0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in xcause.ExceptionCode")},
     {  RVPV_ALL,     default_ecode_nmi,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi,            0, 0,          -1,         RV_GROUP(INTXC), "Specify xcause.ExceptionCode for NMI")},
     {  RVPV_ALL,     default_tval_zero,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero,            False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are hard wired to zero")},
+    {  RVPV_ALL,     default_tval_zero_ebreak,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero_ebreak,     False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are set to zero by an ebreak")},
     {  RVPV_ALL,     default_tval_ii_code,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_ii_code,         False,                     RV_GROUP(INTXC), "Specify whether mtval/stval contain faulting instruction bits on illegal instruction exception")},
     {  RVPV_ALL,     default_cycle_undefined,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, cycle_undefined,      False,                     RV_GROUP(ICSRB), "Specify that the cycle CSR is undefined (reads to it are emulated by a Machine mode trap)")},
     {  RVPV_ALL,     default_time_undefined,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, time_undefined,       False,                     RV_GROUP(ICSRB), "Specify that the time CSR is undefined (reads to it are emulated by a Machine mode trap)")},

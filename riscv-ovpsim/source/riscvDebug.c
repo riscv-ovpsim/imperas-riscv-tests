@@ -589,6 +589,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     RISCV_FIELD_IMPL_RAW(vxsat, SFMT);
 
     // exclude artifact registers
+    RISCV_FIELD_IMPL_IGNORE(atomic);
     RISCV_FIELD_IMPL_IGNORE(pmKey);
     RISCV_FIELD_IMPL_IGNORE(vFirstFault);
     RISCV_FIELD_IMPL_IGNORE(vPreserve);

@@ -364,9 +364,8 @@ Bool riscvHasMode(riscvP riscv, riscvMode mode) {
         case RISCV_MODE_S:
             return riscv->configInfo.arch & ISA_S;
         case RISCV_MODE_VU:
-            return (riscv->configInfo.arch & ISA_VU) == ISA_VU;
         case RISCV_MODE_VS:
-            return (riscv->configInfo.arch & ISA_VS) == ISA_VS;
+            return riscv->configInfo.arch & ISA_H;
         case RISCV_MODE_M:
             return True;
         case RISCV_MODE_D:
@@ -979,6 +978,12 @@ void riscvAbortExclusiveAccess(riscvP riscv) {
 
         // clear exclusive tag (AFTER updateExclusiveAccessCallback)
         riscv->exclusiveTag = RISCV_NO_TAG;
+
+        // notify derived model of LR/SC abort
+        ITER_EXT_CB(
+            riscv, extCB, LRSCAbortFn,
+            extCB->LRSCAbortFn(riscv, extCB->clientData);
+        )
     }
 }
 
@@ -997,17 +1002,15 @@ void riscvUpdateExclusiveAccessCallback(riscvP riscv, Bool install) {
 //
 VMI_IASSWITCH_FN(riscvContextSwitchCB) {
 
-    riscvP      riscv = (riscvP)processor;
-    riscvExtCBP extCB;
+    riscvP riscv = (riscvP)processor;
 
     riscvUpdateExclusiveAccessCallback(riscv, state==RS_SUSPEND);
 
     // call derived model context switch function if required
-    for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-        if(extCB->switchCB) {
-            extCB->switchCB(riscv, state, extCB->clientData);
-        }
-    }
+    ITER_EXT_CB(
+        riscv, extCB, switchCB,
+        extCB->switchCB(riscv, state, extCB->clientData)
+    )
 }
 
 

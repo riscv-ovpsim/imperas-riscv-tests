@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVm, instructions: 14
+Extension : Vm, instructions: 15
     vfirst_m       
         rd             
             gpr            
@@ -79,6 +79,44 @@ Extension : RVVm, instructions: 14
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfirst_m 66/66 : 100.00%
+    vid_v          
+        vd             
+            vpr            
+                v0          33/1 : 100.00%
+                v1           6/1 : 100.00%
+                v10         18/1 : 100.00%
+                v11          6/1 : 100.00%
+                v12         42/1 : 100.00%
+                v13          6/1 : 100.00%
+                v14         18/1 : 100.00%
+                v15          6/1 : 100.00%
+                v16         66/1 : 100.00%
+                v17          6/1 : 100.00%
+                v18         18/1 : 100.00%
+                v19          6/1 : 100.00%
+                v2          18/1 : 100.00%
+                v20         42/1 : 100.00%
+                v21          6/1 : 100.00%
+                v22         18/1 : 100.00%
+                v23          6/1 : 100.00%
+                v24         66/1 : 100.00%
+                v25          6/1 : 100.00%
+                v26         18/1 : 100.00%
+                v27          6/1 : 100.00%
+                v28         42/1 : 100.00%
+                v29          6/1 : 100.00%
+                v3           6/1 : 100.00%
+                v30         18/1 : 100.00%
+                v31          6/1 : 100.00%
+                v4          42/1 : 100.00%
+                v5           6/1 : 100.00%
+                v6          18/1 : 100.00%
+                v7           6/1 : 100.00%
+                v8          66/1 : 100.00%
+                v9           6/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vd 32/32 : 100.00%
+    vid_v 32/32 : 100.00%
     viota_m        
         vd             
             vpr            
@@ -1335,10 +1373,10 @@ Extension : RVVm, instructions: 14
     vpopc_m 65/66 :  98.48%
 Coverage points missed:
   vpopc_m/rd/sign/neg
-Coverage points missed: 1/1156
+Coverage points missed: 1/1188
 
-Info TOTAL INSTRUCTION COVERAGE : RVVm
+Info TOTAL INSTRUCTION COVERAGE : Vm
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 14/14 : 100.00%
-Info   Coverage points hit   : 1155/1156 :  99.91%
+Info   Unique instructions   : 15/15 : 100.00%
+Info   Coverage points hit   : 1187/1188 :  99.92%

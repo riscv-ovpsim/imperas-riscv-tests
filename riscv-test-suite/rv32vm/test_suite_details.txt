@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VM RISC-V "V" Vector Extension:
     264 test source files
     2 different instruction categories
-    36 different instructions
+    39 different instructions
     185,484 total instructions
 
 Instruction category: OPV_MASK mask
@@ -41,17 +41,19 @@ Instruction category: OPV_INDXEX index
   vid.v : 639
 
 Other instructions (those not the focus of this suite)
-  jal : 264
-  csrrs : 1,320
-  bne : 264
+  j : 264
+  csrr : 1,056
+  bnez : 264
   auipc : 7,581
-  addi : 67,659
-  csrrw : 2,112
-  csrrwi : 1,584
+  addi : 66,721
+  csrw : 2,112
+  csrwi : 1,584
+  mv : 938
   slli : 264
-  blt : 264
-  beq : 528
+  bltz : 264
+  beqz : 264
   lui : 1,806
+  csrs : 264
   or : 264
   mret : 264
   vsetvli : 23,064
@@ -60,6 +62,7 @@ Other instructions (those not the focus of this suite)
   sw : 1,278
   fence : 264
   ecall : 264
+  beq : 264
   vse.v : 5,883
   lw : 21,504
 
