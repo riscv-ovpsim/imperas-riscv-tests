@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VB RISC-V "V" Vector Extension:
     338 test source files
     2 different instruction categories
-    40 different instructions
+    43 different instructions
     292,129 total instructions
 
 Instruction category: OPV_CONFIG config
@@ -41,22 +41,25 @@ Instruction category: OPV_STRI unit-strided load store
   vsw.v : 213
 
 Other instructions (those not the focus of this suite)
-  jal : 338
-  csrrs : 1,690
-  bne : 338
+  j : 338
+  csrr : 1,352
+  bnez : 338
   auipc : 10,885
-  addi : 123,986
-  csrrw : 2,704
-  csrrwi : 2,028
+  addi : 105,921
+  csrw : 2,704
+  csrwi : 2,028
+  mv : 18,065
   slli : 338
-  blt : 338
-  beq : 676
+  bltz : 338
+  beqz : 338
   lui : 676
+  csrs : 338
   or : 338
   mret : 338
   add : 34,223
   fence : 338
   ecall : 338
+  beq : 338
   lw : 47,128
   vadd.vi : 672
 

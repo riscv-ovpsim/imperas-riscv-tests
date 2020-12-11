@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVI, instructions: 40
+Extension : I, instructions: 40
     add            
         compare        
             rd_rs1         
@@ -8600,7 +8600,7 @@ Coverage points missed:
   lhu/rd/value/1111101111111111
 Coverage points missed: 332/7303
 
-Info TOTAL INSTRUCTION COVERAGE : RVI
+Info TOTAL INSTRUCTION COVERAGE : I
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 40/40 : 100.00%

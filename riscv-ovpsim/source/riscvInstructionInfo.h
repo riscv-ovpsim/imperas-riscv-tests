@@ -244,7 +244,7 @@
     arch     : _ARCH,               \
     r1       : RS_X_11_7,           \
     r2       : RS_X_19_15,          \
-    cs       : CS_SHAMT_25_20,      \
+    cs       : CS_U_23_20,          \
 }
 
 //

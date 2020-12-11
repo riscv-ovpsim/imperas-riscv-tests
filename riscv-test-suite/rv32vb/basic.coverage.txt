@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVb, instructions: 15
+Extension : Vb, instructions: 15
     vl1r_v         
         rs1            
             gpr            
@@ -1283,7 +1283,7 @@ Coverage points missed:
   vsw_v/rs1/sign/pos
 Coverage points missed: 61/1028
 
-Info TOTAL INSTRUCTION COVERAGE : RVVb
+Info TOTAL INSTRUCTION COVERAGE : Vb
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 15/15 : 100.00%

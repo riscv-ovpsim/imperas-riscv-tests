@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VR RISC-V "V" Vector Extension:
     292 test source files
     2 different instruction categories
-    35 different instructions
+    38 different instructions
     171,856 total instructions
 
 Instruction category: OPV_IRED integer reduction arithmetic
@@ -42,17 +42,19 @@ Instruction category: OPV_IWRED integer widening reduction arithmetic
   vwredsumu.vs : 300
 
 Other instructions (those not the focus of this suite)
-  jal : 292
-  csrrs : 1,460
-  bne : 292
+  j : 292
+  csrr : 1,168
+  bnez : 292
   auipc : 9,608
-  addi : 53,300
-  csrrw : 2,336
-  csrrwi : 1,752
+  addi : 52,216
+  csrw : 2,336
+  csrwi : 1,752
+  mv : 1,084
   slli : 292
-  blt : 292
-  beq : 584
+  bltz : 292
+  beqz : 292
   lui : 584
+  csrs : 292
   or : 292
   mret : 292
   vsetvli : 26,800
@@ -61,4 +63,5 @@ Other instructions (those not the focus of this suite)
   vse.v : 7,716
   fence : 292
   ecall : 292
+  beq : 292
 

@@ -42,6 +42,7 @@
 #include "riscvMessage.h"
 #include "riscvMorph.h"
 #include "riscvParameters.h"
+#include "riscvSemiHost.h"
 #include "riscvStructure.h"
 #include "riscvTrigger.h"
 #include "riscvUtils.h"
@@ -80,8 +81,15 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.writeBaseCSR       = riscvWriteBaseCSR;
 
     // from riscvExceptions.h
+    riscv->cb.halt               = riscvHalt;
+    riscv->cb.restart            = riscvRestart;
+    riscv->cb.updateInterrupt    = riscvUpdateInterrupt;
+    riscv->cb.updateDisable      = riscvUpdateInterruptDisable;
     riscv->cb.testInterrupt      = riscvUpdatePending;
     riscv->cb.illegalInstruction = riscvIllegalInstruction;
+    riscv->cb.illegalVerbose     = riscvIllegalInstructionMessage;
+    riscv->cb.virtualInstruction = riscvVirtualInstruction;
+    riscv->cb.virtualVerbose     = riscvVirtualInstructionMessage;
     riscv->cb.takeException      = riscvTakeAsynchonousException;
 
     // from riscvDecode.h
@@ -94,17 +102,25 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.instructionEnabled = riscvInstructionEnabled;
     riscv->cb.morphExternal      = riscvMorphExternal;
     riscv->cb.morphIllegal       = riscvEmitIllegalInstructionMessage;
+    riscv->cb.morphVirtual       = riscvEmitVirtualInstructionMessage;
     riscv->cb.getVMIReg          = riscvGetVMIReg;
     riscv->cb.getVMIRegFS        = riscvGetVMIRegFS;
     riscv->cb.writeRegSize       = riscvWriteRegSize;
     riscv->cb.writeReg           = riscvWriteReg;
     riscv->cb.getFPFlagsMt       = riscvGetFPFlagsMT;
     riscv->cb.getDataEndianMt    = riscvGetCurrentDataEndianMT;
+    riscv->cb.requireModeMt      = riscvEmitRequireMode;
     riscv->cb.checkLegalRMMt     = riscvEmitCheckLegalRM;
+    riscv->cb.morphTrapTVM       = riscvEmitTrapTVM;
     riscv->cb.morphVOp           = riscvMorphVOp;
 
     // from riscvCSR.h
     riscv->cb.newCSR             = riscvNewCSR;
+
+    // from riscvVM.h
+    riscv->cb.updateLdStDomain   = riscvVMRefreshMPRVDomain;
+    riscv->cb.newTLBEntry        = riscvVMNewTLBEntry;
+    riscv->cb.freeTLBEntry       = riscvVMFreeTLBEntry;
 }
 
 //
@@ -298,6 +314,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->noinhibit_mask      = params->noinhibit_mask;
     cfg->tvec_align          = params->tvec_align;
     cfg->tval_zero           = params->tval_zero;
+    cfg->tval_zero_ebreak    = params->tval_zero_ebreak;
     cfg->tval_ii_code        = params->tval_ii_code;
     cfg->cycle_undefined     = params->cycle_undefined;
     cfg->time_undefined      = params->time_undefined;
@@ -510,11 +527,29 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
 //
 static void applyParams(riscvP riscv, riscvParamValuesP params) {
 
-    // copy configuration
-    riscv->configInfo = *getConfigVariantArg(riscv, params);
+    if(riscv->parent || riscv->parameters) {
 
-    if(!riscvIsCluster(riscv)) {
-        applyParamsSMP(riscv, params);
+        // normal usage - copy configuration
+        riscv->configInfo = *getConfigVariantArg(riscv, params);
+
+        if(!riscvIsCluster(riscv)) {
+            applyParamsSMP(riscv, params);
+        }
+
+    } else {
+
+        // PSE usage
+        riscvConfigCP cfgList = riscvGetConfigList(riscv);
+
+        // use RV32GCV configuration
+        riscv->configInfo = *riscvGetNamedConfig(cfgList, "RV32GCV");
+
+        // single level with no child harts
+        riscv->configInfo.numHarts = 0;
+        riscv->configInfo.arch    &= ~(ISA_S|ISA_U);
+
+        // allocate PSE integration support structures
+        riscvNewPSE(riscv);
     }
 }
 
@@ -659,6 +694,9 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free PMP structures
     riscvVMFreePMP(riscv);
+
+    // free PSE integration support structures
+    riscvFreePSE(riscv);
 }
 
 
@@ -752,6 +790,7 @@ VMI_SAVE_STATE_FN(riscvSaveState) {
             // end of individual core
             VMIRT_SAVE_FIELD(cxt, riscv, mode);
             VMIRT_SAVE_FIELD(cxt, riscv, exclusiveTag);
+            VMIRT_SAVE_FIELD(cxt, riscv, disableMask);
             break;
 
         case SRT_END:
@@ -811,6 +850,7 @@ VMI_RESTORE_STATE_FN(riscvRestoreState) {
             // end of individual core
             VMIRT_RESTORE_FIELD(cxt, riscv, mode);
             VMIRT_RESTORE_FIELD(cxt, riscv, exclusiveTag);
+            VMIRT_RESTORE_FIELD(cxt, riscv, disableMask);
             refreshModeRestore(riscv);
             riscvUpdateExclusiveAccessCallback(riscv, True);
             break;

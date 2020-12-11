@@ -115,37 +115,6 @@ typedef enum {
 } riscvDMode;
 
 //
-// Active TLB
-//
-typedef enum riscvTLBIdE {
-
-    RISCV_TLB_HS,       // HS TLB
-    RISCV_TLB_VS1,      // VS stage 1 virtual TLB
-    RISCV_TLB_VS2,      // VS stage 2 virtual TLB
-
-    // KEEP LAST: for sizing
-    RISCV_TLB_LAST
-
-} riscvTLBId;
-
-//
-// Processor disable reasons (bitmask)
-//
-typedef enum riscvDisableReasonE {
-
-    RVD_ACTIVE = 0x0,   // processor running
-    RVD_WFI    = 0x1,   // processor halted in WFI
-    RVD_RESET  = 0x2,   // processor halted in reset
-    RVD_DEBUG  = 0x4,   // processor halted for debug
-
-    // states from which to restart
-    RVD_RESTART_WFI   = (RVD_WFI),
-    RVD_RESTART_NMI   = (RVD_WFI),
-    RVD_RESTART_RESET = (RVD_WFI|RVD_RESET)
-
-} riscvDisableReason;
-
-//
 // Return base mode for the given mode
 //
 inline static riscvMode getBaseMode(riscvMode mode) {

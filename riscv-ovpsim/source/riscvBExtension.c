@@ -779,10 +779,11 @@ static void illegalInstructionAbsentSubset(
 ) {
     char reason[64];
 
-    reason[0] = 0;
-
     if(riscv->verbose) {
-        sprintf(reason, "%s absent", getSubsetDesc(requiredSet));
+        snprintf(
+            SNPRINTF_TGT(reason), "%s absent",
+            getSubsetDesc(requiredSet)
+        );
     }
 
     // take Illegal Instruction exception

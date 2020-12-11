@@ -44,3 +44,9 @@
     _PC,                                                    \
     vmirtDisassemble((vmiProcessorP)(_A), _PC, DSA_NORMAL)
 
+//
+// Define target of snprintf with correct size
+//
+#define SNPRINTF_TGT(_S) _S, sizeof(_S)
+
+

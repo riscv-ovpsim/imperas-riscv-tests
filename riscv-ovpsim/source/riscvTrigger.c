@@ -436,7 +436,6 @@ static Bool lastInChain(riscvP riscv, riscvTriggerP this) {
 static riscvTriggerP matchChain(riscvP riscv, riscvTriggerP this, Uns64 iCount) {
 
     Bool          after = getTriggerAfter(this);
-    riscvTriggerP hit   = this;
     riscvTriggerP last;
 
     do {
@@ -453,18 +452,6 @@ static riscvTriggerP matchChain(riscvP riscv, riscvTriggerP this, Uns64 iCount) 
         }
 
     } while(last && !lastInChain(riscv, last));
-
-    if(!last) {
-
-        // no match
-
-    } else if(!riscv->configInfo.no_hit) {
-
-        // mark all triggers in the chain as hit
-        do {
-            setTriggerHit(riscv, hit);
-        } while(hit++!=last);
-    }
 
     return last;
 }
@@ -506,6 +493,7 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
     for(i=0; i<numTriggers(riscv); i++) {
 
         riscvTriggerP this  = &riscv->triggers[i];
+        riscvTriggerP last  = 0;
         Bool          after = getTriggerAfter(this);
         Uns32         action;
 
@@ -514,19 +502,30 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
 
         if(!firstInChain(riscv, this)) {
             // no action
-        } else if(!(this=matchChain(riscv, this, iCount))) {
+        } else if(!(last=matchChain(riscv, this, iCount))) {
             // no action
-        } else if((action=getTriggerAction(this))==1) {
+        } else if((action=getTriggerAction(last))==1) {
             result |= after ? TA_DEBUG_AFTER : TA_DEBUG_BEFORE;
         } else if(!action && doBKPT) {
             result |= after ? TA_BKPT_AFTER : TA_BKPT_BEFORE;
         } else {
-            this = 0;
+            last = 0;
         }
 
-        // mark matching instruction count trigger
-        if(this && (getTriggerType(this) == TT_ICOUNT)) {
-            this->tdata1UP.icmatch = True;
+        // do actions if the chain matches
+        if(last) {
+
+            // mark all triggers in the chain as hit if required
+            if(!riscv->configInfo.no_hit) {
+                do {
+                    setTriggerHit(riscv, this);
+                } while(this++!=last);
+            }
+
+            // mark matching instruction count trigger
+            if(getTriggerType(last) == TT_ICOUNT) {
+                last->tdata1UP.icmatch = True;
+            }
         }
     }
 

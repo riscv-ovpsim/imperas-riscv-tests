@@ -1,0 +1,158 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64B B Bit Manipulation:
+    85 test source files
+    21 different instruction categories
+    110 different instructions
+    119,700 total instructions
+
+Instruction category: OPB_PRZE Prefix Zero-Extend
+  addu.w : 264
+  slliu.w : 264
+Instruction category: OPB_LWNE Logic With Negate
+  andn : 264
+  orn : 264
+  xnor : 264
+Instruction category: OPB_EXDE Bit Extract/Deposit
+  bext : 264
+  bdep : 264
+  bdepw : 264
+  bextw : 264
+Instruction category: OPB_BFPL Bit-Field Place
+  bfp : 264
+  bfpw : 264
+Instruction category: OPB_MTRX Bit-Matrix
+  bmatflip : 264
+  bmator : 264
+  bmatxor : 264
+Instruction category: OPB_CLML Carry-less Multiply
+  clmulh : 264
+  clmulr : 264
+  clmul : 264
+Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
+  clz : 264
+  ctz : 264
+  ctzw : 264
+  clzw : 264
+Instruction category: OPB_COND Conditional
+Instruction category: OPB_CRCI CRC
+  crc32.b : 264
+  crc32.w : 264
+  crc32c.w : 264
+  crc32.h : 264
+  crc32c.b : 264
+  crc32c.h : 264
+  crc32c.d : 264
+  crc32.d : 264
+Instruction category: OPB_FNSH Funnel Shift
+Instruction category: OPB_GORC Generalised Or-Combine
+  gorc : 264
+  gorci : 264
+  gorciw : 264
+  gorcw : 264
+Instruction category: OPB_GREV Generalised Reverse
+  grevi : 264
+  grev : 264
+  greviw : 264
+  grevw : 264
+Instruction category: OPB_MNMX Min/Max
+  min : 264
+  maxu : 264
+  max : 264
+  minu : 264
+Instruction category: OPB_PACK Packing
+  pack : 264
+  packh : 264
+  packu : 264
+  packw : 264
+  packuw : 264
+Instruction category: OPB_CNTB Count Bits
+  pcnt : 264
+  pcntw : 264
+Instruction category: OPB_ROTS Rotations
+  rol : 264
+  ror : 264
+  rori : 264
+  rorw : 264
+  roriw : 264
+  rolw : 264
+Instruction category: OPB_SBIT Single-Bit
+  sbclri : 264
+  sbext : 264
+  sbclr : 264
+  sbinv : 264
+  sbinvi : 264
+  sbset : 264
+  sbexti : 264
+  sbseti : 264
+  sbclriw : 264
+  sbsetw : 264
+  sbclrw : 264
+  sbsetiw : 264
+  sbextw : 264
+  sbinvw : 264
+  sbinviw : 264
+Instruction category: OPB_SEXT Sign Extend
+  sext.b : 264
+  sext.h : 264
+Instruction category: OPB_ADDR Address Calculation
+Instruction category: OPB_SHFL Generalised Shuffle
+  shfl : 264
+  shfli : 264
+  unshfl : 264
+  unshfli : 264
+  shflw : 264
+  unshflw : 264
+Instruction category: OPB_SFT1 Shift Ones
+  slo : 264
+  sro : 264
+  sloi : 264
+  sroi : 264
+  sroiw : 264
+  sloiw : 264
+  slow : 264
+  srow : 264
+
+Other instructions (those not the focus of this suite)
+  c-j : 85
+  csrr : 255
+  c-bnez : 85
+  auipc : 5,015
+  addi : 7,679
+  csrw : 595
+  csrwi : 425
+  c-addi : 7,375
+  c-li : 9,839
+  c-slli : 14,569
+  bgez : 85
+  mv : 85
+  beqz : 85
+  c-lui : 2,919
+  addiw : 15,053
+  csrs : 85
+  mret : 85
+  sd : 21,250
+  c-sdsp : 1,190
+  lui : 5,886
+  c-addiw : 4,142
+  slli : 48
+  fence : 85
+  ecall : 85
+  beq : 255
+

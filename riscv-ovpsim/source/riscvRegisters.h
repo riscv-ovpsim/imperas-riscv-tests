@@ -35,6 +35,7 @@
 #define RV_REG_X_RA      1
 #define RV_REG_X_SP      2
 #define RV_REG_X_GP      3
+#define RV_REG_X_A0      10
 
 // morph-time macros to calculate offsets to registers in a RISCV structure
 #define RISCV_CPU_OFFSET(_R)    VMI_CPU_OFFSET(riscvP, _R)
@@ -48,6 +49,7 @@
 #define RISCV_LR                RISCV_CPU_REG(x[RV_REG_X_RA])
 #define RISCV_EA_ADDR           RISCV_CPU_REG(exclusiveAddr)
 #define RISCV_EA_TAG            RISCV_CPU_REG(exclusiveTag)
+#define RISCV_ATOMIC            RISCV_CPU_REG(atomic)
 #define RISCV_DM                RISCV_CPU_REG(DM)
 #define RISCV_DM_STALL          RISCV_CPU_REG(DMStall)
 #define RISCV_COMMERCIAL        RISCV_CPU_REG(commercial)

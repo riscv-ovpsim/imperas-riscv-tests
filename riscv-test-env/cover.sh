@@ -1,38 +1,38 @@
 #!/bin/bash
 
 declare -A map
-map[rv32i]=RVI
-map[rv32m]=RVM
-map[rv32ic]=RVIC
-map[rv32Zicsr]=RVZicsr
-map[rv32Zifencei]=RVZifencei
-map[rv64i]=RVI
-map[rv64m]=RVM
-map[rv64ic]=RVIC
-map[rv64Zicsr]=RVZicsr
-map[rv64Zifencei]=RVZifencei
+map[rv32i]=I
+map[rv32m]=M
+map[rv32ic]=C
+map[rv32Zicsr]=Zicsr
+map[rv32Zifencei]=Zifencei
+map[rv64i]=I
+map[rv64m]=M
+map[rv64ic]=C
+map[rv64Zicsr]=Zicsr
+map[rv64Zifencei]=Zifencei
 
-map[rv32vb]=RVVb
-map[rv32vi]=RVVi
-map[rv32vp]=RVVp
-map[rv32vf]=RVVf
-map[rv32vx]=RVVx
-map[rv32vm]=RVVm
-map[rv32vr]=RVVr
+map[rv32vb]=Vb
+map[rv32vi]=Vi
+map[rv32vp]=Vp
+map[rv32vf]=Vf
+map[rv32vx]=Vx
+map[rv32vm]=Vm
+map[rv32vr]=Vr
 
-map[rv64vb]=RVVb
-map[rv64vi]=RVVi
-map[rv64vp]=RVVp
-map[rv64vf]=RVVf
-map[rv64vx]=RVVx
-map[rv64vm]=RVVm
-map[rv64vr]=RVVr
+map[rv64vb]=Vb
+map[rv64vi]=Vi
+map[rv64vp]=Vp
+map[rv64vf]=Vf
+map[rv64vx]=Vx
+map[rv64vm]=Vm
+map[rv64vr]=Vr
 
-map[rv32b]=RVZba,RVZbb,RVZbc,RVZbe,RVZbf,RVZbp,RVZbs,RVZbt
-map[rv64b]=RVZba,RVZbb,RVZbc,RVZbe,RVZbf,RVZbp,RVZbs,RVZbt,RVZbm
+map[rv32b]=B
+map[rv64b]=B
 
-map[rv32k]=RVK
-map[rv64k]=RVK
+map[rv32k]=K
+map[rv64k]=K
 
 declare -A varMap
 varMap[rv32i]=RV32I
@@ -65,8 +65,8 @@ varMap[rv64vm]=RV64GCV
 varMap[rv32b]=RV32GCB
 varMap[rv64b]=RV64GCB
 
-varMap[rv32k]=RV32GCB
-varMap[rv64k]=RV64GCB
+varMap[rv32k]=RV32GCK
+varMap[rv64k]=RV64GCK
 
 if [[ ${COVERTYPE} == "" ]]; then
     COVERTYPE=basic

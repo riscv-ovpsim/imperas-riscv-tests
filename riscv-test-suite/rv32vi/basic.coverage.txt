@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVi, instructions: 133
+Extension : Vi, instructions: 133
     vadc_vim       
         imm            
             sign           
@@ -15528,7 +15528,7 @@ Coverage points missed:
   vwsubu_wx/vs2/vpr/v9
 Coverage points missed: 1430/12148
 
-Info TOTAL INSTRUCTION COVERAGE : RVVi
+Info TOTAL INSTRUCTION COVERAGE : Vi
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 133/133 : 100.00%

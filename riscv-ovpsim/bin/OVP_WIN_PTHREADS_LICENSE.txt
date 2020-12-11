@@ -137,7 +137,7 @@ Why pthreads-win32 did not use the GNU General Public License
     commercial software not covered by either the GPL or the LGPL
     licenses. Pthreads-win32 has many contributors to it's
     code base, many of whom have done so because they have
-    used the library in commercial or proprietry software
+    used the library in commercial or proprietary software
     projects.
 
     Releasing pthreads-win32 under the LGPL ensures that the

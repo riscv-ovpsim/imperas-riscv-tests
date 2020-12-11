@@ -67,6 +67,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(ecode_mask);
     VMI_UNS64_PARAM(ecode_nmi);
     VMI_BOOL_PARAM(tval_zero);
+    VMI_BOOL_PARAM(tval_zero_ebreak);
     VMI_BOOL_PARAM(tval_ii_code);
     VMI_BOOL_PARAM(time_undefined);
     VMI_BOOL_PARAM(cycle_undefined);

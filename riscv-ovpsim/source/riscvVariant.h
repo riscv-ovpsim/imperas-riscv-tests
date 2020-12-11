@@ -142,6 +142,7 @@ typedef enum riscvArchitectureE {
     RV32GC   = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D,
     RV32GCB  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                 ISA_B,
     RV32GCH  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                         ISA_H,
+    RV32GCK  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                 ISA_K,
     RV32GCN  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D | ISA_N,
     RV32GCV  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |         ISA_V,
     RV32EC   = ISA_XLEN_32  |                         ISA_C | ISA_E,
@@ -167,6 +168,7 @@ typedef enum riscvArchitectureE {
     RV64GC   = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D,
     RV64GCB  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                 ISA_B,
     RV64GCH  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                         ISA_H,
+    RV64GCK  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                 ISA_K,
     RV64GCN  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D | ISA_N,
     RV64GCV  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |         ISA_V,
 
@@ -260,7 +262,7 @@ typedef enum riscvBitManipVerE {
     RVBV_0_93,                          // version 0.93
     RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
-    RVBV_DEFAULT = RVBV_0_92,           // default version
+    RVBV_DEFAULT = RVBV_0_93,           // default version
 } riscvBitManipVer;
 
 //
@@ -284,9 +286,10 @@ typedef enum riscvBitManipSetE {
 // Supported Cryptographic Architecture versions
 //
 typedef enum riscvCryptoVerE {
-    RVKV_0_7_1,                         // version 0.7.1
+    RVKV_0_7_2,                         // version 0.7.2
+    RVKV_0_8_0,                         // version 0.8.0
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_0_7_1,          // default version
+    RVKV_DEFAULT = RVKV_0_7_2,          // default version
 } riscvCryptoVer;
 
 //

@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VP RISC-V "V" Vector Extension:
     254 test source files
     5 different instruction categories
-    40 different instructions
+    44 different instructions
     147,365 total instructions
 
 Instruction category: OPV_GACO gather
@@ -34,10 +34,10 @@ Instruction category: OPV_PERMU permutation
   vmv.x.s : 96
 Instruction category: OPV_CONFIG config
 Instruction category: OPV_VMV whole vector register move
-  vmv1r.v : 32
-  vmv4r.v : 32
-  vmv2r.v : 32
   vmv8r.v : 16
+  vmv4r.v : 32
+  vmv1r.v : 32
+  vmv2r.v : 32
 Instruction category: OPV_SLIDE slide
   vslide1down.vx : 639
   vslide1up.vx : 639
@@ -47,17 +47,19 @@ Instruction category: OPV_SLIDE slide
   vslideup.vx : 639
 
 Other instructions (those not the focus of this suite)
-  jal : 254
-  csrrs : 1,270
-  bne : 254
+  j : 254
+  csrr : 1,016
+  bnez : 254
   auipc : 7,965
-  addi : 48,888
-  csrrw : 2,032
-  csrrwi : 1,524
+  addi : 47,345
+  csrw : 2,032
+  csrwi : 1,524
+  mv : 1,495
   slli : 254
-  blt : 254
-  beq : 508
+  bltz : 254
+  beqz : 254
   lui : 2,096
+  csrs : 254
   or : 254
   mret : 254
   vsetvli : 22,924
@@ -66,7 +68,9 @@ Other instructions (those not the focus of this suite)
   vse.v : 6,519
   fence : 254
   ecall : 254
+  beq : 254
   fmv.x.s : 224
   sw : 320
   fmv.s.x : 224
+  nop : 48
 

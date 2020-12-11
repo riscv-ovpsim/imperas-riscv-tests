@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VF RISC-V "V" Vector Extension:
     1,022 test source files
     17 different instruction categories
-    103 different instructions
+    106 different instructions
     617,323 total instructions
 
 Instruction category: OPV_SFAS single-width floating-point add/subtract
@@ -70,8 +70,8 @@ Instruction category: OPV_FPMO floating-point move
   vfmv.v.f : 224
 Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.f.f.w : 150
-  vfncvt.f.x.w : 150
   vfncvt.rod.f.f.w : 150
+  vfncvt.f.x.w : 150
   vfncvt.f.xu.w : 150
   vfncvt.x.f.w : 150
   vfncvt.xu.f.w : 150
@@ -124,17 +124,19 @@ Instruction category: OPV_FC floating-point compare
   vmfne.vv : 426
 
 Other instructions (those not the focus of this suite)
-  jal : 1,022
-  csrrs : 5,110
-  bne : 1,022
+  j : 1,022
+  csrr : 4,088
+  bnez : 1,022
   auipc : 33,542
-  addi : 197,026
-  csrrw : 8,176
-  csrrwi : 6,132
+  addi : 192,270
+  csrw : 8,176
+  csrwi : 6,132
+  mv : 4,756
   slli : 1,022
-  blt : 1,022
-  beq : 2,044
+  bltz : 1,022
+  beqz : 1,022
   lui : 12,939
+  csrs : 1,022
   or : 1,022
   mret : 1,022
   vsetvli : 93,520
@@ -144,4 +146,5 @@ Other instructions (those not the focus of this suite)
   vse.v : 26,928
   fence : 1,022
   ecall : 1,022
+  beq : 1,022
 

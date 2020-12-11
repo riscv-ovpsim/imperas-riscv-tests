@@ -19,27 +19,27 @@
 Architectural Test Suite Data for RV32I Base Integer Instruction Set:
     48 test source files
     10 different instruction categories
-    45 different instructions
+    64 different instructions
     32,287 total instructions
 
 Instruction category: arithmetic 
   auipc : 2,538
-  addi : 11,461
+  addi : 9,901
   lui : 4,737
-  sub : 274
+  sub : 272
   add : 1,268
 Instruction category: logical 
-  ori : 137
   andi : 160
-  xori : 137
-  xor : 137
+  ori : 137
+  xori : 134
   and : 137
   or : 137
+  xor : 137
 Instruction category: branch 
-  bne : 187
-  blt : 218
-  beq : 331
-  bge : 139
+  beq : 282
+  bne : 138
+  blt : 137
+  bge : 137
   bltu : 139
   bgeu : 139
 Instruction category: system 
@@ -48,12 +48,12 @@ Instruction category: system
 Instruction category: synch 
   fence : 48
 Instruction category: jump 
-  jal : 542
-  jalr : 145
+  jalr : 135
+  jal : 135
 Instruction category: load 
   lw : 559
-  lb : 137
   lh : 141
+  lb : 137
   lbu : 142
   lhu : 142
 Instruction category: store 
@@ -63,20 +63,39 @@ Instruction category: store
 Instruction category: shift 
   slli : 216
   srli : 137
-  sll : 137
   srai : 137
+  sll : 137
   sra : 137
   srl : 137
 Instruction category: compare 
   slti : 137
-  sltiu : 137
-  slt : 137
-  sltu : 137
+  sltiu : 135
+  sltu : 136
+  slt : 135
 
 Other instructions (those not the focus of this suite)
-  csrrs : 265
-  csrrw : 369
-  csrrwi : 240
+  j : 407
+  csrr : 217
+  bnez : 49
+  csrw : 365
+  csrwi : 240
+  mv : 1,534
+  bltz : 80
+  beqz : 49
+  csrs : 48
   mret : 73
-  csrrci : 1
+  jr : 9
+  bgtz : 1
+  bgez : 1
+  blez : 1
+  nop : 26
+  not : 3
+  seqz : 2
+  neg : 2
+  snez : 1
+  sltz : 1
+  sgtz : 1
+  csrrw : 4
+  ret : 1
+  csrci : 1
 

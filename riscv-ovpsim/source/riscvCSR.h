@@ -1988,6 +1988,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (uepc);           // 0x041
     CSR_REG_DECL  (ucause);         // 0x042
     CSR_REG_DECL  (utval);          // 0x043
+    CSR_REG_DECL  (uip);            // 0x044
 
     // SUPERVISOR MODE CSRS
     CSR_REG_DECL  (sedeleg);        // 0x102
@@ -1998,12 +1999,14 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL_V(sepc);           // 0x141
     CSR_REG_DECL  (scause);         // 0x142
     CSR_REG_DECL_V(stval);          // 0x143
+    CSR_REG_DECL  (sip);            // 0x144
 
     // HYPERVISOR MODE CSRS
     CSR_REG_DECL  (hstatus);        // 0x600
     CSR_REG_DECL  (hedeleg);        // 0x602
     CSR_REG_DECL  (hideleg);        // 0x603
     CSR_REG_DECL  (hcounteren);     // 0x606
+    CSR_REG_DECL  (hip);            // 0x644
     CSR_REG_DECL  (htinst);         // 0x64A
 
     // MACHINE MODE CSRS
@@ -2019,6 +2022,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mepc);           // 0x341
     CSR_REG_DECL  (mcause);         // 0x342
     CSR_REG_DECL  (mtval);          // 0x343
+    CSR_REG_DECL  (mip);            // 0x344
     CSR_REG_DECL  (mtinst);         // 0x34A
 
     // TRIGGER CSRS
@@ -2069,6 +2073,12 @@ typedef struct riscvCSRMasksS {
 
 // bitwise-and raw value using XLEN=64 view
 #define AND_RAW64(_R, _VALUE) (_R).u64.bits &= _VALUE
+
+// bitwise-or raw value using XLEN=32 view
+#define OR_RAW32(_R, _VALUE) (_R).u32.bits |= _VALUE
+
+// bitwise-or raw value using XLEN=64 view
+#define OR_RAW64(_R, _VALUE) (_R).u64.bits |= _VALUE
 
 // bitwise-and raw value using common view
 #define AND_RAWC(_R, _VALUE) AND_RAW32(_R, _VALUE)
@@ -2218,6 +2228,14 @@ typedef struct riscvCSRMasksS {
         AND_RAW64(_R, _VALUE);                          \
     }
 
+// bitwise-or raw value using modal XLEN
+#define OR_RAW_MODE(_CPU, _MODE, _R, _VALUE) \
+    if(RISCV_XLEN_IS_32M(_CPU, _MODE)) {                \
+        OR_RAW32(_R, _VALUE);                          \
+    } else {                                            \
+        OR_RAW64(_R, _VALUE);                          \
+    }
+
 // set CSR value using modal XLEN
 #define WR_CSR_MODE(_CPU, _MODE, _RNAME, _VALUE) \
     WR_RAW_MODE(_CPU, _MODE, (_CPU)->csr._RNAME, _VALUE)
@@ -2229,6 +2247,10 @@ typedef struct riscvCSRMasksS {
 // bitwise-and CSR mask using modal XLEN
 #define AND_CSR_MASK_MODE(_CPU, _MODE, _RNAME, _VALUE) \
     AND_RAW_MODE(_CPU, _MODE, (_CPU)->csrMask._RNAME, _VALUE)
+
+// bitwise-or CSR mask using modal XLEN
+#define OR_CSR_MASK_MODE(_CPU, _MODE, _RNAME, _VALUE) \
+    OR_RAW_MODE(_CPU, _MODE, (_CPU)->csrMask._RNAME, _VALUE)
 
 // get raw field using modal XLEN
 #define RD_RAW_FIELD_MODE(_CPU, _MODE, _R, _FIELD) ( \
@@ -2344,6 +2366,18 @@ typedef struct riscvCSRMasksS {
     AND_CSR_MASK_MODE(_CPU, RISCV_MODE_VS, _RNAME, _VALUE)
 #define AND_CSR_MASK_VU(_CPU, _RNAME, _VALUE) \
     AND_CSR_MASK_MODE(_CPU, RISCV_MODE_VU, _RNAME, _VALUE)
+
+// bitwise-or mask with the given value using mode-specific XLEN
+#define OR_CSR_MASK_M(_CPU, _RNAME, _VALUE) \
+    OR_CSR_MASK_MODE(_CPU, RISCV_MODE_M,  _RNAME, _VALUE)
+#define OR_CSR_MASK_S(_CPU, _RNAME, _VALUE) \
+    OR_CSR_MASK_MODE(_CPU, RISCV_MODE_S,  _RNAME, _VALUE)
+#define OR_CSR_MASK_U(_CPU, _RNAME, _VALUE) \
+    OR_CSR_MASK_MODE(_CPU, RISCV_MODE_U,  _RNAME, _VALUE)
+#define OR_CSR_MASK_VS(_CPU, _RNAME, _VALUE) \
+    OR_CSR_MASK_MODE(_CPU, RISCV_MODE_VS, _RNAME, _VALUE)
+#define OR_CSR_MASK_VU(_CPU, _RNAME, _VALUE) \
+    OR_CSR_MASK_MODE(_CPU, RISCV_MODE_VU, _RNAME, _VALUE)
 
 // get CSR mask field using mode-specific XLEN
 #define RD_CSR_MASK_FIELD_M(_CPU, _RNAME, _FIELD) \

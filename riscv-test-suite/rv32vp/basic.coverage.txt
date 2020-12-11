@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVp, instructions: 18
+Extension : Vp, instructions: 18
     vcompress_vm   
         vd             
             vpr            
@@ -186,6 +186,42 @@ Extension : RVVp, instructions: 18
         vs2 32/32 : 100.00%
     vfmv_f_s 64/64 : 100.00%
     vfmv_s_f       
+        fs1            
+            fpr            
+                fa0          6/1 : 100.00%
+                fa1          6/1 : 100.00%
+                fa2          6/1 : 100.00%
+                fa3          6/1 : 100.00%
+                fa4          6/1 : 100.00%
+                fa5          6/1 : 100.00%
+                fa6          8/1 : 100.00%
+                fa7          8/1 : 100.00%
+                fs0          6/1 : 100.00%
+                fs1          6/1 : 100.00%
+                fs10         8/1 : 100.00%
+                fs11         8/1 : 100.00%
+                fs2          8/1 : 100.00%
+                fs3          8/1 : 100.00%
+                fs4          8/1 : 100.00%
+                fs5          8/1 : 100.00%
+                fs6          8/1 : 100.00%
+                fs7          8/1 : 100.00%
+                fs8          8/1 : 100.00%
+                fs9          8/1 : 100.00%
+                ft0          6/1 : 100.00%
+                ft1          6/1 : 100.00%
+                ft10         8/1 : 100.00%
+                ft11         8/1 : 100.00%
+                ft2          6/1 : 100.00%
+                ft3          6/1 : 100.00%
+                ft4          6/1 : 100.00%
+                ft5          6/1 : 100.00%
+                ft6          6/1 : 100.00%
+                ft7          6/1 : 100.00%
+                ft8          8/1 : 100.00%
+                ft9          8/1 : 100.00%
+            fpr 32/32 : 100.00%
+        fs1 32/32 : 100.00%
         vd             
             vpr            
                 v0          22/1 : 100.00%
@@ -222,7 +258,7 @@ Extension : RVVp, instructions: 18
                 v9           2/1 : 100.00%
             vpr 32/32 : 100.00%
         vd 32/32 : 100.00%
-    vfmv_s_f 32/32 : 100.00%
+    vfmv_s_f 64/64 : 100.00%
     vmv1r_v        
         vd             
             vpr            
@@ -1714,10 +1750,10 @@ Coverage points missed:
   vmv8r_v/vs1/vpr/v6
   vmv8r_v/vs1/vpr/v7
   vmv8r_v/vs1/vpr/v9
-Coverage points missed: 136/1358
+Coverage points missed: 136/1390
 
-Info TOTAL INSTRUCTION COVERAGE : RVVp
+Info TOTAL INSTRUCTION COVERAGE : Vp
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 18/18 : 100.00%
-Info   Coverage points hit   : 1222/1358 :  89.99%
+Info   Coverage points hit   : 1254/1390 :  90.22%

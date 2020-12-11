@@ -19,6 +19,7 @@
 
 // Standard header files
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // Imperas header files
@@ -172,6 +173,12 @@ inline static void setPCxRET(riscvP riscv, Uns64 newPC) {
     vmirtSetPC((vmiProcessorP)riscv, newPC);
 }
 
+//
+// Test for pending interrupts
+//
+inline static void doSynchronousInterrupt(riscvP riscv) {
+    vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+}
 
 //
 // Clear any active exclusive access
@@ -225,21 +232,16 @@ static Bool handleFF(riscvP riscv) {
 // Notify a derived model of halt/restart if required
 //
 static void notifyHaltRestart(riscvP riscv) {
-
-    riscvExtCBP extCB;
-
-    // notify dependent model of halt/restart event
-    for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-        if(extCB->haltRestartNotifier) {
-            extCB->haltRestartNotifier(riscv, extCB->clientData);
-        }
-    }
+    ITER_EXT_CB(
+        riscv, extCB, haltRestartNotifier,
+        extCB->haltRestartNotifier(riscv, extCB->clientData);
+    )
 }
 
 //
-// Halt the passed processor
+// Halt the passed processor for the given reason
 //
-static void haltProcessor(riscvP riscv, riscvDisableReason reason) {
+void riscvHalt(riscvP riscv, riscvDisableReason reason) {
 
     Bool disabled = riscv->disable;
 
@@ -252,9 +254,9 @@ static void haltProcessor(riscvP riscv, riscvDisableReason reason) {
 }
 
 //
-// Restart the passed processor
+// Restart the passed processor for the given reason
 //
-static void restartProcessor(riscvP riscv, riscvDisableReason reason) {
+void riscvRestart(riscvP riscv, riscvDisableReason reason) {
 
     riscv->disable &= ~reason;
 
@@ -506,9 +508,9 @@ static void trapHS(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, sepc, cxt->EPC & epcMask);
 
     // update stval, htval and htinst registers
-    WR_CSR64(riscv, stval, cxt->tval);
-    WR_CSR64(riscv, htval, riscv->GPA);
-    WR_CSR64(riscv, htval, riscv->tinst);
+    WR_CSR64(riscv, stval,  cxt->tval);
+    WR_CSR64(riscv, htval,  riscv->GPA);
+    WR_CSR64(riscv, htinst, riscv->tinst);
 
     // get exception base address and mode
     cxt->base = (Addr)RD_CSR_FIELD_S(riscv, stvec, BASE) << 2;
@@ -740,29 +742,23 @@ static Bool accessFaultCode(riscvException exception) {
 }
 
 //
-// Notify a derived model of trap entry or exception return if required
+// Notify a derived model of trap if required
 //
-inline static void notifyTrapDerived(
-    riscvP              riscv,
-    riscvMode           mode,
-    riscvTrapNotifierFn notifier,
-    void               *clientData
-) {
-    if(notifier) {
-        notifier(riscv, mode, clientData);
-    }
+inline static void notifyTrapDerived(riscvP riscv, riscvMode mode) {
+    ITER_EXT_CB(
+        riscv, extCB, trapNotifier,
+        extCB->trapNotifier(riscv, mode, extCB->clientData);
+    )
 }
 
 //
 // Notify a derived model of exception return if required
 //
 inline static void notifyERETDerived(riscvP riscv, riscvMode mode) {
-
-    riscvExtCBP extCB;
-
-    for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-        notifyTrapDerived(riscv, mode, extCB->ERETNotifier, extCB->clientData);
-    }
+    ITER_EXT_CB(
+        riscv, extCB, ERETNotifier,
+        extCB->ERETNotifier(riscv, mode, extCB->clientData);
+    )
 }
 
 //
@@ -786,6 +782,12 @@ void riscvTakeException(
     // indicate the taken exception
     riscv->exception = exception;
 
+    // clear active AMO indication
+    if(riscv->atomic) {
+        riscv->atomic = ACODE_NONE;
+        writeNet(riscv, riscv->AMOActiveHandle, ACODE_NONE);
+    }
+
     if(inDebugMode(riscv)) {
 
         // terminate execution of program buffer
@@ -794,9 +796,8 @@ void riscvTakeException(
 
     } else {
 
-        Bool        shv   = riscv->clic.sel.shv;
-        Uns32       ecode = getExceptionCode(exception);
-        riscvExtCBP extCB;
+        Bool  shv   = riscv->clic.sel.shv;
+        Uns32 ecode = getExceptionCode(exception);
 
         // see trap context information
         trapCxt cxt = {
@@ -919,11 +920,7 @@ void riscvTakeException(
         setPCException(riscv, cxt.handlerPC);
 
         // notify derived model of exception entry if required
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            notifyTrapDerived(
-                riscv, cxt.modeX, extCB->trapNotifier, extCB->clientData
-            );
-        }
+        notifyTrapDerived(riscv, cxt.modeX);
 
         // acknowledge interrupt if required
         if(cxt.isInt) {
@@ -946,9 +943,7 @@ void riscvTakeAsynchonousException(
     Uns64          tval
 ) {
     // restart from WFI state if required
-    if(riscv->disable & RVD_WFI) {
-        restartProcessor(riscv, RVD_RESTART_WFI);
-    }
+    riscvRestart(riscv, RVD_RESTART_WFI);
 
     // take exception
     riscvTakeException(riscv, exception, tval);
@@ -961,27 +956,36 @@ void riscvTakeAsynchonousException(
 }
 
 //
+// Return description of the given interrupt
+//
+static const char *getInterruptDesc(riscvException interrupt, char *buffer) {
+
+    VMI_ASSERT(interrupt>=riscv_E_LocalInterrupt, "expected local interrupt");
+
+    sprintf(buffer, "Local interrupt %u", interrupt-riscv_E_LocalInterrupt);
+
+    return buffer;
+}
+
+//
+// Forward reference
+//
+static vmiExceptionInfoCP getExceptions(riscvP riscv);
+
+//
 // Return description of the given exception
 //
-static const char *getExceptionDesc(riscvException exception, char *buffer) {
+static const char *getExceptionDesc(
+    riscvP         riscv,
+    riscvException exception,
+    char          *buffer
+) {
+    const char        *result = 0;
+    vmiExceptionInfoCP this;
 
-    const char *result = 0;
-
-    if(exception>=riscv_E_LocalInterrupt) {
-
-        // indexed local interrupt
-        sprintf(buffer, "Local interrupt %u", exception-riscv_E_LocalInterrupt);
-        result = buffer;
-
-    } else {
-
-        // standard interrupt
-        riscvExceptionDescCP desc;
-
-        for(desc=&exceptions[0]; desc->vmiInfo.description && !result; desc++) {
-            if(desc->vmiInfo.code==exception) {
-                result = desc->vmiInfo.description;
-            }
+    for(this=getExceptions(riscv); this->description && !result; this++) {
+        if(this->code==exception) {
+            result = this->description;
         }
     }
 
@@ -1001,7 +1005,7 @@ static void reportMemoryException(
         vmiMessage("W", CPU_PREFIX "_IMA",
             SRCREF_FMT "%s (0x"FMT_Ax")",
             SRCREF_ARGS(riscv, getPC(riscv)),
-            getExceptionDesc(exception, buffer), tval
+            getExceptionDesc(riscv, exception, buffer), tval
         );
     }
 }
@@ -1012,17 +1016,13 @@ static void reportMemoryException(
 //
 static Bool suppressMemExcept(riscvP riscv, riscvException exception) {
 
-    Bool        suppress = handleFF(riscv);
-    riscvExtCBP extCB;
+    Bool suppress = handleFF(riscv);
 
-    // notify derived model of exception entry if required
-    for(extCB=riscv->extCBs; !suppress && extCB; extCB=extCB->next) {
-        if(extCB->suppressMemExcept) {
-            suppress = extCB->suppressMemExcept(
-                riscv, exception, extCB->clientData
-            );
-        }
-    }
+    // handle suppression by extension
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, suppressMemExcept, !suppress,
+        suppress = extCB->suppressMemExcept(riscv, exception, extCB->clientData);
+    )
 
     return suppress;
 }
@@ -1418,9 +1418,9 @@ inline static void updateDMStall(riscvP riscv, Bool DMStall) {
         riscv->DMStall = DMStall;
 
         if(DMStall) {
-            haltProcessor(riscv, RVD_DEBUG);
+            riscvHalt(riscv, RVD_DEBUG);
         } else {
-            restartProcessor(riscv, RVD_DEBUG);
+            riscvRestart(riscv, RVD_DEBUG);
         }
     }
 }
@@ -1532,6 +1532,10 @@ static void leaveDM(riscvP riscv) {
 
     // halt or restart processor if required
     updateDMStall(riscv, False);
+
+    // on exit from debug mode, test for interrupts that are masked in that
+    // (e.g. NMI)
+    doSynchronousInterrupt(riscv);
 }
 
 //
@@ -1575,7 +1579,7 @@ static VMI_ICOUNT_FN(riscvStepExcept) {
     Bool   doStep = False;
 
     if(enableDebugStep(riscv)) {
-        vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+        doSynchronousInterrupt(riscv);
         doStep = True;
     }
 
@@ -1609,8 +1613,8 @@ void riscvDRET(riscvP riscv) {
 //
 void riscvBreakpointException(riscvP riscv) {
 
-    // from privileged version 1.12, EBREAK no longer sets mtval to the PC
-    Uns64 tval = (RISCV_PRIV_VERSION(riscv)<RVPV_1_12) ? getPC(riscv) : 0;
+    // whether EBREAK sets mtval to the PC is configurable
+    Uns64 tval = riscv->configInfo.tval_zero_ebreak ? 0 : getPC(riscv);
 
     // handle EBREAK as normal exception
     riscvTakeException(riscv, riscv_E_Breakpoint, tval);
@@ -1779,15 +1783,13 @@ VMI_FETCH_SNAP_FN(riscvFetchSnap) {
 //
 VMI_RD_WR_SNAP_FN(riscvRdSnap) {
 
-    riscvP      riscv = (riscvP)processor;
-    Uns32       snap  = MEM_SNAP(0, 0);
-    riscvExtCBP extCB;
+    riscvP riscv = (riscvP)processor;
+    Uns32  snap  = MEM_SNAP(0, 0);
 
-    for(extCB=riscv->extCBs; extCB && !snap; extCB=extCB->next) {
-        if(extCB->rdSnapCB) {
-            snap = extCB->rdSnapCB(riscv, address, bytes);
-        }
-    }
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, rdSnapCB, !snap,
+        snap = extCB->rdSnapCB(riscv, address, bytes);
+    )
 
     return snap;
 }
@@ -1797,15 +1799,13 @@ VMI_RD_WR_SNAP_FN(riscvRdSnap) {
 //
 VMI_RD_WR_SNAP_FN(riscvWrSnap) {
 
-    riscvP      riscv = (riscvP)processor;
-    Uns32       snap  = MEM_SNAP(0, 0);
-    riscvExtCBP extCB;
+    riscvP riscv = (riscvP)processor;
+    Uns32  snap  = MEM_SNAP(0, 0);
 
-    for(extCB=riscv->extCBs; extCB && !snap; extCB=extCB->next) {
-        if(extCB->wrSnapCB) {
-            snap = extCB->wrSnapCB(riscv, address, bytes);
-        }
-    }
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, wrSnapCB, !snap,
+        snap = extCB->wrSnapCB(riscv, address, bytes);
+    )
 
     return snap;
 }
@@ -1910,7 +1910,7 @@ static Bool getIE(riscvP riscv, Bool IE, riscvMode modeIE, Bool useCLIC) {
 // delegation bits - see the Privileged Architecture specification)
 //
 inline static Uns64 getPendingBasic(riscvP riscv) {
-    return RD_CSR64(riscv, mie) & RD_CSR64(riscv, mip);
+    return RD_CSR64(riscv, mie) & RD_CSR64(riscv, mip) & ~riscv->disableMask;
 }
 
 //
@@ -1964,14 +1964,11 @@ static Uns32 getIntPri(riscvP riscv, Uns32 intNum) {
         
     } else {
 
-        riscvExtCBP extCB;
-
         // get custom interrupt priority
-        for(extCB=riscv->extCBs; !result && extCB; extCB=extCB->next) {
-            if(extCB->getInterruptPri) {
-                result = extCB->getInterruptPri(riscv, intNum, extCB->clientData);
-            }
-        }
+        ITER_EXT_CB_WHILE(
+            riscv, extCB, getInterruptPri, !result,
+            result = extCB->getInterruptPri(riscv, intNum, extCB->clientData);
+        )
 
         // if custom priority is not defined, use priority higher than all
         // standard interrupts, increasing with interrupt number
@@ -2396,6 +2393,19 @@ inline static Uns32 getGuestExternalIntNum(riscvP riscv) {
 }
 
 //
+// Callback used to sort exceptions in code order
+//
+static Int32 compareExceptionCode(const void *va, const void *vb) {
+
+    vmiExceptionInfoCP a     = va;
+    vmiExceptionInfoCP b     = vb;
+    Uns32              aCode = a->code;
+    Uns32              bCode = b->code;
+
+    return (aCode<bCode) ? -1 : (aCode>bCode) ? 1 : 0;
+}
+
+//
 // Return all defined exceptions, including those from intercepts, in a null
 // terminated list
 //
@@ -2403,10 +2413,9 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
     if(!riscv->exceptions) {
 
-        Uns32       localIntNum = getLocalIntNum(riscv);
-        Uns32       numExcept;
-        riscvExtCBP extCB;
-        Uns32       i;
+        Uns32 localIntNum = getLocalIntNum(riscv);
+        Uns32 numExcept;
+        Uns32 i;
 
         // get number of exceptions and standard interrupts in the base model
         for(i=0, numExcept=0; exceptions[i].vmiInfo.name; i++) {
@@ -2416,8 +2425,9 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
         }
 
         // include exceptions for derived model
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            if(extCB->firstException) {
+        ITER_EXT_CB(
+            riscv, extCB, firstException,
+            {
                 vmiExceptionInfoCP list = extCB->firstException(
                     riscv, extCB->clientData
                 );
@@ -2425,7 +2435,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
                     numExcept++; list++;
                 }
             }
-        }
+        )
 
         // record total number of exceptions that are not local interrupts
         riscv->nonLocalNum = numExcept;
@@ -2448,8 +2458,9 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
         }
 
         // fill exceptions from derived model
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            if(extCB->firstException) {
+        ITER_EXT_CB(
+            riscv, extCB, firstException,
+            {
                 vmiExceptionInfoCP list = extCB->firstException(
                     riscv, extCB->clientData
                 );
@@ -2457,7 +2468,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
                     all[numExcept++] = *list++;
                 }
             }
-        }
+        )
 
         // fill local exceptions
         for(i=0; i<localIntNum; i++) {
@@ -2474,9 +2485,12 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
                 this->code        = code;
                 this->name        = strdup(buffer);
-                this->description = strdup(getExceptionDesc(code, buffer));
+                this->description = strdup(getInterruptDesc(code, buffer));
             }
         }
+
+        // sort exceptions by increasing code
+        qsort(all, numExcept, sizeof(all[0]), compareExceptionCode);
 
         // save list on base model
         riscv->exceptions = all;
@@ -2613,7 +2627,7 @@ inline static Bool negedge(Uns32 old, Uns32 new) {
 void riscvWFI(riscvP riscv) {
 
     if(!(inDebugMode(riscv) || getPending(riscv) || RD_CSR_FIELDC(riscv, dcsr, step))) {
-        haltProcessor(riscv, RVD_WFI);
+        riscvHalt(riscv, RVD_WFI);
     }
 }
 
@@ -2623,7 +2637,7 @@ void riscvWFI(riscvP riscv) {
 inline static void handlePendingAndEnabled(riscvP riscv) {
 
     if(getPendingAndEnabled(riscv)) {
-        vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+        doSynchronousInterrupt(riscv);
     }
 }
 
@@ -2638,7 +2652,7 @@ void riscvTestInterrupt(riscvP riscv) {
     // restart processor if it is halted in WFI state and local interrupts are
     // pending (even if masked)
     if(getPending(riscv)) {
-        restartProcessor(riscv, RVD_RESTART_WFI);
+        riscvRestart(riscv, RVD_RESTART_WFI);
     }
 
     // schedule asynchronous interrupt handling if interrupts are pending and
@@ -2651,10 +2665,8 @@ void riscvTestInterrupt(riscvP riscv) {
 //
 void riscvReset(riscvP riscv) {
 
-    riscvExtCBP extCB;
-
     // restart the processor from any halted state
-    restartProcessor(riscv, RVD_RESTART_RESET);
+    riscvRestart(riscv, RVD_RESTART_RESET);
 
     // exit Debug mode
     riscvSetDM(riscv, False);
@@ -2669,11 +2681,10 @@ void riscvReset(riscvP riscv) {
     riscvResetCLIC(riscv);
 
     // notify dependent model of reset event
-    for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-        if(extCB->resetNotifier) {
-            extCB->resetNotifier(riscv, extCB->clientData);
-        }
-    }
+    ITER_EXT_CB(
+        riscv, extCB, resetNotifier,
+        extCB->resetNotifier(riscv, extCB->clientData);
+    )
 
     // indicate the taken exception
     riscv->exception = 0;
@@ -2690,14 +2701,16 @@ void riscvReset(riscvP riscv) {
 //
 static void doNMI(riscvP riscv) {
 
-    riscvExtCBP extCB;
-
     // do custom NMI behavior if required
-    for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-        if(extCB->customNMI && extCB->customNMI(riscv, extCB->clientData)) {
+    ITER_EXT_CB(
+        riscv, extCB, customNMI,
+        if(extCB->customNMI(riscv, extCB->clientData)) {
             return;
         }
-    }
+    )
+
+    // clear pending NMI bit
+    WR_CSR_FIELDC(riscv, dcsr, nmip, 0);
 
     // switch to Machine mode
     riscvSetMode(riscv, RISCV_MODE_MACHINE);
@@ -2851,7 +2864,7 @@ static VMI_NET_CHANGE_FN(resetPortCB) {
     if(posedge(oldValue, newValue)) {
 
         // halt the processor while signal goes high
-        haltProcessor(riscv, RVD_RESET);
+        riscvHalt(riscv, RVD_RESET);
 
     } else if(negedge(oldValue, newValue)) {
 
@@ -2873,8 +2886,8 @@ static VMI_NET_CHANGE_FN(nmiPortCB) {
 
     // do NMI actions when signal goes high unless in Debug mode
     if(!inDebugMode(riscv) && posedge(oldValue, newValue)) {
-        restartProcessor(riscv, RVD_RESTART_NMI);
-        vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+        riscvRestart(riscv, RVD_RESTART_NMI);
+        doSynchronousInterrupt(riscv);
     }
 
     WR_CSR_FIELDC(riscv, dcsr, nmip, newValue);
@@ -2891,8 +2904,8 @@ static VMI_NET_CHANGE_FN(haltreqPortCB) {
 
     // do halt actions when signal goes high unless in Debug mode
     if(!inDebugMode(riscv) && posedge(oldValue, newValue)) {
-        restartProcessor(riscv, RVD_RESTART_WFI);
-        vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+        riscvRestart(riscv, RVD_RESTART_WFI);
+        doSynchronousInterrupt(riscv);
     }
 
     riscv->netValue.haltreq = newValue;
@@ -2923,16 +2936,13 @@ static VMI_NET_CHANGE_FN(SCValidPortCB) {
 }
 
 //
-// Generic interrupt signal
+// Update the indexed standard interrupt
 //
-static VMI_NET_CHANGE_FN(interruptPortCB) {
+void riscvUpdateInterrupt(riscvP riscv, Uns32 index, Bool newValue) {
 
-    riscvInterruptInfoP ii     = userData;
-    riscvP              riscv  = ii->hart;
-    Uns32               index  = ii->userData;
-    Uns32               offset = index/64;
-    Uns64               mask   = 1ULL << (index&63);
-    Uns32               maxNum = riscvGetIntNum(riscv);
+    Uns32 offset = index/64;
+    Uns64 mask   = 1ULL << (index&63);
+    Uns32 maxNum = riscvGetIntNum(riscv);
 
     // sanity check
     VMI_ASSERT(
@@ -2960,6 +2970,32 @@ static VMI_NET_CHANGE_FN(interruptPortCB) {
 }
 
 //
+// Update mask of externally-disabled interrupts
+//
+void riscvUpdateInterruptDisable(riscvP riscv, Uns64 disableMask) {
+
+    Uns64 oldMask = riscv->disableMask;
+
+    // update mask of disabled interrupts
+    riscv->disableMask = disableMask;
+
+    // if interrupts have been unmasked, check for pending interrupts
+    if(oldMask & ~disableMask) {
+        riscvTestInterrupt(riscv);
+    }
+}
+
+//
+// Generic interrupt signal
+//
+static VMI_NET_CHANGE_FN(interruptPortCB) {
+
+    riscvInterruptInfoP ii = userData;
+
+    riscvUpdateInterrupt(ii->hart, ii->userData, newValue);
+}
+
+//
 // Guest external interrupt signal
 //
 static VMI_NET_CHANGE_FN(guestExternalInterruptPortCB) {
@@ -2984,7 +3020,7 @@ static VMI_NET_CHANGE_FN(guestExternalInterruptPortCB) {
     // restart the processor from WFI state if a guest external interrupt has
     // been asserted, even if this does not propagate to visible pending state
     if(newHGEIP&~oldHGEIP) {
-        restartProcessor(riscv, RVD_RESTART_WFI);
+        riscvRestart(riscv, RVD_RESTART_WFI);
     }
 
     // update basic interrupt controller if required

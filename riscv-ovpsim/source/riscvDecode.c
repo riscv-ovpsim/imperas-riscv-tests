@@ -257,6 +257,7 @@ typedef enum unsExtSpecE {
 typedef enum constSpecE {
     CS_NA,              // instruction has no constant
     CS_U_19_15,         // unsigned value in 19:15
+    CS_U_23_20,         // unsigned value in 23:20
     CS_U_26_20,         // unsigned value in 26:20
     CS_U_31_30,         // unsigned value in 31:30
     CS_S_19_15,         // signed value in 19:15
@@ -681,7 +682,13 @@ typedef enum riscvIType32E {
     IT32_UNSHFLI_I,
     IT32_ADDIWU_I,
     IT32_SLLIU_W_I,
-
+    
+    // B-extension I-type partial instructions shared with K-extension
+    IT32_GORCI_I_K,
+    IT32_GREVI_I_K,
+    IT32_SHFLI_I_K,
+    IT32_UNSHFLI_I_K,
+    
     // B-extension R4-type instructions
     IT32_CMIX_R4,
     IT32_CMOV_R4,
@@ -1453,56 +1460,6 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(        HSV_W_R, "|0110101|.....|.....|100|00000|1110011|"),
     DECODE32_ENTRY(        HSV_D_R, "|0110111|.....|.....|100|00000|1110011|"),
 
-    // K-extension R-type LUT instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(       LUT4LO_R, "|0110000|.....|.....|000|.....|0101011|"),
-    DECODE32_ENTRY(       LUT4HI_R, "|0110001|.....|.....|000|.....|0101011|"),
-    DECODE32_ENTRY(         LUT4_R, "|0110010|.....|.....|000|.....|0101011|"),
-
-    // K-extension R-type SAES32 instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY( SAES32_ENCSM_R, "|..00000|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(  SAES32_ENCS_R, "|..00001|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY( SAES32_DECSM_R, "|..00010|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(  SAES32_DECS_R, "|..00011|.....|.....|010|.....|0101011|"),
-
-    // K-extension R-type SSM3/SSM4 instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(      SSM3_P0_R, "|0000111|01000|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(      SSM3_P1_R, "|0000111|01001|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(      SSM4_ED_R, "|..00100|.....|.....|011|.....|0101011|"),
-    DECODE32_ENTRY(      SSM4_KS_R, "|..00101|.....|.....|011|.....|0101011|"),
-
-    // K-extension R-type SAES64 instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(   SAES64_KS1_R, "|0000100|0....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(   SAES64_KS2_R, "|0000101|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(  SAES64_IMIX_R, "|0000110|00001|.....|010|.....|0101011|"),
-    DECODE32_ENTRY( SAES64_ENCSM_R, "|0000111|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(  SAES64_ENCS_R, "|0001000|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY( SAES64_DECSM_R, "|0001001|.....|.....|010|.....|0101011|"),
-    DECODE32_ENTRY(  SAES64_DECS_R, "|0001010|.....|.....|010|.....|0101011|"),
-
-    // K-extension R-type SSHA256 instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY( SSHA256_SIG0_R, "|0000111|00000|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA256_SIG1_R, "|0000111|00001|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA256_SUM0_R, "|0000111|00010|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA256_SUM1_R, "|0000111|00011|.....|111|.....|0101011|"),
-
-    // K-extension R-type SSHA512 instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(SSHA512_SIG0L_R, "|0001000|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(SSHA512_SIG0H_R, "|0001001|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(SSHA512_SIG1L_R, "|0001010|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(SSHA512_SIG1H_R, "|0001011|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(SSHA512_SUM0R_R, "|0001100|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY(SSHA512_SUM1R_R, "|0001101|.....|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA512_SIG0_R, "|0000111|00100|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA512_SIG1_R, "|0000111|00101|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA512_SUM0_R, "|0000111|00110|.....|111|.....|0101011|"),
-    DECODE32_ENTRY( SSHA512_SUM1_R, "|0000111|00111|.....|111|.....|0101011|"),
-
     // V-extension R-type
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(       VSETVL_R, "|1000000|.....|.....|111|.....|1010111|"),
@@ -1781,7 +1738,7 @@ const static decodeEntry32 decodeCommon32[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // until version 0.90
 //
-const static decodeEntry32 decodeBitmanipUntilV090[] = {
+const static decodeEntry32 decodeBUntilV090[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1800,7 +1757,7 @@ const static decodeEntry32 decodeBitmanipUntilV090[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // after version 0.90
 //
-const static decodeEntry32 decodeBitmanipPostV090[] = {
+const static decodeEntry32 decodeBPostV090[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1821,7 +1778,7 @@ const static decodeEntry32 decodeBitmanipPostV090[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // until version 0.91
 //
-const static decodeEntry32 decodeBitmanipUntilV091[] = {
+const static decodeEntry32 decodeBUntilV091[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1834,7 +1791,7 @@ const static decodeEntry32 decodeBitmanipUntilV091[] = {
 //
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension 0.91
 //
-const static decodeEntry32 decodeBitmanipV091[] = {
+const static decodeEntry32 decodeBV091[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1848,7 +1805,7 @@ const static decodeEntry32 decodeBitmanipV091[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // after version 0.91
 //
-const static decodeEntry32 decodeBitmanipPostV091[] = {
+const static decodeEntry32 decodeBPostV091[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1866,7 +1823,7 @@ const static decodeEntry32 decodeBitmanipPostV091[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // after version 0.92
 //
-const static decodeEntry32 decodeBitmanipPostV092[] = {
+const static decodeEntry32 decodeBPostV092[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1883,7 +1840,7 @@ const static decodeEntry32 decodeBitmanipPostV092[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // until version 0.93
 //
-const static decodeEntry32 decodeBitmanipUntilV093[] = {
+const static decodeEntry32 decodeBUntilV093[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1899,7 +1856,7 @@ const static decodeEntry32 decodeBitmanipUntilV093[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // after version 0.93
 //
-const static decodeEntry32 decodeBitmanipPostV093[] = {
+const static decodeEntry32 decodeBPostV093[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -1911,9 +1868,29 @@ const static decodeEntry32 decodeBitmanipPostV093[] = {
 };
 
 //
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// partial instructions shared with the Cryptographic extension
+//
+const static decodeEntry32 decodeBPartialK[] = {
+
+    // B-extension I-type instructions
+    //                               |        imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(      GORCI_I_K, "|001010|000011|.....|101|.....|0010011|"), // imm32=3
+    DECODE32_ENTRY(      GORCI_I_K, "|001010|000100|.....|101|.....|0010011|"), // imm32=4
+    DECODE32_ENTRY(      GORCI_I_K, "|001010|000111|.....|101|.....|0010011|"), // imm32=7
+    DECODE32_ENTRY(      GREVI_I_K, "|011010|000111|.....|101|.....|0010011|"), // imm32=7
+    DECODE32_ENTRY(      GREVI_I_K, "|011010|.11000|.....|101|.....|0010011|"), // imm32=24,56
+    DECODE32_ENTRY(      SHFLI_I_K, "|000010|001111|.....|001|.....|0010011|"), // imm32=15
+    DECODE32_ENTRY(    UNSHFLI_I_K, "|000010|001111|.....|101|.....|0010011|"), // imm32=15
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies decodes for 32-bit opcodes for Vector Extension version 0.8
 //
-const static decodeEntry32 decodeVectorV08[] = {
+const static decodeEntry32 decodeVV08[] = {
 
     // V-extension MVV-type instructions
     //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
@@ -1945,7 +1922,7 @@ const static decodeEntry32 decodeVectorV08[] = {
 //
 // This specifies decodes for 32-bit opcodes for Vector Extension version 0.7.1
 //
-const static decodeEntry32 decodeVectorV071[] = {
+const static decodeEntry32 decodeVV071[] = {
 
     // V-extension MVV-type instructions
     //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
@@ -1980,7 +1957,7 @@ const static decodeEntry32 decodeVectorV071[] = {
 //
 // This specifies decodes for 32-bit opcodes for Vector Extension version 0.8
 //
-const static decodeEntry32 decodeVectorV071P[] = {
+const static decodeEntry32 decodeVV071P[] = {
 
     // V-extension FVV-type instructions
     //                               |funct6|m|  vs2|  vs1|FVV|  vs3| opcode|
@@ -1991,9 +1968,9 @@ const static decodeEntry32 decodeVectorV071P[] = {
 };
 
 //
-// This specifies decodes *after* 6 September 2019
+// This specifies Vector Extension decodes *after* 6 September 2019
 //
-const static decodeEntry32 decodePost20190906[] = {
+const static decodeEntry32 decodeVPost20190906[] = {
 
     // V-extension MVV-type instructions
     //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
@@ -2009,9 +1986,9 @@ const static decodeEntry32 decodePost20190906[] = {
 };
 
 //
-// This specifies decodes *before* 6 September 2019
+// This specifies Vector Extension decodes *before* 6 September 2019
 //
-const static decodeEntry32 decodePre20190906[] = {
+const static decodeEntry32 decodeVPre20190906[] = {
 
     // V-extension IVV-type instructions
     //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
@@ -2036,9 +2013,9 @@ const static decodeEntry32 decodePre20190906[] = {
 };
 
 //
-// This specifies decodes for version 20191004 only (deleted thereafter)
+// This specifies Vector Extension decodes for version 20191004 only (deleted thereafter)
 //
-const static decodeEntry32 decode20191004[] = {
+const static decodeEntry32 decodeV20191004[] = {
 
     // V-extension IVV-type instructions
     //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
@@ -2054,9 +2031,9 @@ const static decodeEntry32 decode20191004[] = {
 };
 
 //
-// This specifies decodes *after* 4 October 2019
+// This specifies Vector Extension decodes *after* 4 October 2019
 //
-const static decodeEntry32 decodePost20191004[] = {
+const static decodeEntry32 decodeVPost20191004[] = {
 
     // V-extension IVV-type instructions
     //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
@@ -2104,9 +2081,9 @@ const static decodeEntry32 decodePost20191004[] = {
 };
 
 //
-// This specifies decodes *before* 4 October 2019
+// This specifies Vector Extension decodes *before* 4 October 2019
 //
-const static decodeEntry32 decodePre20191004[] = {
+const static decodeEntry32 decodeVPre20191004[] = {
 
     // V-extension IVV-type instructions
     //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
@@ -2141,9 +2118,9 @@ const static decodeEntry32 decodePre20191004[] = {
 };
 
 //
-// This specifies decodes specific to late 0.8 versions
+// This specifies Vector Extension decodes specific to late 0.8 versions
 //
-const static decodeEntry32 decodeLate08[] = {
+const static decodeEntry32 decodeVLate08[] = {
 
     // V-extension load/store instructions (whole registers)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
@@ -2155,9 +2132,9 @@ const static decodeEntry32 decodeLate08[] = {
 };
 
 //
-// This specifies decodes *before* release 0.9
+// This specifies Vector Extension decodes *before* release 0.9
 //
-const static decodeEntry32 decodePre09[] = {
+const static decodeEntry32 decodeVPre09[] = {
 
     // V-extension load/store instructions (byte elements)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
@@ -2235,9 +2212,9 @@ const static decodeEntry32 decodePre09[] = {
 };
 
 //
-// This specifies decodes *after* release 0.8
+// This specifies Vector Extension decodes *after* release 0.8
 //
-const static decodeEntry32 decodeInitial09[] = {
+const static decodeEntry32 decodeVInitial09[] = {
 
     // V-extension load/store instructions (whole registers)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
@@ -2347,9 +2324,9 @@ const static decodeEntry32 decodeInitial09[] = {
 };
 
 //
-// This specifies decodes for release 0.9 only
+// This specifies Vector Extension decodes for release 0.9 only
 //
-const static decodeEntry32 decode09[] = {
+const static decodeEntry32 decodeVV09[] = {
 
     // V-extension load/store instructions (8/128-bit elements)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
@@ -2371,9 +2348,9 @@ const static decodeEntry32 decode09[] = {
 };
 
 //
-// This specifies decodes *after* release 0.9
+// This specifies Vector Extension decodes *after* release 0.9
 //
-const static decodeEntry32 decodeInitial10[] = {
+const static decodeEntry32 decodeVInitial10[] = {
 
     // V-extension load/store instructions (whole registers, 8/128-bit hint)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
@@ -2413,6 +2390,118 @@ const static decodeEntry32 decodeInitial10[] = {
     //                               |funct6|m|  vs2|  vs1|FVV|  vs3| opcode|
     DECODE32_ENTRY(    VFRSQRTE7_V, "|010011|.|.....|00100|001|.....|1010111|"),
     DECODE32_ENTRY(      VFRECE7_V, "|010011|.|.....|00101|001|.....|1010111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Cryptographic Extension decodes for 0.7.2
+//
+const static decodeEntry32 decodeKV072[] = {
+
+    // K-extension R-type LUT instructions (TODO: move to bitmanip)
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(       LUT4LO_R, "|0110000|.....|.....|000|.....|0101011|"),
+    DECODE32_ENTRY(       LUT4HI_R, "|0110001|.....|.....|000|.....|0101011|"),
+    DECODE32_ENTRY(         LUT4_R, "|0110010|.....|.....|000|.....|0101011|"),
+
+    // K-extension R-type SAES32 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( SAES32_ENCSM_R, "|..00000|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(  SAES32_ENCS_R, "|..00001|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY( SAES32_DECSM_R, "|..00010|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(  SAES32_DECS_R, "|..00011|.....|.....|010|.....|0101011|"),
+
+    // K-extension R-type SSM3/SSM4 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(      SSM3_P0_R, "|0000111|01000|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(      SSM3_P1_R, "|0000111|01001|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(      SSM4_ED_R, "|..00100|.....|.....|011|.....|0101011|"),
+    DECODE32_ENTRY(      SSM4_KS_R, "|..00101|.....|.....|011|.....|0101011|"),
+
+    // K-extension R-type SAES64 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(   SAES64_KS1_R, "|0000100|0....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(   SAES64_KS2_R, "|0000101|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(  SAES64_IMIX_R, "|0000110|00001|.....|010|.....|0101011|"),
+    DECODE32_ENTRY( SAES64_ENCSM_R, "|0000111|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(  SAES64_ENCS_R, "|0001000|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY( SAES64_DECSM_R, "|0001001|.....|.....|010|.....|0101011|"),
+    DECODE32_ENTRY(  SAES64_DECS_R, "|0001010|.....|.....|010|.....|0101011|"),
+
+    // K-extension R-type SSHA256 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( SSHA256_SIG0_R, "|0000111|00000|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA256_SIG1_R, "|0000111|00001|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA256_SUM0_R, "|0000111|00010|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA256_SUM1_R, "|0000111|00011|.....|111|.....|0101011|"),
+
+    // K-extension R-type SSHA512 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(SSHA512_SIG0L_R, "|0001000|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(SSHA512_SIG0H_R, "|0001001|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(SSHA512_SIG1L_R, "|0001010|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(SSHA512_SIG1H_R, "|0001011|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(SSHA512_SUM0R_R, "|0001100|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY(SSHA512_SUM1R_R, "|0001101|.....|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA512_SIG0_R, "|0000111|00100|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA512_SIG1_R, "|0000111|00101|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA512_SUM0_R, "|0000111|00110|.....|111|.....|0101011|"),
+    DECODE32_ENTRY( SSHA512_SUM1_R, "|0000111|00111|.....|111|.....|0101011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Cryptographic Extension decodes for 0.8.0
+//
+const static decodeEntry32 decodeKV080[] = {
+
+    // K-extension R-type SAES32 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( SAES32_ENCSM_R, "|..11011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES32_ENCS_R, "|..11001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY( SAES32_DECSM_R, "|..11111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES32_DECS_R, "|..11101|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SSM3/SSM4 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(      SSM3_P0_R, "|0001000|01000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(      SSM3_P1_R, "|0001000|01001|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(      SSM4_ED_R, "|..11000|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(      SSM4_KS_R, "|..11010|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SAES64 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(   SAES64_KS1_R, "|0011000|1....|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SAES64_KS2_R, "|0111111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES64_IMIX_R, "|0011000|00000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SAES64_ENCSM_R, "|0011011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES64_ENCS_R, "|0011001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY( SAES64_DECSM_R, "|0011111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES64_DECS_R, "|0011101|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SSHA256 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( SSHA256_SIG0_R, "|0001000|00010|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA256_SIG1_R, "|0001000|00011|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA256_SUM0_R, "|0001000|00000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA256_SUM1_R, "|0001000|00001|.....|001|.....|0010011|"),
+
+    // K-extension R-type SSHA512 instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(SSHA512_SIG0L_R, "|0101010|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(SSHA512_SIG0H_R, "|0101110|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(SSHA512_SIG1L_R, "|0101011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(SSHA512_SIG1H_R, "|0101111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(SSHA512_SUM0R_R, "|0101000|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(SSHA512_SUM1R_R, "|0101001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY( SSHA512_SIG0_R, "|0001000|00110|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA512_SIG1_R, "|0001000|00111|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA512_SUM0_R, "|0001000|00100|.....|001|.....|0010011|"),
+    DECODE32_ENTRY( SSHA512_SUM1_R, "|0001000|00101|.....|001|.....|0010011|"),
 
     // table termination entry
     {0}
@@ -2616,7 +2705,7 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2       (        SBINV_R,         SBINV_R, RVANYB,  "sbinv"   ),
     ATTR32_RD_RS1_RS2       (        SBEXT_R,         SBEXT_R, RVANYB,  "sbext"   ),
     ATTR32_RD_RS1_RS2       (         GORC_R,          GORC_R, RVANYB,  "gorc"    ),
-    ATTR32_RD_RS1_RS2       (         GREV_R,          GREV_R, RVANYBK, "grev"    ),
+    ATTR32_RD_RS1_RS2       (         GREV_R,          GREV_R, RVANYB,  "grev"    ),
     ATTR32_RD_RS1_rs2       (          CLZ_R,           CLZ_R, RVANYB,  "clz"     ),
     ATTR32_RD_RS1_rs2       (          CTZ_R,           CTZ_R, RVANYB,  "ctz"     ),
     ATTR32_RD_RS1_rs2       (         PCNT_R,          PCNT_R, RVANYB,  "pcnt"    ),
@@ -2632,8 +2721,8 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2       (          MAX_R,           MAX_R, RVANYB,  "max"     ),
     ATTR32_RD_RS1_RS2       (         MINU_R,          MINU_R, RVANYB,  "minu"    ),
     ATTR32_RD_RS1_RS2       (         MAXU_R,          MAXU_R, RVANYB,  "maxu"    ),
-    ATTR32_RD_RS1_RS2       (         SHFL_R,          SHFL_R, RVANYBK, "shfl"    ),
-    ATTR32_RD_RS1_RS2       (       UNSHFL_R,        UNSHFL_R, RVANYBK, "unshfl"  ),
+    ATTR32_RD_RS1_RS2       (         SHFL_R,          SHFL_R, RVANYB,  "shfl"    ),
+    ATTR32_RD_RS1_RS2       (       UNSHFL_R,        UNSHFL_R, RVANYB,  "unshfl"  ),
     ATTR32_RD_RS1_RS2       (         BDEP_R,          BDEP_R, RVANYB,  "bdep"    ),
     ATTR32_RD_RS1_RS2       (         BEXT_R,          BEXT_R, RVANYB,  "bext"    ),
     ATTR32_RD_RS1_RS2       (         PACK_R,          PACK_R, RVANYBK, "pack"    ),
@@ -2659,11 +2748,17 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_SSHIFT    (       SBINVI_I,        SBINVI_I, RVANYB,  "sbinvi"  ),
     ATTR32_RD_RS1_SSHIFT    (       SBEXTI_I,        SBEXTI_I, RVANYB,  "sbexti"  ),
     ATTR32_RD_RS1_USHIFT    (        GORCI_I,         GORCI_I, RVANYB,  "gorci"   ),
-    ATTR32_RD_RS1_USHIFT    (        GREVI_I,         GREVI_I, RVANYBK, "grevi"   ),
-    ATTR32_RD_RS1_SSHIFT    (        SHFLI_I,         SHFLI_I, RVANYBK, "shfli"   ),
-    ATTR32_RD_RS1_SSHIFT    (      UNSHFLI_I,       UNSHFLI_I, RVANYBK, "unshfli" ),
+    ATTR32_RD_RS1_USHIFT    (        GREVI_I,         GREVI_I, RVANYB,  "grevi"   ),
+    ATTR32_RD_RS1_SSHIFT    (        SHFLI_I,         SHFLI_I, RVANYB,  "shfli"   ),
+    ATTR32_RD_RS1_SSHIFT    (      UNSHFLI_I,       UNSHFLI_I, RVANYB,  "unshfli" ),
     ATTR32_RD_RS1_SI_U      (       ADDIWU_I,        ADDIWU_I, RVANYB,  "addi"    ),
     ATTR32_RD_RS1_USHIFT    (      SLLIU_W_I,       SLLIU_W_I, RVANYB,  "slliu."  ),
+
+    // B-extension I-type partial instructions shared with K-extension
+    ATTR32_RD_RS1_USHIFT    (      GORCI_I_K,         GORCI_I, RVANYBK, "gorci"   ),
+    ATTR32_RD_RS1_USHIFT    (      GREVI_I_K,         GREVI_I, RVANYBK, "grevi"   ),
+    ATTR32_RD_RS1_SSHIFT    (      SHFLI_I_K,         SHFLI_I, RVANYBK, "shfli"   ),
+    ATTR32_RD_RS1_SSHIFT    (    UNSHFLI_I_K,       UNSHFLI_I, RVANYBK, "unshfli" ),
 
     // B-extension R4-type instructions
     ATTR32_RD_RS1_RS2_RS3   (        CMIX_R4,         CMIX_R4, RVANYB,  "cmix"),
@@ -3159,7 +3254,9 @@ static void insertEntries32(vmidDecodeTableP table, decodeEntry32CP decEntries) 
 //
 static vmidDecodeTableP createExtDecodeTable32(
     riscvVectVer     vect_version,
-    riscvBitManipVer bitmanip_version
+    riscvBitManipVer bitmanip_version,
+    riscvCryptoVer   crypto_version,
+    Bool             K
 ) {
     vmidDecodeTableP table = vmidNewDecodeTable(32, IT32_LAST);
 
@@ -3172,33 +3269,41 @@ static vmidDecodeTableP createExtDecodeTable32(
 
     // handle bitmanip-extension-dependent table entries until/after 0.90
     if(bitmanip_version<=RVBV_0_90) {
-        insertEntries32(table, &decodeBitmanipUntilV090[0]);
+        insertEntries32(table, &decodeBUntilV090[0]);
     } else {
-        insertEntries32(table, &decodeBitmanipPostV090[0]);
+        insertEntries32(table, &decodeBPostV090[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.91
     if(bitmanip_version<=RVBV_0_91) {
-        insertEntries32(table, &decodeBitmanipUntilV091[0]);
+        insertEntries32(table, &decodeBUntilV091[0]);
     } else {
-        insertEntries32(table, &decodeBitmanipPostV091[0]);
+        insertEntries32(table, &decodeBPostV091[0]);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.91 only
     if(bitmanip_version==RVBV_0_91) {
-        insertEntries32(table, &decodeBitmanipV091[0]);
+        insertEntries32(table, &decodeBV091[0]);
     }
 
     // handle bitmanip-extension-dependent table entries after version 0.92
     if(bitmanip_version>RVBV_0_92) {
-        insertEntries32(table, &decodeBitmanipPostV092[0]);
+        insertEntries32(table, &decodeBPostV092[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.93
     if(bitmanip_version<=RVBV_0_93) {
-        insertEntries32(table, &decodeBitmanipUntilV093[0]);
+        insertEntries32(table, &decodeBUntilV093[0]);
     } else {
-        insertEntries32(table, &decodeBitmanipPostV093[0]);
+        insertEntries32(table, &decodeBPostV093[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // BIT MANIPULATION PARTIAL EXTENSION ENTRIES SHARED WITH K EXTENSION
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(K) {
+        insertEntries32(table, &decodeBPartialK[0]);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3207,60 +3312,81 @@ static vmidDecodeTableP createExtDecodeTable32(
 
     // insert vector-extension-dependent table entries before/after 0.7.1
     if(vect_version>RVVV_0_7_1) {
-        insertEntries32(table, &decodeVectorV08[0]);
+        insertEntries32(table, &decodeVV08[0]);
     } else {
-        insertEntries32(table, &decodeVectorV071[0]);
+        insertEntries32(table, &decodeVV071[0]);
     }
 
     // insert vector-extension-dependent table entries after 0.7.1+
     if((vect_version>RVVV_0_7_1_P) && (vect_version<=RVVV_0_8)) {
-        insertEntries32(table, &decodeVectorV071P[0]);
+        insertEntries32(table, &decodeVV071P[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 20190906
     if(vect_version>RVVV_0_8_20190906) {
-        insertEntries32(table, &decodePost20190906[0]);
+        insertEntries32(table, &decodeVPost20190906[0]);
     } else {
-        insertEntries32(table, &decodePre20190906[0]);
+        insertEntries32(table, &decodeVPre20190906[0]);
     }
 
     // insert vector-extension-dependent table entries specific to release
     // 20191004 (deleted thereafter)
     if(vect_version==RVVV_0_8_20191004) {
-        insertEntries32(table, &decode20191004[0]);
+        insertEntries32(table, &decodeV20191004[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 20191004
     if(vect_version>RVVV_0_8_20191004) {
-        insertEntries32(table, &decodePost20191004[0]);
+        insertEntries32(table, &decodeVPost20191004[0]);
     } else {
-        insertEntries32(table, &decodePre20191004[0]);
+        insertEntries32(table, &decodeVPre20191004[0]);
     }
 
     // insert vector-extension-dependent table entries introduced with 20191117
     // but deleted after 0.8
     if((vect_version>=RVVV_0_8_20191117) && (vect_version<=RVVV_0_8)) {
-        insertEntries32(table, &decodeLate08[0]);
+        insertEntries32(table, &decodeVLate08[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 0.8
     if(vect_version<=RVVV_0_8) {
-        insertEntries32(table, &decodePre09[0]);
+        insertEntries32(table, &decodeVPre09[0]);
     } else {
-        insertEntries32(table, &decodeInitial09[0]);
+        insertEntries32(table, &decodeVInitial09[0]);
     }
 
     // insert vector-extension-dependent table entries for version 0.9 only
     if(vect_version==RVVV_0_9) {
-        insertEntries32(table, &decode09[0]);
+        insertEntries32(table, &decodeVV09[0]);
     }
 
     // insert vector-extension-dependent table entries after 0.9
     if(vect_version>RVVV_0_9) {
-        insertEntries32(table, &decodeInitial10[0]);
+        insertEntries32(table, &decodeVInitial10[0]);
+    }
+
+    // insert version-specific Cryptographic extension decodes
+    if(crypto_version==RVKV_0_7_2) {
+        insertEntries32(table, &decodeKV072[0]);
+    } else {
+        insertEntries32(table, &decodeKV080[0]);
     }
 
     return table;
+}
+
+//
+// Return handle for version-specific decode table
+//
+static vmidDecodeTablePP getTable32P(
+    riscvVectVer     vect_version,
+    riscvBitManipVer bitmanip_version,
+    riscvCryptoVer   crypto_version,
+    Bool             K
+) {
+    static vmidDecodeTableP decodeTables[RVVV_LAST][RVBV_LAST][RVKV_LAST][2];
+
+    return &decodeTables[vect_version][bitmanip_version][crypto_version][K];
 }
 
 //
@@ -3268,19 +3394,26 @@ static vmidDecodeTableP createExtDecodeTable32(
 //
 static riscvIType32 getInstructionType32(riscvP riscv, riscvInstrInfoP info) {
 
-    static vmidDecodeTableP decodeTables[RVVV_LAST][RVBV_LAST];
-
     // select decode table depending on instruction versions
     riscvVectVer     vect_version     = riscv->configInfo.vect_version;
     riscvBitManipVer bitmanip_version = riscv->configInfo.bitmanip_version;
+    riscvCryptoVer   crypto_version   = riscv->configInfo.crypto_version;
+    Bool             K                = cryptoPresent(riscv);
+
+    // get handle of version-specific decode table
+    vmidDecodeTablePP tableP = getTable32P(
+        vect_version, bitmanip_version, crypto_version, K
+    );
 
     // get table, if it already exists
-    vmidDecodeTableP table = decodeTables[vect_version][bitmanip_version];
+    vmidDecodeTableP table = *tableP;
 
     // create instruction decode table if required
     if(!table) {
-        table = createExtDecodeTable32(vect_version, bitmanip_version);
-        decodeTables[vect_version][bitmanip_version] = table;
+        table = createExtDecodeTable32(
+            vect_version, bitmanip_version, crypto_version, K
+        );
+        *tableP = table;
     }
 
     // decode the instruction using decode table
@@ -3796,6 +3929,9 @@ static Uns64 getConstant(
             break;
         case CS_U_19_15:
             result = U_19_15(instr);
+            break;
+        case CS_U_23_20:
+            result = U_23_20(instr);
             break;
         case CS_U_26_20:
             result = U_26_20(instr);
@@ -4391,9 +4527,30 @@ static Uns32 getShN(riscvInstrInfoP info, Bool shN) {
 }
 
 //
+// Fix AES instructions that are remapped when XLEN is 32 (depends on version)
+//
+static void fixAESXLEN32(
+    riscvP          riscv,
+    riscvInstrInfoP info,
+    riscvIType32    type32
+) {
+    if(riscv->configInfo.crypto_version<RVKV_0_8_0) {
+        // no action prior to 0.8.0
+    } else if(info->c) {
+        // no action if BS!=0
+    } else if(getXLenBits(riscv)!=32) {
+        // no action unless XLEN=32
+    } else {
+        info->type   = attrsArray32[type32].type;
+        info->opcode = attrsArray32[type32].opcode;
+        info->format = attrsArray32[type32].format;
+    }
+}
+
+//
 // Fix instructions that cannot be determined by decode alone
 //
-static void fixPseudoInstructions(riscvInstrInfoP info) {
+static void fixPseudoInstructions(riscvP riscv, riscvInstrInfoP info) {
 
     switch(info->type) {
 
@@ -4441,6 +4598,37 @@ static void fixPseudoInstructions(riscvInstrInfoP info) {
             if(info->c>0xa) {
                 info->type = RV_IT_LAST;
             }
+            break;
+
+        case RV_IT_SAES32_ENCSM_R:
+        case RV_IT_SAES32_ENCS_R:
+        case RV_IT_SAES32_DECSM_R:
+        case RV_IT_SAES32_DECS_R:
+            if(riscv->configInfo.crypto_version<RVKV_0_8_0) {
+                // no action prior to 0.8.0
+            } else if(info->r[0] == info->r[1]) {
+                // no action if rs1==rd
+            } else {
+                // illegal from 0.8.0 if rs1!=rd
+                info->type = RV_IT_LAST;
+            }
+            break;
+
+
+        case RV_IT_SAES64_ENCSM_R:
+            fixAESXLEN32(riscv, info, IT32_SAES32_ENCSM_R);
+            break;
+
+        case RV_IT_SAES64_ENCS_R:
+            fixAESXLEN32(riscv, info, IT32_SAES32_ENCS_R);
+            break;
+
+        case RV_IT_SAES64_DECSM_R:
+            fixAESXLEN32(riscv, info, IT32_SAES32_DECSM_R);
+            break;
+
+        case RV_IT_SAES64_DECS_R:
+            fixAESXLEN32(riscv, info, IT32_SAES32_DECS_R);
             break;
 
         default:
@@ -4575,7 +4763,7 @@ void riscvDecode(
     }
 
     // fix up pseudo-instructions
-    fixPseudoInstructions(info);
+    fixPseudoInstructions(riscv, info);
 }
 
 //

@@ -154,6 +154,7 @@ typedef struct riscvConfigS {
     Bool              PMP_undefined;    // force all PMP registers undefined
     Bool              external_int_id;  // enable external interrupt ID ports
     Bool              tval_zero;        // whether [smu]tval are always zero
+    Bool              tval_zero_ebreak; // whether [smu]tval always zero on ebreak
     Bool              tval_ii_code;     // instruction bits in [smu]tval for
                                         // illegal instruction exception?
 
@@ -196,6 +197,10 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (stvt);            // stvec mask
         CSR_REG_DECL (utvt);            // utvec mask
         CSR_REG_DECL (tdata1);          // tdata1 mask
+        CSR_REG_DECL (mip);             // mip mask
+        CSR_REG_DECL (sip);             // sip mask
+        CSR_REG_DECL (uip);             // uip mask
+        CSR_REG_DECL (hip);             // hip mask
     } csrMask;
 
     // custom documentation

@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVx, instructions: 32
+Extension : Vx, instructions: 32
     vaadd_vv       
         vd             
             vpr            
@@ -3596,7 +3596,7 @@ Coverage points missed:
   vnclipu_wx/vs2/vpr/v9
 Coverage points missed: 224/2910
 
-Info TOTAL INSTRUCTION COVERAGE : RVVx
+Info TOTAL INSTRUCTION COVERAGE : Vx
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 32/32 : 100.00%

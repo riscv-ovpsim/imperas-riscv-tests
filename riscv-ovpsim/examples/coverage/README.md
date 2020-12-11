@@ -46,7 +46,7 @@ Example run under Linux
 > Info (ICV_WCF) Writing coverage file coverage_basic.yaml  
 > Info (ICV_FIN) Instruction Coverage finished  
 > Info (ICV_WCR) Writing coverage report coverage_basic.log  
-> Info (ICV_SUM) COVERAGE :: RVI :: threshold : 1 : instructions: seen 31/40 :  77.50%, coverage points hit: 610/2844 :  21.45%  
+> Info (ICV_SUM) COVERAGE :: I :: threshold : 1 : instructions: seen 31/40 :  77.50%, coverage points hit: 610/2844 :  21.45%  
 > Info   
 > Info ---------------------------------------------------  
 > Info CPU 'riscvOVPsim/cpu' STATISTICS  

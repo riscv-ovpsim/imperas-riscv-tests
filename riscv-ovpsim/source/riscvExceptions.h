@@ -25,7 +25,18 @@
 // model header files
 #include "riscvExceptionTypes.h"
 #include "riscvTypeRefs.h"
+#include "riscvTypes.h"
 
+
+//
+// Halt the passed processor for the given reason
+//
+void riscvHalt(riscvP riscv, riscvDisableReason reason);
+
+//
+// Restart the passed processor for the given reason
+//
+void riscvRestart(riscvP riscv, riscvDisableReason reason);
 
 //
 // Take processor exception
@@ -169,6 +180,16 @@ void riscvSetExceptionMask(riscvP riscv);
 // Free exception state
 //
 void riscvExceptFree(riscvP riscv);
+
+//
+// Update the indexed standard interrupt
+//
+void riscvUpdateInterrupt(riscvP riscv, Uns32 index, Bool newValue);
+
+//
+// Update mask of externally-disabled interrupts
+//
+void riscvUpdateInterruptDisable(riscvP riscv, Uns64 disableMask);
 
 //
 // Update interrupt state because of some pending state change (either from

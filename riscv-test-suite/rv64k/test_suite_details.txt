@@ -1,0 +1,100 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64K K Crypto/Scalar:
+    36 test source files
+    12 different instruction categories
+    61 different instructions
+    50,958 total instructions
+
+Instruction category: OPK_Zknd NIST AES Decryption Instructions
+  aes64dsm : 264
+  aes64ds : 264
+  aes64im : 264
+Instruction category: OPK_Zkne NIST AES Encryption Instructions
+  aes64esm : 264
+  aes64es : 264
+  aes64ks2 : 264
+  aes64ks1i : 264
+Instruction category: OPB_LWNE Logic With Negate
+  xnor : 264
+  orn : 264
+  andn : 264
+Instruction category: OPB_CLML Carry-less Multiply
+  clmul : 264
+  clmulh : 264
+Instruction category: OPK_Zkr Entropy source for seeding random number generators
+Instruction category: OPB_GORC Generalised Or-Combine
+  gorci : 264
+Instruction category: OPB_PACK Packing
+  pack : 264
+  packh : 264
+  packw : 264
+  packuw : 264
+  packu : 264
+Instruction category: OPK_Zkb Bitmanip Subset included in the scalar cryptography extension, minus those in Zkg
+Instruction category: OPB_ROTS Rotations
+  rolw : 264
+  rol : 264
+  ror : 264
+  roriw : 264
+  rori : 264
+  rorw : 264
+Instruction category: OPK_Zknh NIST SHA2 Hash function instructions
+  sha256sig0 : 264
+  sha256sig1 : 264
+  sha256sum0 : 264
+  sha512sig0 : 264
+  sha512sig1 : 264
+  sha256sum1 : 264
+  sha512sum0 : 264
+  sha512sum1 : 264
+Instruction category: OPK_Zksh SM3 Hash function instructions
+  sm3p0 : 264
+  sm3p1 : 264
+Instruction category: OPK_Zkse SM4 Encryption Instructions
+  sm4ed : 264
+  sm4ks : 264
+
+Other instructions (those not the focus of this suite)
+  c-j : 36
+  csrr : 108
+  c-bnez : 36
+  auipc : 2,124
+  addi : 3,261
+  csrw : 252
+  csrwi : 180
+  c-addi : 3,147
+  c-li : 4,263
+  c-slli : 6,216
+  bgez : 36
+  mv : 36
+  beqz : 36
+  c-lui : 1,245
+  addiw : 6,423
+  csrs : 36
+  mret : 36
+  sd : 9,000
+  c-sdsp : 504
+  lui : 2,511
+  c-addiw : 1,767
+  fence : 36
+  ecall : 36
+  beq : 108
+  slli : 21
+

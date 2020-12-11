@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : RVVr, instructions: 17
+Extension : Vr, instructions: 16
     vfredmax_vs    
         vd             
             vpr            
@@ -661,44 +661,6 @@ Extension : RVVr, instructions: 17
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
     vfwredsum_vs 48/96 :  50.00%
-    vid_v          
-        vd             
-            vpr            
-                v0           0/1 :   0.00% ZERO
-                v1           0/1 :   0.00% ZERO
-                v10          0/1 :   0.00% ZERO
-                v11          0/1 :   0.00% ZERO
-                v12          0/1 :   0.00% ZERO
-                v13          0/1 :   0.00% ZERO
-                v14          0/1 :   0.00% ZERO
-                v15          0/1 :   0.00% ZERO
-                v16          0/1 :   0.00% ZERO
-                v17          0/1 :   0.00% ZERO
-                v18          0/1 :   0.00% ZERO
-                v19          0/1 :   0.00% ZERO
-                v2           0/1 :   0.00% ZERO
-                v20          0/1 :   0.00% ZERO
-                v21          0/1 :   0.00% ZERO
-                v22          0/1 :   0.00% ZERO
-                v23          0/1 :   0.00% ZERO
-                v24          0/1 :   0.00% ZERO
-                v25          0/1 :   0.00% ZERO
-                v26          0/1 :   0.00% ZERO
-                v27          0/1 :   0.00% ZERO
-                v28          0/1 :   0.00% ZERO
-                v29          0/1 :   0.00% ZERO
-                v3           0/1 :   0.00% ZERO
-                v30          0/1 :   0.00% ZERO
-                v31          0/1 :   0.00% ZERO
-                v4           0/1 :   0.00% ZERO
-                v5           0/1 :   0.00% ZERO
-                v6           0/1 :   0.00% ZERO
-                v7           0/1 :   0.00% ZERO
-                v8           0/1 :   0.00% ZERO
-                v9           0/1 :   0.00% ZERO
-            vpr 0/32 :   0.00%
-        vd 0/32 :   0.00%
-    vid_v 0/32 :   0.00%
     vredand_vs     
         vd             
             vpr            
@@ -1896,38 +1858,6 @@ Coverage points missed:
   vfwredsum_vs/vs2/vpr/v5
   vfwredsum_vs/vs2/vpr/v7
   vfwredsum_vs/vs2/vpr/v9
-  vid_v/vd/vpr/v0
-  vid_v/vd/vpr/v1
-  vid_v/vd/vpr/v10
-  vid_v/vd/vpr/v11
-  vid_v/vd/vpr/v12
-  vid_v/vd/vpr/v13
-  vid_v/vd/vpr/v14
-  vid_v/vd/vpr/v15
-  vid_v/vd/vpr/v16
-  vid_v/vd/vpr/v17
-  vid_v/vd/vpr/v18
-  vid_v/vd/vpr/v19
-  vid_v/vd/vpr/v2
-  vid_v/vd/vpr/v20
-  vid_v/vd/vpr/v21
-  vid_v/vd/vpr/v22
-  vid_v/vd/vpr/v23
-  vid_v/vd/vpr/v24
-  vid_v/vd/vpr/v25
-  vid_v/vd/vpr/v26
-  vid_v/vd/vpr/v27
-  vid_v/vd/vpr/v28
-  vid_v/vd/vpr/v29
-  vid_v/vd/vpr/v3
-  vid_v/vd/vpr/v30
-  vid_v/vd/vpr/v31
-  vid_v/vd/vpr/v4
-  vid_v/vd/vpr/v5
-  vid_v/vd/vpr/v6
-  vid_v/vd/vpr/v7
-  vid_v/vd/vpr/v8
-  vid_v/vd/vpr/v9
   vwredsum_vs/vd/vpr/v1
   vwredsum_vs/vd/vpr/v11
   vwredsum_vs/vd/vpr/v13
@@ -2024,10 +1954,10 @@ Coverage points missed:
   vwredsumu_vs/vs2/vpr/v5
   vwredsumu_vs/vs2/vpr/v7
   vwredsumu_vs/vs2/vpr/v9
-Coverage points missed: 224/1568
+Coverage points missed: 192/1536
 
-Info TOTAL INSTRUCTION COVERAGE : RVVr
+Info TOTAL INSTRUCTION COVERAGE : Vr
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 16/17 :  94.12%
-Info   Coverage points hit   : 1344/1568 :  85.71%
+Info   Unique instructions   : 16/16 : 100.00%
+Info   Coverage points hit   : 1344/1536 :  87.50%

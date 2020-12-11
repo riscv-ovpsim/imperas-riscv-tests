@@ -12,4 +12,8 @@ Release 20201014.0
 First public release of initial test suites
 
 
+Date 2020-December-12
+Release 20201212.0
+
+First release of B-bitmanip and K-crypto architectural tests
 

@@ -141,14 +141,13 @@ static void addBFeature(
 //
 void riscvDoc(riscvP rootProcessor) {
 
-    vmiDocNodeP      Root     = vmidocAddSection(0, "Root");
-    riscvP           riscv    = rootProcessor;
-    riscvP           child    = getChild(rootProcessor);
-    riscvConfigCP    cfg      = &riscv->configInfo;
-    Bool             isSMP    = child && !riscvIsCluster(riscv);
-    Uns32            numHarts = cfg->numHarts;
-    riscvExtCBP      extCB;
-    char             string[1024];
+    vmiDocNodeP   Root     = vmidocAddSection(0, "Root");
+    riscvP        riscv    = rootProcessor;
+    riscvP        child    = getChild(rootProcessor);
+    riscvConfigCP cfg      = &riscv->configInfo;
+    Bool          isSMP    = child && !riscvIsCluster(riscv);
+    Uns32         numHarts = cfg->numHarts;
+    char          string[1024];
 
     // move to first child if an SMP object
     if(isSMP) {
@@ -2516,11 +2515,10 @@ void riscvDoc(riscvP rootProcessor) {
         addOptDoc(riscv, Limitations, cfg->restrictionsCB);
 
         // add extension-specific restrictions if required
-        for(extCB=riscv->extCBs; extCB; extCB=extCB->next) {
-            if(extCB->restrictionsCB) {
-                extCB->restrictionsCB(riscv, Limitations, extCB->clientData);
-            }
-        }
+        ITER_EXT_CB(
+            riscv, extCB, restrictionsCB,
+            extCB->restrictionsCB(riscv, Limitations, extCB->clientData);
+        )
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2630,6 +2628,7 @@ void riscvDoc(riscvP rootProcessor) {
         if(cfg->arch&ISA_K) {
             snprintf(
                 SNPRINTF_TGT(string),
+                "RISC-V \"K\" Cryptographic Extension (%s)",
                 riscvGetCryptographicVersionDesc(riscv)
             );
             vmidocAddText(References, string);

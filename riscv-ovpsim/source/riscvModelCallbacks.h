@@ -142,6 +142,34 @@ typedef RISCV_READ_BASE_CSR_FN((*riscvReadBaseCSRFn));
 typedef RISCV_WRITE_BASE_CSR_FN((*riscvWriteBaseCSRFn));
 
 //
+// Halt or restart the processor for the given reason
+//
+#define RISCV_HALT_RESTART_FN(_NAME) void _NAME( \
+    riscvP             riscv,   \
+    riscvDisableReason reason   \
+)
+typedef RISCV_HALT_RESTART_FN((*riscvHaltRestartFn));
+
+//
+// Update the indexed standard interrupt
+//
+#define RISCV_UPDATE_INTERRUPT_FN(_NAME) void _NAME( \
+    riscvP riscv,               \
+    Uns32  index,               \
+    Bool   newValue             \
+)
+typedef RISCV_UPDATE_INTERRUPT_FN((*riscvUpdateInterruptFn));
+
+//
+// Update mask of externally-disabled interrupts
+//
+#define RISCV_UPDATE_DISABLE_FN(_NAME) void _NAME( \
+    riscvP riscv,               \
+    Uns64  disableMask          \
+)
+typedef RISCV_UPDATE_DISABLE_FN((*riscvUpdateDisableFn));
+
+//
 // Check for pending interrupts
 //
 #define RISCV_TEST_INTERRUPT_FN(_NAME) void _NAME(riscvP riscv)
@@ -152,6 +180,15 @@ typedef RISCV_TEST_INTERRUPT_FN((*riscvTestInterruptFn));
 //
 #define RISCV_ILLEGAL_INSTRUCTION_FN(_NAME) void _NAME(riscvP riscv)
 typedef RISCV_ILLEGAL_INSTRUCTION_FN((*riscvIllegalInstructionFn));
+
+//
+// Take Illegal Instruction exception issuing message in verbose mode
+//
+#define RISCV_ILLEGAL_VERBOSE_FN(_NAME) void _NAME( \
+    riscvP      riscv,          \
+    const char *reason          \
+)
+typedef RISCV_ILLEGAL_VERBOSE_FN((*riscvIllegalVerboseFn));
 
 //
 // Take processor exception
@@ -271,6 +308,16 @@ typedef RISCV_GET_FP_FLAGS_MT_FN((*riscvGetFPFlagsMtFn));
 typedef RISCV_GET_DATA_ENDIAN_MT_FN((*riscvGetDataEndianMtFn));
 
 //
+// Validate the hart is in the given mode or a more privileged one and emit an
+// Illegal Instruction exception call if not
+//
+#define RISCV_REQUIRE_MODE_MT_FN(_NAME) Bool _NAME( \
+    riscvP    riscv,    \
+    riscvMode mode      \
+)
+typedef RISCV_REQUIRE_MODE_MT_FN((*riscvRequireModeMtFn));
+
+//
 // Validate the given rounding mode is legal and emit an Illegal Instruction
 // exception call if not
 //
@@ -279,6 +326,12 @@ typedef RISCV_GET_DATA_ENDIAN_MT_FN((*riscvGetDataEndianMtFn));
     riscvRMDesc rm      \
 )
 typedef RISCV_CHECK_LEGAL_RM_MT_FN((*riscvCheckLegalRMMtFn));
+
+//
+// Emit trap when mstatus.TVM=1 in Supervisor mode
+//
+#define RISCV_MORPH_TRAP_TVM_FN(_NAME) void _NAME(riscvP riscv)
+typedef RISCV_MORPH_TRAP_TVM_FN((*riscvMorphTrapTVMFn));
 
 //
 // Emit vector operation from extension library
@@ -306,6 +359,32 @@ typedef RISCV_MORPH_VOP_FN((*riscvMorphVOpFn));
     vmiosObjectP    object          \
 )
 typedef RISCV_NEW_CSR_FN((*riscvNewCSRFn));
+
+//
+// Update load/store domain on state change
+//
+#define RISCV_UPDATE_LD_ST_DOMAIN_FN(_NAME) void _NAME(riscvP riscv)
+typedef RISCV_UPDATE_LD_ST_DOMAIN_FN((*riscvUpdateLdStDomainFn));
+
+//
+// Create new TLB entry
+//
+#define RISCV_NEW_TLB_ENTRY_FN(_NAME) void _NAME( \
+    riscvP            riscv,        \
+    riscvTLBId        tlbId,        \
+    riscvExtVMMapping mapping       \
+)
+typedef RISCV_NEW_TLB_ENTRY_FN((*riscvNewTLBEntryFn));
+
+//
+// Free TLB entry
+//
+#define RISCV_FREE_TLB_ENTRY_FN(_NAME) void _NAME( \
+    riscvP     riscv,               \
+    riscvTLBId tlbId,               \
+    Uns16      entryId              \
+)
+typedef RISCV_FREE_TLB_ENTRY_FN((*riscvFreeTLBEntryFn));
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -395,6 +474,15 @@ typedef RISCV_GET_INTERRUPT_PRI_FN((*riscvGetInterruptPriFn));
 typedef RISCV_HR_NOTIFIER_FN((*riscvHRNotifierFn));
 
 //
+// Called when LR/SC sequence is aborted
+//
+#define RISCV_LRSC_ABORT_FN(_NAME) void _NAME( \
+    riscvP riscv,               \
+    void  *clientData           \
+)
+typedef RISCV_LRSC_ABORT_FN((*riscvLRSCAbortFn));
+
+//
 // Notifier called on a model context switch. 'state' describes the new state.
 //
 #define RISCV_IASSWITCH_FN(_NAME) void _NAME( \
@@ -453,6 +541,39 @@ typedef RISCV_PMA_ENABLE_FN((*riscvPMAEnableFn));
 typedef RISCV_PMA_CHECK_FN((*riscvPMACheckFn));
 
 //
+// Implement trap for attempted TLB lookup of the given address
+//
+#define RISCV_VM_TRAP_FN(_NAME) riscvException _NAME( \
+    riscvP     riscv,           \
+    riscvTLBId id,              \
+    memPriv    requiredPriv,    \
+    Uns64      VA,              \
+    void      *clientData       \
+)
+typedef RISCV_VM_TRAP_FN((*riscvVMTrapFn));
+
+//
+// Notifier called when current data domain is refreshed
+//
+#define RISCV_SET_DOMAIN_NOTIFIER_FN(_NAME) void _NAME( \
+    riscvP      riscv,          \
+    memDomainPP domainP,        \
+    void       *clientData      \
+)
+typedef RISCV_SET_DOMAIN_NOTIFIER_FN((*riscvSetDomainNotifierFn));
+
+//
+// Notifier called when TLB entry is deleted
+//
+#define RISCV_FREE_ENTRY_NOTIFIER_FN(_NAME) void _NAME( \
+    riscvP     riscv,           \
+    riscvTLBId id,              \
+    Uns16      entryId,         \
+    void      *clientData       \
+)
+typedef RISCV_FREE_ENTRY_NOTIFIER_FN((*riscvFreeEntryNotifierFn));
+
+//
 // Document extension-specific restrictions
 //
 #define RISCV_RESTRICTIONS_FN(_NAME) void _NAME( \
@@ -485,8 +606,15 @@ typedef struct riscvModelCBS {
     riscvWriteBaseCSRFn       writeBaseCSR;
 
     // from riscvExceptions.h
+    riscvHaltRestartFn        halt;
+    riscvHaltRestartFn        restart;
+    riscvUpdateInterruptFn    updateInterrupt;
+    riscvUpdateDisableFn      updateDisable;
     riscvTestInterruptFn      testInterrupt;
     riscvIllegalInstructionFn illegalInstruction;
+    riscvIllegalVerboseFn     illegalVerbose;
+    riscvIllegalInstructionFn virtualInstruction;
+    riscvIllegalVerboseFn     virtualVerbose;
     riscvTakeExceptionFn      takeException;
 
     // from riscvDecode.h
@@ -499,17 +627,25 @@ typedef struct riscvModelCBS {
     riscvInstructionEnabledFn instructionEnabled;
     riscvMorphExternalFn      morphExternal;
     riscvMorphIllegalFn       morphIllegal;
+    riscvMorphIllegalFn       morphVirtual;
     riscvGetVMIRegFn          getVMIReg;
     riscvGetVMIRegFSFn        getVMIRegFS;
     riscvWriteRegSizeFn       writeRegSize;
     riscvWriteRegFn           writeReg;
     riscvGetFPFlagsMtFn       getFPFlagsMt;
     riscvGetDataEndianMtFn    getDataEndianMt;
+    riscvRequireModeMtFn      requireModeMt;
     riscvCheckLegalRMMtFn     checkLegalRMMt;
+    riscvMorphTrapTVMFn       morphTrapTVM;
     riscvMorphVOpFn           morphVOp;
 
     // from riscvCSR.h
     riscvNewCSRFn             newCSR;
+
+    // from riscvVM.h
+    riscvUpdateLdStDomainFn   updateLdStDomain;
+    riscvNewTLBEntryFn        newTLBEntry;
+    riscvFreeTLBEntryFn       freeTLBEntry;
 
 } riscvModelCB;
 
@@ -540,6 +676,7 @@ typedef struct riscvExtCBS {
 
     // halt/restart actions
     riscvHRNotifierFn         haltRestartNotifier;
+    riscvLRSCAbortFn          LRSCAbortFn;
 
     // code generation actions
     riscvDerivedMorphFn       preMorph;
@@ -554,8 +691,42 @@ typedef struct riscvExtCBS {
     riscvPMAEnableFn          PMAEnable;
     riscvPMACheckFn           PMACheck;
 
+    // virtual memory actions
+    riscvVMTrapFn             VMTrap;
+    riscvSetDomainNotifierFn  setDomainNotifier;
+    riscvFreeEntryNotifierFn  freeEntryNotifier;
+
     // documentation
     riscvRestrictionsFn       restrictionsCB;
 
 } riscvExtCB;
+
+//
+// Invoke body for all extensions implementing the callback
+//
+#define ITER_EXT_CB(_P, _EXT, _CB, _BODY) { \
+                                                            \
+    riscvExtCBP _EXT;                                       \
+                                                            \
+    for(_EXT=_P->extCBs; _EXT; _EXT=_EXT->next) {           \
+        if(_EXT->_CB) {                                     \
+            _BODY;                                          \
+        }                                                   \
+    }                                                       \
+}
+
+//
+// Invoke body for all extensions implementing the callback while condition holds
+//
+#define ITER_EXT_CB_WHILE(_P, _EXT, _CB, _COND, _BODY) { \
+                                                            \
+    riscvExtCBP _EXT;                                       \
+                                                            \
+    for(_EXT=_P->extCBs; _COND && _EXT; _EXT=_EXT->next) {  \
+        if(_EXT->_CB) {                                     \
+            _BODY;                                          \
+        }                                                   \
+    }                                                       \
+}
+
 

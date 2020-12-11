@@ -11,6 +11,10 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+Date 2020-November-13
+Release 20201113.0
+===
+
 - The vector version master branch currently has these additional differences
   compared to the previous 0.9 version:
   - V-commit 511d0b8: ordered/unordered indexed vector memory instructions
@@ -31,15 +35,21 @@ Release 20201103.0
   vtype register cause an Illegal Instruction trap instead of setting 
   vtype.vill=1.
 
-- changes to the included intercept libraries, customControl and signatureDump,
-  to clean the function.
-  - customControl
-     - can stop simulation on execution of terminate() or write_to_host()
+- changes to the included intercept libraries, exitControl, customControl and signatureDump,
+  to clean the available functionality.
+  -exitControl
+     - can finish simulation on execution of terminate() or write_to_host()
+     - can finish simulation on the execution of a specified opcode
+     - can finish simulation at a specified symbol or address
      - can detect pass/fail status in register on ecall
-     - continues to provide character stream on custom instruction
+  - customControl
+     - provides character stream on custom instruction
+     - will finish simulation on execution of _test_exit()
   -signatureDump
      - provides signature dump at end of simulation or on execution of write_to_host()
-     - includes new signatureGranularity parameter to slect 4 or 16 byte line size
+     - includes new SignatureGranularity parameter to select 4 or 16 byte line size
+     - can detect pass/fail status in register on ecall and when enabled will also 
+       finish simulation on execution of terminate() or write_to_host()
   
 Date 2020-September-23
 Release 20201021.0
