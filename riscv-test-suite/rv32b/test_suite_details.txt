@@ -20,97 +20,97 @@ Architectural Test Suite Data for RV32B B Bit Manipulation:
     50 test source files
     19 different instruction categories
     72 different instructions
-    32,408 total instructions
+    35,396 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 136
-  orn : 136
-  xnor : 136
+  andn : 146
+  orn : 146
+  xnor : 146
 Instruction category: OPB_EXDE Bit Extract/Deposit
-  bext : 136
-  bdep : 136
+  bdep : 146
+  bext : 146
 Instruction category: OPB_BFPL Bit-Field Place
-  bfp : 136
+  bfp : 146
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulr : 136
-  clmulh : 136
-  clmul : 136
+  clmulh : 146
+  clmul : 146
+  clmulr : 146
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
-  clz : 136
-  ctz : 136
+  clz : 146
+  ctz : 146
 Instruction category: OPB_COND Conditional
 Instruction category: OPB_CRCI CRC
-  crc32.b : 136
-  crc32.h : 136
-  crc32.w : 136
-  crc32c.h : 136
-  crc32c.b : 136
-  crc32c.w : 136
+  crc32.b : 146
+  crc32.w : 146
+  crc32.h : 146
+  crc32c.h : 146
+  crc32c.w : 146
+  crc32c.b : 146
 Instruction category: OPB_FNSH Funnel Shift
 Instruction category: OPB_GORC Generalised Or-Combine
-  gorc : 136
-  gorci : 136
+  gorc : 146
+  gorci : 146
 Instruction category: OPB_GREV Generalised Reverse
-  grev : 136
-  grevi : 136
+  grevi : 146
+  grev : 146
 Instruction category: OPB_MNMX Min/Max
-  max : 136
-  minu : 136
-  maxu : 136
-  min : 136
+  max : 146
+  maxu : 146
+  minu : 146
+  min : 146
 Instruction category: OPB_PACK Packing
-  packh : 136
-  pack : 136
-  packu : 136
+  pack : 146
+  packu : 146
+  packh : 146
 Instruction category: OPB_CNTB Count Bits
-  pcnt : 136
+  pcnt : 146
 Instruction category: OPB_ROTS Rotations
-  rol : 136
-  rori : 136
-  ror : 136
+  rol : 146
+  rori : 146
+  ror : 146
 Instruction category: OPB_SBIT Single-Bit
-  sbclri : 136
-  sbexti : 136
-  sbext : 136
-  sbseti : 136
-  sbinvi : 136
-  sbset : 136
-  sbinv : 136
-  sbclr : 136
+  sbclr : 146
+  sbclri : 146
+  sbexti : 146
+  sbext : 146
+  sbinvi : 146
+  sbinv : 146
+  sbset : 146
+  sbseti : 146
 Instruction category: OPB_SEXT Sign Extend
-  sext.b : 136
-  sext.h : 136
+  sext.b : 146
+  sext.h : 146
 Instruction category: OPB_ADDR Address Calculation
 Instruction category: OPB_SHFL Generalised Shuffle
-  shfli : 136
-  shfl : 136
-  unshfli : 136
-  unshfl : 136
+  shfl : 146
+  shfli : 146
+  unshfl : 146
+  unshfli : 146
 Instruction category: OPB_SFT1 Shift Ones
-  sro : 136
-  sroi : 136
-  slo : 136
-  sloi : 136
+  slo : 146
+  sloi : 146
+  sroi : 146
+  sro : 146
 
 Other instructions (those not the focus of this suite)
   c-j : 50
   csrr : 150
   c-bnez : 50
-  auipc : 1,700
-  addi : 4,366
+  auipc : 1,800
+  addi : 5,452
   csrw : 350
   csrwi : 250
-  c-addi : 2,666
-  c-li : 3,166
+  c-addi : 2,610
+  c-li : 3,016
   c-slli : 50
   bltz : 50
   mv : 50
   beqz : 50
-  c-lui : 1,714
+  c-lui : 1,564
   csrs : 50
   mret : 50
-  sw : 6,550
-  lui : 3,796
+  lui : 4,954
+  sw : 7,050
   c-swsp : 250
   fence : 50
   ecall : 50

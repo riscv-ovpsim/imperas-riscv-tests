@@ -383,9 +383,6 @@ typedef struct riscvS {
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
 
-    // PSE integration
-    vmipseArgBlockP    argBlockPSE;     // PSE integration callbacks
-
 } riscv;
 
 //
@@ -609,6 +606,13 @@ inline static Bool cryptoPresent(riscvP riscv) {
 //
 inline static Uns32 getTriggerNum(riscvP riscv) {
     return riscv->configInfo.trigger_num;
+}
+
+//
+// Is this processor a PSE?
+//
+inline static Bool isPSE(riscvP riscv) {
+    return riscv->configInfo.isPSE;
 }
 
 

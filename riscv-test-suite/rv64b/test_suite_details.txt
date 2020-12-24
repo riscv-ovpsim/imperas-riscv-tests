@@ -20,138 +20,138 @@ Architectural Test Suite Data for RV64B B Bit Manipulation:
     85 test source files
     21 different instruction categories
     110 different instructions
-    119,700 total instructions
+    135,454 total instructions
 
 Instruction category: OPB_PRZE Prefix Zero-Extend
-  addu.w : 264
-  slliu.w : 264
+  addu.w : 274
+  slliu.w : 274
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 264
-  orn : 264
-  xnor : 264
+  andn : 274
+  orn : 274
+  xnor : 274
 Instruction category: OPB_EXDE Bit Extract/Deposit
-  bext : 264
-  bdep : 264
-  bdepw : 264
-  bextw : 264
+  bdep : 274
+  bext : 274
+  bdepw : 274
+  bextw : 274
 Instruction category: OPB_BFPL Bit-Field Place
-  bfp : 264
-  bfpw : 264
+  bfp : 274
+  bfpw : 274
 Instruction category: OPB_MTRX Bit-Matrix
-  bmatflip : 264
-  bmator : 264
-  bmatxor : 264
+  bmatflip : 274
+  bmator : 274
+  bmatxor : 274
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 264
-  clmulr : 264
-  clmul : 264
+  clmul : 274
+  clmulh : 274
+  clmulr : 274
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
-  clz : 264
-  ctz : 264
-  ctzw : 264
-  clzw : 264
+  clz : 274
+  ctz : 274
+  clzw : 274
+  ctzw : 274
 Instruction category: OPB_COND Conditional
 Instruction category: OPB_CRCI CRC
-  crc32.b : 264
-  crc32.w : 264
-  crc32c.w : 264
-  crc32.h : 264
-  crc32c.b : 264
-  crc32c.h : 264
-  crc32c.d : 264
-  crc32.d : 264
+  crc32.b : 274
+  crc32.w : 274
+  crc32c.b : 274
+  crc32.h : 274
+  crc32c.h : 274
+  crc32c.w : 274
+  crc32.d : 274
+  crc32c.d : 274
 Instruction category: OPB_FNSH Funnel Shift
 Instruction category: OPB_GORC Generalised Or-Combine
-  gorc : 264
-  gorci : 264
-  gorciw : 264
-  gorcw : 264
+  gorc : 274
+  gorci : 274
+  gorcw : 274
+  gorciw : 274
 Instruction category: OPB_GREV Generalised Reverse
-  grevi : 264
-  grev : 264
-  greviw : 264
-  grevw : 264
+  grevi : 274
+  grev : 274
+  greviw : 274
+  grevw : 274
 Instruction category: OPB_MNMX Min/Max
-  min : 264
-  maxu : 264
-  max : 264
-  minu : 264
+  max : 274
+  maxu : 274
+  min : 274
+  minu : 274
 Instruction category: OPB_PACK Packing
-  pack : 264
-  packh : 264
-  packu : 264
-  packw : 264
-  packuw : 264
+  pack : 274
+  packh : 274
+  packu : 274
+  packw : 274
+  packuw : 274
 Instruction category: OPB_CNTB Count Bits
-  pcnt : 264
-  pcntw : 264
+  pcnt : 274
+  pcntw : 274
 Instruction category: OPB_ROTS Rotations
-  rol : 264
-  ror : 264
-  rori : 264
-  rorw : 264
-  roriw : 264
-  rolw : 264
+  rol : 274
+  ror : 274
+  rori : 274
+  roriw : 274
+  rolw : 274
+  rorw : 274
 Instruction category: OPB_SBIT Single-Bit
-  sbclri : 264
-  sbext : 264
-  sbclr : 264
-  sbinv : 264
-  sbinvi : 264
-  sbset : 264
-  sbexti : 264
-  sbseti : 264
-  sbclriw : 264
-  sbsetw : 264
-  sbclrw : 264
-  sbsetiw : 264
-  sbextw : 264
-  sbinvw : 264
-  sbinviw : 264
+  sbclri : 274
+  sbexti : 274
+  sbext : 274
+  sbclr : 274
+  sbinv : 274
+  sbinvi : 274
+  sbset : 274
+  sbseti : 274
+  sbinvw : 274
+  sbclriw : 274
+  sbsetw : 274
+  sbinviw : 274
+  sbclrw : 274
+  sbextw : 274
+  sbsetiw : 274
 Instruction category: OPB_SEXT Sign Extend
-  sext.b : 264
-  sext.h : 264
+  sext.h : 274
+  sext.b : 274
 Instruction category: OPB_ADDR Address Calculation
 Instruction category: OPB_SHFL Generalised Shuffle
-  shfl : 264
-  shfli : 264
-  unshfl : 264
-  unshfli : 264
-  shflw : 264
-  unshflw : 264
+  shfli : 274
+  shfl : 274
+  unshfl : 274
+  unshfli : 274
+  shflw : 274
+  unshflw : 274
 Instruction category: OPB_SFT1 Shift Ones
-  slo : 264
-  sro : 264
-  sloi : 264
-  sroi : 264
-  sroiw : 264
-  sloiw : 264
-  slow : 264
-  srow : 264
+  sloi : 274
+  slo : 274
+  sroi : 274
+  sro : 274
+  slow : 274
+  sloiw : 274
+  sroiw : 274
+  srow : 274
 
 Other instructions (those not the focus of this suite)
   c-j : 85
   csrr : 255
   c-bnez : 85
-  auipc : 5,015
-  addi : 7,679
+  auipc : 5,185
+  addi : 13,121
   csrw : 595
   csrwi : 425
-  c-addi : 7,375
-  c-li : 9,839
-  c-slli : 14,569
+  c-addi : 7,279
+  c-li : 9,536
+  c-slli : 19,479
   bgez : 85
   mv : 85
   beqz : 85
-  c-lui : 2,919
-  addiw : 15,053
+  c-lui : 2,749
+  addiw : 16,771
   csrs : 85
   mret : 85
-  sd : 21,250
-  c-sdsp : 1,190
-  lui : 5,886
+  lui : 7,918
+  sd : 22,440
+  c-sdsp : 850
   c-addiw : 4,142
-  slli : 48
+  slli : 399
   fence : 85
   ecall : 85
   beq : 255

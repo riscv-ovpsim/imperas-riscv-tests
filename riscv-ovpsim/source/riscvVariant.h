@@ -287,7 +287,7 @@ typedef enum riscvBitManipSetE {
 //
 typedef enum riscvCryptoVerE {
     RVKV_0_7_2,                         // version 0.7.2
-    RVKV_0_8_0,                         // version 0.8.0
+    RVKV_0_8_1,                         // version 0.8.1
     RVKV_LAST,                          // for sizing
     RVKV_DEFAULT = RVKV_0_7_2,          // default version
 } riscvCryptoVer;

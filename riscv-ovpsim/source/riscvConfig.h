@@ -116,6 +116,7 @@ typedef struct riscvConfigS {
     Uns8              mvalue_bits;      // implemented bits in textra.mvalue
     Uns8              svalue_bits;      // implemented bits in textra.svalue
     Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
+    Bool              isPSE;            // whether a PSE (internal use only)
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL
     Bool              UXL_writable;     // writable bits in mstatus.UXL

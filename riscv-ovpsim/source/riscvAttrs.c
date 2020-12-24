@@ -63,11 +63,6 @@ static const char *dictNames[] = {
     [RISCV_DMODE_LAST]  = 0
 };
 
-//
-// PSE ABI support attributes
-//
-extern const vmipseAttrs riscvPSEAttrs;
-
 const vmiIASAttr modelAttrs = {
 
     ////////////////////////////////////////////////////////////////////////
@@ -182,10 +177,4 @@ const vmiIASAttr modelAttrs = {
 
     .visibility         = VMI_VISIBLE,
     .releaseStatus      = VMI_OVP,
-
-    ////////////////////////////////////////////////////////////////////////////
-    // PSE INTEGRATION SUPPORT
-    ////////////////////////////////////////////////////////////////////////////
-
-    .pseAttrs           = &riscvPSEAttrs
 };

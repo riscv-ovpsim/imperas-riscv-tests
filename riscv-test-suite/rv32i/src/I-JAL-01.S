@@ -1448,13 +1448,13 @@ RV_COMPLIANCE_CODE_BEGIN
     sw x1, 8(x2)
     RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
 
-     # Testcase 133:  result rd:x0(0)
-    li x0, 0xcccc
+     # Testcase 133:  result rd:x1(0xcccc)
+    li x1, 0xcccc
     jal x22, 4f
-    li x0, 0x123ab
+    li x1, 0x123ab
 4: 
-    sw x0, 12(x2)
-    RVTEST_IO_ASSERT_GPR_EQ(x3, x0, 0)
+    sw x1, 12(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
 
      # Testcase 134:  result rd:x1(0xcccc)
     li x1, 0xcccc
@@ -1471,9 +1471,115 @@ RV_COMPLIANCE_CODE_BEGIN
 
 
     # address for test results
-    la x2, test_28_res
+    la x6, test_28_res
     
      # Testcase 135:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x20, 1f
+    li x1, 0x123ab
+1: 
+    sw x1, 0(x6)
+    RVTEST_IO_ASSERT_GPR_EQ(x7, x1, 0xcccc)
+
+     # Testcase 136:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x19, 2f
+    li x1, 0x123ab
+2: 
+    sw x1, 4(x6)
+    RVTEST_IO_ASSERT_GPR_EQ(x7, x1, 0xcccc)
+
+     jal x0, 3f
+2:
+    jal x0, 4f
+3:
+    # Testcase 137:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x18, 2b
+    li x1, 0x123ab
+4:
+    sw x1, 8(x6)
+    RVTEST_IO_ASSERT_GPR_EQ(x7, x1, 0xcccc)
+
+     # Testcase 138:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x17, 4f
+    li x1, 0x123ab
+4: 
+    sw x1, 12(x6)
+    RVTEST_IO_ASSERT_GPR_EQ(x7, x1, 0xcccc)
+
+     # Testcase 139:  result rd:x2(0xcccc)
+    li x2, 0xcccc
+    jal x16, 5f
+    li x2, 0x123ab
+5: 
+    sw x2, 16(x6)
+    RVTEST_IO_ASSERT_GPR_EQ(x7, x2, 0xcccc)
+
+
+
+	# ---------------------------------------------------------------------------------------------
+	RVTEST_IO_WRITE_STR(x31, "# Test group 29\n")
+
+
+    # address for test results
+    la x2, test_29_res
+    
+     # Testcase 140:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x15, 1f
+    li x1, 0x123ab
+1: 
+    sw x1, 0(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
+
+     # Testcase 141:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x14, 2f
+    li x1, 0x123ab
+2: 
+    sw x1, 4(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
+
+     jal x0, 3f
+2:
+    jal x0, 4f
+3:
+    # Testcase 142:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x13, 2b
+    li x1, 0x123ab
+4:
+    sw x1, 8(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
+
+     # Testcase 143:  result rd:x0(0)
+    li x0, 0xcccc
+    jal x12, 4f
+    li x0, 0x123ab
+4: 
+    sw x0, 12(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x0, 0)
+
+     # Testcase 144:  result rd:x1(0xcccc)
+    li x1, 0xcccc
+    jal x11, 5f
+    li x1, 0x123ab
+5: 
+    sw x1, 16(x2)
+    RVTEST_IO_ASSERT_GPR_EQ(x3, x1, 0xcccc)
+
+
+
+	# ---------------------------------------------------------------------------------------------
+	RVTEST_IO_WRITE_STR(x31, "# Test group 30\n")
+
+
+    # address for test results
+    la x2, test_30_res
+    
+     # Testcase 145:  result rd:x1(0xcccc)
     li x1, 0xcccc
     jal x0, 1f
     li x1, 0x123ab
@@ -1555,6 +1661,10 @@ test_26_res:
 test_27_res:
 	.fill 5, 4, -1
 test_28_res:
+	.fill 5, 4, -1
+test_29_res:
+	.fill 5, 4, -1
+test_30_res:
 	.fill 5, 4, -1
 
 RV_COMPLIANCE_DATA_END

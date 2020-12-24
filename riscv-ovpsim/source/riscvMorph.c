@@ -1281,11 +1281,19 @@ inline static Uns32 getRegMask(riscvRegDesc r) {
 }
 
 //
+// Clamp unimplemented 128-bit value to 64 (to prevent failures when generating
+// code for quadruple-precision illegal instructions)
+//
+inline static Uns32 clamp64(Uns32 bits) {
+    return (bits>64) ? 64 : bits;
+}
+
+//
 // Return floating point type for the given abstract register
 //
 static vmiFType getRegFType(riscvRegDesc r) {
 
-    Uns32 bits = getRBits(r);
+    Uns32 bits = clamp64(getRBits(r));
 
     if(isFReg(r)) {
         return VMI_FT_IEEE_754 | bits;
@@ -1294,6 +1302,38 @@ static vmiFType getRegFType(riscvRegDesc r) {
     } else {
         return VMI_FT_INT | bits;
     }
+}
+
+//
+// Return bits in misa that must be enabled for a floating point register of
+// the given size to be accessible (NOTE: half-precision has no defined enable
+// bit currently, so assume it is enabled if either F or D are enabled)
+//
+static riscvArchitecture getFRegArch(riscvP riscv, Uns32 bits) {
+    return (bits==16) ? ISA_DF : (bits==32) ? ISA_F : ISA_D;
+}
+
+//
+// Validate the floating point register bits is supported and emit an Illegal
+// Instruction if not
+//
+static Bool supportedFBitsMT(riscvP riscv, Uns32 bits) {
+
+    Bool ok = False;
+
+    if((bits==16) && !riscv->configInfo.fp16_version) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "NFP16", "half-precision floating point is absent"
+        );
+    } else if(bits==128) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "NFP128", "quadruple-precision floating point is absent"
+        );
+    } else {
+        ok = True;
+    }
+
+    return ok;
 }
 
 //
@@ -1321,7 +1361,9 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
     } else if(isFReg(r)) {
 
         // require either D or F
-        if(riscvRequireArchPresentMT(riscv, (bits==64) ? ISA_D : ISA_F)) {
+        if(!supportedFBitsMT(riscv, bits)) {
+            // no further action for unsupported floating point types
+        } else if(riscvRequireArchPresentMT(riscv, getFRegArch(riscv, bits))) {
             result = RISCV_FPR(index);
         }
 
@@ -2769,8 +2811,11 @@ static void startEA(riscvMorphStateP state, vmiReg ra) {
 //
 // Handle misaligned SC address
 //
-static void invalidSCAlign(riscvP riscv, Uns64 address) {
-    riscvTakeMemoryException(riscv, riscv_E_StoreAMOAddressMisaligned, address);
+static void invalidSCAlign(riscvP riscv, Uns64 address, Uns32 rdBits) {
+
+    vmiProcessorP processor = (vmiProcessorP)riscv;
+
+    riscvWrAlignExcept(processor, 0, address, BITS_TO_BYTES(rdBits), 0);
 }
 
 //
@@ -2795,6 +2840,7 @@ static void emitValidateSCAlign(
         vmimtMoveExtendRR(64, t, raBits, ra, False);
         vmimtArgProcessor();
         vmimtArgReg(64, t);
+        vmimtArgUns32(rdBits);
         vmimtCallAttrs((vmiCallFn)invalidSCAlign, VMCA_EXCEPTION);
 
         // here if alignment is ok
@@ -4481,7 +4527,7 @@ inline static vmiFPRC mapRMDescToRC(riscvRMDesc rm) {
 
     static const vmiFPRC map[] = {
         [RV_RM_CURRENT] = vmi_FPR_CURRENT,
-        [RV_RM_RTE]     = vmi_FPR_NEAREST,
+        [RV_RM_RNE]     = vmi_FPR_NEAREST,
         [RV_RM_RTZ]     = vmi_FPR_ZERO,
         [RV_RM_RDN]     = vmi_FPR_NEG_INF,
         [RV_RM_RUP]     = vmi_FPR_POS_INF,
@@ -4768,9 +4814,12 @@ static RISCV_MORPH_FN(emitFSgn) {
     unpackedReg fs2  = unpackFS(state, 2);
     Uns32       bits = fd.bits;
 
-    emitFSgnInt(state, fd.r, fs1.r, fs2.r, bits);
+    if(supportedFBitsMT(state->riscv, bits)) {
 
-    writeUnpacked(fd);
+        emitFSgnInt(state, fd.r, fs1.r, fs2.r, bits);
+
+        writeUnpacked(fd);
+    }
 }
 
 //
@@ -4914,9 +4963,12 @@ static RISCV_MORPH_FN(emitFClass) {
     Uns32       bitsD = 32;
     Uns32       bitsS = fs1.bits;
 
-    emitFClassInt(state->riscv, rd.r, fs1.r, bitsS, bitsD);
+    if(supportedFBitsMT(state->riscv, bitsS)) {
 
-    writeUnpackedSize(rd, bitsD);
+        emitFClassInt(state->riscv, rd.r, fs1.r, bitsS, bitsD);
+
+        writeUnpackedSize(rd, bitsD);
+    }
 }
 
 

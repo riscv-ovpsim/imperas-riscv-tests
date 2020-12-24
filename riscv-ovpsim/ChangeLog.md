@@ -11,6 +11,21 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- Support for half-precision scalar floating point has been added, with format
+  defined by parameter fp16_version.
+- Access fault exceptions are now raised for misaligned LR/SC/AMO operations
+  if a normal load or store using that address and access width would succeed;
+  previously, such accesses caused address misaligned exceptions (see section
+  "Physical Memory Attributes" in the RISC-V Privileged Architecture 
+  specification).
+
+Date 2020-December-11
+Release 20201209.0
+===
+
+- Default bit manipulation changed to v0.93
+  - note this is not a released version and so is correct as of the snapshot date June 2020
+
 Date 2020-November-13
 Release 20201113.0
 ===

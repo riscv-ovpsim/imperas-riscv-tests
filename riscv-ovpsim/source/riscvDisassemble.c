@@ -265,7 +265,7 @@ static void putOptRM(
 
             static const char *map[] = {
                 [RV_RM_CURRENT] = "",
-                [RV_RM_RTE]     = "rte",
+                [RV_RM_RNE]     = "rne",
                 [RV_RM_RTZ]     = "rtz",
                 [RV_RM_RDN]     = "rdn",
                 [RV_RM_RUP]     = "rup",
@@ -306,30 +306,23 @@ static void putVType(char **result, riscvP riscv, riscvVType vtype) {
 }
 
 //
-// Return B/H/W/D extension based on bits
+// Return size character for size index
 //
-inline static char getBHWD(Uns32 bits) {
+static char getRBitsChar(Uns32 bits, const char *sizes) {
 
-    char result = 0;
+    Uns32 logBytes = 0;
+    
+    // sanity check input bits
+    VMI_ASSERT(bits,     "require bits!=0");
+    VMI_ASSERT(bits<=64, "require bits<=64");
 
-    switch(bits) {
-        case 8:
-            result = 'b';
-            break;
-        case 16:
-            result = 'h';
-            break;
-        case 32:
-            result = 'w';
-            break;
-        case 64:
-            result = 'd';
-            break;
-        default:
-            VMI_ABORT("Unimplemented bits %u", bits); // LCOV_EXCL_LINE
+    // convert from bits to log2(bytes)
+    while(bits>8) {
+        logBytes++;
+        bits >>= 1;
     }
 
-    return result;
+    return sizes[logBytes];
 }
 
 //
@@ -361,11 +354,11 @@ static riscvRegDesc putType(
             if(isFXReg(this)) {
                 putChar(result, 'x');
             } else if(isWLReg(this)) {
-                putChar(result, (bits==32) ? 'w' : 'l');
+                putChar(result, getRBitsChar(bits, "??wl"));
             } else if(isXReg(this)) {
-                putChar(result, getBHWD(bits));
+                putChar(result, getRBitsChar(bits, "bhwd"));
             } else if(isFReg(this)) {
-                putChar(result, (bits==32) ? 's' : 'd');
+                putChar(result, getRBitsChar(bits/2, "hsdq"));
             } else {
                 VMI_ABORT("Bad register specifier 0x%x", this); // LCOV_EXCL_LINE
             }
@@ -439,11 +432,12 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
         } else switch(info->memBits) {
 
             // standard memBits
-            case 8:  putChar(result, 'b'); break;
-            case 16: putChar(result, 'h'); break;
-            case 32: putChar(result, 'w'); break;
-            case 64: putChar(result, 'd'); break;
-            case -1: putChar(result, 'e'); break;
+            case 8:   putChar(result, 'b'); break;
+            case 16:  putChar(result, 'h'); break;
+            case 32:  putChar(result, 'w'); break;
+            case 64:  putChar(result, 'd'); break;
+            case 128: putChar(result, 'q'); break;
+            case -1:  putChar(result, 'e'); break;
         }
     }
 

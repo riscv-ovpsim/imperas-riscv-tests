@@ -244,10 +244,10 @@ static vmiEnumParameter cryptoVariants[] = {
         .value       = RVKV_0_7_2,
         .description = "Cryptographic Architecture Version 0.7.2",
     },
-    [RVKV_0_8_0] = {
-        .name        = "0.8.0",
-        .value       = RVKV_0_8_0,
-        .description = "Cryptographic Architecture Version 0.8.0",
+    [RVKV_0_8_1] = {
+        .name        = "0.8.1",
+        .value       = RVKV_0_8_1,
+        .description = "Cryptographic Architecture Version 0.8.1",
     },
     // KEEP LAST: terminator
     {0}

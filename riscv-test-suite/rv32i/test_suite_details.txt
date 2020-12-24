@@ -20,66 +20,66 @@ Architectural Test Suite Data for RV32I Base Integer Instruction Set:
     48 test source files
     10 different instruction categories
     64 different instructions
-    32,287 total instructions
+    34,790 total instructions
 
 Instruction category: arithmetic 
-  auipc : 2,538
-  addi : 9,901
-  lui : 4,737
-  sub : 272
-  add : 1,268
+  auipc : 2,692
+  addi : 10,729
+  lui : 5,366
+  sub : 292
+  add : 1,358
 Instruction category: logical 
-  andi : 160
-  ori : 137
-  xori : 134
-  and : 137
-  or : 137
-  xor : 137
+  andi : 170
+  ori : 147
+  xori : 145
+  xor : 147
+  or : 147
+  and : 147
 Instruction category: branch 
-  beq : 282
-  bne : 138
-  blt : 137
-  bge : 137
-  bltu : 139
-  bgeu : 139
-Instruction category: system 
+  beq : 292
+  blt : 147
+  bltu : 149
+  bge : 147
+  bne : 148
+  bgeu : 149
+Instruction category: OPI_IMN 
   ecall : 49
   ebreak : 1
 Instruction category: synch 
   fence : 48
 Instruction category: jump 
-  jalr : 135
-  jal : 135
+  jalr : 145
+  jal : 145
 Instruction category: load 
-  lw : 559
-  lh : 141
-  lb : 137
-  lbu : 142
-  lhu : 142
+  lb : 147
+  lw : 599
+  lh : 151
+  lhu : 152
+  lbu : 152
 Instruction category: store 
-  sw : 5,432
-  sb : 136
-  sh : 140
+  sw : 5,812
+  sb : 146
+  sh : 150
 Instruction category: shift 
-  slli : 216
-  srli : 137
-  srai : 137
-  sll : 137
-  sra : 137
-  srl : 137
+  slli : 226
+  srli : 147
+  srai : 147
+  sll : 147
+  srl : 147
+  sra : 147
 Instruction category: compare 
-  slti : 137
-  sltiu : 135
-  sltu : 136
-  slt : 135
+  slti : 147
+  sltiu : 145
+  slt : 145
+  sltu : 146
 
 Other instructions (those not the focus of this suite)
-  j : 407
+  j : 433
   csrr : 217
   bnez : 49
   csrw : 365
   csrwi : 240
-  mv : 1,534
+  mv : 1,570
   bltz : 80
   beqz : 49
   csrs : 48
@@ -89,13 +89,13 @@ Other instructions (those not the focus of this suite)
   bgez : 1
   blez : 1
   nop : 26
-  not : 3
   seqz : 2
+  not : 2
   neg : 2
-  snez : 1
   sltz : 1
   sgtz : 1
+  snez : 1
   csrrw : 4
-  ret : 1
   csrci : 1
+  ret : 1
 

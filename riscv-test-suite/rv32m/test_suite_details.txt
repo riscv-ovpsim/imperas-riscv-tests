@@ -20,34 +20,34 @@ Architectural Test Suite Data for RV32M M Integer Multiplication and Division:
     8 test source files
     1 different instruction categories
     26 different instructions
-    5,752 total instructions
+    6,304 total instructions
 
 Instruction category: arithmetic 
-  div : 136
-  mulhu : 136
-  mul : 136
-  mulh : 136
-  remu : 136
-  divu : 136
-  rem : 136
-  mulhsu : 136
+  mulh : 146
+  mul : 146
+  div : 146
+  mulhu : 146
+  mulhsu : 146
+  divu : 146
+  rem : 146
+  remu : 146
 
 Other instructions (those not the focus of this suite)
   j : 8
   csrr : 24
   bnez : 8
-  auipc : 280
-  addi : 1,480
+  auipc : 296
+  addi : 1,656
   csrw : 56
   csrwi : 40
   mv : 560
   slli : 8
   bltz : 8
   beqz : 8
-  lui : 1,040
+  lui : 1,240
   csrs : 8
   mret : 8
-  sw : 1,088
+  sw : 1,168
   fence : 8
   ecall : 8
   beq : 24

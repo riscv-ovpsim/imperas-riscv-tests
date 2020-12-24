@@ -42,7 +42,6 @@
 #include "riscvMessage.h"
 #include "riscvMorph.h"
 #include "riscvParameters.h"
-#include "riscvSemiHost.h"
 #include "riscvStructure.h"
 #include "riscvTrigger.h"
 #include "riscvUtils.h"
@@ -539,17 +538,7 @@ static void applyParams(riscvP riscv, riscvParamValuesP params) {
     } else {
 
         // PSE usage
-        riscvConfigCP cfgList = riscvGetConfigList(riscv);
-
-        // use RV32GCV configuration
-        riscv->configInfo = *riscvGetNamedConfig(cfgList, "RV32GCV");
-
-        // single level with no child harts
-        riscv->configInfo.numHarts = 0;
-        riscv->configInfo.arch    &= ~(ISA_S|ISA_U);
-
-        // allocate PSE integration support structures
-        riscvNewPSE(riscv);
+        riscv->configInfo = *riscvGetConfigList(riscv);
     }
 }
 
@@ -649,7 +638,9 @@ VMI_POST_CONSTRUCTOR_FN(riscvPostConstructor) {
     riscvP riscv = (riscvP)processor;
 
     // install documentation after processor is initialized
-    riscvDoc(riscv);
+    if(!isPSE(riscv)) {
+        riscvDoc(riscv);
+    }
 
     // create root level bus port specifications for root level ports
     riscvNewRootBusPorts(riscv);
@@ -694,9 +685,6 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free PMP structures
     riscvVMFreePMP(riscv);
-
-    // free PSE integration support structures
-    riscvFreePSE(riscv);
 }
 
 

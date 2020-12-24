@@ -316,14 +316,16 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         // gdb workaround code (mismatched FPR and GPR widths not supported)
         if(!normal && (XLEN!=FLEN)) {
 
-            vmiMessage("W", CPU_PREFIX "_URC",
-                NO_SRCREF_FMT
-                "this processor implements %u-bit GPRs but %u-bit FPRs, "
-                "which is currently not supported by gdb - forcing "
-                "apparent FPR width to %u bits (matching GPRs)",
-                NO_SRCREF_ARGS(riscv),
-                XLEN, FLEN, XLEN
-            );
+            if(!isPSE(riscv)) {
+                vmiMessage("W", CPU_PREFIX "_URC",
+                    NO_SRCREF_FMT
+                    "this processor implements %u-bit GPRs but %u-bit FPRs, "
+                    "which is currently not supported by gdb - forcing "
+                    "apparent FPR width to %u bits (matching GPRs)",
+                    NO_SRCREF_ARGS(riscv),
+                    XLEN, FLEN, XLEN
+                );
+            }
 
             FLEN = XLEN;
         }

@@ -37,10 +37,11 @@ typedef enum riscvRegDescE {
     RV_RD_16         = RV_RD_8 *2,          // 16-bit
     RV_RD_32         = RV_RD_16*2,          // 32-bit
     RV_RD_64         = RV_RD_32*2,          // 64-bit
-    RV_RD_BITS_MASK  = (RV_RD_8|RV_RD_16|RV_RD_32|RV_RD_64),
+    RV_RD_128        = RV_RD_64*2,          // 128-bit
+    RV_RD_BITS_MASK  = (RV_RD_8|RV_RD_16|RV_RD_32|RV_RD_64|RV_RD_128),
 
                                             // REGISTER TYPE
-    RV_RD_X          = RV_RD_64*2,          // integer (X) register
+    RV_RD_X          = RV_RD_128*2,         // integer (X) register
     RV_RD_F          = RV_RD_X*2,           // floating point register
     RV_RD_V          = RV_RD_F*2,           // vector register
     RV_RD_TYPE_MASK  = (RV_RD_X|RV_RD_F|RV_RD_V|RV_RD_BITS_MASK),

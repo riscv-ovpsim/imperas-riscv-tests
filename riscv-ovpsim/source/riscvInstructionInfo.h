@@ -91,6 +91,20 @@
 }
 
 //
+// Rd, Rs1, bs (WX=0)
+//
+#define ATTR32_RD_RS1_BS_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R3_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_19_15,          \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    cs       : CS_U_31_30,          \
+}
+
+//
 // Rd, Rs1, Rs2 (implied ShN shift)
 //
 #define ATTR32_RD_RS1_RS2_SHN(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -611,7 +625,7 @@
     arch     : _ARCH,               \
     r1       : RS_F_11_7,           \
     r2       : RS_F_19_15,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     rm       : RM_14_12,            \
 }
 
@@ -626,7 +640,7 @@
     r1       : RS_F_11_7,           \
     r2       : RS_F_19_15,          \
     r3       : RS_F_24_20,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
 }
 
 //
@@ -640,7 +654,7 @@
     r1       : RS_F_11_7,           \
     r2       : RS_F_19_15,          \
     r3       : RS_F_24_20,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     rm       : RM_14_12,            \
 }
 
@@ -656,7 +670,7 @@
     r2       : RS_F_19_15,          \
     r3       : RS_F_24_20,          \
     r4       : RS_F_31_27,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     rm       : RM_14_12,            \
 }
 
@@ -671,7 +685,7 @@
     r1       : RS_X_11_7,           \
     r2       : RS_F_19_15,          \
     r3       : RS_F_24_20,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     xQuiet   : True,                \
 }
 
@@ -685,14 +699,14 @@
     arch     : _ARCH,               \
     r1       : RS_X_11_7,           \
     r2       : RS_F_19_15,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     xQuiet   : True,                \
 }
 
 //
-// instructions like FCVT
+// instructions like FCVT.D.X
 //
-#define ATTR32_FCVT(_NAME, _GENERIC, _ARCH, _OPCODE, _DST, _SRC) [IT32_##_NAME] = { \
+#define ATTR32_FCVT_F_X(_NAME, _GENERIC, _ARCH, _OPCODE, _DST, _SRC) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2,           \
     type     : RV_IT_##_GENERIC,    \
@@ -700,7 +714,22 @@
     r1       : RS_##_DST##_11_7,    \
     r2       : RS_##_SRC##_19_15,   \
     wX       : WX_21_U_20,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
+    rm       : RM_14_12,            \
+}
+
+//
+// instructions like FCVT.D.F
+//
+#define ATTR32_FCVT_F_F(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_F2_19_15,         \
+    wX       : WX_21_U_20,          \
+    wF       : WF_26_25,            \
     rm       : RM_14_12,            \
 }
 
@@ -714,7 +743,7 @@
     arch     : _ARCH,               \
     r1       : RS_F_11_7,           \
     r2       : RS_XX_19_15,         \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     wX       : WX_25                \
 }
 
@@ -729,7 +758,7 @@
     r1       : RS_F_11_7,           \
     r2       : RS_X_19_15,          \
     cs       : CS_S_31_20,          \
-    memBits  : MBS_12,              \
+    memBits  : MBS_14_12_F,         \
     wF       : WF_MEM,              \
     xQuiet   : True,                \
 }
@@ -745,7 +774,7 @@
     r1       : RS_F_24_20,          \
     r2       : RS_X_19_15,          \
     cs       : CS_S_31_25_11_7,     \
-    memBits  : MBS_12,              \
+    memBits  : MBS_14_12_F,         \
     wF       : WF_MEM,              \
     xQuiet   : True,                \
 }
@@ -760,7 +789,7 @@
     arch     : _ARCH,               \
     r1       : RS_XX_11_7,          \
     r2       : RS_F_19_15,          \
-    wF       : WF_25,               \
+    wF       : WF_26_25,            \
     wX       : WX_25                \
 }
 
@@ -1918,7 +1947,6 @@
     r2     : RS_X_9_7_P8,       \
     cs     : CS_C_LW,           \
     memBits: MBS_W,             \
-    wF     : WF_MEM,            \
     xQuiet : True,              \
 }
 
@@ -1934,7 +1962,6 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_LWSP,         \
     memBits: MBS_W,             \
-    wF     : WF_MEM,            \
     xQuiet : True,              \
 }
 

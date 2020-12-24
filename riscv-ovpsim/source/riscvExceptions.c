@@ -1663,6 +1663,45 @@ void riscvEBREAK(riscvP riscv) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// ALIGNMENT CHECK UTILITIES
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Is a misaligned normal load to the given address permitted?
+//
+static Bool allowMisalignedLoad(riscvP riscv, Uns64 address, Uns32 bytes) {
+
+    Bool unaligned = riscv->configInfo.unaligned;
+
+    // if unaligned accesses are not always permitted, query derived model to
+    // determine whether a normal load of this address and size is allowed
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, rdSnapCB, !unaligned,
+        unaligned = extCB->rdSnapCB(riscv, address, bytes, ACODE_NONE);
+    )
+
+    return unaligned;
+}
+
+//
+// Is a misaligned normal store to the given address permitted?
+//
+static Bool allowMisalignedStore(riscvP riscv, Uns64 address, Uns32 bytes) {
+
+    Bool unaligned = riscv->configInfo.unaligned;
+
+    // if unaligned accesses are not always permitted, query derived model to
+    // determine whether a normal load of this address and size is allowed
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, wrSnapCB, !unaligned,
+        unaligned = extCB->wrSnapCB(riscv, address, bytes, ACODE_NONE);
+    )
+
+    return unaligned;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // VMI INTERFACE ROUTINES
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1695,9 +1734,17 @@ VMI_WR_PRIV_EXCEPT_FN(riscvWrPrivExcept) {
 //
 VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP         riscv     = (riscvP)processor;
+    riscvException exception = riscv_E_LoadAddressMisaligned;
 
-    riscvTakeMemoryException(riscv, riscv_E_LoadAddressMisaligned, address);
+    // if this is an atomic operation and a normal load would not raise an
+    // LoadAddressMisaligned exception then raise a LoadAccessFault exception
+    // instead
+    if(riscv->atomic && allowMisalignedLoad(riscv, address, bytes)) {
+        exception = riscv_E_LoadAccessFault;
+    }
+
+    riscvTakeMemoryException(riscv, exception, address);
 
     return 0;
 }
@@ -1707,9 +1754,17 @@ VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
 //
 VMI_WR_ALIGN_EXCEPT_FN(riscvWrAlignExcept) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP         riscv     = (riscvP)processor;
+    riscvException exception = riscv_E_StoreAMOAddressMisaligned;
 
-    riscvTakeMemoryException(riscv, riscv_E_StoreAMOAddressMisaligned, address);
+    // if this is an atomic operation and a normal load would not raise an
+    // StoreAMOAddressMisaligned exception then raise a StoreAMOAccessFault
+    // exception instead
+    if(riscv->atomic && allowMisalignedStore(riscv, address, bytes)) {
+        exception = riscv_E_StoreAMOAccessFault;
+    }
+
+    riscvTakeMemoryException(riscv, exception, address);
 
     return 0;
 }
@@ -1788,7 +1843,7 @@ VMI_RD_WR_SNAP_FN(riscvRdSnap) {
 
     ITER_EXT_CB_WHILE(
         riscv, extCB, rdSnapCB, !snap,
-        snap = extCB->rdSnapCB(riscv, address, bytes);
+        snap = extCB->rdSnapCB(riscv, address, bytes, riscv->atomic);
     )
 
     return snap;
@@ -1804,7 +1859,7 @@ VMI_RD_WR_SNAP_FN(riscvWrSnap) {
 
     ITER_EXT_CB_WHILE(
         riscv, extCB, wrSnapCB, !snap,
-        snap = extCB->wrSnapCB(riscv, address, bytes);
+        snap = extCB->wrSnapCB(riscv, address, bytes, riscv->atomic);
     )
 
     return snap;

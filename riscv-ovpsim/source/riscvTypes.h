@@ -83,7 +83,7 @@ typedef enum atomicCodeE {
 typedef enum riscvRMDescE {
 
     RV_RM_CURRENT,  // round using current rounding mode (or no mode)
-    RV_RM_RTE,      // round to nearest, ties to even
+    RV_RM_RNE,      // round to nearest, ties to even
     RV_RM_RTZ,      // round towards zero
     RV_RM_RDN,      // round towards -infinity
     RV_RM_RUP,      // round towards +infinity

@@ -400,9 +400,10 @@ typedef RISCV_FREE_TLB_ENTRY_FN((*riscvFreeTLBEntryFn));
 // exception handler should be called.
 //
 #define RISCV_RD_WR_SNAP_FN(_NAME) Uns32 _NAME( \
-    riscvP riscv,               \
-    Addr   address,             \
-    Uns32  bytes                \
+    riscvP     riscv,           \
+    Addr       address,         \
+    Uns32      bytes,           \
+    atomicCode atomic           \
 )
 typedef RISCV_RD_WR_SNAP_FN((*riscvRdWrSnapFn));
 
