@@ -123,7 +123,7 @@ clean:
 
 allclean:
 	for isa in $(RISCV_ISA_ALL); do \
-		$(MAKE) $(JOBS) RISCV_ISA=$$isa clean; \
+		$(MAKE) $(JOBS) RISCV_DEVICE=$$isa RISCV_ISA=$$isa clean; \
 			rc=$$?; \
 			if [ $$rc -ne 0 ]; then \
 				exit $$rc; \

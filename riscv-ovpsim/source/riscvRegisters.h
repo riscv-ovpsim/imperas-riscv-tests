@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@
 #define RISCV_FF                RISCV_CPU_REG(vFirstFault)
 #define RISCV_PRESERVE          RISCV_CPU_REG(vPreserve)
 #define RISCV_VLMAX             RISCV_CPU_TEMP(vlMax)
+#define RISCV_VL_EEW1           RISCV_CPU_REG(vl_EEW1)
 #define RISCV_OFFSETS_LMULx2    RISCV_CPU_REG(offsetsLMULx2)
 #define RISCV_OFFSETS_LMULx4    RISCV_CPU_REG(offsetsLMULx4)
 #define RISCV_OFFSETS_LMULx8    RISCV_CPU_REG(offsetsLMULx8)

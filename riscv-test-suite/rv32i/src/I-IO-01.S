@@ -1,9 +1,9 @@
 # RISC-V Compliance Test I-IO-01
 #
-# Additions Copyright (c) 2005-2018 Imperas Software Ltd., www.imperas.com
+# Additions Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
 #
 # Copyright (c) 2017, Codasip Ltd.
-# Copyright (c) 2018, Imperas Software Ltd. Additions
+# Copyright (c) 2021, Imperas Software Ltd. Additions
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

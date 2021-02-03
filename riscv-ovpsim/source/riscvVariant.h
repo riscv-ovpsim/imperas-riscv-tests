@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -117,6 +117,7 @@ typedef enum riscvArchitectureE {
     ISA_FSandV = (ISA_FS|ISA_V|ISA_and),    // both FS and vector extension
     ISA_VU     = (ISA_U|ISA_H),             // virtual user mode
     ISA_VS     = (ISA_S|ISA_H),             // virtual supervisor mode
+    ISA_BK     = (ISA_B|ISA_K),             // either B or K extension
 
     // FEATURES THAT VARY DYNAMICALLY (note that D, F and V features can be
     // enabled or disabled by mstatus.FS or mstatus.VS, so are included here
@@ -132,6 +133,7 @@ typedef enum riscvArchitectureE {
     RV32F    = ISA_XLEN_32  |                                         ISA_F,
     RV32D    = ISA_XLEN_32  |                                                 ISA_D,
     RV32B    = ISA_XLEN_32  |                                                                         ISA_B,
+    RV32BK   = ISA_XLEN_32  |                                                                         ISA_B |         ISA_K,
     RV32H    = ISA_XLEN_32  |                                                                                 ISA_H,
     RV32K    = ISA_XLEN_32  |                                                                                         ISA_K,
     RV32IM   = ISA_XLEN_32  | ISA_I | ISA_M,
@@ -158,6 +160,7 @@ typedef enum riscvArchitectureE {
     RV64F    = ISA_XLEN_64  |                                         ISA_F,
     RV64D    = ISA_XLEN_64  |                                                 ISA_D,
     RV64B    = ISA_XLEN_64  |                                                                         ISA_B,
+    RV64BK   = ISA_XLEN_64  |                                                                         ISA_B |         ISA_K,
     RV64H    = ISA_XLEN_64  |                                                                                 ISA_H,
     RV64K    = ISA_XLEN_64  |                                                                                         ISA_K,
     RV64IM   = ISA_XLEN_64  | ISA_I | ISA_M,
@@ -226,8 +229,8 @@ typedef enum riscvPrivVerE {
 //
 // Date and tag of master version
 //
-#define RVVV_MASTER_DATE    "7 November 2020"
-#define RVVV_MASTER_TAG     "511d0b8"
+#define RVVV_MASTER_DATE    "30 January 2021"
+#define RVVV_MASTER_TAG     "8e768b0"
 
 //
 // Supported Vector Architecture versions
@@ -241,9 +244,10 @@ typedef enum riscvVectVerE {
     RVVV_0_8_20191118,                  // version 0.8-draft-20191118
     RVVV_0_8,                           // version 0.8
     RVVV_0_9,                           // version 0.9
+    RVVV_1_0_20210130,                  // version 1.0-draft-20210130
     RVVV_MASTER,                        // master branch
     RVVV_LAST,                          // for sizing
-    RVVV_DEFAULT = RVVV_0_9,            // default version
+    RVVV_DEFAULT = RVVV_1_0_20210130,   // default version
 } riscvVectVer;
 
 //
@@ -259,6 +263,7 @@ typedef enum riscvBitManipVerE {
     RVBV_0_90,                          // version 0.90
     RVBV_0_91,                          // version 0.91
     RVBV_0_92,                          // version 0.92
+    RVBV_0_93_DRAFT,                    // version 0.93 (intermediate draft)
     RVBV_0_93,                          // version 0.93
     RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
@@ -269,17 +274,28 @@ typedef enum riscvBitManipVerE {
 // Bit Manipulation Architecture subsets
 //
 typedef enum riscvBitManipSetE {
-    RVBS_Zba  = (1<<0),                 // address calculation
-    RVBS_Zbb  = (1<<1),                 // base set
-    RVBS_Zbc  = (1<<2),                 // carryless operations
-    RVBS_Zbe  = (1<<3),                 // bit deposit/extract
-    RVBS_Zbf  = (1<<4),                 // bit field place
-    RVBS_Zbm  = (1<<5),                 // bit matrix operations
-    RVBS_Zbp  = (1<<6),                 // permutation instructions
-    RVBS_Zbr  = (1<<7),                 // CSR32 operations
-    RVBS_Zbs  = (1<<8),                 // single bit instructions
-    RVBS_Zbt  = (1<<9),                 // ternary instructions
-    RVBS_Zbbp = RVBS_Zbb|RVBS_Zbp,      // base or permutation
+
+    // INDIVIDUAL SETS
+    RVBS_Zb_     = 0,                   // absent for all sets
+    RVBS_Zba     = (1<<0),              // address calculation
+    RVBS_Zbb     = (1<<1),              // base set
+    RVBS_Zbc     = (1<<2),              // carryless operations
+    RVBS_Zbe     = (1<<3),              // bit deposit/extract
+    RVBS_Zbf     = (1<<4),              // bit field place
+    RVBS_Zbm     = (1<<5),              // bit matrix operations
+    RVBS_Zbp     = (1<<6),              // permutation instructions
+    RVBS_Zbr     = (1<<7),              // CSR32 operations
+    RVBS_Zbs     = (1<<8),              // single bit instructions
+    RVBS_Zbt     = (1<<9),              // ternary instructions
+
+    // COMPOSITE SETS
+    RVBS_Zbbp    = RVBS_Zbb|RVBS_Zbp,
+    RVBS_Zbmp    = RVBS_Zbm|RVBS_Zbp,
+    RVBS_Zbefmp  = RVBS_Zbe|RVBS_Zbf|RVBS_Zbm|RVBS_Zbp,
+    RVBS_Zbefp   = RVBS_Zbe|RVBS_Zbf|RVBS_Zbp,
+    RVBS_Zbbefmp = RVBS_Zbb|RVBS_Zbe|RVBS_Zbf|RVBS_Zbm|RVBS_Zbp,
+    RVBS_Zbbefp  = RVBS_Zbb|RVBS_Zbe|RVBS_Zbf|RVBS_Zbp,
+
 } riscvBitManipSet;
 
 //
@@ -296,19 +312,15 @@ typedef enum riscvCryptoVerE {
 // Cryptographic Architecture subsets
 //
 typedef enum riscvCryptoSetE {
-    RVKS_S1   = (1<<0),                     // scalar profile #1
-    RVKS_S2   = (1<<1),                     // scalar profile #2
-    RVKS_S3   = (1<<2),                     // scalar profile #3
-    RVKS_V1   = (1<<3),                     // vector profile #1
-    RVKS_V2   = (1<<4),                     // vector profile #2
-    RVKS_V3   = (1<<5),                     // vector profile #3
-    RVKS_S13  = RVKS_S1|RVKS_S3,            // scalar profiles #1 and #3
-    RVKS_S23  = RVKS_S2|RVKS_S3,            // scalar profiles #2 and #3
-    RVKS_S123 = RVKS_S1|RVKS_S2|RVKS_S3,    // all scalar profiles
-    RVKS_V13  = RVKS_V1|RVKS_V3,            // vector profiles #1 and #3
-    RVKS_V23  = RVKS_V2|RVKS_V3,            // vector profiles #2 and #3
-    RVKS_V123 = RVKS_V1|RVKS_V2|RVKS_V3,    // all vector profiles
-    RVKS_ALL  = RVKS_S123|RVKS_V123,        // all profiles
+    RVKS_Zkb  = (1<<0),                 // bitmanip subset not in Zkg
+    RVKS_Zkg  = (1<<1),                 // carry-less multiply
+    RVKS_Zkr  = (1<<2),                 // entropy source
+    RVKS_Zknd = (1<<3),                 // NIST AES decryption instructions
+    RVKS_Zkne = (1<<4),                 // NIST AES encryption instructions
+    RVKS_Zknh = (1<<5),                 // NIST SHA2 hash function instructions
+    RVKS_Zksd = (1<<6),                 // SM4 decryption instructions
+    RVKS_Zkse = (1<<7),                 // SM4 encryption instructions
+    RVKS_Zksh = (1<<8),                 // SM3 hash function instructions
 } riscvCryptoSet;
 
 //

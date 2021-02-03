@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -557,7 +557,7 @@ static Bool accessCLICInterrupt(riscvP root, Uns32 offset) {
     riscvException intCode  = intToException(intIndex);
     Bool           ok       = False;
 
-    if((intIndex<riscv_E_Local) && !riscvHasException(hart, intCode)) {
+    if((intIndex<riscv_E_Local) && !riscvHasStandardException(hart, intCode)) {
 
         // absent standard interrupt
 

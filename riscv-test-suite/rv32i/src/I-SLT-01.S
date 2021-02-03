@@ -1,7 +1,7 @@
 # RISC-V Compliance Test I-SLT-01
 #
     #
-    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -35,6 +35,7 @@ RV_COMPLIANCE_CODE_BEGIN
 	RVTEST_IO_WRITE_STR(x31, "Test Begin\n")
 
 	# ---------------------------------------------------------------------------------------------
+
 
 	RVTEST_IO_WRITE_STR(x31, "# Test group 1\n")
 
@@ -1343,6 +1344,8 @@ RV_COMPLIANCE_CODE_END
 
 # Output data section.
 RV_COMPLIANCE_DATA_BEGIN
+
+
 
 test_1_res:
 	.fill 5, 4, -1

@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -19,36 +19,33 @@
 Architectural Test Suite Data for RV32M M Integer Multiplication and Division:
     8 test source files
     1 different instruction categories
-    26 different instructions
+    23 different instructions
     6,304 total instructions
 
 Instruction category: arithmetic 
-  mulh : 146
-  mul : 146
-  div : 146
   mulhu : 146
+  mul : 146
+  mulh : 146
   mulhsu : 146
   divu : 146
   rem : 146
+  div : 146
   remu : 146
 
 Other instructions (those not the focus of this suite)
-  j : 8
-  csrr : 24
-  bnez : 8
+  jal : 8
+  csrrs : 32
+  bne : 8
   auipc : 296
-  addi : 1,656
-  csrw : 56
-  csrwi : 40
-  mv : 560
+  addi : 2,216
+  csrrw : 56
+  csrrwi : 40
   slli : 8
-  bltz : 8
-  beqz : 8
+  blt : 8
+  beq : 32
   lui : 1,240
-  csrs : 8
   mret : 8
   sw : 1,168
   fence : 8
   ecall : 8
-  beq : 24
 

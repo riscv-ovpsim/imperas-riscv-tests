@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -216,6 +216,13 @@ inline static Uns32 archToFLEN(riscvArchitecture arch) {
 //
 Uns32 riscvGetXlenMode(riscvP riscv) {
     return archToXLEN(riscv->currentArch);
+}
+
+//
+// Return the current FLEN
+//
+Uns32 riscvGetFlenMode(riscvP riscv) {
+    return archToFLEN(riscv->currentArch);
 }
 
 //

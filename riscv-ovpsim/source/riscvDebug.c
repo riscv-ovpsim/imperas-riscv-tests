@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -593,6 +593,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     // exclude artifact registers
     RISCV_FIELD_IMPL_IGNORE(atomic);
     RISCV_FIELD_IMPL_IGNORE(pmKey);
+    RISCV_FIELD_IMPL_IGNORE(vl_EEW1);
     RISCV_FIELD_IMPL_IGNORE(vFirstFault);
     RISCV_FIELD_IMPL_IGNORE(vPreserve);
     RISCV_FIELD_IMPL_IGNORE(vBase);

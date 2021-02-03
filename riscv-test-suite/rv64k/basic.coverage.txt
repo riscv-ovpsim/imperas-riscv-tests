@@ -516,6 +516,19 @@ Extension : K, instructions: 42
         rs1 32/32 : 100.00%
     aes64im 64/64 : 100.00%
     aes64ks1i      
+        rcon           
+            0          147/1 : 100.00%
+            1           36/1 : 100.00%
+            10           0/1 :   0.00% ZERO
+            2           18/1 : 100.00%
+            3           73/1 : 100.00%
+            4            0/1 :   0.00% ZERO
+            5            0/1 :   0.00% ZERO
+            6            0/1 :   0.00% ZERO
+            7            0/1 :   0.00% ZERO
+            8            0/1 :   0.00% ZERO
+            9            0/1 :   0.00% ZERO
+        rcon 4/11 :  36.36%
         rd             
             gpr            
                 a0           9/1 : 100.00%
@@ -588,7 +601,7 @@ Extension : K, instructions: 42
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs1 32/32 : 100.00%
-    aes64ks1i 64/64 : 100.00%
+    aes64ks1i 68/75 :  90.67%
     aes64ks2       
         rd             
             gpr            
@@ -3482,6 +3495,12 @@ Extension : K, instructions: 42
         rs1 32/32 : 100.00%
     sm3p1 64/64 : 100.00%
     sm4ed          
+        bs             
+            0          147/1 : 100.00%
+            1           36/1 : 100.00%
+            2           18/1 : 100.00%
+            3           73/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           9/1 : 100.00%
@@ -3590,8 +3609,14 @@ Extension : K, instructions: 42
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sm4ed 96/96 : 100.00%
+    sm4ed 100/100 : 100.00%
     sm4ks          
+        bs             
+            0          147/1 : 100.00%
+            1           36/1 : 100.00%
+            2           18/1 : 100.00%
+            3           73/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           9/1 : 100.00%
@@ -3700,7 +3725,7 @@ Extension : K, instructions: 42
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sm4ks 96/96 : 100.00%
+    sm4ks 100/100 : 100.00%
     xnor           
         rd             
             gpr            
@@ -3812,6 +3837,13 @@ Extension : K, instructions: 42
         rs2 32/32 : 100.00%
     xnor 96/96 : 100.00%
 Coverage points missed:
+  aes64ks1i/rcon/10
+  aes64ks1i/rcon/4
+  aes64ks1i/rcon/5
+  aes64ks1i/rcon/6
+  aes64ks1i/rcon/7
+  aes64ks1i/rcon/8
+  aes64ks1i/rcon/9
   getnoise/rd/gpr/a0
   getnoise/rd/gpr/a1
   getnoise/rd/gpr/a2
@@ -4136,10 +4168,10 @@ Coverage points missed:
   rev_b/rs1/gpr/zero
   rori/imm/sign/neg
   roriw/imm/sign/neg
-Coverage points missed: 324/3302
+Coverage points missed: 331/3321
 
 Info TOTAL INSTRUCTION COVERAGE : K
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 36/42 :  85.71%
-Info   Coverage points hit   : 2978/3302 :  90.19%
+Info   Coverage points hit   : 2990/3321 :  90.03%

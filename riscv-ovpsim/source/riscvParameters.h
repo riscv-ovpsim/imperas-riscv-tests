@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,7 +134,6 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(VLEN);
     VMI_UNS32_PARAM(SEW_min);
     VMI_UNS32_PARAM(K_scalar_profile);
-    VMI_UNS32_PARAM(K_vector_profile);
     VMI_BOOL_PARAM(MXL_writable);
     VMI_BOOL_PARAM(SXL_writable);
     VMI_BOOL_PARAM(UXL_writable);
@@ -153,6 +152,15 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zbr);
     VMI_BOOL_PARAM(Zbs);
     VMI_BOOL_PARAM(Zbt);
+    VMI_BOOL_PARAM(Zkb);
+    VMI_BOOL_PARAM(Zkg);
+    VMI_BOOL_PARAM(Zkr);
+    VMI_BOOL_PARAM(Zknd);
+    VMI_BOOL_PARAM(Zkne);
+    VMI_BOOL_PARAM(Zknh);
+    VMI_BOOL_PARAM(Zksd);
+    VMI_BOOL_PARAM(Zkse);
+    VMI_BOOL_PARAM(Zksh);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -877,51 +877,53 @@ typedef struct opDescS {
 //
 static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
 
-    OPENTRYxV_S      (S13,           S13                 ),
-    OPENTRYxV_S      (S23,           S23                 ),
-    OPENTRYxV_S      (S123,          S123                ),
-    OPENTRYxV_S      (V13,           V13                 ),
-    OPENTRYxV_S      (V23,           V23                 ),
-    OPENTRYxV_S      (V123,          V123                ),
-    OPENTRYxV_S      (ALL,           ALL                 ),
+    OPENTRYxV_S      (Zkb,           Zkb                 ),
+    OPENTRYxV_S      (Zkg,           Zkg                 ),
+    OPENTRYxV_S      (Zkr,           Zkr                 ),
+    OPENTRYxV_S      (Zknd,          Zknd                ),
+    OPENTRYxV_S      (Zkne,          Zkne                ),
+    OPENTRYxV_S      (Zknh,          Zknh                ),
+    OPENTRYxV_S      (Zksd,          Zksd                ),
+    OPENTRYxV_S      (Zkse,          Zkse                ),
+    OPENTRYxV_S      (Zksh,          Zksh                ),
 
-    OPENTRYxV_S_CB   (LUT4LO,        S123, LUT4LO        ),
-    OPENTRYxV_S_CB   (LUT4HI,        S123, LUT4HI        ),
-    OPENTRYxV_S_CB64 (LUT4,          S123, LUT4          ),
+    OPENTRYxV_S_CB   (LUT4LO,        Zkb,  LUT4LO        ),
+    OPENTRYxV_S_CB   (LUT4HI,        Zkb,  LUT4HI        ),
+    OPENTRYxV_S_CB64 (LUT4,          Zkb,  LUT4          ),
 
-    OPENTRYxV_S_CB32 (SAES32_ENCS,   S13,  SAES32_ENCS   ),
-    OPENTRYxV_S_CB32 (SAES32_ENCSM,  S13,  SAES32_ENCSM  ),
-    OPENTRYxV_S_CB32 (SAES32_DECS,   S13,  SAES32_DECS   ),
-    OPENTRYxV_S_CB32 (SAES32_DECSM,  S13,  SAES32_DECSM  ),
+    OPENTRYxV_S_CB32 (SAES32_ENCS,   Zkne, SAES32_ENCS   ),
+    OPENTRYxV_S_CB32 (SAES32_ENCSM,  Zkne, SAES32_ENCSM  ),
+    OPENTRYxV_S_CB32 (SAES32_DECS,   Zknd, SAES32_DECS   ),
+    OPENTRYxV_S_CB32 (SAES32_DECSM,  Zknd, SAES32_DECSM  ),
 
-    OPENTRYxV_S_CB64 (SAES64_KS1,    S13,  SAES64_KS1    ),
-    OPENTRYxV_S_CB64 (SAES64_KS2,    S13,  SAES64_KS2    ),
-    OPENTRYxV_S_CB64 (SAES64_IMIX,   S13,  SAES64_IMIX   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCS,   S13,  SAES64_ENCS   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCSM,  S13,  SAES64_ENCSM  ),
-    OPENTRYxV_S_CB64 (SAES64_DECS,   S13,  SAES64_DECS   ),
-    OPENTRYxV_S_CB64 (SAES64_DECSM,  S13,  SAES64_DECSM  ),
+    OPENTRYxV_S_CB64 (SAES64_KS1,    Zkne, SAES64_KS1    ),
+    OPENTRYxV_S_CB64 (SAES64_KS2,    Zkne, SAES64_KS2    ),
+    OPENTRYxV_S_CB64 (SAES64_IMIX,   Zknd, SAES64_IMIX   ),
+    OPENTRYxV_S_CB64 (SAES64_ENCS,   Zkne, SAES64_ENCS   ),
+    OPENTRYxV_S_CB64 (SAES64_ENCSM,  Zkne, SAES64_ENCSM  ),
+    OPENTRYxV_S_CB64 (SAES64_DECS,   Zknd, SAES64_DECS   ),
+    OPENTRYxV_S_CB64 (SAES64_DECSM,  Zknd, SAES64_DECSM  ),
 
-    OPENTRYxV_S_CB   (SSM3_P0,       S23,  SSM3_P0       ),
-    OPENTRYxV_S_CB   (SSM3_P1,       S23,  SSM3_P1       ),
-    OPENTRYxV_S_CB   (SSM4_ED,       S23,  SSM4_ED       ),
-    OPENTRYxV_S_CB   (SSM4_KS,       S23,  SSM4_KS       ),
+    OPENTRYxV_S_CB   (SSM3_P0,       Zksh, SSM3_P0       ),
+    OPENTRYxV_S_CB   (SSM3_P1,       Zksh, SSM3_P1       ),
+    OPENTRYxV_S_CB   (SSM4_ED,       Zkse, SSM4_ED       ),
+    OPENTRYxV_S_CB   (SSM4_KS,       Zkse, SSM4_KS       ),
 
-    OPENTRYxV_S_CB   (SSHA256_SIG0,  S13,  SSHA256_SIG0  ),
-    OPENTRYxV_S_CB   (SSHA256_SIG1,  S13,  SSHA256_SIG1  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM0,  S13,  SSHA256_SUM0  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM1,  S13,  SSHA256_SUM1  ),
+    OPENTRYxV_S_CB   (SSHA256_SIG0,  Zknh, SSHA256_SIG0  ),
+    OPENTRYxV_S_CB   (SSHA256_SIG1,  Zknh, SSHA256_SIG1  ),
+    OPENTRYxV_S_CB   (SSHA256_SUM0,  Zknh, SSHA256_SUM0  ),
+    OPENTRYxV_S_CB   (SSHA256_SUM1,  Zknh, SSHA256_SUM1  ),
 
-    OPENTRYxV_S_CB32 (SSHA512_SIG0L, S13,  SSHA512_SIG0L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG0H, S13,  SSHA512_SIG0H ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1L, S13,  SSHA512_SIG1L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1H, S13,  SSHA512_SIG1H ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM0R, S13,  SSHA512_SUM0R ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM1R, S13,  SSHA512_SUM1R ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG0,  S13,  SSHA512_SIG0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG1,  S13,  SSHA512_SIG1  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM0,  S13,  SSHA512_SUM0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM1,  S13,  SSHA512_SUM1  ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG0L, Zknh, SSHA512_SIG0L ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG0H, Zknh, SSHA512_SIG0H ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG1L, Zknh, SSHA512_SIG1L ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG1H, Zknh, SSHA512_SIG1H ),
+    OPENTRYxV_S_CB32 (SSHA512_SUM0R, Zknh, SSHA512_SUM0R ),
+    OPENTRYxV_S_CB32 (SSHA512_SUM1R, Zknh, SSHA512_SUM1R ),
+    OPENTRYxV_S_CB64 (SSHA512_SIG0,  Zknh, SSHA512_SIG0  ),
+    OPENTRYxV_S_CB64 (SSHA512_SIG1,  Zknh, SSHA512_SIG1  ),
+    OPENTRYxV_S_CB64 (SSHA512_SUM0,  Zknh, SSHA512_SUM0  ),
+    OPENTRYxV_S_CB64 (SSHA512_SUM1,  Zknh, SSHA512_SUM1  ),
 };
 
 //
@@ -955,14 +957,15 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
 
     // get missing subset description
     switch(requiredSet) {
-        case RVKS_S13 : description = "scalar profiles #1 and #3"; break;
-        case RVKS_S23 : description = "scalar profiles #2 and #3"; break;
-        case RVKS_S123: description = "all scalar profiles";       break;
-        case RVKS_V13 : description = "vector profiles #1 and #3"; break;
-        case RVKS_V23 : description = "vector profiles #2 and #3"; break;
-        case RVKS_V123: description = "all vector profiles";       break;
-        case RVKS_ALL : description = "all profiles";              break;
-        default       :                                            break; // LCOV_EXCL_LINE
+        case RVKS_Zkb  : description = "Zkb";  break;
+        case RVKS_Zkg  : description = "Zkg";  break;
+        case RVKS_Zkr  : description = "Zkr";  break;
+        case RVKS_Zknd : description = "Zknd"; break;
+        case RVKS_Zkne : description = "Zkne"; break;
+        case RVKS_Zknh : description = "Zknh"; break;
+        case RVKS_Zksd : description = "Zksd"; break;
+        case RVKS_Zkse : description = "Zkse"; break;
+        case RVKS_Zksh : description = "Zksh"; break;
     }
 
     // sanity check known subset
@@ -1003,11 +1006,12 @@ static void emitIllegalInstructionAbsentSubset(riscvCryptoSet requiredSet) {
 
 //
 // Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not
+// Illegal Instruction exception if not. Note that instructions shared with the
+// bit manipulation extension are not handled here if that extension is enabled
 //
-Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op) {
+Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op, Bool isBOp) {
 
-    if(op!=RVKOP_NONE) {
+    if((op!=RVKOP_NONE) && !(isBOp && bitmanipEnabled(riscv))) {
 
         opDescCP       desc        = getOpDesc(riscv, op);
         riscvCryptoSet requiredSet = desc->subset;

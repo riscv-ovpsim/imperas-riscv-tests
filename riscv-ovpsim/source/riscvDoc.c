@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,6 +132,28 @@ static void addBFeature(
         "By default, %s is set to %u in this variant. Updates to this "
         "parameter require a commercial product license.",
         name, desc, name, !(cfg->bitmanip_absent & feature)
+    );
+    vmidocAddText(Parameters, string);
+}
+
+//
+// Add documentation of a K-extension subset parameter
+//
+static void addKFeature(
+    riscvConfigCP  cfg,
+    vmiDocNodeP    Parameters,
+    char          *string,
+    Uns32          stringLen,
+    riscvCryptoSet feature,
+    const char    *name,
+    const char    *desc
+) {
+    snprintf(
+        string, stringLen,
+        "Parameter %s is used to specify that %s instructions are present. "
+        "By default, %s is set to %u in this variant. Updates to this "
+        "parameter require a commercial product license.",
+        name, desc, name, !(cfg->crypto_absent & feature)
     );
     vmidocAddText(Parameters, string);
 }
@@ -400,7 +422,8 @@ void riscvDoc(riscvP rootProcessor) {
             SNPRINTF_TGT(string),
             "On reset, the model will restart at address 0x"FMT_Ax". A "
             "different reset address may be specified using parameter "
-            "\"reset_address\" if required.",
+            "\"reset_address\" or applied using optional input port "
+            "\"reset_addr\" if required.",
             cfg->reset_address
         );
         vmidocAddText(Features, string);
@@ -410,7 +433,8 @@ void riscvDoc(riscvP rootProcessor) {
             SNPRINTF_TGT(string),
             "On an NMI, the model will restart at address 0x"FMT_Ax". A "
             "different NMI address may be specified using parameter "
-            "\"nmi_address\" if required.",
+            "\"nmi_address\" or applied using optional input port "
+            "\"nmi_addr\" if required.",
             cfg->nmi_address
         );
         vmidocAddText(Features, string);
@@ -857,8 +881,8 @@ void riscvDoc(riscvP rootProcessor) {
             );
         }
 
-        ////////////////////////////////////////////////////////////////////////
-        // BIT-MANIPULATION EXTENSION VERSION 0.92
+         ////////////////////////////////////////////////////////////////////////
+        // BIT-MANIPULATION EXTENSION VERSION 0.93-draft
         ////////////////////////////////////////////////////////////////////////
 
         {
@@ -871,7 +895,7 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- add sh1add, sh2add, sh3add, sh1addu, sh2addu and sh3addu"
+                "- add sh1add, sh2add, sh3add, sh1addu, sh2addu and sh3addu "
                 "instructions;"
             );
             vmidocAddText(
@@ -883,6 +907,70 @@ void riscvDoc(riscvP rootProcessor) {
                 "- add orc16 to Zbb subset."
             );
          }
+ 
+        ////////////////////////////////////////////////////////////////////////
+        // BIT-MANIPULATION EXTENSION VERSION 0.93
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.93");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.93 version of January 10 2021, with these changes "
+                "compared to version 0.93 (draft):"
+            );
+            vmidocAddText(
+                Version,
+                "- exchange encodings of max and minu instructions;"
+            );
+            vmidocAddText(
+                Version,
+                "- add xperm.[nbhw] instructions;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions named *u.w renamed to *.uw;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions named sb* renamed to b*;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions named pcnt* renamed to cpop*;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions subu.w, addiwu, addwu, subwu, clmulw, clmulrw "
+                "and clmulhw removed."
+            );
+            vmidocAddText(
+                Version,
+                "- instructions bext/bdep renamed to bcompress/bdecompress "
+                "(this change is documented under the draft 0.94 version but "
+                "is required to resolve an instruction name conflict "
+                "introduced by instruction renames above);"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // BIT-MANIPULATION EXTENSION VERSION 0.94
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.94");
+
+            vmidocAddText(
+                Version,
+                "Draft 0.94 version of January 20 2021, with these changes "
+                "compared to version 0.93:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions bset[i]w, bclr[i]w, binv[i]w and bextw removed."
+            );
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -976,24 +1064,43 @@ void riscvDoc(riscvP rootProcessor) {
                 Crypto, "Cryptographic Extension Parameters"
             );
 
-            // document K_scalar_profile
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Parameter \"K_scalar_profile\" is used to specify the scalar "
-                "profile (1-3), or 0 if all scalar profiles are absent."
+            // add subset control parameter description
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkb, "Zkb",
+                "shared bit manipulation (not Zkg)"
             );
-            vmidocAddText(Parameters, string);
-
-            // document K_vector_profile
-            snprintf(
-                SNPRINTF_TGT(string),
-                "When the vector extension is also present, parameter "
-                "\"K_vector_profile\" is used to specify the vector profile "
-                "(1-3), or 0 if all vector profiles are absent. Note that "
-                "this parameter is currently unused because details of "
-                "vector profile instructions are currently not fully defined."
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkg, "Zkg",
+                "carry-less multiply"
             );
-            vmidocAddText(Parameters, string);
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkr, "Zkr",
+                "entropy source"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zknd, "Zknd",
+                "NIST AES decryption"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkne, "Zkne",
+                "NIST AES encryption"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zknh, "Zknh",
+                "NIST SHA2 hash function"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksd, "Zksd",
+                "SM4 decryption"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkse, "Zkse",
+                "SM4 encryption"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksh, "Zksh",
+                "SM3 hash function"
+            );
         }
     }
 
@@ -1510,18 +1617,18 @@ void riscvDoc(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // VECTOR EXTENSION VERSION master
+        // VECTOR EXTENSION VERSION 1.0-draft-20210130
         ////////////////////////////////////////////////////////////////////////
 
         {
             vmiDocNodeP Version = vmidocAddSection(
-                Vector, "Version master"
+                Vector, "Version 1.0-draft-20210130"
             );
 
             vmidocAddText(
                 Version,
-                "Unstable master version as of "RVVV_MASTER_DATE" (commit "
-                RVVV_MASTER_TAG"), with these changes compared to version 0.9:"
+                "Stable 1.0-draft-20210130 official release (commit 8e768b0), "
+                "with these changes compared to version 0.9:"
             );
             vmidocAddText(
                 Version,
@@ -1543,7 +1650,7 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- instructions vfrsqrte7.v, vfrece7.v and vrgatherei16.vv "
+                "- instructions vfrsqrt7.v, vfrec7.v and vrgatherei16.vv "
                 "added;"
             );
             vmidocAddText(
@@ -1557,7 +1664,27 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- ordered/unordered indexed vector memory instructions added."
+                "- ordered/unordered indexed vector memory instructions added;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions vle1.v and vse1.v added."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR EXTENSION VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                Vector, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVVV_MASTER_DATE" (commit "
+                RVVV_MASTER_TAG"), currently identical to 1.0-draft-20210130."
             );
         }
     }
@@ -1853,15 +1980,15 @@ void riscvDoc(riscvP rootProcessor) {
             "The \"reset\" port is an active-high reset input. The processor "
             "is halted when \"reset\" goes high and resumes execution from the "
             "reset address specified using the \"reset_address\" parameter "
-            "when the signal goes low. The \"mcause\" register is cleared "
-            "to zero."
+            "or \"reset_addr\" port when the signal goes low. The \"mcause\" "
+            "register is cleared to zero."
         );
         vmidocAddText(
             Interrupts,
             "The \"nmi\" port is an active-high NMI input. The processor "
             "resumes execution from the address specified using the "
-            "\"nmi_address\" parameter when the NMI signal goes high. The "
-            "\"mcause\" register is cleared to zero."
+            "\"nmi_address\" parameter or \"nmi_addr\" port when the NMI "
+            "signal goes high. The \"mcause\" register is cleared to zero."
         );
         vmidocAddText(
             Interrupts,

@@ -32,6 +32,16 @@
   RVTEST_ENABLE_MACHINE;                                                \
   .endm
 
+#define RVTEST_RV64D                                                    \
+  .macro init;                                                          \
+  RVTEST_FP_ENABLE;                                                     \
+  .endm
+
+#define RVTEST_RV32D                                                    \
+  .macro init;                                                          \
+  RVTEST_FP_ENABLE;                                                     \
+  .endm
+
 #define RVTEST_RV64S                                                    \
   .macro init;                                                          \
   RVTEST_ENABLE_SUPERVISOR;                                             \

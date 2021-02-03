@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 24 Dec 2020
+Date      : 02 Feb 2021
 
-Version   : 20201224.0
+Version   : 20210202.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -56,13 +56,15 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
     - Version 0.8-draft-20191118 : Vector Architecture Version 0.8-draft-20191118
     - Version 0.8 : Vector Architecture Version 0.8
     - Version 0.9 : Vector Architecture Version 0.9
-    - Version master : Vector Architecture Master Branch as of commit 511d0b8 (this is subject to change)
+    - Version 1.0-draft-20210130 : Vector Architecture Version 1.0-draft-20210130
+    - Version master : Vector Architecture Master Branch as of commit 8e768b0 (this is subject to change)
 
 - RISC-V B Bit Manipulation Extension  (bitmanip_version)
     - Version 0.90 : Bit Manipulation Architecture Version v0.90-20190610
     - Version 0.91 : Bit Manipulation Architecture Version v0.91-20190829
     - Version 0.92 : Bit Manipulation Architecture Version v0.92-20191108
-    - Version 0.93 : Bit Manipulation Architecture Version draft-20200129
+    - Version 0.93-draft : Bit Manipulation Architecture Version 0.93-draft-20200129
+    - Version 0.93 : Bit Manipulation Architecture Version v0.93-20210110
     - Version master : Bit Manipulation Master Branch as of commit c1bd8ee (this is subject to change)
 
 - RISC-V H Hypervisor Extension  (hypervisor_version)
@@ -126,7 +128,7 @@ For example on Linux:
          $ ./RUN_RV32_fibonacci.sh
 
          CpuManagerFixedPlatform 20180425.0 Open Virtual Platform simulator from www.IMPERAS.com.
-         Copyright (c) 2005-2020 Imperas Software Ltd.  Contains Imperas Proprietary Information.
+         Copyright (c) 2005-2021 Imperas Software Ltd.  Contains Imperas Proprietary Information.
          Licensed Software, All Rights Reserved.
          Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.
 

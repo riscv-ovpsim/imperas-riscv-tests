@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -117,6 +117,21 @@
     r3       : RS_X_24_20,          \
     wX       : WX_3,                \
     shN      : True,                \
+}
+
+//
+// Rd, Rs1, Rs2 (with size)
+//
+#define ATTR32_RD_RS1_RS2_XPERM(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    wX       : WX_3,                \
+    cs       : CS_XPERM_14_13,      \
 }
 
 //
@@ -916,6 +931,23 @@
     mask     : RS_V_M_25,           \
     memBits  : MBS_12_VAMO,         \
     VIType   : RV_VIT_V,            \
+}
+
+//
+// instructions like VLE1
+//
+#define ATTR32_VLE1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_MEM2_RM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_X_19_15,          \
+    mask     : RS_V_M_25,           \
+    memBits  : MBS_B,               \
+    nf       : NF_31_29,            \
+    VIType   : RV_VIT_V,            \
+    eew      : EEW_1,               \
 }
 
 //

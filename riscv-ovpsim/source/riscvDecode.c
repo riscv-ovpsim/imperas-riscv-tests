@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,6 +211,7 @@ typedef enum fenceSpecE {
 //
 typedef enum eewSpecE {
     EEW_NA,             // instruction has no EEW
+    EEW_1,              // EEW 1 (mask load/store)
     EEW_16,             // EEW 16
     EEW_14_12,          // EEW in bits 14:12
     EEW_28_14_12,       // EEW in bits 28,14:12
@@ -236,6 +237,7 @@ typedef enum memBitsSpecE {
     MBS_14_12_V,        // memory bit size in bits 14:12 (vector instructions)
     MBS_EEW,            // memory bit size in bits 28,14:12 (vector instructions)
     MBS_SEW,            // memory bit size of SEW (vector instructions)
+    MBS_B,              // memory bit size 8 (byte)
     MBS_W,              // memory bit size 32 (word)
     MBS_D,              // memory bit size 64 (double)
 } memBitsSpec;
@@ -263,6 +265,7 @@ typedef enum constSpecE {
     CS_S_19_15,         // signed value in 19:15
     CS_S_31_20,         // signed value in 31:20
     CS_S_31_25_11_7,    // signed value in 31:25,11:7
+    CS_XPERM_14_13,     // size in bits 14:13 (xperm)
     CS_SHAMT_25_20,     // shift amount in 25:20 (or 24:20 when XLEN==32)
     CS_AUIPC,           // signed value in 31:12 << 12 (AUIPC encoding)
     CS_J,               // target address in 31:12 (J encoding)
@@ -628,14 +631,19 @@ typedef enum riscvIType32E {
     IT32_ROL_R,
     IT32_ROR_R,
     IT32_SBCLR_R,
+    IT32_BCLR_R,
     IT32_SBSET_R,
+    IT32_BSET_R,
     IT32_SBINV_R,
+    IT32_BINV_R,
     IT32_SBEXT_R,
+    IT32_BEXT_R,
     IT32_GORC_R,
     IT32_GREV_R,
     IT32_CLZ_R,
     IT32_CTZ_R,
     IT32_PCNT_R,
+    IT32_CPOP_R,
     IT32_SEXT_R,
     IT32_CRC32_R,
     IT32_CRC32C_R,
@@ -651,10 +659,16 @@ typedef enum riscvIType32E {
     IT32_SHFL_R,
     IT32_UNSHFL_R,
     IT32_BDEP_R,
-    IT32_BEXT_R,
+    IT32_BDECOMPRESS_R,
+    IT32_BEXTX_R,
+    IT32_BCOMPRESS_R,
     IT32_PACK_R,
     IT32_PACKH_R,
     IT32_PACKU_R,
+    IT32_PACKW_R,
+    IT32_PACKUW_R,
+    IT32_ZEXT32_H_R,
+    IT32_ZEXT64_H_R,
     IT32_BMATFLIP_R,
     IT32_BMATOR_R,
     IT32_BMATXOR_R,
@@ -662,25 +676,36 @@ typedef enum riscvIType32E {
     IT32_ADDWU_R,
     IT32_SUBWU_R,
     IT32_ADDU_W_R,
+    IT32_ADD_UW_R,
     IT32_SUBU_W_R,
     IT32_SHADD_R,
     IT32_SHADDU_W_R,
+    IT32_SHADD_UW_R,
+    IT32_XPERM_N_R,
+    IT32_XPERM_B_R,
+    IT32_XPERM_H_R,
+    IT32_XPERM_W_R,
 
     // B-extension I-type instructions
     IT32_SLOI_I,
     IT32_SROI_I,
     IT32_RORI_I,
     IT32_SBCLRI_I,
+    IT32_BCLRI_I,
     IT32_SBSETI_I,
+    IT32_BSETI_I,
     IT32_SBINVI_I,
+    IT32_BINVI_I,
     IT32_SBEXTI_I,
+    IT32_BEXTI_I,
     IT32_GORCI_I,
     IT32_GREVI_I,
     IT32_SHFLI_I,
     IT32_UNSHFLI_I,
     IT32_ADDIWU_I,
     IT32_SLLIU_W_I,
-    
+    IT32_SLLI_UW_I,
+
     // B-extension I-type partial instructions shared with K-extension
     IT32_GORCI_I_K,
     IT32_GREVI_I_K,
@@ -790,6 +815,8 @@ typedef enum riscvIType32E {
     IT32_VSUXEI_I,
 
     // V-extension load/store instructions (1.0 and later)
+    IT32_VLE1_I,
+    IT32_VSE1_I,
     IT32_VLUXEI_I,
     IT32_VLOXEI_I,
     IT32_VSOXEI_I,
@@ -1401,45 +1428,31 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(          SRO_R, "|0010000|.....|.....|101|.....|011.011|"),
     DECODE32_ENTRY(          ROL_R, "|0110000|.....|.....|001|.....|011.011|"),
     DECODE32_ENTRY(          ROR_R, "|0110000|.....|.....|101|.....|011.011|"),
-    DECODE32_ENTRY(        SBCLR_R, "|0100100|.....|.....|001|.....|011.011|"),
-    DECODE32_ENTRY(        SBSET_R, "|0010100|.....|.....|001|.....|011.011|"),
-    DECODE32_ENTRY(        SBINV_R, "|0110100|.....|.....|001|.....|011.011|"),
-    DECODE32_ENTRY(        SBEXT_R, "|0100100|.....|.....|101|.....|011.011|"),
     DECODE32_ENTRY(          CLZ_R, "|0110000|00000|.....|001|.....|001.011|"),
     DECODE32_ENTRY(          CTZ_R, "|0110000|00001|.....|001|.....|001.011|"),
-    DECODE32_ENTRY(         PCNT_R, "|0110000|00010|.....|001|.....|001.011|"),
     DECODE32_ENTRY(        CRC32_R, "|0110000|100..|.....|001|.....|0010011|"),
     DECODE32_ENTRY(       CRC32C_R, "|0110000|110..|.....|001|.....|0010011|"),
     DECODE32_ENTRY(        CLMUL_R, "|0000101|.....|.....|001|.....|0110011|"),
-    DECODE32_ENTRY(       CLMULW_R, "|0000101|.....|.....|001|.....|0111011|"),
-    DECODE32_ENTRY(       CLMULR_R, "|0000101|.....|.....|010|.....|011.011|"),
+    DECODE32_ENTRY(       CLMULR_R, "|0000101|.....|.....|010|.....|0110011|"),
     DECODE32_ENTRY(       CLMULH_R, "|0000101|.....|.....|011|.....|0110011|"),
-    DECODE32_ENTRY(      CLMULHW_R, "|0000101|.....|.....|011|.....|0111011|"),
     DECODE32_ENTRY(          MIN_R, "|0000101|.....|.....|100|.....|0110011|"),
     DECODE32_ENTRY(         MAXU_R, "|0000101|.....|.....|111|.....|0110011|"),
     DECODE32_ENTRY(         SHFL_R, "|0000100|.....|.....|001|.....|011.011|"),
     DECODE32_ENTRY(       UNSHFL_R, "|0000100|.....|.....|101|.....|011.011|"),
-    DECODE32_ENTRY(         BEXT_R, "|0000100|.....|.....|110|.....|011.011|"),
-    DECODE32_ENTRY(         PACK_R, "|0000100|.....|.....|100|.....|011.011|"),
+    DECODE32_ENTRY(         PACK_R, "|0000100|.....|.....|100|.....|0110011|"),
+    DECODE32_ENTRY(        PACKW_R, "|0000100|.....|.....|100|.....|0111011|"),
+    DECODE32_ENTRY(     ZEXT32_H_R, "|0000100|00000|.....|100|.....|0110011|"),
+    DECODE32_ENTRY(     ZEXT64_H_R, "|0000100|00000|.....|100|.....|0111011|"),
     DECODE32_ENTRY(     BMATFLIP_R, "|0110000|00011|.....|001|.....|0010011|"),
     DECODE32_ENTRY(       BMATOR_R, "|0000100|.....|.....|011|.....|0110011|"),
-    DECODE32_ENTRY(        ADDWU_R, "|0000101|.....|.....|000|.....|0111011|"),
-    DECODE32_ENTRY(        SUBWU_R, "|0100101|.....|.....|000|.....|0111011|"),
-    DECODE32_ENTRY(       ADDU_W_R, "|0000100|.....|.....|000|.....|0111011|"),
 
     // B-extension I-type instructions
     //                               |       imm32|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(        SLOI_I,  "|001000......|.....|001|.....|001.011|"),
-    DECODE32_ENTRY(        SROI_I,  "|001000......|.....|101|.....|001.011|"),
-    DECODE32_ENTRY(        RORI_I,  "|011000......|.....|101|.....|001.011|"),
-    DECODE32_ENTRY(       SBCLRI_I, "|010010......|.....|001|.....|001.011|"),
-    DECODE32_ENTRY(       SBSETI_I, "|001010......|.....|001|.....|001.011|"),
-    DECODE32_ENTRY(       SBINVI_I, "|011010......|.....|001|.....|001.011|"),
-    DECODE32_ENTRY(       SBEXTI_I, "|010010......|.....|101|.....|0010011|"),
+    DECODE32_ENTRY(         SLOI_I, "|001000......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(         SROI_I, "|001000......|.....|101|.....|001.011|"),
+    DECODE32_ENTRY(         RORI_I, "|011000......|.....|101|.....|001.011|"),
     DECODE32_ENTRY(        SHFLI_I, "|000010......|.....|001|.....|0010011|"),
     DECODE32_ENTRY(      UNSHFLI_I, "|000010......|.....|101|.....|0010011|"),
-    DECODE32_ENTRY(       ADDIWU_I, "|............|.....|100|.....|0011011|"),
-    DECODE32_ENTRY(      SLLIU_W_I, "|00001.......|.....|001|.....|0011011|"),
 
     // B-extension R4-type instructions
     //                               | rs3 |f1|  rs2|  rs1|f2 |   rd| opcode|
@@ -1823,11 +1836,24 @@ const static decodeEntry32 decodeBPostV091[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(         BDEP_R, "|0100100|.....|.....|110|.....|011.011|"),
     DECODE32_ENTRY(        PACKH_R, "|0000100|.....|.....|111|.....|0110011|"),
-    DECODE32_ENTRY(        PACKU_R, "|0100100|.....|.....|100|.....|011.011|"),
+    DECODE32_ENTRY(        PACKU_R, "|0100100|.....|.....|100|.....|0110011|"),
+    DECODE32_ENTRY(       PACKUW_R, "|0100100|.....|.....|100|.....|0111011|"),
     DECODE32_ENTRY(          BFP_R, "|0100100|.....|.....|111|.....|011.011|"),
     DECODE32_ENTRY(         SEXT_R, "|0110000|0010.|.....|001|.....|0010011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension 0.92
+//
+const static decodeEntry32 decodeBV092[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(         BDEP_R, "|0100100|.....|.....|110|.....|011.011|"),
 
     // table termination entry
     {0}
@@ -1843,8 +1869,89 @@ const static decodeEntry32 decodeBPostV092[] = {
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(        SHADD_R, "|0010000|.....|.....|010|.....|0110011|"),
     DECODE32_ENTRY(        SHADD_R, "|0010000|.....|.....|1.0|.....|0110011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// until version 0.93-draft
+//
+const static decodeEntry32 decodeBUntilV093Draft[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|101|.....|0110011|"),
+    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|110|.....|0110011|"),
+    DECODE32_ENTRY(       SUBU_W_R, "|0100100|.....|.....|000|.....|0111011|"),
+    DECODE32_ENTRY(       ADDU_W_R, "|0000100|.....|.....|000|.....|0111011|"),
+    DECODE32_ENTRY(        ADDWU_R, "|0000101|.....|.....|000|.....|0111011|"),
+    DECODE32_ENTRY(        SUBWU_R, "|0100101|.....|.....|000|.....|0111011|"),
+    DECODE32_ENTRY(       CLMULW_R, "|0000101|.....|.....|001|.....|0111011|"),
+    DECODE32_ENTRY(       CLMULR_R, "|0000101|.....|.....|010|.....|0111011|"),
+    DECODE32_ENTRY(      CLMULHW_R, "|0000101|.....|.....|011|.....|0111011|"),
+    DECODE32_ENTRY(        SBCLR_R, "|0100100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(        SBSET_R, "|0010100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(        SBINV_R, "|0110100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(        SBEXT_R, "|0100100|.....|.....|101|.....|011.011|"),
+    DECODE32_ENTRY(         PCNT_R, "|0110000|00010|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(        BEXTX_R, "|0000100|.....|.....|110|.....|011.011|"),
+
+    // B-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(       ADDIWU_I, "|............|.....|100|.....|0011011|"),
+    DECODE32_ENTRY(       SBCLRI_I, "|010010......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(       SBSETI_I, "|001010......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(       SBINVI_I, "|011010......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(       SBEXTI_I, "|010010......|.....|101|.....|0010011|"),
+    DECODE32_ENTRY(      SLLIU_W_I, "|00001.......|.....|001|.....|0011011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// 0.93-draft
+//
+const static decodeEntry32 decodeBV093Draft[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(         BDEP_R, "|0100100|.....|.....|110|.....|011.011|"),
     DECODE32_ENTRY(     SHADDU_W_R, "|0010000|.....|.....|010|.....|0111011|"),
     DECODE32_ENTRY(     SHADDU_W_R, "|0010000|.....|.....|1.0|.....|0111011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// after version 0.93-draft
+//
+const static decodeEntry32 decodeBPostV093Draft[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(     SHADD_UW_R, "|0010000|.....|.....|010|.....|0111011|"),
+    DECODE32_ENTRY(     SHADD_UW_R, "|0010000|.....|.....|1.0|.....|0111011|"),
+    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|110|.....|0110011|"),
+    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|101|.....|0110011|"),
+    DECODE32_ENTRY(       ADD_UW_R, "|0000100|.....|.....|000|.....|0111011|"),
+    DECODE32_ENTRY(         CPOP_R, "|0110000|00010|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(    BCOMPRESS_R, "|0000100|.....|.....|110|.....|011.011|"),
+    DECODE32_ENTRY(  BDECOMPRESS_R, "|0100100|.....|.....|110|.....|011.011|"),
+    DECODE32_ENTRY(      XPERM_N_R, "|0010100|.....|.....|010|.....|0110011|"),
+    DECODE32_ENTRY(      XPERM_B_R, "|0010100|.....|.....|100|.....|0110011|"),
+    DECODE32_ENTRY(      XPERM_H_R, "|0010100|.....|.....|110|.....|0110011|"),
+    DECODE32_ENTRY(      XPERM_W_R, "|0010100|.....|.....|000|.....|0110011|"),
+
+    // B-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(        BEXTI_I, "|010010......|.....|101|.....|0010011|"),
+    DECODE32_ENTRY(      SLLI_UW_I, "|00001.......|.....|001|.....|0011011|"),
 
     // table termination entry
     {0}
@@ -1858,9 +1965,28 @@ const static decodeEntry32 decodeBUntilV093[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|101|.....|0110011|"),
-    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|110|.....|0110011|"),
-    DECODE32_ENTRY(       SUBU_W_R, "|0100100|.....|.....|000|.....|0111011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension 0.93
+//
+const static decodeEntry32 decodeBV093[] = {
+
+    // B-extension R-type instructions
+    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(         BCLR_R, "|0100100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(         BSET_R, "|0010100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(         BINV_R, "|0110100|.....|.....|001|.....|011.011|"),
+    DECODE32_ENTRY(         BEXT_R, "|0100100|.....|.....|101|.....|011.011|"),
+
+    // B-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(        BCLRI_I, "|010010......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(        BSETI_I, "|001010......|.....|001|.....|001.011|"),
+    DECODE32_ENTRY(        BINVI_I, "|011010......|.....|001|.....|001.011|"),
 
     // table termination entry
     {0}
@@ -1874,8 +2000,16 @@ const static decodeEntry32 decodeBPostV093[] = {
 
     // B-extension R-type instructions
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(          MAX_R, "|0000101|.....|.....|110|.....|0110011|"),
-    DECODE32_ENTRY(         MINU_R, "|0000101|.....|.....|101|.....|0110011|"),
+    DECODE32_ENTRY(         BCLR_R, "|0100100|.....|.....|001|.....|0110011|"),
+    DECODE32_ENTRY(         BSET_R, "|0010100|.....|.....|001|.....|0110011|"),
+    DECODE32_ENTRY(         BINV_R, "|0110100|.....|.....|001|.....|0110011|"),
+    DECODE32_ENTRY(         BEXT_R, "|0100100|.....|.....|101|.....|0110011|"),
+
+    // B-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(        BCLRI_I, "|010010......|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(        BSETI_I, "|001010......|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(        BINVI_I, "|011010......|.....|001|.....|0010011|"),
 
     // table termination entry
     {0}
@@ -2366,6 +2500,11 @@ const static decodeEntry32 decodeVV09[] = {
 //
 const static decodeEntry32 decodeVInitial10[] = {
 
+    // V-extension unit-stride mask load/store instructions
+    //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
+    DECODE32_ENTRY(         VLE1_I, "|000|000|1|01011|.....|000|.....|0000111|"),
+    DECODE32_ENTRY(         VSE1_I, "|000|000|1|01011|.....|000|.....|0100111|"),
+
     // V-extension load/store instructions (whole registers, 8/128-bit hint)
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
     DECODE32_ENTRY(          VLE_I, "|...|.00|1|01000|.....|000|.....|0000111|"),
@@ -2414,7 +2553,7 @@ const static decodeEntry32 decodeVInitial10[] = {
 //
 const static decodeEntry32 decodeKV072[] = {
 
-    // K-extension R-type LUT instructions (TODO: move to bitmanip)
+    // K-extension R-type LUT instructions
     //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(         LUT4LO_R, "|0110000|.....|.....|000|.....|0101011|"),
     DECODE32_ENTRY(         LUT4HI_R, "|0110001|.....|.....|000|.....|0101011|"),
@@ -2716,66 +2855,88 @@ const static opAttrs attrsArray32[] = {
     ATTR32_NOP              (        CUSTOM4,          CUSTOM, RVANY,   "custom4"),
 
     // B-extension R-type instructions
-    ATTR32_RD_RS1_RS2       (         ANDN_R,          ANDN_R, RVANYBK, "andn"    ),
-    ATTR32_RD_RS1_RS2       (          ORN_R,           ORN_R, RVANYBK, "orn"     ),
-    ATTR32_RD_RS1_RS2       (         XNOR_R,          XNOR_R, RVANYBK, "xnor"    ),
-    ATTR32_RD_RS1_RS2       (          SLO_R,           SLO_R, RVANYB,  "slo"     ),
-    ATTR32_RD_RS1_RS2       (          SRO_R,           SRO_R, RVANYB,  "sro"     ),
-    ATTR32_RD_RS1_RS2       (          ROL_R,           ROL_R, RVANYBK, "rol"     ),
-    ATTR32_RD_RS1_RS2       (          ROR_R,           ROR_R, RVANYBK, "ror"     ),
-    ATTR32_RD_RS1_RS2       (        SBCLR_R,         SBCLR_R, RVANYB,  "sbclr"   ),
-    ATTR32_RD_RS1_RS2       (        SBSET_R,         SBSET_R, RVANYB,  "sbset"   ),
-    ATTR32_RD_RS1_RS2       (        SBINV_R,         SBINV_R, RVANYB,  "sbinv"   ),
-    ATTR32_RD_RS1_RS2       (        SBEXT_R,         SBEXT_R, RVANYB,  "sbext"   ),
-    ATTR32_RD_RS1_RS2       (         GORC_R,          GORC_R, RVANYB,  "gorc"    ),
-    ATTR32_RD_RS1_RS2       (         GREV_R,          GREV_R, RVANYB,  "grev"    ),
-    ATTR32_RD_RS1_rs2       (          CLZ_R,           CLZ_R, RVANYB,  "clz"     ),
-    ATTR32_RD_RS1_rs2       (          CTZ_R,           CTZ_R, RVANYB,  "ctz"     ),
-    ATTR32_RD_RS1_rs2       (         PCNT_R,          PCNT_R, RVANYB,  "pcnt"    ),
-    ATTR32_CRC32            (         SEXT_R,          SEXT_R, RVANYB,  "sext"    ),
-    ATTR32_CRC32            (        CRC32_R,         CRC32_R, RVANYB,  "crc32"   ),
-    ATTR32_CRC32            (       CRC32C_R,        CRC32C_R, RVANYB,  "crc32c"  ),
-    ATTR32_RD_RS1_RS2       (        CLMUL_R,         CLMUL_R, RVANYBK, "clmul"   ),
-    ATTR32_RD_RS1_RS2       (       CLMULW_R,         CLMUL_R, RVANYB,  "clmul"   ),
-    ATTR32_RD_RS1_RS2       (       CLMULR_R,        CLMULR_R, RVANYB,  "clmulr"  ),
-    ATTR32_RD_RS1_RS2       (       CLMULH_R,        CLMULH_R, RVANYBK, "clmulh"  ),
-    ATTR32_RD_RS1_RS2       (      CLMULHW_R,        CLMULH_R, RVANYB,  "clmulh"  ),
-    ATTR32_RD_RS1_RS2       (          MIN_R,           MIN_R, RVANYB,  "min"     ),
-    ATTR32_RD_RS1_RS2       (          MAX_R,           MAX_R, RVANYB,  "max"     ),
-    ATTR32_RD_RS1_RS2       (         MINU_R,          MINU_R, RVANYB,  "minu"    ),
-    ATTR32_RD_RS1_RS2       (         MAXU_R,          MAXU_R, RVANYB,  "maxu"    ),
-    ATTR32_RD_RS1_RS2       (         SHFL_R,          SHFL_R, RVANYB,  "shfl"    ),
-    ATTR32_RD_RS1_RS2       (       UNSHFL_R,        UNSHFL_R, RVANYB,  "unshfl"  ),
-    ATTR32_RD_RS1_RS2       (         BDEP_R,          BDEP_R, RVANYB,  "bdep"    ),
-    ATTR32_RD_RS1_RS2       (         BEXT_R,          BEXT_R, RVANYB,  "bext"    ),
-    ATTR32_RD_RS1_RS2       (         PACK_R,          PACK_R, RVANYBK, "pack"    ),
-    ATTR32_RD_RS1_RS2       (        PACKH_R,         PACKH_R, RVANYBK, "packh"   ),
-    ATTR32_RD_RS1_RS2       (        PACKU_R,         PACKU_R, RVANYBK, "packu"   ),
-    ATTR32_RD_RS1_rs2       (     BMATFLIP_R,      BMATFLIP_R, RV64B,   "bmatflip"),
-    ATTR32_RD_RS1_RS2       (       BMATOR_R,        BMATOR_R, RV64B,   "bmator"  ),
-    ATTR32_RD_RS1_RS2       (      BMATXOR_R,       BMATXOR_R, RV64B,   "bmatxor" ),
-    ATTR32_RD_RS1_RS2       (          BFP_R,           BFP_R, RVANYB,  "bfp"     ),
-    ATTR32_RD_RS1_RS2_U     (        ADDWU_R,         ADDWU_R, RVANYB,  "add"     ),
-    ATTR32_RD_RS1_RS2_U     (        SUBWU_R,         SUBWU_R, RVANYB,  "sub"     ),
-    ATTR32_RD_RS1_RS2       (       ADDU_W_R,        ADDU_W_R, RVANYB,  "addu."   ),
-    ATTR32_RD_RS1_RS2       (       SUBU_W_R,        SUBU_W_R, RVANYB,  "subu."   ),
-    ATTR32_RD_RS1_RS2_SHN   (        SHADD_R,         SHADD_R, RVANYB,  "add"     ),
-    ATTR32_RD_RS1_RS2_SHN   (     SHADDU_W_R,         SHADD_R, RVANYB,  "addu."   ),
+    ATTR32_RD_RS1_RS2       (         ANDN_R,          ANDN_R, RVANYBK, "andn"       ),
+    ATTR32_RD_RS1_RS2       (          ORN_R,           ORN_R, RVANYBK, "orn"        ),
+    ATTR32_RD_RS1_RS2       (         XNOR_R,          XNOR_R, RVANYBK, "xnor"       ),
+    ATTR32_RD_RS1_RS2       (          SLO_R,           SLO_R, RVANYB,  "slo"        ),
+    ATTR32_RD_RS1_RS2       (          SRO_R,           SRO_R, RVANYB,  "sro"        ),
+    ATTR32_RD_RS1_RS2       (          ROL_R,           ROL_R, RVANYBK, "rol"        ),
+    ATTR32_RD_RS1_RS2       (          ROR_R,           ROR_R, RVANYBK, "ror"        ),
+    ATTR32_RD_RS1_RS2       (        SBCLR_R,         SBCLR_R, RVANYB,  "sbclr"      ),
+    ATTR32_RD_RS1_RS2       (         BCLR_R,         SBCLR_R, RVANYB,  "bclr"       ),
+    ATTR32_RD_RS1_RS2       (        SBSET_R,         SBSET_R, RVANYB,  "sbset"      ),
+    ATTR32_RD_RS1_RS2       (         BSET_R,         SBSET_R, RVANYB,  "bset"       ),
+    ATTR32_RD_RS1_RS2       (        SBINV_R,         SBINV_R, RVANYB,  "sbinv"      ),
+    ATTR32_RD_RS1_RS2       (         BINV_R,         SBINV_R, RVANYB,  "binv"       ),
+    ATTR32_RD_RS1_RS2       (        SBEXT_R,         SBEXT_R, RVANYB,  "sbext"      ),
+    ATTR32_RD_RS1_RS2       (         BEXT_R,         SBEXT_R, RVANYB,  "bext"       ),
+    ATTR32_RD_RS1_RS2       (         GORC_R,          GORC_R, RVANYB,  "gorc"       ),
+    ATTR32_RD_RS1_RS2       (         GREV_R,          GREV_R, RVANYB,  "grev"       ),
+    ATTR32_RD_RS1_rs2       (          CLZ_R,           CLZ_R, RVANYB,  "clz"        ),
+    ATTR32_RD_RS1_rs2       (          CTZ_R,           CTZ_R, RVANYB,  "ctz"        ),
+    ATTR32_RD_RS1_rs2       (         PCNT_R,          PCNT_R, RVANYB,  "pcnt"       ),
+    ATTR32_RD_RS1_rs2       (         CPOP_R,          PCNT_R, RVANYB,  "cpop"       ),
+    ATTR32_CRC32            (         SEXT_R,          SEXT_R, RVANYB,  "sext"       ),
+    ATTR32_CRC32            (        CRC32_R,         CRC32_R, RVANYB,  "crc32"      ),
+    ATTR32_CRC32            (       CRC32C_R,        CRC32C_R, RVANYB,  "crc32c"     ),
+    ATTR32_RD_RS1_RS2       (        CLMUL_R,         CLMUL_R, RVANYBK, "clmul"      ),
+    ATTR32_RD_RS1_RS2       (       CLMULW_R,         CLMUL_R, RVANYB,  "clmul"      ),
+    ATTR32_RD_RS1_RS2       (       CLMULR_R,        CLMULR_R, RVANYB,  "clmulr"     ),
+    ATTR32_RD_RS1_RS2       (       CLMULH_R,        CLMULH_R, RVANYBK, "clmulh"     ),
+    ATTR32_RD_RS1_RS2       (      CLMULHW_R,        CLMULH_R, RVANYB,  "clmulh"     ),
+    ATTR32_RD_RS1_RS2       (          MIN_R,           MIN_R, RVANYB,  "min"        ),
+    ATTR32_RD_RS1_RS2       (          MAX_R,           MAX_R, RVANYB,  "max"        ),
+    ATTR32_RD_RS1_RS2       (         MINU_R,          MINU_R, RVANYB,  "minu"       ),
+    ATTR32_RD_RS1_RS2       (         MAXU_R,          MAXU_R, RVANYB,  "maxu"       ),
+    ATTR32_RD_RS1_RS2       (         SHFL_R,          SHFL_R, RVANYB,  "shfl"       ),
+    ATTR32_RD_RS1_RS2       (       UNSHFL_R,        UNSHFL_R, RVANYB,  "unshfl"     ),
+    ATTR32_RD_RS1_RS2       (         BDEP_R,          BDEP_R, RVANYB,  "bdep"       ),
+    ATTR32_RD_RS1_RS2       (  BDECOMPRESS_R,          BDEP_R, RVANYB,  "bdecompress"),
+    ATTR32_RD_RS1_RS2       (        BEXTX_R,          BEXT_R, RVANYB,  "bext"       ),
+    ATTR32_RD_RS1_RS2       (    BCOMPRESS_R,          BEXT_R, RVANYB,  "bcompress"  ),
+    ATTR32_RD_RS1_RS2       (         PACK_R,          PACK_R, RVANYBK, "pack"       ),
+    ATTR32_RD_RS1_RS2       (        PACKH_R,         PACKH_R, RVANYBK, "packh"      ),
+    ATTR32_RD_RS1_RS2       (        PACKU_R,         PACKU_R, RVANYBK, "packu"      ),
+    ATTR32_RD_RS1_RS2       (        PACKW_R,         PACKW_R, RV64BK,  "pack"       ),
+    ATTR32_RD_RS1_RS2       (       PACKUW_R,        PACKUW_R, RV64BK,  "packu"      ),
+    ATTR32_RD_RS1_RS2       (     ZEXT32_H_R,      ZEXT32_H_R, RV32BK,  "pack"       ),
+    ATTR32_RD_RS1_RS2       (     ZEXT64_H_R,      ZEXT64_H_R, RV64BK,  "pack"       ),
+    ATTR32_RD_RS1_rs2       (     BMATFLIP_R,      BMATFLIP_R, RV64B,   "bmatflip"   ),
+    ATTR32_RD_RS1_RS2       (       BMATOR_R,        BMATOR_R, RV64B,   "bmator"     ),
+    ATTR32_RD_RS1_RS2       (      BMATXOR_R,       BMATXOR_R, RV64B,   "bmatxor"    ),
+    ATTR32_RD_RS1_RS2       (          BFP_R,           BFP_R, RVANYB,  "bfp"        ),
+    ATTR32_RD_RS1_RS2_U     (        ADDWU_R,         ADDWU_R, RVANYB,  "add"        ),
+    ATTR32_RD_RS1_RS2_U     (        SUBWU_R,         SUBWU_R, RVANYB,  "sub"        ),
+    ATTR32_RD_RS1_RS2       (       ADDU_W_R,        ADDU_W_R, RVANYB,  "addu."      ),
+    ATTR32_RD_RS1_RS2       (       ADD_UW_R,        ADDU_W_R, RVANYB,  "add.u"      ),
+    ATTR32_RD_RS1_RS2       (       SUBU_W_R,        SUBU_W_R, RVANYB,  "subu."      ),
+    ATTR32_RD_RS1_RS2_SHN   (        SHADD_R,         SHADD_R, RVANYB,  "add"        ),
+    ATTR32_RD_RS1_RS2_SHN   (     SHADDU_W_R,         SHADD_R, RVANYB,  "addu."      ),
+    ATTR32_RD_RS1_RS2_SHN   (     SHADD_UW_R,         SHADD_R, RVANYB,  "add.u"      ),
+    ATTR32_RD_RS1_RS2_XPERM (      XPERM_N_R,         XPERM_R, RVANYBK, "xperm.n"    ),
+    ATTR32_RD_RS1_RS2_XPERM (      XPERM_B_R,         XPERM_R, RVANYBK, "xperm.b"    ),
+    ATTR32_RD_RS1_RS2_XPERM (      XPERM_H_R,         XPERM_R, RVANYB,  "xperm.h"    ),
+    ATTR32_RD_RS1_RS2_XPERM (      XPERM_W_R,         XPERM_R, RV64B,   "xperm.w"    ),
 
     // B-extension I-type instructions
     ATTR32_RD_RS1_SSHIFT    (         SLOI_I,          SLOI_I, RVANYB,  "sloi"    ),
     ATTR32_RD_RS1_SSHIFT    (         SROI_I,          SROI_I, RVANYB,  "sroi"    ),
     ATTR32_RD_RS1_SSHIFT    (         RORI_I,          RORI_I, RVANYBK, "rori"    ),
     ATTR32_RD_RS1_SSHIFT    (       SBCLRI_I,        SBCLRI_I, RVANYB,  "sbclri"  ),
+    ATTR32_RD_RS1_SSHIFT    (        BCLRI_I,        SBCLRI_I, RVANYB,  "bclri"   ),
     ATTR32_RD_RS1_SSHIFT    (       SBSETI_I,        SBSETI_I, RVANYB,  "sbseti"  ),
+    ATTR32_RD_RS1_SSHIFT    (        BSETI_I,        SBSETI_I, RVANYB,  "bseti"   ),
     ATTR32_RD_RS1_SSHIFT    (       SBINVI_I,        SBINVI_I, RVANYB,  "sbinvi"  ),
+    ATTR32_RD_RS1_SSHIFT    (        BINVI_I,        SBINVI_I, RVANYB,  "binvi"   ),
     ATTR32_RD_RS1_SSHIFT    (       SBEXTI_I,        SBEXTI_I, RVANYB,  "sbexti"  ),
+    ATTR32_RD_RS1_SSHIFT    (        BEXTI_I,        SBEXTI_I, RVANYB,  "bexti"   ),
     ATTR32_RD_RS1_USHIFT    (        GORCI_I,         GORCI_I, RVANYB,  "gorci"   ),
     ATTR32_RD_RS1_USHIFT    (        GREVI_I,         GREVI_I, RVANYB,  "grevi"   ),
     ATTR32_RD_RS1_SSHIFT    (        SHFLI_I,         SHFLI_I, RVANYB,  "shfli"   ),
     ATTR32_RD_RS1_SSHIFT    (      UNSHFLI_I,       UNSHFLI_I, RVANYB,  "unshfli" ),
     ATTR32_RD_RS1_SI_U      (       ADDIWU_I,        ADDIWU_I, RVANYB,  "addi"    ),
     ATTR32_RD_RS1_USHIFT    (      SLLIU_W_I,       SLLIU_W_I, RVANYB,  "slliu."  ),
+    ATTR32_RD_RS1_USHIFT    (      SLLI_UW_I,       SLLIU_W_I, RVANYB,  "slli.u"  ),
 
     // B-extension I-type partial instructions shared with K-extension
     ATTR32_RD_RS1_USHIFT    (      GORCI_I_K,         GORCI_I, RVANYBK, "gorci"   ),
@@ -2886,6 +3047,8 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VLXEI            (       VSUXEI_I,           VSX_I, RVANYV,  "vsux"),
 
     // V-extension load/store instructions (1.0 and later)
+    ATTR32_VLE1             (         VLE1_I,            VL_I, RVANYV,  "vl"  ),
+    ATTR32_VLE1             (         VSE1_I,            VS_I, RVANYV,  "vs"  ),
     ATTR32_VLXEI            (       VLUXEI_I,           VLX_I, RVANYV,  "vlux"),
     ATTR32_VLXEI            (       VLOXEI_I,           VLX_I, RVANYV,  "vlox"),
     ATTR32_VLXEI            (       VSOXEI_I,           VSX_I, RVANYV,  "vsox"),
@@ -3006,8 +3169,8 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_M_VN      (    VFNCVT_FF_V,     VFNCVT_FF_V, RVANYV,  "vfncvt.f.f"     ),
     ATTR32_VD_VS1_M_W_ROD   ( VFNCVTROD_FF_V,     VFNCVT_FF_V, RVANYV,  "vfncvt.rod.f.f" ),
     ATTR32_VD_VS1_M_V       (       VFSQRT_V,        VFSQRT_V, RVANYV,  "vfsqrt"         ),
-    ATTR32_VD_VS1_M_V       (    VFRSQRTE7_V,     VFRSQRTE7_V, RVANYV,  "vfrsqrte7"      ),
-    ATTR32_VD_VS1_M_V       (      VFRECE7_V,       VFRECE7_V, RVANYV,  "vfrece7"        ),
+    ATTR32_VD_VS1_M_V       (    VFRSQRTE7_V,     VFRSQRTE7_V, RVANYV,  "vfrsqrt7"       ),
+    ATTR32_VD_VS1_M_V       (      VFRECE7_V,       VFRECE7_V, RVANYV,  "vfrec7"         ),
     ATTR32_VD_VS1_M_V       (      VFCLASS_V,       VFCLASS_V, RVANYV,  "vfclass"        ),
     ATTR32_VD_VS1_VS2_M_VV  (       VFMUL_VV,        VFMUL_VR, RVANYV,  "vfmul"          ),
     ATTR32_VD_VS2_VS1_M_VV  (      VFMADD_VV,       VFMADD_VR, RVANYV,  "vfmadd"         ),
@@ -3315,9 +3478,27 @@ static vmidDecodeTableP createExtDecodeTable32(
         insertEntries32(table, &decodeBV091[0]);
     }
 
-    // handle bitmanip-extension-dependent table entries after version 0.92
+    // handle bitmanip-extension-dependent table entries until/after 0.92
     if(bitmanip_version>RVBV_0_92) {
         insertEntries32(table, &decodeBPostV092[0]);
+    }
+
+    // handle bitmanip-extension-dependent table entries for version 0.92 only
+    if(bitmanip_version==RVBV_0_92) {
+        insertEntries32(table, &decodeBV092[0]);
+    }
+
+    // handle bitmanip-extension-dependent table entries until/after 0.93-draft
+    if(bitmanip_version<=RVBV_0_93_DRAFT) {
+        insertEntries32(table, &decodeBUntilV093Draft[0]);
+    } else {
+        insertEntries32(table, &decodeBPostV093Draft[0]);
+    }
+
+    // handle bitmanip-extension-dependent table entries for version 0.93-draft
+    // only
+    if(bitmanip_version==RVBV_0_93_DRAFT) {
+        insertEntries32(table, &decodeBV093Draft[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.93
@@ -3325,6 +3506,11 @@ static vmidDecodeTableP createExtDecodeTable32(
         insertEntries32(table, &decodeBUntilV093[0]);
     } else {
         insertEntries32(table, &decodeBPostV093[0]);
+    }
+
+    // handle bitmanip-extension-dependent table entries for version 0.93 only
+    if(bitmanip_version==RVBV_0_93) {
+        insertEntries32(table, &decodeBV093[0]);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3461,9 +3647,19 @@ static riscvIType32 getInstructionType32(riscvP riscv, riscvInstrInfoP info) {
     // decode the instruction using decode table
     riscvIType32 result = vmidDecode(table, info->instruction);
 
-    // cryptographic instructions require type refinement
-    if(isCryptoAES32_81(result) && (getXLenBits(riscv)==64)) {
+    if((result==IT32_ZEXT32_H_R) && (getXLenBits(riscv)==64)) {
 
+        // RV32 zext.h is treated as pack on RV64
+        result = IT32_PACK_R;
+
+    } else if((result==IT32_ZEXT64_H_R) && (getXLenBits(riscv)==32)) {
+
+        // RV64 zext.h is treated as packw on RV32
+        result = IT32_PACKW_R;
+
+    } else if(isCryptoAES32_81(result) && (getXLenBits(riscv)==64)) {
+
+        // cryptographic instructions require type refinement
         static vmidDecodeTableP tableAES64;
 
         if(!tableAES64) {
@@ -3999,6 +4195,9 @@ static Uns64 getConstant(
     Uns64 result = 0;
     Uns32 instr  = info->instruction;
 
+    // table mapping to element bits for xperm instruction
+    const static Uns8 mapXPERMBits[4] = {32, 4, 8, 16};
+
     switch(c) {
         case CS_NA:
             break;
@@ -4023,6 +4222,9 @@ static Uns64 getConstant(
         case CS_S_31_25_11_7:
             result  = S_31_25(instr) << 5;
             result += U_11_7(instr);
+            break;
+        case CS_XPERM_14_13:
+            result = mapXPERMBits[U_14_13(instr)];
             break;
         case CS_SHAMT_25_20:
             result = U_25_20(instr);
@@ -4324,6 +4526,9 @@ static Uns32 getEEW(riscvInstrInfoP info, eewSpec eew) {
     switch(eew) {
         case EEW_NA:
             break;
+        case EEW_1:
+            result = 1;
+            break;
         case EEW_16:
             result = 16;
             break;
@@ -4385,6 +4590,9 @@ static Uns32 getMemBits(
             break;
         case MBS_SEW:
             result = -1;
+            break;
+        case MBS_B:
+            result = 8;
             break;
         case MBS_W:
             result = 32;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -115,6 +115,29 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
             [RVVF_FRACT_LMUL]         = 1,
             [RVVF_AGNOSTIC]           = 1,
             [RVVF_MLEN1]              = 1,
+        },
+
+        // version 1.0-draft-20210130
+        [RVVV_1_0_20210130] = {
+            [RVVF_W_SYNTAX]           = 1,
+            [RVVF_SEXT_VMV_X_S]       = 1,
+            [RVVF_VAMO_SEW]           = 1,
+            [RVVF_ADC_SBC_MASK]       = 1,
+            [RVVF_SEXT_SLIDE1_SRC]    = 1,
+            [RVVF_FP_REQUIRES_FSNZ]   = 1,
+            [RVVF_VLENB_PRESENT]      = 1,
+            [RVVF_VCSR_PRESENT]       = 1,
+            [RVVF_VS_STATUS_9]        = 1,
+            [RVVF_FP_RESTRICT_WHOLE]  = 1,
+            [RVVF_FRACT_LMUL]         = 1,
+            [RVVF_AGNOSTIC]           = 1,
+            [RVVF_MLEN1]              = 1,
+            [RVVF_EEW_OVERLAP]        = 1,
+            [RVVF_SLEN_IS_VLEN]       = 1,
+            [RVVF_ELEN_GT_VLEN]       = 1,
+            [RVVF_VLR_HINT]           = 1,
+            [RVVF_VTYPE_10]           = 1,
+            [RVVF_SETVLZ_ILLEGAL]     = 1,
         },
 
         // version master

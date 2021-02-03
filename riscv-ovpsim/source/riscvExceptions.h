@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,9 +162,9 @@ void riscvSetStepBreakpoint(riscvP riscv);
 void riscvWFI(riscvP riscv);
 
 //
-// Does the processor implement the exception or interrupt?
+// Does the processor implement the stndard exception or interrupt?
 //
-Bool riscvHasException(riscvP riscv, riscvException code);
+Bool riscvHasStandardException(riscvP riscv, riscvException code);
 
 //
 // Return total number of interrupts (including 0 to 15)

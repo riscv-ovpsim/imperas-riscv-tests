@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -570,6 +570,46 @@ static Uns64 doBFP92_64(Uns64 rs1, Uns64 rs2) {
     return (data & mask) | (rs1 & ~mask);
 }
 
+//
+// Do XPERM (32-bit registers)
+//
+static Uns32 doXPERM32(Uns32 rs1, Uns32 sz, Uns32 rs2) {
+
+    Int32 XLEN = 32;
+    Uns32 r    = 0;
+    Uns32 mask = (1LL << sz) - 1;
+    Uns32 i;
+
+    for (i=0; i < XLEN; i += sz) {
+        Uns32 pos = ((rs2 >> i) & mask) * sz;
+        if(pos < XLEN) {
+            r |= ((rs1 >> pos) & mask) << i;
+        }
+    }
+
+    return r;
+}
+
+//
+// Do XPERM (64-bit registers)
+//
+static Uns64 doXPERM64(Uns64 rs1, Uns32 sz, Uns64 rs2) {
+
+    Int32 XLEN = 64;
+    Uns64 r    = 0;
+    Uns64 mask = (1LL << sz) - 1;
+    Uns32 i;
+
+    for (i=0; i < XLEN; i += sz) {
+        Uns32 pos = ((rs2 >> i) & mask) * sz;
+        if(pos < XLEN) {
+            r |= ((rs1 >> pos) & mask) << i;
+        }
+    }
+
+    return r;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // B-EXTENSION PUBLIC INTERFACE
@@ -614,66 +654,72 @@ typedef struct opDescS {
 // Entries with subset only, version-invariant
 //
 #define OPENTRYxV_S(_NAME, _S) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S(_S),              \
-    [RVBV_0_91]   = OPENTRY_S(_S),              \
-    [RVBV_0_92]   = OPENTRY_S(_S),              \
-    [RVBV_0_93]   = OPENTRY_S(_S),              \
-    [RVBV_MASTER] = OPENTRY_S(_S),              \
+    [RVBV_0_90]       = OPENTRY_S(_S),              \
+    [RVBV_0_91]       = OPENTRY_S(_S),              \
+    [RVBV_0_92]       = OPENTRY_S(_S),              \
+    [RVBV_0_93_DRAFT] = OPENTRY_S(_S),              \
+    [RVBV_0_93]       = OPENTRY_S(_S),              \
+    [RVBV_MASTER]     = OPENTRY_S(_S),              \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S_CB(_S, _CB),      \
-    [RVBV_0_91]   = OPENTRY_S_CB(_S, _CB),      \
-    [RVBV_0_92]   = OPENTRY_S_CB(_S, _CB),      \
-    [RVBV_0_93]   = OPENTRY_S_CB(_S, _CB),      \
-    [RVBV_MASTER] = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_90]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_91]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_92]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_93]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_MASTER]     = OPENTRY_S_CB(_S, _CB),      \
 }
 
 //
 // Entries with subset and 32/64 bit version-dependent callbacks
 //
 #define OPENTRYxV_S_CBxV(_NAME, _S, _CB90, _CB91, _CB92, _CB93) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S_CB(_S, _CB90),    \
-    [RVBV_0_91]   = OPENTRY_S_CB(_S, _CB91),    \
-    [RVBV_0_92]   = OPENTRY_S_CB(_S, _CB92),    \
-    [RVBV_0_93]   = OPENTRY_S_CB(_S, _CB93),    \
-    [RVBV_MASTER] = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_0_90]       = OPENTRY_S_CB(_S, _CB90),    \
+    [RVBV_0_91]       = OPENTRY_S_CB(_S, _CB91),    \
+    [RVBV_0_92]       = OPENTRY_S_CB(_S, _CB92),    \
+    [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_0_93]       = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_MASTER]     = OPENTRY_S_CB(_S, _CB93),    \
 }
 
 //
 // Entries with version-dependent subset
 //
-#define OPENTRYxV_SxV(_NAME, _S90, _S91, _S92, _S93) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S(_S90),            \
-    [RVBV_0_91]   = OPENTRY_S(_S91),            \
-    [RVBV_0_92]   = OPENTRY_S(_S92),            \
-    [RVBV_0_93]   = OPENTRY_S(_S93),            \
-    [RVBV_MASTER] = OPENTRY_S(_S93),            \
+#define OPENTRYxV_SxV(_NAME, _S90, _S91, _S92, _S93D, _S93) [RVBOP_##_NAME] = { \
+    [RVBV_0_90]       = OPENTRY_S(_S90),            \
+    [RVBV_0_91]       = OPENTRY_S(_S91),            \
+    [RVBV_0_92]       = OPENTRY_S(_S92),            \
+    [RVBV_0_93_DRAFT] = OPENTRY_S(_S93D),           \
+    [RVBV_0_93]       = OPENTRY_S(_S93),            \
+    [RVBV_MASTER]     = OPENTRY_S(_S93),            \
 }
 
 //
 // Entries with version-dependent subset and 32/64 bit callbacks
 //
-#define OPENTRYxV_SxV_CB(_NAME, _S90, _S91, _S92, _S93, _CB) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S_CB(_S90, _CB),    \
-    [RVBV_0_91]   = OPENTRY_S_CB(_S91, _CB),    \
-    [RVBV_0_92]   = OPENTRY_S_CB(_S92, _CB),    \
-    [RVBV_0_93]   = OPENTRY_S_CB(_S93, _CB),    \
-    [RVBV_MASTER] = OPENTRY_S_CB(_S93, _CB),    \
+#define OPENTRYxV_SxV_CB(_NAME, _S90, _S91, _S92, _S93D, _S93, _CB) [RVBOP_##_NAME] = { \
+    [RVBV_0_90]       = OPENTRY_S_CB(_S90,  _CB),   \
+    [RVBV_0_91]       = OPENTRY_S_CB(_S91,  _CB),   \
+    [RVBV_0_92]       = OPENTRY_S_CB(_S92,  _CB),   \
+    [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S93D, _CB),   \
+    [RVBV_0_93]       = OPENTRY_S_CB(_S93,  _CB),   \
+    [RVBV_MASTER]     = OPENTRY_S_CB(_S93,  _CB),   \
 }
 
 //
 // Entries with subset and 64 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVBOP_##_NAME] = { \
-    [RVBV_0_90]   = OPENTRY_S_CB64(_S, _CB64),  \
-    [RVBV_0_91]   = OPENTRY_S_CB64(_S, _CB64),  \
-    [RVBV_0_92]   = OPENTRY_S_CB64(_S, _CB64),  \
-    [RVBV_0_93]   = OPENTRY_S_CB64(_S, _CB64),  \
-    [RVBV_MASTER] = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_90]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_91]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_92]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_93_DRAFT] = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_93]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_MASTER]     = OPENTRY_S_CB64(_S, _CB64),  \
 }
 
 //
@@ -681,44 +727,50 @@ typedef struct opDescS {
 //
 static const opDesc opInfo[RVBOP_LAST][RVBV_LAST] = {
 
-    OPENTRYxV_S      (Zba,      a                                          ),
-    OPENTRYxV_S      (Zbb,      b                                          ),
-    OPENTRYxV_S      (Zbc,      c                                          ),
-    OPENTRYxV_S      (Zbe,      e                                          ),
-    OPENTRYxV_S      (Zbf,      f                                          ),
-    OPENTRYxV_S      (Zbm,      m                                          ),
-    OPENTRYxV_S      (Zbp,      p                                          ),
-    OPENTRYxV_S      (Zbr,      r                                          ),
-    OPENTRYxV_S      (Zbs,      s                                          ),
-    OPENTRYxV_S      (Zbt,      t                                          ),
-    OPENTRYxV_S      (Zbbp,     bp                                         ),
+    OPENTRYxV_S      (Zba,      a                                                 ),
+    OPENTRYxV_S      (Zbb,      b                                                 ),
+    OPENTRYxV_S      (Zbc,      c                                                 ),
+    OPENTRYxV_S      (Zbe,      e                                                 ),
+    OPENTRYxV_S      (Zbf,      f                                                 ),
+    OPENTRYxV_S      (Zbm,      m                                                 ),
+    OPENTRYxV_S      (Zbp,      p                                                 ),
+    OPENTRYxV_S      (Zbr,      r                                                 ),
+    OPENTRYxV_S      (Zbs,      s                                                 ),
+    OPENTRYxV_S      (Zbt,      t                                                 ),
+    OPENTRYxV_S      (Zbbp,     bp                                                ),
+    OPENTRYxV_S      (Zbmp,     mp                                                ),
+    OPENTRYxV_S      (Zbefmp,   efmp                                              ),
+    OPENTRYxV_S      (Zbefp,    efp                                               ),
 
-    OPENTRYxV_S_CB   (GORC,     p,           GORC                          ),
-    OPENTRYxV_S_CB   (ORCB,     bp,          GORC                          ),
-    OPENTRYxV_SxV_CB (ORC16,    p, p, p, bp, GORC                          ),
-    OPENTRYxV_S_CB   (GREV,     p,           GREV                          ),
-    OPENTRYxV_S_CB   (REV8,     bp,          GREV                          ),
-    OPENTRYxV_S_CB   (REV,      bp,          GREV                          ),
-    OPENTRYxV_S_CB   (CRC32,    r,           CRC32_                        ),
-    OPENTRYxV_S_CB   (SHFL,     p,           SHFL                          ),
-    OPENTRYxV_S_CB   (UNSHFL,   p,           UNSHFL                        ),
-    OPENTRYxV_S_CB64 (BMATFLIP, m,           BMATFLIP                      ),
-    OPENTRYxV_S_CB64 (BMATOR,   m,           BMATOR                        ),
-    OPENTRYxV_S_CB64 (BMATXOR,  m,           BMATXOR                       ),
-    OPENTRYxV_S_CB   (BEXT,     e,           BEXT                          ),
-    OPENTRYxV_S_CB   (BDEP,     e,           BDEP                          ),
-    OPENTRYxV_S_CB   (FSL,      t,           FSL                           ),
-    OPENTRYxV_S_CB   (FSR,      t,           FSR                           ),
-    OPENTRYxV_S_CBxV (BFP,      f,           BFP91_, BFP91_, BFP92_, BFP92_),
-    OPENTRYxV_SxV    (SLO_SRO,  b, b, b, p                                 ),
+    OPENTRYxV_S_CB   (GORC,     p,                  GORC                          ),
+    OPENTRYxV_SxV_CB (ORCB,     bp, bp, bp, bp, b,  GORC                          ),
+    OPENTRYxV_SxV_CB (ORC16,    p,  p,  p,  bp, p,  GORC                          ),
+    OPENTRYxV_S_CB   (GREV,     p,                  GREV                          ),
+    OPENTRYxV_SxV_CB (REV8,     bp, bp, bp, bp, b,  GREV                          ),
+    OPENTRYxV_SxV_CB (REV,      bp, bp, bp, bp, p,  GREV                          ),
+    OPENTRYxV_S_CB   (CRC32,    r,                  CRC32_                        ),
+    OPENTRYxV_S_CB   (SHFL,     p,                  SHFL                          ),
+    OPENTRYxV_S_CB   (UNSHFL,   p,                  UNSHFL                        ),
+    OPENTRYxV_S_CB64 (BMATFLIP, m,                  BMATFLIP                      ),
+    OPENTRYxV_S_CB64 (BMATOR,   m,                  BMATOR                        ),
+    OPENTRYxV_S_CB64 (BMATXOR,  m,                  BMATXOR                       ),
+    OPENTRYxV_S_CB   (BEXT,     e,                  BEXT                          ),
+    OPENTRYxV_S_CB   (BDEP,     e,                  BDEP                          ),
+    OPENTRYxV_SxV    (PACK,     bp, bp, bp, bp, efmp                              ),
+    OPENTRYxV_SxV    (PACKU,    bp, bp, bp, bp, mp                                ),
+    OPENTRYxV_SxV    (PACKH,    bp, bp, bp, bp, efp                               ),
+    OPENTRYxV_SxV    (PACKW,    bp, bp, bp, bp, efp                               ),
+    OPENTRYxV_SxV    (PACKUW,   bp, bp, bp, bp, p                                 ),
+    OPENTRYxV_SxV    (ZEXT32_H, bp, bp, bp, bp, befmp                             ),
+    OPENTRYxV_SxV    (ZEXT64_H, bp, bp, bp, bp, befp                              ),
+    OPENTRYxV_S_CB   (FSL,      t,                  FSL                           ),
+    OPENTRYxV_S_CB   (FSR,      t,                  FSR                           ),
+    OPENTRYxV_S_CBxV (BFP,      f,                  BFP91_, BFP91_, BFP92_, BFP92_),
+    OPENTRYxV_SxV    (ADD_UW,   b,  b,  b,  b,  a                                 ),
+    OPENTRYxV_SxV    (SLLI_UW,  b,  b,  b,  b,  a                                 ),
+    OPENTRYxV_SxV    (SLO_SRO,  b,  b,  b,  p,  _                                 ),
+    OPENTRYxV_S_CB   (XPERM,    p,                  XPERM                         ),
 };
-
-//
-// Return current program counter
-//
-inline static Uns64 getPC(riscvP riscv) {
-    return vmirtGetPC((vmiProcessorP)riscv);
-}
 
 //
 // Get operation description for this operation
@@ -751,17 +803,29 @@ static const char *getSubsetDesc(riscvBitManipSet requiredSet) {
 
     // get missing subset description
     switch(requiredSet) {
-        case RVBS_Zba : description = "Zba";         break;
-        case RVBS_Zbb : description = "Zbb";         break;
-        case RVBS_Zbc : description = "Zbc";         break;
-        case RVBS_Zbe : description = "Zbe";         break;
-        case RVBS_Zbf : description = "Zbf";         break;
-        case RVBS_Zbm : description = "Zbm";         break;
-        case RVBS_Zbp : description = "Zbp";         break;
-        case RVBS_Zbr : description = "Zbr";         break;
-        case RVBS_Zbs : description = "Zbs";         break;
-        case RVBS_Zbt : description = "Zbt";         break;
-        case RVBS_Zbbp: description = "Zbb and Zbp"; break;
+
+        // ALWAYS ABSENT
+        case RVBS_Zb_ : description = "always"; break;
+
+        // INDIVIDUAL SETS
+        case RVBS_Zba : description = "Zba"; break;
+        case RVBS_Zbb : description = "Zbb"; break;
+        case RVBS_Zbc : description = "Zbc"; break;
+        case RVBS_Zbe : description = "Zbe"; break;
+        case RVBS_Zbf : description = "Zbf"; break;
+        case RVBS_Zbm : description = "Zbm"; break;
+        case RVBS_Zbp : description = "Zbp"; break;
+        case RVBS_Zbr : description = "Zbr"; break;
+        case RVBS_Zbs : description = "Zbs"; break;
+        case RVBS_Zbt : description = "Zbt"; break;
+
+        // COMPOSITE SETS
+        case RVBS_Zbbp   : description = "Zbb and Zbp";                break;
+        case RVBS_Zbmp   : description = "Zbm and Zbp";                break;
+        case RVBS_Zbefmp : description = "Zbe, Zbf, Zbm and Zbp";      break;
+        case RVBS_Zbefp  : description = "Zbe, Zbf and Zbp";           break;
+        case RVBS_Zbbefmp: description = "Zbb, Zbe, Zbf, Zbm and Zbp"; break;
+        case RVBS_Zbbefp : description = "Zbb, Zbe, Zbf and Zbp";      break;
     }
 
     // sanity check known subset
@@ -806,13 +870,10 @@ static void emitIllegalInstructionAbsentSubset(riscvBitManipSet requiredSet) {
 //
 Bool riscvValidateBExtSubset(riscvP riscv, riscvBExtOp op) {
 
-    if(op!=RVBOP_NONE) {
+    if((op!=RVBOP_NONE) && bitmanipEnabled(riscv)) {
 
         opDescCP         desc        = getOpDesc(riscv, op);
         riscvBitManipSet requiredSet = desc->subset;
-
-        // sanity check subset is specified
-        VMI_ASSERT(requiredSet, "require subset for operation %u", op);
 
         if(!(requiredSet&~riscv->configInfo.bitmanip_absent)) {
             emitIllegalInstructionAbsentSubset(requiredSet);

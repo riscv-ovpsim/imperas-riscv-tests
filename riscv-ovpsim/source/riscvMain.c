@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -224,6 +224,16 @@ static Uns64 powerOfTwo(Uns64 oldValue, const char *name) {
 }
 
 //
+// Handle absent cryptographic subsets
+//
+#define ADD_K_SET(_PROC, _CFG, _PARAMS, _NAME) { \
+    if(!_PARAMS->_NAME) {                       \
+        _CFG->crypto_absent |= RVKS_##_NAME;  \
+    }                                           \
+    REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME);  \
+}
+
+//
 // Apply parameters applicable to SMP member
 //
 static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
@@ -357,7 +367,6 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
 
     // some K-extension parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, K_scalar_profile);
-    REQUIRE_COMMERCIAL(riscv, params, K_vector_profile);
 
     // some V-extension parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, Zvlsseg);
@@ -419,13 +428,16 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     ADD_BM_SET(riscv, cfg, params, Zbt);
 
     // handle cryptographic profile parameters
-    Uns32 K_scalar_profile = params->K_scalar_profile;
-    Uns32 K_vector_profile = params->K_vector_profile;
-
-    cfg->crypto_absent = ~(
-        (K_scalar_profile ? (RVKS_S1<<(params->K_scalar_profile-1)) : 0) |
-        (K_vector_profile ? (RVKS_V1<<(params->K_vector_profile-1)) : 0)
-    );
+    cfg->crypto_absent = 0;
+    ADD_K_SET(riscv, cfg, params, Zkb);
+    ADD_K_SET(riscv, cfg, params, Zkg);
+    ADD_K_SET(riscv, cfg, params, Zkr);
+    ADD_K_SET(riscv, cfg, params, Zknd);
+    ADD_K_SET(riscv, cfg, params, Zkne);
+    ADD_K_SET(riscv, cfg, params, Zknh);
+    ADD_K_SET(riscv, cfg, params, Zksd);
+    ADD_K_SET(riscv, cfg, params, Zkse);
+    ADD_K_SET(riscv, cfg, params, Zksh);
 
     // set number of children
     Bool isSMPMember = riscv->parent && !riscvIsCluster(riscv->parent);

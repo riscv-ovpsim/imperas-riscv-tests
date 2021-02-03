@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VP RISC-V "V" Vector Extension:
     254 test source files
     5 different instruction categories
-    44 different instructions
+    40 different instructions
     147,365 total instructions
 
 Instruction category: OPV_GACO gather
@@ -47,19 +47,17 @@ Instruction category: OPV_SLIDE slide
   vslideup.vx : 639
 
 Other instructions (those not the focus of this suite)
-  j : 254
-  csrr : 1,016
-  bnez : 254
+  jal : 254
+  csrrs : 1,270
+  bne : 254
   auipc : 7,965
-  addi : 47,345
-  csrw : 2,032
-  csrwi : 1,524
-  mv : 1,495
+  addi : 48,888
+  csrrw : 2,032
+  csrrwi : 1,524
   slli : 254
-  bltz : 254
-  beqz : 254
+  blt : 254
+  beq : 508
   lui : 2,096
-  csrs : 254
   or : 254
   mret : 254
   vsetvli : 22,924
@@ -68,9 +66,7 @@ Other instructions (those not the focus of this suite)
   vse.v : 6,519
   fence : 254
   ecall : 254
-  beq : 254
   fmv.x.s : 224
   sw : 320
   fmv.s.x : 224
-  nop : 48
 

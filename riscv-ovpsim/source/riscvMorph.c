@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1364,6 +1364,7 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
         if(!supportedFBitsMT(riscv, bits)) {
             // no further action for unsupported floating point types
         } else if(riscvRequireArchPresentMT(riscv, getFRegArch(riscv, bits))) {
+            riscv->usingFP = True;
             result = RISCV_FPR(index);
         }
 
@@ -6928,6 +6929,8 @@ static void getVectorOpRegisters(riscvMorphStateP state, iterDescP id) {
             // take into account EEW encoded in the instruction
             if(!eew) {
                 // no encoded EEW
+            } else if(eew==1) {
+                // unit stride mask load/store
             } else if(state->info.isWhole) {
                 // encoded EEW is a hint but otherwise ignored
             } else if((i==2) || (state->info.memBits>0)) {
@@ -7130,6 +7133,13 @@ static void checkVStartZero(riscvMorphStateP state, iterDescP id) {
 }
 
 //
+// Return register holding effective vector length (EVL)
+//
+inline static vmiReg getEVLReg(riscvMorphStateP state) {
+    return (state->info.eew==1) ? RISCV_VL_EEW1 : CSR_REG_MT(vl);
+}
+
+//
 // Validate vstart CSR is in range
 //
 static void validateVStart(
@@ -7143,7 +7153,7 @@ static void validateVStart(
     if(state->info.isWhole) {
         vmimtCompareRCJumpLabel(32, cond, vstart, getVLMAXOp(id), label);
     } else {
-        vmimtCompareRRJumpLabel(32, cond, vstart, CSR_REG_MT(vl), label);
+        vmimtCompareRRJumpLabel(32, cond, vstart, getEVLReg(state), label);
     }
 }
 
@@ -7157,7 +7167,7 @@ static void clampVStart(riscvMorphStateP state, iterDescP id) {
     if(state->info.isWhole) {
         vmimtMoveRC(64, vstart, getVLMAXOp(id));
     } else {
-        vmimtMoveExtendRR(64, vstart, 32, CSR_REG_MT(vl), False);
+        vmimtMoveExtendRR(64, vstart, 32, getEVLReg(state), False);
     }
 }
 
@@ -7696,10 +7706,20 @@ static riscvVLClassMt fillVectorOperationData(
         vlClass     = getVLClassMt(state, id);
     }
 
-    // do actions required when SEW is forced to 8
-    if(forceSEW8(state, id)) {
+    if(state->info.eew==1) {
 
-        // override effective SEW
+        // mask load/store : override effective SEW and VLMUL
+        id->SEW     = SEWMT_8;
+        id->VLMULx8 = VLMULx8MT_1;
+
+        // force operation class to non-zero if maximum but SEW is restricted
+        if(vlClass==VLCLASSMT_MAX) {
+            vlClass = VLCLASSMT_NONZERO;
+        }
+
+    } else if(forceSEW8(state, id)) {
+
+        // SEW is forced to 8 : override effective SEW
         id->SEW = SEWMT_8;
 
         // force operation class to non-zero if maximum but SEW is restricted
@@ -10660,76 +10680,81 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_CUSTOM]           = {morph:emitCustomAbsent},
 
     // B-extension R-type instructions
-    [RV_IT_ANDN_R]           = {morph:emitBinopRRR,  binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_ORN_R]            = {morph:emitBinopRRR,  binop:vmi_ORN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_XNOR_R]           = {morph:emitBinopRRR,  binop:vmi_XNOR, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_SLO_R]            = {morph:emitShiftORRR, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO },
-    [RV_IT_SRO_R]            = {morph:emitShiftORRR, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO },
-    [RV_IT_ROL_R]            = {morph:emitBinopRRR,  binop:vmi_ROL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_ROR_R]            = {morph:emitBinopRRR,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_SBCLR_R]          = {morph:emitSBitopRRR, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBSET_R]          = {morph:emitSBitopRRR, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBINV_R]          = {morph:emitSBitopRRR, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBEXT_R]          = {morph:emitEBitopRRR,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_GORC_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC    },
-    [RV_IT_GREV_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV    },
-    [RV_IT_CLZ_R]            = {morph:emitUnopRR,    unop:vmi_CLZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_CTZ_R]            = {morph:emitUnopRR,    unop:vmi_CTZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_PCNT_R]           = {morph:emitUnopRR,    unop:vmi_CNTO,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SEXT_R]           = {morph:emitMoveExtendRR,              iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_CRC32_R]          = {morph:emitCRC32,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32   },
-    [RV_IT_CRC32C_R]         = {morph:emitCRC32C,                    iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32   },
-    [RV_IT_CLMUL_R]          = {morph:emitBinopRRR,  binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc     },
-    [RV_IT_CLMULR_R]         = {morph:emitCLMULR,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc     },
-    [RV_IT_CLMULH_R]         = {morph:emitCLMULH,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc     },
-    [RV_IT_MIN_R]            = {morph:emitBinopRRR,  binop:vmi_IMIN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_MAX_R]            = {morph:emitBinopRRR,  binop:vmi_IMAX, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_MINU_R]           = {morph:emitBinopRRR,  binop:vmi_MIN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_MAXU_R]           = {morph:emitBinopRRR,  binop:vmi_MAX,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SHFL_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL    },
-    [RV_IT_UNSHFL_R]         = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL  },
-    [RV_IT_BDEP_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BDEP    },
-    [RV_IT_BEXT_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BEXT    },
-    [RV_IT_PACK_R]           = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_PACKU_R]          = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_PACKH_R]          = {morph:emitPACKH,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_BMATFLIP_R]       = {morph:emit3264RR,    opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATFLIP},
-    [RV_IT_BMATOR_R]         = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATOR  },
-    [RV_IT_BMATXOR_R]        = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATXOR },
-    [RV_IT_BFP_R]            = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BFP     },
-    [RV_IT_ADDWU_R]          = {morph:emitBinopRRRW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SUBWU_R]          = {morph:emitBinopRRRW, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_ADDU_W_R]         = {morph:emitBinopWRRR, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SUBU_W_R]         = {morph:emitBinopWRRR, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SHADD_R]          = {morph:emitSHADD,     binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zba     },
+    [RV_IT_ANDN_R]           = {morph:emitBinopRRR,  binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_ORN_R]            = {morph:emitBinopRRR,  binop:vmi_ORN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_XNOR_R]           = {morph:emitBinopRRR,  binop:vmi_XNOR, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_SLO_R]            = {morph:emitShiftORRR, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                  },
+    [RV_IT_SRO_R]            = {morph:emitShiftORRR, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                  },
+    [RV_IT_ROL_R]            = {morph:emitBinopRRR,  binop:vmi_ROL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_ROR_R]            = {morph:emitBinopRRR,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_SBCLR_R]          = {morph:emitSBitopRRR, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBSET_R]          = {morph:emitSBitopRRR, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBINV_R]          = {morph:emitSBitopRRR, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBEXT_R]          = {morph:emitEBitopRRR,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_GORC_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC                     },
+    [RV_IT_GREV_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV                     },
+    [RV_IT_CLZ_R]            = {morph:emitUnopRR,    unop:vmi_CLZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_CTZ_R]            = {morph:emitUnopRR,    unop:vmi_CTZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_PCNT_R]           = {morph:emitUnopRR,    unop:vmi_CNTO,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_SEXT_R]           = {morph:emitMoveExtendRR,              iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_CRC32_R]          = {morph:emitCRC32,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32                    },
+    [RV_IT_CRC32C_R]         = {morph:emitCRC32C,                    iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32                    },
+    [RV_IT_CLMUL_R]          = {morph:emitBinopRRR,  binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc,     kExtOp:RVKOP_Zkg},
+    [RV_IT_CLMULR_R]         = {morph:emitCLMULR,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc                      },
+    [RV_IT_CLMULH_R]         = {morph:emitCLMULH,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc,     kExtOp:RVKOP_Zkg},
+    [RV_IT_MIN_R]            = {morph:emitBinopRRR,  binop:vmi_IMIN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_MAX_R]            = {morph:emitBinopRRR,  binop:vmi_IMAX, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_MINU_R]           = {morph:emitBinopRRR,  binop:vmi_MIN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_MAXU_R]           = {morph:emitBinopRRR,  binop:vmi_MAX,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_SHFL_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL,    kExtOp:RVKOP_Zkb},
+    [RV_IT_UNSHFL_R]         = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL,  kExtOp:RVKOP_Zkb},
+    [RV_IT_BDEP_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BDEP                     },
+    [RV_IT_BEXT_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BEXT                     },
+    [RV_IT_PACK_R]           = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACK,    kExtOp:RVKOP_Zkb},
+    [RV_IT_PACKU_R]          = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKU,   kExtOp:RVKOP_Zkb},
+    [RV_IT_PACKH_R]          = {morph:emitPACKH,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKH,   kExtOp:RVKOP_Zkb},
+    [RV_IT_PACKW_R]          = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKW,   kExtOp:RVKOP_Zkb},
+    [RV_IT_PACKUW_R]         = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKUW,  kExtOp:RVKOP_Zkb},
+    [RV_IT_ZEXT32_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ZEXT32_H                 },
+    [RV_IT_ZEXT64_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ZEXT64_H                 },
+    [RV_IT_BMATFLIP_R]       = {morph:emit3264RR,    opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATFLIP                 },
+    [RV_IT_BMATOR_R]         = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATOR                   },
+    [RV_IT_BMATXOR_R]        = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATXOR                  },
+    [RV_IT_BFP_R]            = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BFP                      },
+    [RV_IT_ADDWU_R]          = {morph:emitBinopRRRW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_SUBWU_R]          = {morph:emitBinopRRRW, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_ADDU_W_R]         = {morph:emitBinopWRRR, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ADD_UW                   },
+    [RV_IT_SUBU_W_R]         = {morph:emitBinopWRRR, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_SHADD_R]          = {morph:emitSHADD,     binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zba                      },
+    [RV_IT_XPERM_R]          = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_XPERM,   kExtOp:RVKOP_Zkb},
 
     // B-extension I-type instructions
-    [RV_IT_SLOI_I]           = {morph:emitShiftORRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO },
-    [RV_IT_SROI_I]           = {morph:emitShiftORRC, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO },
-    [RV_IT_RORI_I]           = {morph:emitBinopRRC,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp    },
-    [RV_IT_SBCLRI_I]         = {morph:emitSBitopRRC, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBSETI_I]         = {morph:emitSBitopRRC, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBINVI_I]         = {morph:emitSBitopRRC, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_SBEXTI_I]         = {morph:emitEBitopRRC,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs     },
-    [RV_IT_GORCI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC    },
-    [RV_IT_ORCB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORCB    },
-    [RV_IT_ORC16_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORC16   },
-    [RV_IT_GREVI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV    },
-    [RV_IT_REV8_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV8    },
-    [RV_IT_REV_I]            = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV     },
-    [RV_IT_SHFLI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL    },
-    [RV_IT_UNSHFLI_I]        = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL  },
-    [RV_IT_ADDIWU_I]         = {morph:emitBinopRRCW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
-    [RV_IT_SLLIU_W_I]        = {morph:emitBinopWRRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb     },
+    [RV_IT_SLOI_I]           = {morph:emitShiftORRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                  },
+    [RV_IT_SROI_I]           = {morph:emitShiftORRC, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                  },
+    [RV_IT_RORI_I]           = {morph:emitBinopRRC,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zkb},
+    [RV_IT_SBCLRI_I]         = {morph:emitSBitopRRC, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBSETI_I]         = {morph:emitSBitopRRC, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBINVI_I]         = {morph:emitSBitopRRC, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_SBEXTI_I]         = {morph:emitEBitopRRC,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                      },
+    [RV_IT_GORCI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC,    kExtOp:RVKOP_Zkb},
+    [RV_IT_ORCB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORCB                     },
+    [RV_IT_ORC16_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORC16                    },
+    [RV_IT_GREVI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV                     },
+    [RV_IT_REV8_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV8,    kExtOp:RVKOP_Zkb},
+    [RV_IT_REV_I]            = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV,     kExtOp:RVKOP_Zkb},
+    [RV_IT_SHFLI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL                     },
+    [RV_IT_UNSHFLI_I]        = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL                   },
+    [RV_IT_ADDIWU_I]         = {morph:emitBinopRRCW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                      },
+    [RV_IT_SLLIU_W_I]        = {morph:emitBinopWRRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLLI_UW                  },
 
     // B-extension R4-type instructions
-    [RV_IT_CMIX_R4]          = {morph:emitCMIX,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt     },
-    [RV_IT_CMOV_R4]          = {morph:emitCMOV,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt     },
-    [RV_IT_FSL_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSL     },
-    [RV_IT_FSR_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR     },
+    [RV_IT_CMIX_R4]          = {morph:emitCMIX,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt},
+    [RV_IT_CMOV_R4]          = {morph:emitCMOV,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt},
+    [RV_IT_FSL_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSL},
+    [RV_IT_FSR_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR},
 
     // B-extension R3I-type instructions
-    [RV_IT_FSRI_R3I]         = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR     },
+    [RV_IT_FSRI_R3I]         = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR},
 
     // H-extension R-type instructions for load
     [RV_IT_HLV_R]            = {morph:emitLoad,  virtual:1},
@@ -11157,6 +11182,17 @@ VMI_MORPH_FN(riscvMorph) {
         state.info.arch |= ISA_FS;
     }
 
+    // if the instruction is present for both B and K extensions and both B and
+    // K are configured on the processor then validate B and K enabled state
+    // using block mask (required to handle non-overlapping B/K instruction
+    // subsets)
+    if(
+        ((state.info.arch        & ISA_BK) == ISA_BK) &&
+        ((riscv->configInfo.arch & ISA_BK) == ISA_BK)
+    ) {
+        emitBlockMask(riscv, ISA_BK);
+    }
+
     if(disableMorph(&state)) {
 
         // no action if in disassembly mode
@@ -11178,7 +11214,7 @@ VMI_MORPH_FN(riscvMorph) {
 
         // B-extension feature subset not present
 
-    } else if(!riscvValidateKExtSubset(riscv, state.attrs->kExtOp)) {
+    } else if(!riscvValidateKExtSubset(riscv, state.attrs->kExtOp, state.attrs->bExtOp)) {
 
         // K-extension feature subset not present
 

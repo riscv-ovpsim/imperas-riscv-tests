@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,13 +36,15 @@ typedef enum riscvKExtOpE {
     RVKOP_NONE,         // not a K-extension operation
 
     // operation subsets (if not callbacks)
-    RVKOP_S13,          // scalar profiles #1 and #3
-    RVKOP_S23,          // scalar profiles #2 and #3
-    RVKOP_S123,         // all scalar profiles
-    RVKOP_V13,          // vector profiles #1 and #3
-    RVKOP_V23,          // vector profiles #2 and #3
-    RVKOP_V123,         // all vector profiles
-    RVKOP_ALL,          // all profiles
+    RVKOP_Zkb,          // bitmanip subset not in Zkg
+    RVKOP_Zkg,          // carry-less multiply
+    RVKOP_Zkr,          // entropy source
+    RVKOP_Zknd,         // NIST AES decryption instructions
+    RVKOP_Zkne,         // NIST AES encryption instructions
+    RVKOP_Zknh,         // NIST SHA2 hash function instructions
+    RVKOP_Zksd,         // SM4 decryption instructions
+    RVKOP_Zkse,         // SM4 encryption instructions
+    RVKOP_Zksh,         // SM3 hash function instructions
 
     // operations implemented as callbacks or version-specific
     RVKOP_LUT4LO,       // lut4lo
@@ -96,9 +98,10 @@ vmiCallFn riscvGetKOpCB(riscvP riscv, riscvKExtOp op, Uns32 bits);
 
 //
 // Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not
+// Illegal Instruction exception if not. Note that instructions shared with the
+// bit manipulation extension are not handled here if that extension is enabled
 //
-Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op);
+Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op, Bool isBOp);
 
 //
 // Save K-extension state not covered by register read/write API

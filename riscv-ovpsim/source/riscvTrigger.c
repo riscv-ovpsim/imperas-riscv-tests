@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -349,10 +349,11 @@ static Bool matchTriggerADMATCHValue(
     // address match
     Uns32 mode   = trigger->tdata1UP.match;
     Uns64 tdata2 = RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
+    Uns32 xlen   = riscvGetXlenMode(riscv);
     Bool  match  = False;
 
     // mask value and tdata2 to required bits
-    Uns64 maskBits = getAddressMask(bits);
+    Uns64 maskBits = getAddressMask((bits<xlen) ? bits : xlen);
     Uns64 valueM   = value  & maskBits;
     Uns64 tdata2M  = tdata2 & maskBits;
 

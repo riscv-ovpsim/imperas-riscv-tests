@@ -1,6 +1,6 @@
 riscvOVPsim Change Log
 ===
-Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the riscvOVPsim fixed platform which includes information of the OVP Simulator and RISCV processor model
 
@@ -11,6 +11,8 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- New optional reset_addr and nmi_addr nets allow addresses for reset and NMI
+  exceptions to by asserted externally if required.
 - Support for half-precision scalar floating point has been added, with format
   defined by parameter fp16_version.
 - Access fault exceptions are now raised for misaligned LR/SC/AMO operations
@@ -18,6 +20,22 @@ NOTE: X-commit messages below refer to git commits in the following
   previously, such accesses caused address misaligned exceptions (see section
   "Physical Memory Attributes" in the RISC-V Privileged Architecture 
   specification).
+- Bit-Manipulation Extension version 0.93 has been created. This differs from
+  the previous 0.93-draft as follows:
+  - exchange encodings of max and minu instructions;
+  - add xperm.[nbhw] instructions;
+  - instructions named *u.w renamed to *.uw;
+  - instructions named sb* renamed to b*;
+  - instructions named pcnt* renamed to cpop*;
+  - instructions subu.w, addiwu, addwu, subwu, clmulw, clmulrw and clmulhw
+    removed.
+  - instructions bext/bdep renamed to bcompress/bdecompress (this change is 
+    documented under the draft 0.94 version but is required to resolve an 
+    instruction name conflict introduced by instruction renames above).
+- Bit-Manipulation Extension draft version 0.94 has been updated as follows:
+  - instructions bset[i]w, bclr[i]w, binv[i]w and bextw removed.
+- New vector version 1.0-draft-20210130 added.
+  - V-commit 7cf5349: vle1.v and vse1.v instructions added.
 
 Date 2020-December-11
 Release 20201209.0

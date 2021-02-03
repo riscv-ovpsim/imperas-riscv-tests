@@ -88,7 +88,7 @@ and then set up (for 0.8.x for base and current vector tests):
     export TOPDIR=<your dir in which you cloned riscv-toolchains>
 
     # for vector rvv-0.8.x
-    RISCV_TUPLE=riscv-none-embed
+    RISCV_TUPLE=riscv64-unknown-elf
     export RISCV_PREFIX=${RISCV_TUPLE}-
     export RISCV_TOOLCHAIN=${TOPDIR}/riscv-toolchains-rvv-0.8.x/Linux64/sifive-riscv-none-gcc
     export PATH=${PATH}:${RISCV_TOOLCHAIN}/bin

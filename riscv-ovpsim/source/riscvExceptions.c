@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2393,29 +2393,32 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
 }
 
 //
-// Does the processor implement the exception or interrupt?
+// Does the processor implement the standard exception or interrupt?
 //
-Bool riscvHasException(riscvP riscv, riscvException code) {
+Bool riscvHasStandardException(riscvP riscv, riscvException code) {
 
     if((code==riscv_E_CSIP) && CLICPresent(riscv)) {
         return True;
     } else if(!isInterrupt(code)) {
         return riscv->exceptionMask & (1ULL<<code);
     } else {
-        return riscv->interruptMask & (1ULL<<exceptionToInt(code));
+        Uns64 unimp_int_mask = riscv->configInfo.unimp_int_mask;
+        Uns64 interruptMask  = riscv->interruptMask & ~unimp_int_mask;
+        return interruptMask & (1ULL<<exceptionToInt(code));
     }
 }
 
 //
-// Does the processor implement the standard exception or interrupt?
+// Does the processor implement the standard exception or interrupt given its
+// architecture?
 //
-static Bool hasStandardException(riscvP riscv, riscvExceptionDescCP desc) {
+static Bool hasStandardExceptionArch(riscvP riscv, riscvExceptionDescCP desc) {
 
     return (
         // validate feature requirements
         ((riscv->configInfo.arch&desc->arch)==desc->arch) &&
         // validate trap code
-        riscvHasException(riscv, desc->vmiInfo.code)
+        riscvHasStandardException(riscv, desc->vmiInfo.code)
     );
 }
 
@@ -2448,7 +2451,8 @@ inline static Uns32 getGuestExternalIntNum(riscvP riscv) {
 }
 
 //
-// Callback used to sort exceptions in code order
+// Callback used to sort exceptions in code order (or alphabetically if codes
+// are equal)
 //
 static Int32 compareExceptionCode(const void *va, const void *vb) {
 
@@ -2457,7 +2461,7 @@ static Int32 compareExceptionCode(const void *va, const void *vb) {
     Uns32              aCode = a->code;
     Uns32              bCode = b->code;
 
-    return (aCode<bCode) ? -1 : (aCode>bCode) ? 1 : 0;
+    return (aCode<bCode) ? -1 : (aCode>bCode) ? 1 : strcmp(a->name, b->name);
 }
 
 //
@@ -2474,7 +2478,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
         // get number of exceptions and standard interrupts in the base model
         for(i=0, numExcept=0; exceptions[i].vmiInfo.name; i++) {
-            if(hasStandardException(riscv, &exceptions[i])) {
+            if(hasStandardExceptionArch(riscv, &exceptions[i])) {
                 numExcept++;
             }
         }
@@ -2497,7 +2501,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
         // count local interrupts
         for(i=0; i<localIntNum; i++) {
-            if(riscvHasException(riscv, riscv_E_LocalInterrupt+i)) {
+            if(riscvHasStandardException(riscv, riscv_E_LocalInterrupt+i)) {
                 numExcept++;
             }
         }
@@ -2507,7 +2511,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
         // fill exceptions and standard interrupts from base model
         for(i=0, numExcept=0; exceptions[i].vmiInfo.name; i++) {
-            if(hasStandardException(riscv, &exceptions[i])) {
+            if(hasStandardExceptionArch(riscv, &exceptions[i])) {
                 all[numExcept++] = exceptions[i].vmiInfo;
             }
         }
@@ -2530,7 +2534,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
 
             riscvException code = riscv_E_LocalInterrupt+i;
 
-            if(riscvHasException(riscv, code)) {
+            if(riscvHasStandardException(riscv, code)) {
 
                 vmiExceptionInfoP this = &all[numExcept++];
                 char              buffer[32];
@@ -2931,6 +2935,17 @@ static VMI_NET_CHANGE_FN(resetPortCB) {
 }
 
 //
+// Reset address signal
+//
+static VMI_NET_CHANGE_FN(resetAddressPortCB) {
+
+    riscvInterruptInfoP ii    = userData;
+    riscvP              riscv = ii->hart;
+
+    riscv->configInfo.reset_address = newValue;
+}
+
+//
 // NMI signal
 //
 static VMI_NET_CHANGE_FN(nmiPortCB) {
@@ -2946,6 +2961,17 @@ static VMI_NET_CHANGE_FN(nmiPortCB) {
     }
 
     WR_CSR_FIELDC(riscv, dcsr, nmip, newValue);
+}
+
+//
+// NMI address signal
+//
+static VMI_NET_CHANGE_FN(nmiAddressPortCB) {
+
+    riscvInterruptInfoP ii    = userData;
+    riscvP              riscv = ii->hart;
+
+    riscv->configInfo.nmi_address = newValue;
 }
 
 //
@@ -3181,7 +3207,7 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
         vmiExceptionInfoCP info = &this->vmiInfo;
         riscvException     code = info->code;
 
-        if(this->hasNetPort && hasStandardException(riscv, this)) {
+        if(this->hasNetPort && hasStandardExceptionArch(riscv, this)) {
 
             tail = newNetPort(
                 riscv,
@@ -3237,7 +3263,7 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
         // synthesize code
         riscvException code = riscv_E_LocalInterrupt+i;
 
-        if(riscvHasException(riscv, code)) {
+        if(riscvHasStandardException(riscv, code)) {
 
             // construct name and description
             char name[32];
@@ -3387,6 +3413,18 @@ void riscvNewNetPorts(riscvP riscv) {
         0
     );
 
+    // allocate reset_addr port
+    tail = newNetPort(
+        riscv,
+        tail,
+        "reset_addr",
+        vmi_NP_INPUT,
+        resetAddressPortCB,
+        "externally-applied reset address",
+        0,
+        0
+    );
+
     // allocate nmi port
     tail = newNetPort(
         riscv,
@@ -3395,6 +3433,18 @@ void riscvNewNetPorts(riscvP riscv) {
         vmi_NP_INPUT,
         nmiPortCB,
         "NMI",
+        0,
+        0
+    );
+
+    // allocate nmi_addr port
+    tail = newNetPort(
+        riscv,
+        tail,
+        "nmi_addr",
+        vmi_NP_INPUT,
+        nmiAddressPortCB,
+        "externally-applied NMI address",
         0,
         0
     );

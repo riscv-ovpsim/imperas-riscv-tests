@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,10 @@ typedef enum riscvBExtOpE {
     RVBOP_Zbr,          // CSR32 operations
     RVBOP_Zbs,          // single bit instructions
     RVBOP_Zbt,          // ternary instructions
-    RVBOP_Zbbp,         // base or permutation
+    RVBOP_Zbbp,         // Zbb and Zbp
+    RVBOP_Zbmp,         // Zbm and Zbp
+    RVBOP_Zbefmp,       // Zbe, Zbf, Zbm and Zbp
+    RVBOP_Zbefp,        // Zbe, Zbf and Zbp
 
     // operations implemented as callbacks or version-specific
     RVBOP_GORC,         // gorc/gorci
@@ -63,10 +66,20 @@ typedef enum riscvBExtOpE {
     RVBOP_BMATXOR,      // bmatxor
     RVBOP_BEXT,         // bext
     RVBOP_BDEP,         // bdep
+    RVBOP_PACK,         // pack
+    RVBOP_PACKU,        // packu
+    RVBOP_PACKH,        // packh
+    RVBOP_PACKW,        // packw
+    RVBOP_PACKUW,       // packuw
+    RVBOP_ZEXT32_H,     // zext.h (RV32)
+    RVBOP_ZEXT64_H,     // zext.h (RV64)
     RVBOP_FSL,          // fsl
     RVBOP_FSR,          // fsr/fsri
     RVBOP_BFP,          // bfp
+    RVBOP_ADD_UW,       // add.uw
+    RVBOP_SLLI_UW,      // slli.uw
     RVBOP_SLO_SRO,      // slo/sloi/sro/sroi in Zbb or Zbp set
+    RVBOP_XPERM,        // xperm
 
     RVBOP_LAST,         // KEEP LAST: for sizing
 

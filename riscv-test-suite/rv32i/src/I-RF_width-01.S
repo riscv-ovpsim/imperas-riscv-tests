@@ -1,7 +1,7 @@
 # RISC-V Compliance Test I-RF_width-01
 #
 # Copyright (c) 2017, Codasip Ltd.
-# Copyright (c) 2018, Imperas Software Ltd. Additions
+# Copyright (c) 2021, Imperas Software Ltd. Additions
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without

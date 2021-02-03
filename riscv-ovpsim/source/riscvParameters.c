@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -178,6 +178,11 @@ static vmiEnumParameter vectorVariants[] = {
         .value       = RVVV_0_9,
         .description = "Vector Architecture Version 0.9",
     },
+    [RVVV_1_0_20210130] = {
+        .name        = "1.0-draft-20210130",
+        .value       = RVVV_1_0_20210130,
+        .description = "Vector Architecture Version 1.0-draft-20210130",
+    },
     [RVVV_MASTER] = {
         .name        = "master",
         .value       = RVVV_MASTER,
@@ -207,10 +212,15 @@ static vmiEnumParameter bitmanipVariants[] = {
         .value       = RVBV_0_92,
         .description = "Bit Manipulation Architecture Version v0.92-20191108",
     },
+    [RVBV_0_93_DRAFT] = {
+        .name        = "0.93-draft",
+        .value       = RVBV_0_93_DRAFT,
+        .description = "Bit Manipulation Architecture Version 0.93-draft-20200129",
+    },
     [RVBV_0_93] = {
         .name        = "0.93",
         .value       = RVBV_0_93,
-        .description = "Bit Manipulation Architecture Version draft-20200129",
+        .description = "Bit Manipulation Architecture Version v0.93-20210110",
     },
     [RVBV_MASTER] = {
         .name        = "master",
@@ -867,31 +877,37 @@ static RISCV_BMSET_PDEFAULT_CFG_FN(Zbs);
 static RISCV_BMSET_PDEFAULT_CFG_FN(Zbt);
 
 //
-// Return index number of highest-priority cryptographic profile present
+// Set cryptographic extension subset option parameter default
 //
-static Uns32 getCryptoProfile(
+static void setKSetParamDefault(
     riscvConfigCP  cfg,
-    riscvCryptoSet P1,
-    riscvCryptoSet P2,
-    riscvCryptoSet P3
+    vmiParameterP  param,
+    riscvCryptoSet option
 ) {
-    riscvCryptoSet present = ~cfg->crypto_absent;
-    return (present&P3) ? 3 : (present&P1) ? 1 : (present&P2) ? 2 : 0;
+    CHECK_PARAM_TYPE(param, vmi_PT_BOOL, "Bool");
+    param->u.boolParam.defaultValue = !(cfg->crypto_absent & option);
 }
 
 //
-// Set default value of cryptographic extension scalar profile option
+// Macro to define a function to set a raw Bool cryptographic subset parameter
+// value from the configuration
 //
-static RISCV_PDEFAULT_FN(default_K_scalar_profile) {
-    setUns32ParamDefault(param, getCryptoProfile(cfg, RVKS_S1, RVKS_S2, RVKS_S3));
+#define RISCV_KSET_PDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+    setKSetParamDefault(cfg, param, RVKS_##_NAME); \
 }
 
 //
-// Set default value of cryptographic extension vector profile option
+// Set default values of cryptographic extension subset options
 //
-static RISCV_PDEFAULT_FN(default_K_vector_profile) {
-    setUns32ParamDefault(param, getCryptoProfile(cfg, RVKS_V1, RVKS_V2, RVKS_V3));
-}
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkb);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkg);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkr);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zknd);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkne);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zknh);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zksd);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkse);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zksh);
 
 //
 // Set default values of hypervisor extension subset options
@@ -1081,8 +1097,15 @@ static riscvParameter parameters[] = {
     {  RVPV_BK,      default_Zbr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbr,                  False,                     RV_GROUP(B),     "Specify that Zbr is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbs,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbs,                  False,                     RV_GROUP(B),     "Specify that Zbs is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbt,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbt,                  False,                     RV_GROUP(B),     "Specify that Zbt is implemented (bit manipulation extension)")},
-    {  RVPV_K,       default_K_scalar_profile,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, K_scalar_profile,     0, 0,          3,          RV_GROUP(K),     "Specify scalar profile implemented (cryptographic extension)")},
-    {  RVPV_KV,      default_K_vector_profile,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, K_vector_profile,     0, 0,          3,          RV_GROUP(K),     "Specify vector profile implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkb,                  False,                     RV_GROUP(B),     "Specify that Zkb is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                  False,                     RV_GROUP(B),     "Specify that Zkg is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkr,                  False,                     RV_GROUP(B),     "Specify that Zkr is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zknd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknd,                 False,                     RV_GROUP(B),     "Specify that Zknd is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkne,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkne,                 False,                     RV_GROUP(B),     "Specify that Zkne is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zknh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknh,                 False,                     RV_GROUP(B),     "Specify that Zknh is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zksd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksd,                 False,                     RV_GROUP(B),     "Specify that Zksd is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkse,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkse,                 False,                     RV_GROUP(B),     "Specify that Zkse is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zksh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksh,                 False,                     RV_GROUP(B),     "Specify that Zksh is implemented (cryptographic extension)")},
 
     // CLIC configuration
     {  RVPV_INT_CFG, default_CLICLEVELS,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, CLICLEVELS,           0, 0,          256,        RV_GROUP(CLIC),  "Specify number of interrupt levels implemented by CLIC, or 0 if CLIC absent")},

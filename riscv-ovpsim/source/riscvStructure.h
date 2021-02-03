@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@
 //
 // Number of temporaries
 //
-#define NUM_TEMPS 6
+#define NUM_TEMPS 16
 
 //
 // Container for net values
@@ -247,6 +247,7 @@ typedef struct riscvS {
     Bool               checkTriggerLV:1;// whether trigger load value check
     Bool               checkTriggerS :1;// whether trigger store check
     Bool               checkTriggerX :1;// whether trigger execute check
+    Bool               usingFP       :1;// whether floating point in use
     riscvVTypeFmt      vtypeFormat   :1;// vtype format (vector extension)
     Uns16              pmKey;           // polymorphic key
     Uns8               xlenMask;        // XLEN mask (per mode5)
@@ -379,6 +380,7 @@ typedef struct riscvS {
     Uns8               vActiveMask;         	// vector active element mask
     Bool               vFirstFault;          	// vector first fault active?
     Bool               vPreserve;               // vsetvl{i} preserving vl?
+    Uns32              vl_EEW1;                 // effective VL when EEW=1
     Uns64              vTmp;                 	// vector operation temporary
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
@@ -585,6 +587,20 @@ inline static Bool hypervisorPresent(riscvP riscv) {
 //
 inline static Bool hypervisorEnabled(riscvP riscv) {
     return riscv->currentArch & ISA_H;
+}
+
+//
+// Is bit manipulation extension enabled?
+//
+inline static Bool bitmanipEnabled(riscvP riscv) {
+    return riscv->currentArch & ISA_B;
+}
+
+//
+// Is cryptographic extension enabled?
+//
+inline static Bool cryptoEnabled(riscvP riscv) {
+    return riscv->currentArch & ISA_K;
 }
 
 //

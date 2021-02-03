@@ -1,0 +1,76 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32F RV32F Single-Precision Floating-Point:
+    117 test source files
+    5 different instruction categories
+    44 different instructions
+    42,386 total instructions
+
+Instruction category: OPF_SCI Single-Precision Floating-Point Computational
+  fadd.s : 248
+  fdiv.s : 248
+  fmadd.s : 248
+  fmax.s : 31
+  fmin.s : 31
+  fmsub.s : 248
+  fmul.s : 248
+  fnmadd.s : 248
+  fnmsub.s : 248
+  fsqrt.s : 248
+  fsub.s : 248
+Instruction category: OPF_SCL Single-Precision Floating-Point Classify
+  fclass.s : 31
+Instruction category: OPF_SCM Single-Precision Floating-Point Conversion and Move
+  fmv.s.x : 6,324
+  fmv.x.s : 2,976
+  fcvt.s.w : 248
+  fcvt.s.wu : 248
+  fcvt.w.s : 248
+  fcvt.wu.s : 248
+  fsgnj.s : 31
+  fsgnjn.s : 31
+  fsgnjx.s : 31
+Instruction category: OPF_SCP Single-Precision Floating-Point Compare
+  fle.s : 31
+  feq.s : 31
+  flt.s : 31
+Instruction category: OPF_SLS Single-Precision Floating-Point Load and Store
+  fsw : 2,976
+  flw : 31
+
+Other instructions (those not the focus of this suite)
+  jal : 117
+  csrrs : 468
+  bne : 117
+  auipc : 1,669
+  addi : 7,670
+  csrrw : 936
+  csrrwi : 702
+  slli : 117
+  blt : 117
+  beq : 234
+  lui : 6,111
+  mret : 117
+  csrrci : 3,596
+  sw : 4,278
+  fence : 117
+  ecall : 117
+  add : 62
+  lw : 31
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,15 +38,31 @@
 #define ALIGN_PAIR_64 0
 
 //
-// This defines the number of arguments passed in registers
+// Return the number of arguments passed in GPRs
 //
-#define AREG_NUM 8
+inline static Uns32 getARegNum(riscvP riscv) {
+    return (riscv->currentArch & ISA_I) ? 8 : 6;
+}
+
+//
+// Return the number of arguments passed in FPRs
+//
+static Uns32 getFRegNum(riscvP riscv) {
+    return riscv->usingFP ? 8 : 0;
+}
 
 //
 // Return processor XLEN
 //
 inline static Uns32 getXLEN(riscvP riscv) {
     return riscvGetXlenMode(riscv);
+}
+
+//
+// Return processor FLEN
+//
+inline static Uns32 getFLEN(riscvP riscv) {
+    return riscvGetFlenMode(riscv);
 }
 
 //
@@ -76,12 +92,21 @@ VMI_INT_RESULT_FN(riscvIntResult) {
     vmiReg rdL   = RISCV_GPR(RV_REG_X_A0);
     vmiReg rdH   = RISCV_GPR(RV_REG_X_A1);
     Uns32  xlen  = getXLEN(riscv);
+    Uns32  flen  = getFLEN(riscv);
     Uns32  resBits;
 
+    // determine whether result is returned in f or x register
+    Bool isFReg = (format=='d') && (xlen==64) && (flen==64);
+
     // decode return value format
-    if(format=='4') {
+    if(isFReg) {
+        resBits = 64;
+        rdL     = RISCV_FPR(RV_REG_X_A0);
+    } else if(format=='4') {
         resBits = 32;
-    } else if(format=='8') {
+    } else if(format=='a') {
+        resBits = xlen;
+    } else if((format=='8') || (format=='d')) {
         resBits = 64;
     } else {                                                    // LCOV_EXCL_LINE
         VMI_ABORT("Unrecognised format character '%c'", format);// LCOV_EXCL_LINE
@@ -105,11 +130,15 @@ VMI_INT_RESULT_FN(riscvIntResult) {
 //
 VMI_INT_PAR_FN(riscvIntParCB) {
 
-    riscvP riscv    = (riscvP)processor;
-    Uns32  xlen     = getXLEN(riscv);
-    Uns32  memAlign = 0;
-    Uns32  rNum     = 0;
-    Uns32  tmpIdx   = 0;
+    riscvP riscv     = (riscvP)processor;
+    Uns32  xlen      = getXLEN(riscv);
+    Uns32  flen      = getFLEN(riscv);
+    Uns32  aRegNum   = getARegNum(riscv);
+    Uns32  fRegNum   = getFRegNum(riscv);
+    Uns32  memOffset = 0;
+    Uns32  rNum      = 0;
+    Uns32  fNum      = 0;
+    Uns32  tmpIdx    = 0;
     char   ch;
 
     while((ch=*format++)) {
@@ -126,30 +155,36 @@ VMI_INT_PAR_FN(riscvIntParCB) {
             argBits = 64;
         }
 
+        // determine whether argument is passed in f or x register
+        Bool isF    = (ch=='d') && (xlen==64) && (flen==64);
+        Bool isFReg = isF && (fNum<fRegNum);
+        Bool isPair = (argBits>xlen);
+
         // double-width arguments may be passed in an aligned register pair
-        if(ALIGN_PAIR_64 && (argBits>xlen) && (rNum&1)) {
+        if(ALIGN_PAIR_64 && !isFReg && (argBits>xlen) && (rNum&1)) {
             rNum++; // LCOV_EXCL_LINE
         }
 
-        // determine whether argument is passed in f or x register
-        Bool isFReg = False;
-        Bool isPair = (argBits>xlen);
+        if(isFReg) {
 
-        if(rNum >= AREG_NUM) {
+            // argument passed in F register
+            argReg = RISCV_FPR(RV_REG_X_A0+fNum);
+
+        } else if(rNum >= aRegNum) {
 
             // argument passed in memory
             argReg = getTmp(tmpIdx++);
 
             // align double-width arguments
-            if(isPair && ((rNum+memAlign)&1)) {
-                memAlign++;
+            if(isPair && (memOffset&1)) {
+                memOffset++;
             }
 
             // load from stack into temporary
             vmimtLoadRRO(
                 argBits,
                 argBits,
-                ((rNum+memAlign)-AREG_NUM) * (xlen/8),
+                memOffset * (xlen/8),
                 argReg,
                 RISCV_GPR(RV_REG_X_SP),
                 riscvGetCurrentDataEndian(riscv),
@@ -157,17 +192,14 @@ VMI_INT_PAR_FN(riscvIntParCB) {
                 False
             );
 
-        } else if(isFReg) {
-
-            // argument passed in F register
-            argReg = RISCV_FPR(RV_REG_X_A0+rNum);
+            memOffset += isPair ? 2 : 1;
 
         } else if(!isPair) {
 
             // argument passed in X register
             argReg = RISCV_GPR(RV_REG_X_A0+rNum);
 
-        } else if(rNum==AREG_NUM-1) {
+        } else if(rNum==aRegNum-1) {
 
             // argument passed in X register and memory
             argReg = getTmp(tmpIdx++);
@@ -191,6 +223,8 @@ VMI_INT_PAR_FN(riscvIntParCB) {
                 False
             );
 
+            memOffset++;
+
         } else {
 
             // argument passed in X register pair
@@ -207,7 +241,11 @@ VMI_INT_PAR_FN(riscvIntParCB) {
         }
 
         // adjust register indices
-        rNum += !isFReg && (argBits>xlen) ? 2 : 1;
+        if(isFReg) {
+            fNum++;
+        } else {
+            rNum += isPair ? 2 : 1;
+        }
 
         if(ch=='4') {
             vmimtArgReg(32, argReg);

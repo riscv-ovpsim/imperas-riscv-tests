@@ -15,6 +15,10 @@
 
 #define RV_COMPLIANCE_HALT                                                            RVTEST_PASS                                                           
 #define RV_COMPLIANCE_RV32M                                                           RVTEST_RV32M                                                          
+#define RV_COMPLIANCE_RV32F                                                           RVTEST_RV32UF                                                         
+#define RV_COMPLIANCE_RV64F                                                           RVTEST_RV64UF                                                         
+#define RV_COMPLIANCE_RV32D                                                           RVTEST_RV32D                                                          
+#define RV_COMPLIANCE_RV64D                                                           RVTEST_RV64D                                                          
 #define RV_COMPLIANCE_RV64M                                                           RVTEST_RV64M                                                          
 #define RV_COMPLIANCE_RV64V                                                           RVTEST_RV64V                                                          
 #define RV_COMPLIANCE_RV32V                                                          RVTEST_RV64V                                                          

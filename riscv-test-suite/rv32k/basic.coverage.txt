@@ -2,6 +2,12 @@ Imperas RISC-V Instruction Coverage Report
 
 Extension : K, instructions: 37
     aes32dsi       
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -110,8 +116,14 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    aes32dsi 96/96 : 100.00%
+    aes32dsi 100/100 : 100.00%
     aes32dsmi      
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -220,8 +232,14 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    aes32dsmi 96/96 : 100.00%
+    aes32dsmi 100/100 : 100.00%
     aes32esi       
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -330,8 +348,14 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    aes32esi 96/96 : 100.00%
+    aes32esi 100/100 : 100.00%
     aes32esmi      
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -440,7 +464,7 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    aes32esmi 96/96 : 100.00%
+    aes32esmi 100/100 : 100.00%
     andn           
         rd             
             gpr            
@@ -2994,6 +3018,12 @@ Extension : K, instructions: 37
         rs1 32/32 : 100.00%
     sm3p1 64/64 : 100.00%
     sm4ed          
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -3102,8 +3132,14 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sm4ed 96/96 : 100.00%
+    sm4ed 100/100 : 100.00%
     sm4ks          
+        bs             
+            0           75/1 : 100.00%
+            1           20/1 : 100.00%
+            2           10/1 : 100.00%
+            3           41/1 : 100.00%
+        bs 4/4 : 100.00%
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -3212,7 +3248,7 @@ Extension : K, instructions: 37
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sm4ks 96/96 : 100.00%
+    sm4ks 100/100 : 100.00%
     unzip          
         rd             
             gpr            
@@ -3859,10 +3895,10 @@ Coverage points missed:
   zip/rs1/gpr/t6
   zip/rs1/gpr/tp
   zip/rs1/gpr/zero
-Coverage points missed: 387/3012
+Coverage points missed: 387/3036
 
 Info TOTAL INSTRUCTION COVERAGE : K
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 30/37 :  81.08%
-Info   Coverage points hit   : 2625/3012 :  87.15%
+Info   Coverage points hit   : 2649/3036 :  87.25%

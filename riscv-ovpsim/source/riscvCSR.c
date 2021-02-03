@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2996,6 +2996,13 @@ void riscvSetVType(riscvP riscv, Bool vill, riscvVType vtype) {
 }
 
 //
+// Refresh effective VL used when when EEW=1
+//
+inline static void refreshVLEEW1(riscvP riscv) {
+    riscv->vl_EEW1 = (RD_CSRC(riscv, vl)+7)>>3;
+}
+
+//
 // Update VL and aliases of it for the given vtype
 //
 static Bool setVL(riscvP riscv, Uns64 vl, riscvVType vtype) {
@@ -3023,6 +3030,7 @@ static Bool setVL(riscvP riscv, Uns64 vl, riscvVType vtype) {
     // update vl CSR
     if(ok) {
         WR_CSRC(riscv, vl, vl);
+        refreshVLEEW1(riscv);
     }
 
     return ok;
@@ -3993,6 +4001,13 @@ static RISCV_CSR_WRITEFN(dcsrW) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Are CLIC scratch swap registers present?
+//
+inline static RISCV_CSR_PRESENTFN(entropyP) {
+    return !(RVKS_Zkr & riscv->configInfo.crypto_absent);
+}
+
+//
 // Read mentropy
 //
 static RISCV_CSR_READFN(mentropyR) {
@@ -4363,7 +4378,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (marchid,      0xF12, 0,           0,          1_10,   0,0,0,0,0,0, "Architecture ID",                                       0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mimpid,       0xF13, 0,           0,          1_10,   0,0,0,0,0,0, "Implementation ID",                                     0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mhartid,      0xF14, 0,           0,          1_10,   0,0,0,0,0,0, "Hardware Thread ID",                                    0,           0,           0,            0,        0             ),
-    CSR_ATTR_P__     (mentropy,     0xF15, ISA_K,       0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          0,           0,           mentropyR,    0,        0             ),
+    CSR_ATTR_P__     (mentropy,     0xF15, ISA_K,       0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          entropyP,    0,           mentropyR,    0,        0             ),
     CSR_ATTR_TV_     (mstatus,      0x300, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Status",                                        0,           riscvRstFS,  mstatusR,     0,        mstatusW      ),
     CSR_ATTR_T__     (misa,         0x301, 0,           0,          1_10,   1,0,0,0,0,0, "ISA and Extensions",                                    0,           0,           0,            0,        misaW         ),
     CSR_ATTR_TV_     (medeleg,      0x302, ISA_SorN,    0,          1_10,   0,0,0,0,0,0, "Machine Exception Delegation",                          0,           0,           0,            0,        0             ),
@@ -4387,7 +4402,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TV_     (mtinst,       0x34A, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Trap Instruction",                              0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mclicbase,    0x34B, 0,           0,          1_10,   0,0,0,0,0,0, "Machine CLIC Base Address",                             clicMCBP,    0,           0,            0,        mclicbaseW    ),
     CSR_ATTR_T__     (mtval2,       0x34B, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Second Trap Value",                             0,           0,           0,            0,        0             ),
-    CSR_ATTR_TC_     (mnoise,       0x7A9, ISA_K,       0,          1_10,   0,0,0,0,0,0, "GetNoise Test Interface",                               0,           0,           0,            0,        0             ),
+    CSR_ATTR_TC_     (mnoise,       0x7A9, ISA_K,       0,          1_10,   0,0,0,0,0,0, "GetNoise Test Interface",                               entropyP,    0,           0,            0,        0             ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_P__     (pmpcfg0,      0x3A0, 0,           0,          1_10,   0,0,0,0,0,0, "Physical Memory Protection Configuration 0",            pmpcfgP,     0,           pmpcfgR,      0,        pmpcfgW       ),
@@ -6515,6 +6530,7 @@ void riscvCSRRestore(
             if(riscv->configInfo.arch & ISA_V) {
                 VMIRT_RESTORE_FIELD(cxt, riscv, csr.vl);
                 VMIRT_RESTORE_FIELD(cxt, riscv, csr.vtype);
+                refreshVLEEW1(riscv);
                 riscvRefreshVectorPMKey(riscv);
             }
 

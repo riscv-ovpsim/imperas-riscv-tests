@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VX RISC-V "V" Vector Extension:
     696 test source files
     6 different instruction categories
-    55 different instructions
+    51 different instructions
     409,454 total instructions
 
 Instruction category: OPV_SAVS single-width averaging add subtract
@@ -62,19 +62,17 @@ Instruction category: OPV_SWSS single-width scaling shift
   vssrl.vx : 639
 
 Other instructions (those not the focus of this suite)
-  j : 696
-  csrr : 2,784
-  bnez : 696
+  jal : 696
+  csrrs : 3,480
+  bne : 696
   auipc : 22,926
-  addi : 130,475
-  csrw : 5,568
-  csrwi : 4,176
-  mv : 3,739
+  addi : 134,321
+  csrrw : 5,568
+  csrrwi : 4,176
   slli : 696
-  bltz : 696
-  beqz : 696
+  blt : 696
+  beq : 1,392
   lui : 4,404
-  csrs : 696
   or : 696
   mret : 696
   vsetvli : 63,960
@@ -83,6 +81,4 @@ Other instructions (those not the focus of this suite)
   vse.v : 18,414
   fence : 696
   ecall : 696
-  beq : 696
-  nop : 107
 

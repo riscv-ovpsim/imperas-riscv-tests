@@ -4,11 +4,15 @@ declare -A map
 map[rv32i]=I
 map[rv32m]=M
 map[rv32ic]=C
+map[rv32f]=F
+map[rv32d]=D
 map[rv32Zicsr]=Zicsr
 map[rv32Zifencei]=Zifencei
 map[rv64i]=I
 map[rv64m]=M
 map[rv64ic]=C
+map[rv64f]=F
+map[rv64d]=D
 map[rv64Zicsr]=Zicsr
 map[rv64Zifencei]=Zifencei
 
@@ -38,11 +42,15 @@ declare -A varMap
 varMap[rv32i]=RV32I
 varMap[rv32m]=RV32IM
 varMap[rv32ic]=RV32IMC
+varMap[rv32f]=RV32G
+varMap[rv32d]=RV32G
 varMap[rv32Zicsr]=RV32I
 varMap[rv32Zifencei]=RV32I
 varMap[rv64i]=RV64I
 varMap[rv64m]=RV64IM
 varMap[rv64ic]=RV64IMC
+varMap[rv64f]=RV64G
+varMap[rv64d]=RV64G
 varMap[rv64Zicsr]=RV64I
 varMap[rv64Zifencei]=RV64I
 
@@ -101,6 +109,12 @@ for ISA in ${ALL_ISA}; do
     if [ -z "${RISCV_VARIANT}" ]; then
         echo "# Error: Test suite $ISA varMap not configured in cover.sh" > work/${RISCV_ISA}/${COVERTYPE}.coverage.run.log
         exit 1
+    fi
+    if [[ ${RISCV_VARIANT} == "RV32GCB" ]]; then
+        EXTRA_STR="--override riscvOVPsim/cpu/bitmanip_version=0.92"
+    fi
+    if [[ ${RISCV_VARIANT} == "RV64GCB" ]]; then
+        EXTRA_STR="--override riscvOVPsim/cpu/bitmanip_version=0.92"
     fi
     ${RISCV_TARGET} \
         --variant ${RISCV_VARIANT}  \

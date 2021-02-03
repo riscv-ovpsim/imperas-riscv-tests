@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -19,7 +19,7 @@
 Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
     2,520 test source files
     13 different instruction categories
-    156 different instructions
+    152 different instructions
     1,479,075 total instructions
 
 Instruction category: OPV_IA integer arithmetic
@@ -170,19 +170,17 @@ Instruction category: OPV_IWMU widening integer multiply
   vwmulu.vx : 300
 
 Other instructions (those not the focus of this suite)
-  j : 2,520
-  csrr : 10,080
-  bnez : 2,520
+  jal : 2,520
+  csrrs : 12,600
+  bne : 2,520
   auipc : 83,450
-  addi : 472,653
-  csrw : 20,160
-  csrwi : 15,120
-  mv : 13,641
+  addi : 486,686
+  csrrw : 20,160
+  csrrwi : 15,120
   slli : 2,520
-  bltz : 2,520
-  beqz : 2,520
+  blt : 2,520
+  beq : 5,040
   lui : 16,404
-  csrs : 2,520
   or : 2,520
   mret : 2,520
   vsetvli : 231,160
@@ -191,6 +189,4 @@ Other instructions (those not the focus of this suite)
   vse.v : 66,330
   fence : 2,520
   ecall : 2,520
-  beq : 2,520
-  nop : 392
 

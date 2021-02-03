@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -191,6 +191,10 @@ typedef enum riscvITypeE {
     RV_IT_PACK_R,
     RV_IT_PACKH_R,
     RV_IT_PACKU_R,
+    RV_IT_PACKW_R,
+    RV_IT_PACKUW_R,
+    RV_IT_ZEXT32_H_R,
+    RV_IT_ZEXT64_H_R,
     RV_IT_BMATFLIP_R,
     RV_IT_BMATOR_R,
     RV_IT_BMATXOR_R,
@@ -200,6 +204,7 @@ typedef enum riscvITypeE {
     RV_IT_ADDU_W_R,
     RV_IT_SUBU_W_R,
     RV_IT_SHADD_R,
+    RV_IT_XPERM_R,
 
     // B-extension I-type instructions
     RV_IT_SLOI_I,

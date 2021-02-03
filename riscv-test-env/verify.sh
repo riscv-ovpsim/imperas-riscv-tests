@@ -10,6 +10,12 @@ for ref in ${SUITEDIR}/references/*.reference_output;
 do 
     base=$(basename ${ref})
     stub=${base//".reference_output"/}
+
+    if [ "${stub}" = "*" ]; then
+        echo "No Reference Files ${SUITEDIR}/references/*.reference_output"
+        break
+    fi
+
     sig=${WORK}/${RISCV_ISA}/${stub}.signature.output
     dif=${WORK}/${RISCV_ISA}/${stub}.diff
 
