@@ -1,0 +1,196 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
+    2,520 test source files
+    13 different instruction categories
+    156 different instructions
+    1,479,075 total instructions
+
+Instruction category: OPV_IA integer arithmetic
+  vadc.vim : 303
+  vadc.vvm : 303
+  vadc.vxm : 303
+  vadd.vi : 639
+  vadd.vv : 639
+  vadd.vx : 639
+  vand.vi : 639
+  vand.vv : 639
+  vand.vx : 639
+  vmadc.vim : 303
+  vmadc.vvm : 303
+  vmadc.vxm : 303
+  vmadc.vi : 336
+  vmadc.vv : 336
+  vmadc.vx : 336
+  vmsbc.vvm : 303
+  vmsbc.vxm : 303
+  vmsbc.vv : 336
+  vmsbc.vx : 336
+  vor.vi : 639
+  vor.vv : 639
+  vor.vx : 639
+  vrsub.vi : 639
+  vrsub.vx : 639
+  vsbc.vvm : 303
+  vsbc.vxm : 303
+  vsll.vi : 639
+  vsll.vv : 639
+  vsll.vx : 639
+  vsra.vi : 639
+  vsra.vv : 639
+  vsra.vx : 639
+  vsrl.vi : 639
+  vsrl.vv : 639
+  vsrl.vx : 639
+  vsub.vv : 639
+  vsub.vx : 639
+  vxor.vi : 639
+  vxor.vv : 639
+  vxor.vx : 639
+Instruction category: OPV_ID integer divide
+  vdiv.vv : 639
+  vdiv.vx : 639
+  vdivu.vv : 639
+  vdivu.vx : 639
+  vrem.vv : 639
+  vrem.vx : 639
+  vremu.vv : 639
+  vremu.vx : 639
+Instruction category: OPV_IMA single-width integer multiply-add
+  vmacc.vv : 639
+  vmacc.vx : 639
+  vmadd.vv : 639
+  vmadd.vx : 639
+  vnmsac.vv : 639
+  vnmsac.vx : 639
+  vnmsub.vv : 639
+  vnmsub.vx : 639
+Instruction category: OPV_MM min/max
+  vmax.vv : 639
+  vmax.vx : 639
+  vmaxu.vv : 639
+  vmaxu.vx : 639
+  vmin.vv : 639
+  vmin.vx : 639
+  vminu.vv : 639
+  vminu.vx : 639
+Instruction category: OPV_IME integer merge
+  vmerge.vim : 303
+  vmerge.vvm : 303
+  vmerge.vxm : 303
+Instruction category: OPV_IC integer comparison
+  vmseq.vi : 639
+  vmseq.vv : 639
+  vmseq.vx : 639
+  vmsgt.vi : 639
+  vmsgt.vx : 639
+  vmsgtu.vi : 639
+  vmsgtu.vx : 639
+  vmsle.vi : 639
+  vmsle.vv : 639
+  vmsle.vx : 639
+  vmsleu.vi : 639
+  vmsleu.vv : 639
+  vmsleu.vx : 639
+  vmslt.vv : 639
+  vmslt.vx : 639
+  vmsltu.vv : 639
+  vmsltu.vx : 639
+  vmsne.vi : 639
+  vmsne.vv : 639
+  vmsne.vx : 639
+Instruction category: OPV_IMUL single-width integer multiply
+  vmul.vv : 639
+  vmul.vx : 639
+  vmulh.vv : 639
+  vmulh.vx : 639
+  vmulhsu.vv : 639
+  vmulhsu.vx : 639
+  vmulhu.vv : 639
+  vmulhu.vx : 639
+Instruction category: OPV_IMO integer move
+  vmv.v.i : 336
+  vmv.v.v : 336
+  vmv.v.x : 336
+Instruction category: OPV_IAN narrowing integer arithmetic
+  vnsra.wi : 300
+  vnsra.wv : 300
+  vnsra.wx : 300
+  vnsrl.wi : 300
+  vnsrl.wv : 300
+  vnsrl.wx : 300
+Instruction category: OPV_CONFIG config
+Instruction category: OPV_IAW widening integer arithmetic
+  vwadd.vv : 300
+  vwadd.vx : 300
+  vwadd.wv : 300
+  vwadd.wx : 300
+  vwaddu.vv : 300
+  vwaddu.vx : 300
+  vwaddu.wv : 300
+  vwaddu.wx : 300
+  vwsub.vv : 300
+  vwsub.vx : 300
+  vwsub.wv : 300
+  vwsub.wx : 300
+  vwsubu.vv : 300
+  vwsubu.vx : 300
+  vwsubu.wv : 300
+  vwsubu.wx : 300
+Instruction category: OPV_IWMA widening integer multiply-add
+  vwmacc.vv : 300
+  vwmacc.vx : 300
+  vwmaccsu.vv : 300
+  vwmaccsu.vx : 300
+  vwmaccu.vv : 300
+  vwmaccu.vx : 300
+  vwmaccus.vx : 300
+Instruction category: OPV_IWMU widening integer multiply
+  vwmul.vv : 300
+  vwmul.vx : 300
+  vwmulsu.vv : 300
+  vwmulsu.vx : 300
+  vwmulu.vv : 300
+  vwmulu.vx : 300
+
+Other instructions (those not the focus of this suite)
+  j : 2,520
+  csrr : 10,080
+  bnez : 2,520
+  auipc : 83,450
+  addi : 472,653
+  csrw : 20,160
+  csrwi : 15,120
+  mv : 13,641
+  slli : 2,520
+  bltz : 2,520
+  beqz : 2,520
+  lui : 16,404
+  csrs : 2,520
+  or : 2,520
+  mret : 2,520
+  vsetvli : 231,160
+  vle.v : 190,315
+  add : 265,320
+  vse.v : 66,330
+  fence : 2,520
+  ecall : 2,520
+  beq : 2,520
+  nop : 392
+

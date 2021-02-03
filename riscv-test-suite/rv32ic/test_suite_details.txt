@@ -1,0 +1,75 @@
+    #
+    # Copyright (c) 2005-2020 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32IC C Compressed Integer Instructions:
+    24 test source files
+    8 different instruction categories
+    40 different instructions
+    18,600 total instructions
+
+Instruction category: arithmetic 
+  c-addi : 978
+  c-li : 1,169
+  c-lui : 1,503
+  c-mv : 146
+  c-add : 730
+  c-sub : 147
+Instruction category: logical 
+  c-and : 146
+  c-or : 146
+  c-xor : 146
+  c-andi : 146
+Instruction category: branch 
+  c-bnez : 170
+  c-beqz : 146
+Instruction category: OPI_IMN 
+  c-ebreak : 1
+Instruction category: jump 
+  c-j : 170
+  c-jalr : 146
+  c-jr : 146
+Instruction category: load 
+  c-lwsp : 146
+Instruction category: store 
+  c-swsp : 282
+Instruction category: shift 
+  c-slli : 170
+  c-srai : 146
+  c-srli : 146
+
+Other instructions (those not the focus of this suite)
+  csrr : 74
+  auipc : 1,418
+  addi : 4,291
+  csrw : 170
+  csrwi : 120
+  bltz : 24
+  beqz : 24
+  csrs : 24
+  mret : 25
+  lui : 1,358
+  sw : 3,258
+  fence : 24
+  ecall : 24
+  beq : 72
+  j : 262
+  mv : 66
+  lw : 438
+  csrrw : 1
+  nop : 1
+
