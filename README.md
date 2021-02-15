@@ -29,8 +29,8 @@ This simulator is for use in running tests - especially the RISC-V compliance te
 It includes full commercial features including variant selection, semi-hosting, functional coverage reporting, and RISC-V International compliance suite signature dump facilities. 
 
 RISC-V 32 and 64bit ratified instruction extensions are selectable (including IMAFDCNSUE). 
-See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim/README.md) and 
-           [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
+See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim/README.md) and 
+           [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
 
 #### riscvOVPsimPlus
 This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also 'near-ratified' ISA extensions: V-vector, B-bitmanip, K-crypto(scalar). 
@@ -38,8 +38,8 @@ This extends the functionality of riscvOVPsim and provides many more features in
 (Extensions still with a lot to be developed before ratification including K-crypto (vector), P-DSP(wip), and user custom extensions, are available in Imperas simulators from [Imperas](https://www.imperas.com/riscv)).
 
 For more information see the 
-   [riscv-ovpsim-plus/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim-plus/README.md) and 
-[riscvOVPsimPlus_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/main/riscv-ovpsim-plus/doc/riscvOVPsimPlus_User_Guide.pdf) for more information.
+   [riscv-ovpsim-plus/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim-plus/README.md) and 
+[riscvOVPsimPlus_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim-plus/doc/riscvOVPsimPlus_User_Guide.pdf) for more information.
 
 If you need a copy of riscvOVPsimPlus - get it from the [OVPworld.org library page](https://www.ovpworld.org/library/wikka.php?wakka=riscvOVPsimPlus).
 
