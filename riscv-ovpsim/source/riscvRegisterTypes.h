@@ -51,6 +51,7 @@ typedef enum riscvRegDescE {
     RV_RD_WL         = RV_RD_Q*2,           // explicit w/l type name
     RV_RD_FX         = RV_RD_WL*2,          // explicit x type name
     RV_RD_U          = RV_RD_FX*2,          // explicit u type name
+    RV_RD_ZFINX      = RV_RD_U*2,           // Zfinx-modified register
 
 } riscvRegDesc;
 
@@ -73,6 +74,13 @@ inline static Bool isFReg(riscvRegDesc r) {
 //
 inline static Bool isVReg(riscvRegDesc r) {
     return (r&RV_RD_V) && True;
+}
+
+//
+// Is the register an X register holding a floating point value (Zfinx)?
+//
+inline static Bool isZfinxReg(riscvRegDesc r) {
+    return (r&RV_RD_ZFINX) && True;
 }
 
 //

@@ -159,6 +159,25 @@ static void addKFeature(
 }
 
 //
+// Get architecture options that may be enabled but are not by default
+//
+static riscvArchitecture getNotEnabled(riscvConfigCP cfg) {
+
+    riscvArchitecture arch   = cfg->arch|cfg->archFixed;
+    riscvArchitecture result = 0;
+    Uns32             featureBit;
+
+    for(featureBit=0; featureBit<=('Z'-'A'); featureBit++) {
+        riscvArchitecture feature = 1<<featureBit;
+        if(!(feature & arch) && riscvGetFeatureName(feature)) {
+           result |= feature;
+        }
+    }
+
+    return result;
+}
+
+//
 // Create processor documentation
 //
 void riscvDoc(riscvP rootProcessor) {
@@ -213,9 +232,14 @@ void riscvDoc(riscvP rootProcessor) {
     {
         vmiDocNodeP       Extensions = vmidocAddSection(Root, "Extensions");
         riscvArchitecture arch       = cfg->arch;
+        riscvArchitecture disabled   = getNotEnabled(cfg);
+
+        vmiDocNodeP EnabledExt = vmidocAddSection(
+            Extensions, "Extensions Enabled by Default"
+        );
 
         vmidocAddText(
-            Extensions,
+            EnabledExt,
             "The model has the following architectural extensions enabled, "
             "and the following bits in the misa CSR Extensions field will "
             "be set upon reset:"
@@ -234,32 +258,33 @@ void riscvDoc(riscvP rootProcessor) {
                     featureBit,
                     featureDesc ? featureDesc : "unknown feature"
                 );
-                vmidocAddText(Extensions, string);
+                vmidocAddText(EnabledExt, string);
             }
 
             arch = arch & ~feature;
         }
 
         vmidocAddText(
-            Extensions,
+            EnabledExt,
             "To specify features that can be dynamically enabled or disabled "
             "by writes to the misa register in addition to those listed above, "
             "use parameter \"add_Extensions_mask\". This is a string parameter "
             "containing the feature letters to add; for example, value \"DV\" "
             "indicates that double-precision floating point and the Vector "
             "Extension can be enabled or disabled by writes to the misa "
-            "register."
+            "register, if supported on this variant."
         );
 
         vmidocAddText(
-            Extensions,
+            EnabledExt,
             "Legacy parameter \"misa_Extensions_mask\" can also be used. This "
             "Uns32-valued parameter specifies all writable bits in the misa "
-            "Extensions field, replacing any value defined in the base variant."
+            "Extensions field, replacing any permitted bits defined "
+            "in the base variant."
         );
 
         vmidocAddText(
-            Extensions,
+            EnabledExt,
             "Note that any features that are indicated as present in the misa "
             "mask but absent in the misa will be ignored. See the next section."
         );
@@ -268,10 +293,13 @@ void riscvDoc(riscvP rootProcessor) {
         // AVAILABLE EXTENSIONS
         ////////////////////////////////////////////////////////////////////////////
 
-        {
-            vmiDocNodeP       AvailExt = vmidocAddSection(Extensions, "Available (But Not Enabled) Extensions");
-            riscvArchitecture arch     = cfg->arch;
-            Uns32             featureBit;
+        if(disabled) {
+
+            Uns32 featureBit;
+
+            vmiDocNodeP AvailExt = vmidocAddSection(
+                Extensions, "Available Extensions Not Enabled by Default"
+            );
 
             vmidocAddText(
                 AvailExt,
@@ -279,22 +307,21 @@ void riscvDoc(riscvP rootProcessor) {
                 "enabled by default in this variant:"
             );
 
-            for(featureBit = 0; featureBit <= ('Z' - 'A'); featureBit++) {
+            for(featureBit = 0; featureBit <= ('Z'-'A'); featureBit++) {
 
                 riscvArchitecture feature = 1 << featureBit;
 
                 // report the extensions that are supported but not enabled
-                if((feature & arch) == 0) {
-                    const char *featureDesc = riscvGetFeatureName(feature);
-                    if(featureDesc) {
-                        snprintf(
-                            SNPRINTF_TGT(string),
-                            "misa bit %d: %s (NOT ENABLED)",
-                            featureBit,
-                            featureDesc
-                        );
-                        vmidocAddText(AvailExt, string);
-                    }
+                if(disabled & feature) {
+
+                    snprintf(
+                        SNPRINTF_TGT(string),
+                        "misa bit %d: %s",
+                        featureBit,
+                        riscvGetFeatureName(feature)
+                    );
+
+                    vmidocAddText(AvailExt, string);
                 }
             }
 
@@ -304,15 +331,16 @@ void riscvDoc(riscvP rootProcessor) {
                 "parameter \"add_Extensions\". This is a string parameter "
                 "containing the feature letters to add; for example, value "
                 "\"DV\" indicates that double-precision floating point and the "
-                "Vector Extension should be enabled, if they are absent."
+                "Vector Extension should be enabled, if they are currently absent "
+                "and are available on this variant."
             );
 
             vmidocAddText(
                 AvailExt,
                 "Legacy parameter \"misa_Extensions\" can also be used. This "
                 "Uns32-valued parameter specifies the reset value for the misa "
-                "CSR Extensions field, replacing any value defined in the base "
-                "variant."
+                "CSR Extensions field, replacing any permitted bits defined "
+                "in the base variant."
             );
         }
     }
@@ -677,59 +705,72 @@ void riscvDoc(riscvP rootProcessor) {
             vmidocAddText(Features, string);
         }
 
-        // document mstatus_FS
-        vmidocAddText(
-            Features,
-            "By default, the processor starts with floating-point "
-            "instructions disabled (mstatus.FS=0). Use parameter "
-            "\"mstatus_FS\" to force mstatus.FS to a non-zero value "
-            "for floating-point to be enabled from the start."
-        );
+        if(cfg->Zfinx) {
 
-        // document mstatus_fs_mode options
-        vmidocAddText(
-            Features,
-            "The specification is imprecise regarding the conditions "
-            "under which mstatus.FS is set to Dirty state (3). Parameter "
-            "\"mstatus_fs_mode\" can be used to specify the required "
-            "behavior in this model, as described below."
-        );
-        vmidocAddText(
-            Features,
-            "If \"mstatus_fs_mode\" is set to \"always_dirty\" then the "
-            "model implements a simplified floating point status view in "
-            "which mstatus.FS holds values 0 (Off) and 3 (Dirty) only; "
-            "any write of values 1 (Initial) or 2 (Clean) from privileged "
-            "code behave as if value 3 was written."
-        );
-        vmidocAddText(
-            Features,
-            "If \"mstatus_fs_mode\" is set to \"write_1\" then mstatus.FS "
-            "will be set to 3 (Dirty) by any explicit write to the fflags, "
-            "frm or fcsr control registers, or by any executed instruction "
-            "that writes an FPR, or by any executed floating point "
-            "compare or conversion to integer/unsigned that signals "
-            "a floating point exception. Floating point compare or "
-            "conversion to integer/unsigned instructions that do not "
-            "signal an exception will not set mstatus.FS."
-        );
-        vmidocAddText(
-            Features,
-            "If \"mstatus_fs_mode\" is set to \"write_any\" then mstatus.FS "
-            "will be set to 3 (Dirty) by any explicit write to the fflags, "
-            "frm or fcsr control registers, or by any executed instruction "
-            "that writes an FPR, or by any executed floating point "
-            "compare or conversion even if those instructions do not "
-            "signal a floating point exception."
-        );
+            // document Zfinx
+            vmidocAddText(
+                Features,
+                "Zfinx is implemented, meaning that all floating point "
+                "operations use the integer register file. This feature is "
+                "currently being defined and subject to change."
+            );
 
-        // document mstatus_fs_mode default
-        snprintf(
-            SNPRINTF_TGT(string),
-            "In this variant, \"mstatus_fs_mode\" is set to \"%s\".",
-            riscvGetFSModeName(riscv)
-        );
-        vmidocAddText(Features, string);
+        } else {
+
+            // document mstatus_FS
+            vmidocAddText(
+                Features,
+                "By default, the processor starts with floating-point "
+                "instructions disabled (mstatus.FS=0). Use parameter "
+                "\"mstatus_FS\" to force mstatus.FS to a non-zero value "
+                "for floating-point to be enabled from the start."
+            );
+
+            // document mstatus_fs_mode options
+            vmidocAddText(
+                Features,
+                "The specification is imprecise regarding the conditions under "
+                "which mstatus.FS is set to Dirty state (3). Parameter "
+                "\"mstatus_fs_mode\" can be used to specify the required "
+                "behavior in this model, as described below."
+            );
+            vmidocAddText(
+                Features,
+                "If \"mstatus_fs_mode\" is set to \"always_dirty\" then the "
+                "model implements a simplified floating point status view in "
+                "which mstatus.FS holds values 0 (Off) and 3 (Dirty) only; "
+                "any write of values 1 (Initial) or 2 (Clean) from privileged "
+                "code behave as if value 3 was written."
+            );
+            vmidocAddText(
+                Features,
+                "If \"mstatus_fs_mode\" is set to \"write_1\" then mstatus.FS "
+                "will be set to 3 (Dirty) by any explicit write to the fflags, "
+                "frm or fcsr control registers, or by any executed instruction "
+                "that writes an FPR, or by any executed floating point "
+                "compare or conversion to integer/unsigned that signals "
+                "a floating point exception. Floating point compare or "
+                "conversion to integer/unsigned instructions that do not "
+                "signal an exception will not set mstatus.FS."
+            );
+            vmidocAddText(
+                Features,
+                "If \"mstatus_fs_mode\" is set to \"write_any\" then mstatus.FS "
+                "will be set to 3 (Dirty) by any explicit write to the fflags, "
+                "frm or fcsr control registers, or by any executed instruction "
+                "that writes an FPR, or by any executed floating point "
+                "compare or conversion even if those instructions do not "
+                "signal a floating point exception."
+            );
+
+            // document mstatus_fs_mode default
+            snprintf(
+                SNPRINTF_TGT(string),
+                "In this variant, \"mstatus_fs_mode\" is set to \"%s\".",
+                riscvGetFSModeName(riscv)
+            );
+            vmidocAddText(Features, string);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -886,7 +927,7 @@ void riscvDoc(riscvP rootProcessor) {
         ////////////////////////////////////////////////////////////////////////
 
         {
-            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.93 (draft)");
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.93-draft");
 
             vmidocAddText(
                 Version,
@@ -918,7 +959,7 @@ void riscvDoc(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Stable 0.93 version of January 10 2021, with these changes "
-                "compared to version 0.93 (draft):"
+                "compared to version 0.93-draft:"
             );
             vmidocAddText(
                 Version,
@@ -955,16 +996,16 @@ void riscvDoc(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // BIT-MANIPULATION EXTENSION VERSION 0.94
+        // BIT-MANIPULATION EXTENSION VERSION MASTER
         ////////////////////////////////////////////////////////////////////////
 
         {
-            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.94");
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version master");
 
             vmidocAddText(
                 Version,
-                "Draft 0.94 version of January 20 2021, with these changes "
-                "compared to version 0.93:"
+                "Unstable master version as of January 20 2021, with these "
+                "changes compared to version 0.93:"
             );
             vmidocAddText(
                 Version,
@@ -1645,6 +1686,11 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
+                "- whole register load and store operations now permit use of "
+                "aligned groups of 1, 2, 4 or 8 registers."
+            );
+            vmidocAddText(
+                Version,
                 "- overlap constraints for different source/destination EEW "
                 "changed;"
             );
@@ -1668,7 +1714,7 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- instructions vle1.v and vse1.v added."
+                "- instructions vle1.v, vse1.v and vsetivli added."
             );
         }
 

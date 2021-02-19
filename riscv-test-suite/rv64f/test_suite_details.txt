@@ -27,8 +27,8 @@ Instruction category: OPF_SCI Single-Precision Floating-Point Computational
   fdiv.s : 248
   fmadd.s : 248
   fmax.s : 31
-  fmin.s : 31
   fmsub.s : 248
+  fmin.s : 31
   fmul.s : 248
   fnmadd.s : 248
   fnmsub.s : 248
@@ -47,9 +47,9 @@ Instruction category: OPF_SCM Single-Precision Floating-Point Conversion and Mov
   fcvt.s.wu : 248
   fcvt.w.s : 248
   fcvt.wu.s : 248
-  fsgnj.s : 31
   fsgnjn.s : 31
   fsgnjx.s : 31
+  fsgnj.s : 31
 Instruction category: OPF_SCP Single-Precision Floating-Point Compare
   feq.s : 31
   fle.s : 31

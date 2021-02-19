@@ -43,6 +43,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(debug_version);
     VMI_ENUM_PARAM(fp16_version);
     VMI_ENUM_PARAM(mstatus_fs_mode);
+    VMI_BOOL_PARAM(ABI_d);
     VMI_BOOL_PARAM(verbose);
     VMI_UNS32_PARAM(numHarts);
     VMI_ENUM_PARAM(debug_mode);
@@ -129,11 +130,11 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(mtvec);
     VMI_UNS32_PARAM(mstatus_FS);
     VMI_UNS32_PARAM(mstatus_VS);
+    VMI_UNS32_PARAM(mstatus_FS_zero);
     VMI_UNS32_PARAM(ELEN);
     VMI_UNS32_PARAM(SLEN);
     VMI_UNS32_PARAM(VLEN);
     VMI_UNS32_PARAM(SEW_min);
-    VMI_UNS32_PARAM(K_scalar_profile);
     VMI_BOOL_PARAM(MXL_writable);
     VMI_BOOL_PARAM(SXL_writable);
     VMI_BOOL_PARAM(UXL_writable);
@@ -161,6 +162,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zksd);
     VMI_BOOL_PARAM(Zkse);
     VMI_BOOL_PARAM(Zksh);
+    VMI_BOOL_PARAM(Zfinx);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);

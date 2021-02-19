@@ -749,20 +749,6 @@
 }
 
 //
-// instructions like FMV.D.X
-//
-#define ATTR32_FMVFX(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
-    opcode   : _OPCODE,             \
-    format   : FMT_R1_R2,           \
-    type     : RV_IT_##_GENERIC,    \
-    arch     : _ARCH,               \
-    r1       : RS_F_11_7,           \
-    r2       : RS_XX_19_15,         \
-    wF       : WF_26_25,            \
-    wX       : WX_25                \
-}
-
-//
 // Fd, SIMM(Rs1) (FL)
 //
 #define ATTR32_FD_MEM_RS1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -776,6 +762,7 @@
     memBits  : MBS_14_12_F,         \
     wF       : WF_MEM,              \
     xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
@@ -792,6 +779,22 @@
     memBits  : MBS_14_12_F,         \
     wF       : WF_MEM,              \
     xQuiet   : True,                \
+    notZfinx : True,                \
+}
+
+//
+// instructions like FMV.D.X
+//
+#define ATTR32_FMVFX(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_XX_19_15,         \
+    wF       : WF_26_25,            \
+    wX       : WX_25,               \
+    notZfinx : True,                \
 }
 
 //
@@ -805,7 +808,8 @@
     r1       : RS_XX_11_7,          \
     r2       : RS_F_19_15,          \
     wF       : WF_26_25,            \
-    wX       : WX_25                \
+    wX       : WX_25,               \
+    notZfinx : True,                \
 }
 
 //
@@ -858,6 +862,20 @@
     r1       : RS_X_11_7,           \
     r2       : RS_X_19_15,          \
     vtype    : VTYPE_30_20,         \
+    wX       : WX_3,                \
+}
+
+//
+// instructions like ATTR32_VSETIVLI
+//
+#define ATTR32_VSETIVLI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_SIMM_VTYPE,   \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    cs       : CS_U_19_15,          \
+    vtype    : VTYPE_29_20,         \
     wX       : WX_3,                \
 }
 
@@ -2015,96 +2033,102 @@
 // instructions like FLD
 //
 #define ATTR16_FLD(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LD,           \
-    memBits: MBS_D,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_4_2_P8,         \
+    r2       : RS_X_9_7_P8,         \
+    cs       : CS_C_LD,             \
+    memBits  : MBS_D,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
 // instructions like FLDSP
 //
 #define ATTR16_FLDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_11_7,         \
-    r2     : RS_X_SP,           \
-    cs     : CS_C_LDSP,         \
-    memBits: MBS_D,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_X_SP,             \
+    cs       : CS_C_LDSP,           \
+    memBits  : MBS_D,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
 // instructions like FSDSP
 //
 #define ATTR16_FSDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_6_2,          \
-    r2     : RS_X_SP,           \
-    cs     : CS_C_SDSP,         \
-    memBits: MBS_D,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_6_2,            \
+    r2       : RS_X_SP,             \
+    cs       : CS_C_SDSP,           \
+    memBits  : MBS_D,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
 // instructions like FLW
 //
 #define ATTR16_FLW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LW,           \
-    memBits: MBS_W,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_4_2_P8,         \
+    r2       : RS_X_9_7_P8,         \
+    cs       : CS_C_LW,             \
+    memBits  : MBS_W,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
 // instructions like FLWSP
 //
 #define ATTR16_FLWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_11_7,         \
-    r2     : RS_X_SP,           \
-    cs     : CS_C_LWSP,         \
-    memBits: MBS_W,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_X_SP,             \
+    cs       : CS_C_LWSP,           \
+    memBits  : MBS_W,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //
 // instructions like FSWSP
 //
 #define ATTR16_FSWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_F_6_2,          \
-    r2     : RS_X_SP,           \
-    cs     : CS_C_SWSP,         \
-    memBits: MBS_W,             \
-    wF     : WF_MEM,            \
-    xQuiet : True,              \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_6_2,            \
+    r2       : RS_X_SP,             \
+    cs       : CS_C_SWSP,           \
+    memBits  : MBS_W,               \
+    wF       : WF_MEM,              \
+    xQuiet   : True,                \
+    notZfinx : True,                \
 }
 
 //

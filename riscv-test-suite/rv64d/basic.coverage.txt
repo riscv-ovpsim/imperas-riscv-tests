@@ -2762,7 +2762,7 @@ Extension : D, instructions: 32
                 a5           1/1 : 100.00%
                 a6           1/1 : 100.00%
                 a7           1/1 : 100.00%
-                gp         1419/1 : 100.00%
+                gp         1418/1 : 100.00%
                 ra           1/1 : 100.00%
                 s0         891/1 : 100.00%
                 s1         321/1 : 100.00%
@@ -2784,7 +2784,7 @@ Extension : D, instructions: 32
                 t4           1/1 : 100.00%
                 t5           1/1 : 100.00%
                 t6           0/1 :   0.00% ZERO
-                tp         718/1 : 100.00%
+                tp         719/1 : 100.00%
                 zero         1/1 : 100.00%
             gpr 31/32 :  96.88%
         rs1 31/32 :  96.88%
@@ -3317,7 +3317,7 @@ Extension : D, instructions: 32
                 a6           1/1 : 100.00%
                 a7           1/1 : 100.00%
                 gp           1/1 : 100.00%
-                ra         1696/1 : 100.00%
+                ra         1697/1 : 100.00%
                 s0           1/1 : 100.00%
                 s1           1/1 : 100.00%
                 s10          1/1 : 100.00%
@@ -3339,10 +3339,10 @@ Extension : D, instructions: 32
                 t5           1/1 : 100.00%
                 t6           0/1 :   0.00% ZERO
                 tp           1/1 : 100.00%
-                zero         1/1 : 100.00%
-            gpr 31/32 :  96.88%
-        rs1 31/32 :  96.88%
-    fsd 64/66 :  96.97%
+                zero         0/1 :   0.00% ZERO
+            gpr 30/32 :  93.75%
+        rs1 30/32 :  93.75%
+    fsd 63/66 :  95.45%
     fsgnj_d        
         fd             
             fpr            
@@ -4210,6 +4210,7 @@ Coverage points missed:
   fnmsub_d/implicit/csr/frm/fields/frm/rmm
   fsd/fs2/fpr/ft11
   fsd/rs1/gpr/t6
+  fsd/rs1/gpr/zero
   fsgnj_d/fd/fpr/ft11
   fsgnj_d/fs1/fpr/ft11
   fsgnj_d/fs2/fpr/ft11
@@ -4248,10 +4249,10 @@ Coverage points missed:
   fsub_d/implicit/csr/fflags/fields/fflags/UF
   fsub_d/implicit/csr/frm/fields/frm/illegal
   fsub_d/implicit/csr/frm/fields/frm/rmm
-Coverage points missed: 282/3140
+Coverage points missed: 283/3140
 
 Info TOTAL INSTRUCTION COVERAGE : D
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 32/32 : 100.00%
-Info   Coverage points hit   : 2858/3140 :  91.02%
+Info   Coverage points hit   : 2857/3140 :  90.99%

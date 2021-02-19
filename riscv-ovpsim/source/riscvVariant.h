@@ -110,7 +110,8 @@ typedef enum riscvArchitectureE {
     ISA_U      = RISCV_FEATURE_BIT('U'),    // user mode implemented
     ISA_V      = RISCV_FEATURE_BIT('V'),    // vector extension implemented
     ISA_X      = RISCV_FEATURE_BIT('X'),    // non-standard extensions present
-    ISA_DF     = (ISA_D|ISA_F),             // either single or double precision
+    ISA_DF     = (ISA_D|ISA_F),             // floating point
+    ISA_DFS    = (ISA_D|ISA_F|ISA_S),       // either floating point or S-mode
     ISA_DFV    = (ISA_D|ISA_F|ISA_V),       // either floating point or vector
     ISA_SorN   = (ISA_S|ISA_N),             // either supervisor or user interrupts
     ISA_SandN  = (ISA_S|ISA_N|ISA_and),     // both supervisor and user interrupts
@@ -433,7 +434,9 @@ typedef enum riscvVFeatureE {
     RVVF_VCSR_PRESENT,      // is vcsr register present?
     RVVF_VS_STATUS_8,       // is [ms]status.VS field in version 0.8 location?
     RVVF_VS_STATUS_9,       // is [ms]status.VS field in version 0.9 location?
-    RVVF_FP_RESTRICT_WHOLE, // whole register load/store/move restricted?
+    RVVF_FP_RESTRICT_VMVR,  // whole register move restricted?
+    RVVF_FP_RESTRICT_VLSR1, // whole register load/store restricted to 1?
+    RVVF_FP_RESTRICT_VLSRP2,// whole register load/store restricted to power of 2?
     RVVF_FRACT_LMUL,        // is fractional LMUL implemented?
     RVVF_AGNOSTIC,          // are agnostic bits implemented?
     RVVF_MLEN1,             // is MLEN always 1?

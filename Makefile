@@ -29,10 +29,16 @@ ifeq ($(RISCV_TARGET),)
     endif
 endif
 
-export RISCV_DEVICE       ?= rv32i
-export RISCV_PREFIX       ?= riscv64-unknown-elf-
+export RISCV_DEVICE       ?= $(RISCV_ISA)
 export RISCV_TARGET_FLAGS ?=
 export RISCV_ASSERT       ?= 0
+
+export RISCV_PREFIX       ?= riscv64-unknown-elf-
+
+# Check Toolchain on PATH
+ifeq (,$(shell which $(RISCV_PREFIX)gcc))
+$(error No $(RISCV_PREFIX)gcc on PATH, consider correcting RISCV_PREFIX and/or adding bin directory to PATH)
+endif
 
 RISCV_ISA_ALL = $(shell ls $(ROOTDIR)/riscv-target/$(RISCV_TARGET)/device)
 RISCV_ISA_OPT = $(subst $(space),$(pipe),$(RISCV_ISA_ALL))
@@ -92,12 +98,16 @@ all_variant:
 	done
 
 simulate:
+ifeq ($(wildcard $(SUITEDIR)/Makefile),)
+	@echo "# Ignore riscv-test-suite/$(RISCV_ISA)"
+else
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
 		RISCV_ISA=$(RISCV_ISA) \
 		run -C $(SUITEDIR)
+endif
 
 verify: simulate
 	riscv-test-env/verify.sh \
@@ -114,12 +124,16 @@ cover:
 		RISCV_ISA=$(RISCV_ISA) \
 
 clean:
+ifeq ($(wildcard $(SUITEDIR)/Makefile),)
+	@echo "# Ignore riscv-test-suite/$(RISCV_ISA)"
+else
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
 		RISCV_ISA=$(RISCV_ISA) \
 		clean -C $(SUITEDIR)
+endif
 
 allclean:
 	for isa in $(RISCV_ISA_ALL); do \

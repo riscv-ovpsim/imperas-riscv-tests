@@ -313,9 +313,14 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         vmiRegInfoP       dst;
         Uns32             i;
 
-        // gdb workaround code (mismatched FPR and GPR widths not supported)
-        if(!normal && (XLEN!=FLEN)) {
+        if(Zfinx(riscv)) {
 
+            // when Zfinx is implemented there are no floating point registers
+            fprNum = 0;
+
+        } else if(!normal && (XLEN!=FLEN)) {
+
+            // gdb workaround code (mismatched FPR and GPR widths not supported)
             if(!isPSE(riscv)) {
                 vmiMessage("W", CPU_PREFIX "_URC",
                     NO_SRCREF_FMT
@@ -593,7 +598,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     // exclude artifact registers
     RISCV_FIELD_IMPL_IGNORE(atomic);
     RISCV_FIELD_IMPL_IGNORE(pmKey);
-    RISCV_FIELD_IMPL_IGNORE(vl_EEW1);
+    RISCV_FIELD_IMPL_IGNORE(vlEEW1);
     RISCV_FIELD_IMPL_IGNORE(vFirstFault);
     RISCV_FIELD_IMPL_IGNORE(vPreserve);
     RISCV_FIELD_IMPL_IGNORE(vBase);

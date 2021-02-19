@@ -11,6 +11,19 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- Some Vector Extension issues have been corrected:
+  - whole-register load/store instructions now allow register counts of 2, 4 or
+    8 in addition to 1 for vector versions 1.0-draft-20210130 and master.
+- New parameter Zfinx enables option to reuse the integer register file for all
+  floating point instructions.
+- Behavior has changed so that mstatus.FS is writable if Supervisor mode is
+  implemented and floating point is absent. The previous behavior may be
+  obtained using parameter mstatus_FS_zero if required.
+
+Date 2021-February-03
+Release 20210202.0
+===
+
 - New optional reset_addr and nmi_addr nets allow addresses for reset and NMI
   exceptions to by asserted externally if required.
 - Support for half-precision scalar floating point has been added, with format
@@ -36,6 +49,7 @@ NOTE: X-commit messages below refer to git commits in the following
   - instructions bset[i]w, bclr[i]w, binv[i]w and bextw removed.
 - New vector version 1.0-draft-20210130 added.
   - V-commit 7cf5349: vle1.v and vse1.v instructions added.
+  - V-commit 8bf26e8: vsetivli instruction added.
 
 Date 2020-December-11
 Release 20201209.0

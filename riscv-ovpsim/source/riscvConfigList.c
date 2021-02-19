@@ -25,7 +25,7 @@
 //
 // Specify named variant
 //
-#define RISC_VARIANT(_NAME, _PMP_REGS, _ARCH) { \
+#define RISC_VARIANT(_NAME, _PMP_REGS, _Zfinx, _ARCH) { \
     .name             = _NAME,                          \
     .arch             = _ARCH,                          \
     .archMask         = RV_ARCH_MASK_DEFAULT,           \
@@ -40,6 +40,7 @@
     .Zvamo            = 1,                              \
     .Zvediv           = 0,                              \
     .Zvqmac           = 1,                              \
+    .Zfinx            = _Zfinx,                         \
     .PMP_registers    = _PMP_REGS,                      \
     .tval_ii_code     = True,                           \
     .ASID_bits        = ((_ARCH)&RV64) ? 16 : 9,        \
@@ -60,39 +61,41 @@
 static const riscvConfig configList[] = {
 
     // RV32 variants
-    RISC_VARIANT("RV32I",    16, ISA_U|ISA_S|RV32I   ),
-    RISC_VARIANT("RV32IM",   16, ISA_U|ISA_S|RV32IM  ),
-    RISC_VARIANT("RV32IMC",  16, ISA_U|ISA_S|RV32IMC ),
-    RISC_VARIANT("RV32IMAC", 16, ISA_U|ISA_S|RV32IMAC),
-    RISC_VARIANT("RV32G",    16, ISA_U|ISA_S|RV32G   ),
-    RISC_VARIANT("RV32GC",   16, ISA_U|ISA_S|RV32GC  ),
-    RISC_VARIANT("RV32GCB",  16, ISA_U|ISA_S|RV32GCB ),
-    RISC_VARIANT("RV32GCH",  16, ISA_U|ISA_S|RV32GCH ),
-    RISC_VARIANT("RV32GCK",  16, ISA_U|ISA_S|RV32GCK ),
-    RISC_VARIANT("RV32GCN",  16, ISA_U|ISA_S|RV32GCN ),
-    RISC_VARIANT("RV32GCV",  16, ISA_U|ISA_S|RV32GCV ),
-    RISC_VARIANT("RV32E",    16, ISA_U|ISA_S|RV32E   ),
-    RISC_VARIANT("RV32EC",   16, ISA_U|ISA_S|RV32EC  ),
+    RISC_VARIANT("RV32I",       16, 0, ISA_U|ISA_S|RV32I   ),
+    RISC_VARIANT("RV32IM",      16, 0, ISA_U|ISA_S|RV32IM  ),
+    RISC_VARIANT("RV32IMC",     16, 0, ISA_U|ISA_S|RV32IMC ),
+    RISC_VARIANT("RV32IMAC",    16, 0, ISA_U|ISA_S|RV32IMAC),
+    RISC_VARIANT("RV32G",       16, 0, ISA_U|ISA_S|RV32G   ),
+    RISC_VARIANT("RV32GC",      16, 0, ISA_U|ISA_S|RV32GC  ),
+    RISC_VARIANT("RV32GCZfinx", 16, 1, ISA_U|ISA_S|RV32GC  ),
+    RISC_VARIANT("RV32GCB",     16, 0, ISA_U|ISA_S|RV32GCB ),
+    RISC_VARIANT("RV32GCH",     16, 0, ISA_U|ISA_S|RV32GCH ),
+    RISC_VARIANT("RV32GCK",     16, 0, ISA_U|ISA_S|RV32GCK ),
+    RISC_VARIANT("RV32GCN",     16, 0, ISA_U|ISA_S|RV32GCN ),
+    RISC_VARIANT("RV32GCV",     16, 0, ISA_U|ISA_S|RV32GCV ),
+    RISC_VARIANT("RV32E",       16, 0, ISA_U|ISA_S|RV32E   ),
+    RISC_VARIANT("RV32EC",      16, 0, ISA_U|ISA_S|RV32EC  ),
 
     // RV64 variants
-    RISC_VARIANT("RV64I",    16, ISA_U|ISA_S|RV64I   ),
-    RISC_VARIANT("RV64IM",   16, ISA_U|ISA_S|RV64IM  ),
-    RISC_VARIANT("RV64IMC",  16, ISA_U|ISA_S|RV64IMC ),
-    RISC_VARIANT("RV64IMAC", 16, ISA_U|ISA_S|RV64IMAC),
-    RISC_VARIANT("RV64G",    16, ISA_U|ISA_S|RV64G   ),
-    RISC_VARIANT("RV64GC",   16, ISA_U|ISA_S|RV64GC  ),
-    RISC_VARIANT("RV64GCB",  16, ISA_U|ISA_S|RV64GCB ),
-    RISC_VARIANT("RV64GCH",  16, ISA_U|ISA_S|RV64GCH ),
-    RISC_VARIANT("RV64GCK",  16, ISA_U|ISA_S|RV64GCK ),
-    RISC_VARIANT("RV64GCN",  16, ISA_U|ISA_S|RV64GCN ),
-    RISC_VARIANT("RV64GCV",  16, ISA_U|ISA_S|RV64GCV ),
+    RISC_VARIANT("RV64I",       16, 0, ISA_U|ISA_S|RV64I   ),
+    RISC_VARIANT("RV64IM",      16, 0, ISA_U|ISA_S|RV64IM  ),
+    RISC_VARIANT("RV64IMC",     16, 0, ISA_U|ISA_S|RV64IMC ),
+    RISC_VARIANT("RV64IMAC",    16, 0, ISA_U|ISA_S|RV64IMAC),
+    RISC_VARIANT("RV64G",       16, 0, ISA_U|ISA_S|RV64G   ),
+    RISC_VARIANT("RV64GC",      16, 0, ISA_U|ISA_S|RV64GC  ),
+    RISC_VARIANT("RV64GCZfinx", 16, 1, ISA_U|ISA_S|RV64GC  ),
+    RISC_VARIANT("RV64GCB",     16, 0, ISA_U|ISA_S|RV64GCB ),
+    RISC_VARIANT("RV64GCH",     16, 0, ISA_U|ISA_S|RV64GCH ),
+    RISC_VARIANT("RV64GCK",     16, 0, ISA_U|ISA_S|RV64GCK ),
+    RISC_VARIANT("RV64GCN",     16, 0, ISA_U|ISA_S|RV64GCN ),
+    RISC_VARIANT("RV64GCV",     16, 0, ISA_U|ISA_S|RV64GCV ),
 
     // RV32 base variants (no User/Supervisor modes or PMP implemented)
-    RISC_VARIANT("RVB32I",   0,              RV32I   ),
-    RISC_VARIANT("RVB32E",   0,              RV32E   ),
+    RISC_VARIANT("RVB32I",      0,  0,             RV32I   ),
+    RISC_VARIANT("RVB32E",      0,  0,             RV32E   ),
 
     // RV64 base variants (no User/Supervisor modes or PMP implemented)
-    RISC_VARIANT("RVB64I",   0,              RV64I   ),
+    RISC_VARIANT("RVB64I",      0,  0,             RV64I   ),
 
     {0} // null terminator
 };

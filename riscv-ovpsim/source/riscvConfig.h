@@ -65,6 +65,7 @@ typedef struct riscvConfigS {
     // fundamental variant configuration
     riscvArchitecture arch;             // variant architecture
     riscvArchitecture archMask;         // read/write bits in architecture
+    riscvArchitecture archFixed;        // fixed bits in architecture
     riscvUserVer      user_version;     // user-level ISA version
     riscvPrivVer      priv_version;     // privileged architecture version
     riscvVectVer      vect_version;     // vector architecture version
@@ -117,6 +118,7 @@ typedef struct riscvConfigS {
     Uns8              svalue_bits;      // implemented bits in textra.svalue
     Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
     Bool              isPSE;            // whether a PSE (internal use only)
+    Bool              ABI_d;            // ABI uses D registers for parameters
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL
     Bool              UXL_writable;     // writable bits in mstatus.UXL
@@ -145,7 +147,8 @@ typedef struct riscvConfigS {
     Bool              amo_trigger;      // whether triggers used with AMO
     Bool              no_hit;           // whether tdata1.hit is unimplemented
     Bool              no_sselect_2;     // whether textra.sselect=2 is illegal
-    Bool              d_requires_f;     // when misa D requires F to be set
+    Bool              d_requires_f;     // whether misa D requires F to be set
+    Bool              mstatus_FS_zero;  // whether mstatus.FS hardwired to zero
     Bool              xret_preserves_lr;// whether xRET preserves current LR
     Bool              require_vstart0;  // require vstart 0 if uninterruptible?
     Bool              align_whole;      // whole register load aligned to hint?
@@ -158,6 +161,7 @@ typedef struct riscvConfigS {
     Bool              tval_zero_ebreak; // whether [smu]tval always zero on ebreak
     Bool              tval_ii_code;     // instruction bits in [smu]tval for
                                         // illegal instruction exception?
+    Bool              Zfinx;            // Zfinx extension implemented?
 
     // CLIC configuration
     Uns32             CLICLEVELS;       // number of CLIC interrupt levels

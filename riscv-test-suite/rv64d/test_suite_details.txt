@@ -26,9 +26,9 @@ Instruction category: OPD_DCI Double-Precision Floating-Point Computational
   fadd.d : 248
   fdiv.d : 248
   fmadd.d : 248
+  fmax.d : 31
   fmin.d : 31
   fmsub.d : 248
-  fmax.d : 31
   fmul.d : 248
   fnmadd.d : 248
   fnmsub.d : 248

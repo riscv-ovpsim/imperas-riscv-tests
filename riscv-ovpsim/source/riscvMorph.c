@@ -315,10 +315,24 @@ inline static Bool vectorFPRequiresFSNZ(riscvP riscv) {
 }
 
 //
-// Are whole-register move and load/store instructions restricted?
+// Are whole-register move instructions restricted?
 //
-inline static Bool vectorRestrictWhole(riscvP riscv) {
-    return riscvVFSupport(riscv, RVVF_FP_RESTRICT_WHOLE);
+inline static Bool vectorRestrictVMVR(riscvP riscv) {
+    return riscvVFSupport(riscv, RVVF_FP_RESTRICT_VMVR);
+}
+
+//
+// Are whole-register load/store instructions restricted to 1 register?
+//
+inline static Bool vectorRestrictVLSR1(riscvP riscv) {
+    return riscvVFSupport(riscv, RVVF_FP_RESTRICT_VLSR1);
+}
+
+//
+// Are whole-register load/store instructions restricted to power-of-2 registers?
+//
+inline static Bool vectorRestrictVLSRP2(riscvP riscv) {
+    return riscvVFSupport(riscv, RVVF_FP_RESTRICT_VLSRP2);
 }
 
 //
@@ -1114,7 +1128,7 @@ inline static Bool statusVS9(riscvP riscv) {
 }
 
 //
-// Indicate that this instruction may updates mstatus (and possibly the virtual
+// Indicate that this instruction may update mstatus (and possibly the virtual
 // alias vsstatus)
 //
 static void updateMStatusFS(riscvP riscv) {
@@ -1133,7 +1147,7 @@ static void updateMStatusFS(riscvP riscv) {
 //
 static void mayUpdateMStatusFS(riscvP riscv) {
 
-    if(!alwaysDirtyFS(riscv)) {
+    if(!Zfinx(riscv) && !alwaysDirtyFS(riscv)) {
         updateMStatusFS(riscv);
     }
 }
@@ -1168,7 +1182,7 @@ inline static void emitSetMStatusMask(riscvP riscv, Uns32 mask) {
 //
 static void updateFS(riscvP riscv) {
 
-    if(!alwaysDirtyFS(riscv)) {
+    if(!Zfinx(riscv) && !alwaysDirtyFS(riscv)) {
 
         riscvBlockStateP blockState = riscv->blockState;
 
@@ -1337,6 +1351,67 @@ static Bool supportedFBitsMT(riscvP riscv, Uns32 bits) {
 }
 
 //
+// Get the indexed X register, if it is legal
+//
+static vmiReg getVMIRegX(riscvP riscv, Uns32 index) {
+
+    vmiReg result = VMI_NOREG;
+
+    // register indices >= 16 are illegal for E extension (the inverse of
+    // the I feature)
+    if((index<16) || riscvRequireArchPresentMT(riscv, ISA_I)) {
+        result = index ? RISCV_GPR(index) : VMI_NOREG;
+    }
+
+    return result;
+}
+
+//
+// Validate floating point extension is enabled for the given register size
+//
+static Bool isFltEnabledMT(riscvP riscv, Uns32 bits) {
+
+    return (
+        // floating point type must be supported
+        supportedFBitsMT(riscv, bits) &&
+        // floating point type must be enabled
+        riscvRequireArchPresentMT(riscv, getFRegArch(riscv, bits))
+    );
+}
+
+//
+// Is the Zfinx extension absent?
+//
+static Bool isZfinxAbsentMT(riscvP riscv) {
+
+    Bool ok = !Zfinx(riscv);
+
+    if(!ok) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "FINXIMP", "illegal because Zfinx implemented"
+        );
+    }
+
+    return ok;
+}
+
+//
+// Is the given Zfinx register index legal?
+//
+static Bool isZfinxLegalIndexMT(riscvP riscv, Uns32 index, Uns32 bits) {
+
+    Bool ok = ((riscvGetXlenMode(riscv)>=bits) || !(index&1));
+
+    if(!ok) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "FINXIDX", "illegal odd register index when Zfinx implemented"
+        );
+    }
+
+    return ok;
+}
+
+//
 // Return VMI register for the given abstract register
 //
 vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
@@ -1345,25 +1420,29 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
     Uns32  index  = getRIndex(r);
     vmiReg result = VMI_NOREG;
 
-    if(isXReg(r)) {
+    if(isZfinxReg(r)) {
+
+        if(!isFltEnabledMT(riscv, bits)) {
+            // floating point absent or disabled
+        } else if(!isZfinxLegalIndexMT(riscv, index, bits)) {
+            // illegal register index
+        } else {
+            result = getVMIRegX(riscv, index);
+        }
+
+    } else if(isXReg(r)) {
 
         // 64-bit register requires ISA_XLEN_64 feature
         if(bits==64) {
             riscvRequireArchPresentMT(riscv, ISA_XLEN_64);
         }
 
-        // register indices >= 16 are illegal for E extension (the inverse of
-        // the I feature)
-        if((index<16) || riscvRequireArchPresentMT(riscv, ISA_I)) {
-            result = index ? RISCV_GPR(index) : VMI_NOREG;
-        }
+        result = getVMIRegX(riscv, index);
 
     } else if(isFReg(r)) {
 
-        // require either D or F
-        if(!supportedFBitsMT(riscv, bits)) {
-            // no further action for unsupported floating point types
-        } else if(riscvRequireArchPresentMT(riscv, getFRegArch(riscv, bits))) {
+        // require no Zfinx extension and enabled floating point
+        if(isZfinxAbsentMT(riscv) && isFltEnabledMT(riscv, bits)) {
             riscv->usingFP = True;
             result = RISCV_FPR(index);
         }
@@ -1432,12 +1511,40 @@ void riscvWriteRegSize(
 ) {
     vmiReg dst = getVMIReg(riscv, r);
 
-    if(isXReg(r)) {
+    if(isZfinxReg(r)) {
 
-        Uns32 dstBits = riscvGetXlenArch(riscv);
+        Uns32 dstArch = riscvGetXlenArch(riscv);
+        Uns32 dstMode = riscvGetXlenMode(riscv);
 
-        // sign-extend result
-        vmimtMoveExtendRR(dstBits, dst, srcBits, dst, signExtend);
+        if(requireNaNBox(riscv, r, dstMode, srcBits)) {
+
+            // NaN-box result if required (NOTE: to dstArch, not dstMode)
+            vmimtMoveRC(dstArch-srcBits, VMI_REG_DELTA(dst,srcBits/8), -1);
+
+        } else if(dstMode<srcBits) {
+
+            // reassign result to register pair
+            Uns32  dstBytes = BITS_TO_BYTES(dstMode);
+            vmiReg dst0     = dst;
+            vmiReg dst1     = VMI_REG_DELTA(dst0, dstBytes);
+            vmiReg dst2     = VMI_REG_DELTA(dst1, dstBytes);
+
+            // sign-extend result halves to dstArch
+            vmimtMoveExtendRR(dstArch, dst2, dstMode, dst1, signExtend);
+            vmimtMoveExtendRR(dstArch, dst0, dstMode, dst0, signExtend);
+
+        } else {
+
+            // sign-extend result to dstArch
+            vmimtMoveExtendRR(dstArch, dst, srcBits, dst, signExtend);
+        }
+
+    } else if(isXReg(r)) {
+
+        Uns32 dstArch = riscvGetXlenArch(riscv);
+
+        // sign-extend result to dstArch
+        vmimtMoveExtendRR(dstArch, dst, srcBits, dst, signExtend);
 
         // add to record of X registers written by this instruction
         riscv->writtenXMask |= getRegMask(r);
@@ -1445,13 +1552,13 @@ void riscvWriteRegSize(
     } else if(isFReg(r)) {
 
         riscvBlockStateP blockState = riscv->blockState;
-        Uns32            dstBits    = riscvGetFlenArch(riscv);
+        Uns32            dstArch    = riscvGetFlenArch(riscv);
         Uns32            fprMask    = getRegMask(r);
         Uns32            i;
 
         // NaN-box result if required
-        if(requireNaNBox(riscv, r, dstBits, srcBits)) {
-            vmimtMoveRC(dstBits-srcBits, VMI_REG_DELTA(dst,srcBits/8), -1);
+        if(requireNaNBox(riscv, r, dstArch, srcBits)) {
+            vmimtMoveRC(dstArch-srcBits, VMI_REG_DELTA(dst,srcBits/8), -1);
         }
 
         // floating point views narrower than srcBits are now not NaN-boxed
@@ -1650,10 +1757,37 @@ static vmiReg getVMIRegFSInt(
     vmiReg           tmp
 ) {
     vmiReg result = getVMIReg(riscv, r);
+    Uns32  bits   = getRBits(r);
 
-    if(isFReg(r)) {
+    if(isZfinxReg(r)) {
 
-        Uns32 bits     = getRBits(r);
+        Uns32 XLEN = riscvGetXlenMode(riscv);
+
+        if(XLEN<bits) {
+
+            // low and high parameters are in adjacent registers
+            vmiReg srcLo = result;
+            vmiReg srcHi = VMI_REG_DELTA(srcLo, 8);
+
+            // allocate temporary if required
+            if(VMI_ISNOREG(tmp)) {
+                tmp = newTmp(state);
+            }
+
+            // get low and high half of temporary
+            vmiReg tmpLo = tmp;
+            vmiReg tmpHi = VMI_REG_DELTA(tmpLo, BITS_TO_BYTES(XLEN));
+
+            // fill temporary halves
+            vmimtMoveRR(XLEN, tmpLo, srcLo);
+            vmimtMoveRR(XLEN, tmpHi, srcHi);
+
+            // use the temporary as a source
+            result = tmp;
+        }
+
+    } else if(isFReg(r)) {
+
         Uns32 archBits = riscvGetFlenArch(riscv);
 
         // handle possible switch to QNaN-valued temporary if the source
@@ -1836,6 +1970,14 @@ inline static void writeUnpackedSize(unpackedReg rd, Uns32 srcBits) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Set address bits for a load/store operation (has effect when running with
+// XLEN=32 on a system also implementing XLEN=64)
+//
+static void setAddressMaskMT(riscvMorphStateP state) {
+    vmimtSetAddressMask(getAddressMask(riscvGetXlenMode(state->riscv)));
+}
+
+//
 // Return a Boolean indicating if transaction mode is enabled
 //
 inline static Bool inTransactionMode(riscvP riscv) {
@@ -2009,6 +2151,7 @@ static void emitLoadCommonMBO(
     // if a transactional domain access, perform try-load in current data
     // domain (to update VM and PMP structures and generate access exceptions)
     if(inTransactionMode(state->riscv)) {
+        setAddressMaskMT(state);
         vmimtTryLoadRC(memBits, offset, ra, constraint);
     }
 
@@ -2018,6 +2161,7 @@ static void emitLoadCommonMBO(
     }
 
     // emit code to perform load
+    setAddressMaskMT(state);
     vmimtLoadRRODomain(
         domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
     );
@@ -2065,10 +2209,12 @@ static void emitStoreCommonMBO(
     // if a transactional domain access, perform try-store in current data
     // domain (to update VM and PMP structures and generate access exceptions)
     if(inTransactionMode(state->riscv)) {
+        setAddressMaskMT(state);
         vmimtTryStoreRC(memBits, offset, ra, constraint);
     }
 
     // emit code to perform store
+    setAddressMaskMT(state);
     vmimtStoreRRODomain(
         domain, memBits, offset, ra, rs, endian, constraint
     );
@@ -2117,6 +2263,7 @@ static void emitTryStoreCommon(
     Uns64 offset  = state->info.c;
 
     // generate Store/AMO exception in preference to Load exception
+    setAddressMaskMT(state);
     vmimtTryStoreRC(memBits, offset, ra, constraint);
 }
 
@@ -7135,7 +7282,8 @@ static void checkVStartZero(riscvMorphStateP state, iterDescP id) {
 //
 // Return register holding effective vector length (EVL)
 //
-inline static vmiReg getEVLReg(riscvMorphStateP state) {
+inline static vmiReg getEVLRegMT(riscvMorphStateP state) {
+    vmimtRegReadImpl("vl");
     return (state->info.eew==1) ? RISCV_VL_EEW1 : CSR_REG_MT(vl);
 }
 
@@ -7153,7 +7301,7 @@ static void validateVStart(
     if(state->info.isWhole) {
         vmimtCompareRCJumpLabel(32, cond, vstart, getVLMAXOp(id), label);
     } else {
-        vmimtCompareRRJumpLabel(32, cond, vstart, getEVLReg(state), label);
+        vmimtCompareRRJumpLabel(32, cond, vstart, getEVLRegMT(state), label);
     }
 }
 
@@ -7167,7 +7315,7 @@ static void clampVStart(riscvMorphStateP state, iterDescP id) {
     if(state->info.isWhole) {
         vmimtMoveRC(64, vstart, getVLMAXOp(id));
     } else {
-        vmimtMoveExtendRR(64, vstart, 32, getEVLReg(state), False);
+        vmimtMoveExtendRR(64, vstart, 32, getEVLRegMT(state), False);
     }
 }
 
@@ -7869,6 +8017,11 @@ typedef enum setVLOptionE {
 //
 static setVLOption getSetVLOption(riscvMorphStateP state) {
 
+    // set vl to uimm if vsetivli
+    if(!getRVReg(state, 1)) {
+        return SVT_SET;
+    }
+
     riscvP      riscv = state->riscv;
     unpackedReg rs1   = unpackRX(state, 1);
 
@@ -8010,13 +8163,15 @@ static Uns32 setMaxVLSEWLMUL(riscvP riscv, Uns32 vtypeBits) {
 }
 
 //
-// Emit variable rs1 argument for vsetvl/vsetvli
+// Emit variable rs1/uimm argument for vset[i]vl[i]
 //
 static void emitSetVLRS1Arg(riscvMorphStateP state) {
 
-    unpackedReg rs1 = unpackRX(state, 1);
-
-    vmimtArgReg(64, rs1.r);
+    if(getRVReg(state, 1)) {
+        vmimtArgReg(64, unpackRX(state, 1).r);
+    } else {
+        vmimtArgUns64(state->info.c);
+    }
 }
 
 //
@@ -8291,10 +8446,10 @@ inline static Bool legalVMemBits(riscvSEWMt SEW, Uns32 memBits) {
 }
 
 //
-// Is the specified number of registers for a whole register move logal?
+// Is the number of registers for a whole register operation a power of 2?
 //
-static Bool legalVMVRRegNum(Uns32 regNum) {
-    return ((regNum==1) || (regNum==2) || (regNum==4) || (regNum==8));
+inline static Bool isRegNumP2(Uns32 regNum) {
+    return !(regNum & (regNum-1));
 }
 
 //
@@ -8324,19 +8479,38 @@ static Bool emitVLdStCheckSeg(riscvMorphStateP state, iterDescP id) {
 //
 static Bool emitVLdStCheckWhole(riscvMorphStateP state, iterDescP id) {
 
-    riscvP riscv = state->riscv;
-    Bool   ok    = True;
+    riscvP       riscv  = state->riscv;
+    riscvRegDesc rA     = getRVReg(state, 0);
+    Uns32        index  = getRIndex(rA);
+    Uns32        regNum = getEMULxNF(state, id, 0);
+    Bool         ok     = True;
 
     if(!state->info.isWhole) {
 
         // no action unless whole register load or store
 
-    } else if(state->info.nf && vectorRestrictWhole(riscv)) {
+    } else if((regNum!=1) && vectorRestrictVLSR1(riscv)) {
 
         // nf!=1 is not supported
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVNF", "Illegal register count (must be 1)");
         ok = False;
-     }
+
+    } else if(!vectorRestrictVLSRP2(riscv)) {
+
+        // registers not constrained
+
+    } else if(!isRegNumP2(regNum)) {
+
+        // illegal register number
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVNF", "Illegal register count (must be power of 2)");
+        ok = False;
+
+    } else if(index & (regNum-1)) {
+
+        // illegal register number
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVRA", "Illegal unaligned register group");
+        ok = False;
+    }
 
     return ok;
 }
@@ -8459,14 +8633,14 @@ static RISCV_CHECKV_FN(emitVMVRCheckCB) {
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVDSOV", "Illegal destination/source vector overlap");
         ok = False;
 
-    } else if(!vectorRestrictWhole(riscv)) {
+    } else if(!vectorRestrictVMVR(riscv)) {
 
         // registers not constrained
 
-    } else if(!legalVMVRRegNum(regNum)) {
+    } else if(!isRegNumP2(regNum)) {
 
         // illegal register number
-        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVDSOV", "Illegal number of registers");
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVNF", "Illegal register count (must be power of 2)");
         ok = False;
 
     } else if(dIndex & (regNum-1)) {
@@ -8495,6 +8669,7 @@ static RISCV_MORPHV_FN(emitVLdStInitCB) {
     // validate whole-register load alignment if required
     if(eew && state->info.isWhole && state->riscv->configInfo.align_whole) {
         unpackedReg ra = unpackRX(state, 1);
+        setAddressMaskMT(state);
         vmimtTryLoadRC(eew, 0, ra.r, MEM_CONSTRAINT_ALIGNED);
     }
 

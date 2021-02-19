@@ -160,6 +160,7 @@ static riscvArchitecture getXLenArch(riscvP riscv) {
 #define U_27_24(_I)         UBITS(4, (_I)>>24)
 #define U_27_26(_I)         UBITS(2, (_I)>>26)
 #define U_28(_I)            UBITS(1, (_I)>>28)
+#define U_29_20(_I)         UBITS(10,(_I)>>20)
 #define U_30_20(_I)         UBITS(11,(_I)>>20)
 #define U_30_21(_I)         UBITS(10,(_I)>>21)
 #define U_30_25(_I)         UBITS(6, (_I)>>25)
@@ -365,6 +366,7 @@ typedef enum rmSpecE {
 //
 typedef enum vtypeSpecE {
     VTYPE_NA,            // no vtype
+    VTYPE_29_20,         // vtype in bits 29:20
     VTYPE_30_20,         // vtype in bits 30:20
 } vtypeSpec;
 
@@ -429,6 +431,7 @@ typedef struct opAttrsS {
     Bool              shN      :  1;    // shN prefix specification
     Bool              csrInOp  :  1;    // whether to emit CSR as part of opcode
     Bool              xQuiet   :  1;    // are X registers type-quiet?
+    Bool              notZfinx :  1;    // absent if Zfinx?
 } opAttrs;
 
 typedef const struct opAttrsS *opAttrsCP;
@@ -795,6 +798,7 @@ typedef enum riscvIType32E {
 
     // V-extension I-type instructions
     IT32_VSETVL_I,
+    IT32_VSETIVL_I,
 
     // V-extension load/store instructions (pre-0.9)
     IT32_VL_I,
@@ -1492,8 +1496,8 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(       VSETVL_R, "|1000000|.....|.....|111|.....|1010111|"),
 
     // V-extension I-type
-    //                               |        imm32|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(       VSETVL_I, "|0......|.....|.....|111|.....|1010111|"),
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(       VSETVL_I, "|0...........|.....|111|.....|1010111|"),
 
     // V-extension IVV-type instructions
     //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
@@ -2500,6 +2504,10 @@ const static decodeEntry32 decodeVV09[] = {
 //
 const static decodeEntry32 decodeVInitial10[] = {
 
+    // V-extension I-type
+    //                               |       imm32| uimm|fun|   rd| opcode|
+    DECODE32_ENTRY(      VSETIVL_I, "|11..........|.....|111|.....|1010111|"),
+
     // V-extension unit-stride mask load/store instructions
     //                               | nf|mop|m|  xs2|  rs1|wth|  vs3| opcode|
     DECODE32_ENTRY(         VLE1_I, "|000|000|1|01011|.....|000|.....|0000111|"),
@@ -2849,10 +2857,10 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RDNZ_csr_RS1     (         FSRM_I,          CSRR_I, RVANY,   "fsrm"   ),
 
     // X-extension Type, custom instructions
-    ATTR32_NOP              (        CUSTOM1,          CUSTOM, RVANY,   "custom1"),
-    ATTR32_NOP              (        CUSTOM2,          CUSTOM, RVANY,   "custom2"),
-    ATTR32_NOP              (        CUSTOM3,          CUSTOM, RVANY,   "custom3"),
-    ATTR32_NOP              (        CUSTOM4,          CUSTOM, RVANY,   "custom4"),
+    ATTR32_NOP              (        CUSTOM1,          CUSTOM, RVANY,   "custom0"),
+    ATTR32_NOP              (        CUSTOM2,          CUSTOM, RVANY,   "custom1"),
+    ATTR32_NOP              (        CUSTOM3,          CUSTOM, RVANY,   "custom2"),
+    ATTR32_NOP              (        CUSTOM4,          CUSTOM, RVANY,   "custom3"),
 
     // B-extension R-type instructions
     ATTR32_RD_RS1_RS2       (         ANDN_R,          ANDN_R, RVANYBK, "andn"       ),
@@ -3026,7 +3034,8 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2       (       VSETVL_R,        VSETVL_R, RVANYV,  "vsetvl"),
 
     // V-extension I-type
-    ATTR32_VSETVLI          (       VSETVL_I,        VSETVL_I, RVANYV,  "vsetvli"),
+    ATTR32_VSETVLI          (       VSETVL_I,        VSETVL_I, RVANYV,  "vsetvli" ),
+    ATTR32_VSETIVLI         (      VSETIVL_I,        VSETVL_I, RVANYV,  "vsetivli"),
 
     // V-extension load/store instructions (pre-0.9)
     ATTR32_VL               (           VL_I,            VL_I, RVANYV,  "vl",   1),
@@ -4336,7 +4345,7 @@ static riscvRegDesc getRegister(
     rSpec           r,
     riscvRegDesc    wX,
     riscvRegDesc    wF,
-    Bool            xQuiet
+    opAttrsCP       attrs
 ) {
     riscvRegDesc result = RV_RD_NA;
     Uns32        instr  = info->instruction;
@@ -4445,7 +4454,7 @@ static riscvRegDesc getRegister(
     if(result && !getRBits(result)) {
 
         // indicate that this register is type-quiet if required
-        if(xQuiet && isXReg(result) && !isXWLReg(result)) {
+        if(attrs->xQuiet && isXReg(result) && !isXWLReg(result)) {
             result |= RV_RD_Q;
         }
 
@@ -4457,6 +4466,11 @@ static riscvRegDesc getRegister(
     // dynamic width validation)
     if(isXReg(result) && (getRBits(result)>getXLenBits(riscv))) {
         forceIllegalInstruction(riscv, info);
+    }
+
+    // include indication of whether this is an F value in an X register
+    if(isFReg(result) && Zfinx(riscv) && !attrs->notZfinx) {
+        result |= RV_RD_ZFINX;
     }
 
     return result;
@@ -4690,6 +4704,10 @@ static riscvVType getVType(
     switch(vtype) {
 
         case VTYPE_NA:
+            break;
+
+        case VTYPE_29_20:
+            result = composeVType(riscv, U_29_20(instr));
             break;
 
         case VTYPE_30_20:
@@ -4929,11 +4947,11 @@ static void interpretInstruction(
     info->csr       = getCSR(riscv, info, attrs->csr);
     info->csrUpdate = getCSRUpdate(riscv, info, attrs->csrUpdate);
     info->c         = getConstant(riscv, info, attrs->cs,   wX);
-    info->r[0]      = getRegister(riscv, info, attrs->r1,   wX, wF, attrs->xQuiet);
-    info->r[1]      = getRegister(riscv, info, attrs->r2,   wX, wF, attrs->xQuiet);
-    info->r[2]      = getRegister(riscv, info, attrs->r3,   wX, wF, attrs->xQuiet);
-    info->r[3]      = getRegister(riscv, info, attrs->r4,   wX, wF, attrs->xQuiet);
-    info->mask      = getRegister(riscv, info, attrs->mask, wX, wF, attrs->xQuiet);
+    info->r[0]      = getRegister(riscv, info, attrs->r1,   wX, wF, attrs);
+    info->r[1]      = getRegister(riscv, info, attrs->r2,   wX, wF, attrs);
+    info->r[2]      = getRegister(riscv, info, attrs->r3,   wX, wF, attrs);
+    info->r[3]      = getRegister(riscv, info, attrs->r4,   wX, wF, attrs);
+    info->mask      = getRegister(riscv, info, attrs->mask, wX, wF, attrs);
     info->aqrl      = getAQRL(info, attrs->aqrl);
     info->pred      = getFence(info, attrs->pred);
     info->succ      = getFence(info, attrs->succ);

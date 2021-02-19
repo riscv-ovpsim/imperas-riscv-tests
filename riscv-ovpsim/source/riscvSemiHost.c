@@ -38,17 +38,24 @@
 #define ALIGN_PAIR_64 0
 
 //
+// Is the E extension active?
+//
+inline static Bool isArchE(riscvP riscv) {
+    return (riscv->currentArch & ISA_E);
+}
+
+//
 // Return the number of arguments passed in GPRs
 //
 inline static Uns32 getARegNum(riscvP riscv) {
-    return (riscv->currentArch & ISA_I) ? 8 : 6;
+    return isArchE(riscv) ? 6 : 8;
 }
 
 //
 // Return the number of arguments passed in FPRs
 //
 static Uns32 getFRegNum(riscvP riscv) {
-    return riscv->usingFP ? 8 : 0;
+    return riscv->usingFP && riscv->configInfo.ABI_d ? 8 : 0;
 }
 
 //
@@ -176,7 +183,7 @@ VMI_INT_PAR_FN(riscvIntParCB) {
             argReg = getTmp(tmpIdx++);
 
             // align double-width arguments
-            if(isPair && (memOffset&1)) {
+            if(isPair && (memOffset&1) && !isArchE(riscv)) {
                 memOffset++;
             }
 

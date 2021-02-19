@@ -51,21 +51,23 @@ typedef enum riscvParamVariantE {
     RVPV_PRE     = (1<<0),      // identifies pre-parameter
     RVPV_VARIANT = (1<<1),      // identifies variant parameter
     RVPV_FP      = (1<<2),      // requires floating point unit
-    RVPV_A       = (1<<3),      // requires atomic instructions
-    RVPV_K       = (1<<4),      // requires crypto extension
-    RVPV_BK      = (1<<5),      // requires bitmanip or crypto extension
-    RVPV_64      = (1<<6),      // present if XLEN=64
-    RVPV_S       = (1<<7),      // requires Supervisor mode
-    RVPV_U       = (1<<8),      // requires Supervisor mode
-    RVPV_H       = (1<<9),      // requires Hypervisor mode
-    RVPV_N       = (1<<10),     // requires User mode interrupts
-    RVPV_V       = (1<<11),     // requires Vector extension
-    RVPV_MPCORE  = (1<<12),     // present for multicore variants
-    RVPV_CLIC    = (1<<13),     // present if CLIC enabled
-    RVPV_NMBITS  = (1<<14),     // present if CLICCFGMBITS can be > 0
-    RVPV_DEBUG   = (1<<15),     // present if debug mode implemented
-    RVPV_TRIG    = (1<<16),     // present if triggers implemented
-    RVPV_DBGT    = (1<<17),     // present if debug mode or triggers implemented
+    RVPV_D       = (1<<3),      // requires double floating point unit
+    RVPV_A       = (1<<4),      // requires atomic instructions
+    RVPV_K       = (1<<5),      // requires crypto extension
+    RVPV_BK      = (1<<6),      // requires bitmanip or crypto extension
+    RVPV_64      = (1<<7),      // present if XLEN=64
+    RVPV_S       = (1<<8),      // requires Supervisor mode
+    RVPV_SnotFP  = (1<<9),      // requires Supervisor mode and no floating point
+    RVPV_U       = (1<<10),     // requires Supervisor mode
+    RVPV_H       = (1<<11),     // requires Hypervisor mode
+    RVPV_N       = (1<<12),     // requires User mode interrupts
+    RVPV_V       = (1<<13),     // requires Vector extension
+    RVPV_MPCORE  = (1<<14),     // present for multicore variants
+    RVPV_CLIC    = (1<<15),     // present if CLIC enabled
+    RVPV_NMBITS  = (1<<16),     // present if CLICCFGMBITS can be > 0
+    RVPV_DEBUG   = (1<<17),     // present if debug mode implemented
+    RVPV_TRIG    = (1<<18),     // present if triggers implemented
+    RVPV_DBGT    = (1<<19),     // present if debug mode or triggers implemented
 
                                 // COMPOSITE PARAMETER IDENTIFIERS
     RVPV_INT_CFG = RVPV_PRE,
@@ -535,10 +537,12 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(externalCLIC);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tvt_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(intthresh_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mclicbase_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(mstatus_FS_zero);
 static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
+static RISCV_BOOL_PDEFAULT_CFG_FN(Zfinx);
 
 //
 // Set default value of raw Uns32 parameters
@@ -567,6 +571,13 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(force_sideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_ideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_edeleg)
 
+
+//
+// Specify whether D registers are used for parameter passing (ABI semihosting)
+//
+static RISCV_PDEFAULT_FN(default_ABI_d) {
+    setBoolParamDefault(param, cfg->arch & ISA_D);
+}
 
 //
 // Specify whether tval register is set to zero by ebreak
@@ -992,6 +1003,7 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   default_debug_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, debug_address,        0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump to enter debug in vectored mode")},
     {  RVPV_DEBUG,   default_dexc_address,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, dexc_address,         0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump on debug exception in vectored mode")},
     {  RVPV_DEBUG,   default_debug_eret_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_eret_mode,      DERETModes,                RV_GROUP(DBG),   "Specify behavior for MRET, SRET or URET in Debug mode (nop, jump to dexc_address or trap to dexc_address)")},
+    {  RVPV_D,       default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
     {  RVPV_ALL,     0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, verbose,              False,                     RV_GROUP(ARTIF), "Specify verbose output messages")},
     {  RVPV_MPCORE,  default_numHarts,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, numHarts,             0, 0,          32,         RV_GROUP(FUND),  "Specify the number of hart contexts in a multiprocessor")},
     {  RVPV_S,       default_updatePTEA,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTEA,           False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE A bit is supported")},
@@ -1075,6 +1087,7 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC,    default_mclicbase,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mclicbase,            0, 0,          -1,         RV_GROUP(CLIC),  "Override mclicbase register")},
     {  RVPV_FP,      0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mstatus_FS,           0, 0,          3,          RV_GROUP(FP),    "Override default value of mstatus.FS (initial state of floating point unit)")},
     {  RVPV_V,       0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mstatus_VS,           0, 0,          3,          RV_GROUP(V),     "Override default value of mstatus.VS (initial state of vector unit)")},
+    {  RVPV_SnotFP,  default_mstatus_FS_zero,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mstatus_FS_zero,      False,                     RV_GROUP(FP),    "Specify that mstatus.FS is hard-wired to zero")},
     {  RVPV_64,      default_MXL_writable,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, MXL_writable,         False,                     RV_GROUP(CSRMK), "Specify that misa.MXL is writable (feature under development)")},
     {  RVPV_64S,     default_SXL_writable,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, SXL_writable,         False,                     RV_GROUP(CSRMK), "Specify that mstatus.SXL is writable (feature under development)")},
     {  RVPV_64U,     default_UXL_writable,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, UXL_writable,         False,                     RV_GROUP(CSRMK), "Specify that mstatus.UXL is writable (feature under development)")},
@@ -1106,6 +1119,7 @@ static riscvParameter parameters[] = {
     {  RVPV_K,       default_Zksd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksd,                 False,                     RV_GROUP(B),     "Specify that Zksd is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zkse,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkse,                 False,                     RV_GROUP(B),     "Specify that Zkse is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zksh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksh,                 False,                     RV_GROUP(B),     "Specify that Zksh is implemented (cryptographic extension)")},
+    {  RVPV_FP,      default_Zfinx,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zfinx,                False,                     RV_GROUP(B),     "Specify that Zfinx is implemented (use integer register file for floating point instructions)")},
 
     // CLIC configuration
     {  RVPV_INT_CFG, default_CLICLEVELS,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, CLICLEVELS,           0, 0,          256,        RV_GROUP(CLIC),  "Specify number of interrupt levels implemented by CLIC, or 0 if CLIC absent")},
@@ -1190,6 +1204,12 @@ static Bool selectParameter(
             return False;
         }
 
+        // include parameters that are only required when double floating-point
+        // is present
+        if((param->variant & RVPV_D) && !(cfg->arch&ISA_D)) {
+            return False;
+        }
+
         // include parameters that are only required when atomic extension is
         // present
         if((param->variant & RVPV_A) && !(cfg->arch&ISA_A)) {
@@ -1216,6 +1236,12 @@ static Bool selectParameter(
         // include parameters that are only required when Supervisor mode is
         // present
         if((param->variant & RVPV_S) && !(cfg->arch&ISA_S)) {
+            return False;
+        }
+
+        // include parameters that are only required when Supervisor mode is
+        // present and floating-point is absent
+        if((param->variant & RVPV_SnotFP) && ((cfg->arch&ISA_DFS)!=ISA_S)) {
             return False;
         }
 

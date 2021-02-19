@@ -179,7 +179,7 @@ static void putReg(char **result, riscvRegDesc r, Bool opt, Bool uncooked) {
 
     if(opt && !uncooked && !index && isXReg(r)) {
         // omit zero register
-    } else if(isXReg(r)) {
+    } else if(isXReg(r) || isZfinxReg(r)) {
         putString(result, riscvGetXRegName(index));
     } else if(isFReg(r)) {
         putString(result, riscvGetFRegName(index));

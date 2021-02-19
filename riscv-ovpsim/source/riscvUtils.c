@@ -70,7 +70,7 @@ void riscvSetCurrentArch(riscvP riscv) {
     Bool      V     = inVMode(riscv);
     Bool      FS_HS = RD_CSR_FIELDC(riscv, mstatus,  FS);
     Bool      FS_VS = RD_CSR_FIELDC(riscv, vsstatus, FS) || !V;
-    Bool      FS    = FS_HS && FS_VS;
+    Bool      FS    = Zfinx(riscv) || (FS_HS && FS_VS);
 
     // derive new architecture value based on misa value, preserving rounding
     // mode invalid setting
@@ -891,11 +891,11 @@ const char *riscvGetFeatureName(riscvArchitecture feature) {
         [RISCV_FEATURE_INDEX('A')]         = "extension A (atomic instructions)",
         [RISCV_FEATURE_INDEX('B')]         = "extension B (bit manipulation extension)",
         [RISCV_FEATURE_INDEX('C')]         = "extension C (compressed instructions)",
-        [RISCV_FEATURE_INDEX('E')]         = "RV32E base ISA",
+        [RISCV_FEATURE_INDEX('E')]         = "RV32E base integer instruction set (embedded)",
         [RISCV_FEATURE_INDEX('D')]         = "extension D (double-precision floating point)",
         [RISCV_FEATURE_INDEX('F')]         = "extension F (single-precision floating point)",
         [RISCV_FEATURE_INDEX('H')]         = "extension H (hypervisor)",
-        [RISCV_FEATURE_INDEX('I')]         = "RV32I/64I/128I base ISA",
+        [RISCV_FEATURE_INDEX('I')]         = "RV32I/RV64I/RV128I base integer instruction set",
         [RISCV_FEATURE_INDEX('K')]         = "extension K (cryptographic)",
         [RISCV_FEATURE_INDEX('M')]         = "extension M (integer multiply/divide instructions)",
         [RISCV_FEATURE_INDEX('N')]         = "extension N (user-level interrupts)",

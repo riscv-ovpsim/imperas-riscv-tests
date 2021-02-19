@@ -18,3 +18,12 @@ Date 2021-January-08
 Release 20210108.0
 First release of F and D Single- and Double-Precision Floating Point architectural tests
 
+Date 2021-February-03
+Release 20210202.0
+Update of F, D, B and K architectural tests
+
+Date 2021-February-19
+Release 20210218.0
+Updates for vector specification
+
+

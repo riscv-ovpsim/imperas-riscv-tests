@@ -668,7 +668,7 @@ void riscvConsolidateFPFlags(riscvP riscv) {
     riscv->SFMT        = 0;
 
     // indicate floating point extension status is dirty if required
-    if(fpFlagsMT || (SFMT && vxRequiresFS(riscv))) {
+    if(!Zfinx(riscv) && (fpFlagsMT || (SFMT && vxRequiresFS(riscv)))) {
 
         // always update mstatus.FS
         WR_CSR_FIELDC(riscv, mstatus, FS, ES_DIRTY);
@@ -2999,7 +2999,7 @@ void riscvSetVType(riscvP riscv, Bool vill, riscvVType vtype) {
 // Refresh effective VL used when when EEW=1
 //
 inline static void refreshVLEEW1(riscvP riscv) {
-    riscv->vl_EEW1 = (RD_CSRC(riscv, vl)+7)>>3;
+    riscv->vlEEW1 = BITS_TO_BYTES(RD_CSRC(riscv, vl));
 }
 
 //
@@ -5308,8 +5308,11 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
         WR_CSR_MASK_FIELDC_1(riscv, mstatus, UPIE);
     }
 
-    // initialize F/D-extension write masks
-    if(arch&ISA_DF) {
+    // FS is writable if Zfinx is absent and either D or F extension is present,
+    // or S-mode is implemented and mstatus_FS_zero is not specified
+    if(cfg->Zfinx) {
+        WR_CSR_FIELDC(riscv, mstatus, FS, 0);
+    } else if((arch&ISA_DF) || (!cfg->mstatus_FS_zero && (arch&ISA_S))) {
         WR_CSR_MASK_FIELDC_1(riscv, mstatus, FS);
     }
 

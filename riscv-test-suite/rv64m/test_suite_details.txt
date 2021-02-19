@@ -24,18 +24,18 @@ Architectural Test Suite Data for RV64M C Compressed Integer Instructions:
 
 Instruction category: arithmetic 
   mulh : 274
-  rem : 274
-  remu : 274
-  div : 274
-  mul : 274
-  mulhu : 274
-  divu : 274
   mulhsu : 274
-  mulw : 274
-  divuw : 274
-  remw : 274
-  divw : 274
+  divu : 274
+  mul : 274
+  div : 274
+  mulhu : 274
+  remu : 274
+  rem : 274
   remuw : 274
+  remw : 274
+  mulw : 274
+  divw : 274
+  divuw : 274
 
 Other instructions (those not the focus of this suite)
   jal : 13

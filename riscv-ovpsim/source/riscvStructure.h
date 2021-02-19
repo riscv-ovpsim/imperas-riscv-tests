@@ -380,7 +380,7 @@ typedef struct riscvS {
     Uns8               vActiveMask;         	// vector active element mask
     Bool               vFirstFault;          	// vector first fault active?
     Bool               vPreserve;               // vsetvl{i} preserving vl?
-    Uns32              vl_EEW1;                 // effective VL when EEW=1
+    Uns32              vlEEW1;                  // effective VL when EEW=1
     Uns64              vTmp;                 	// vector operation temporary
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
@@ -622,6 +622,13 @@ inline static Bool cryptoPresent(riscvP riscv) {
 //
 inline static Uns32 getTriggerNum(riscvP riscv) {
     return riscv->configInfo.trigger_num;
+}
+
+//
+// Is Zfinx configured?
+//
+inline static Bool Zfinx(riscvP riscv) {
+    return riscv->configInfo.Zfinx;
 }
 
 //

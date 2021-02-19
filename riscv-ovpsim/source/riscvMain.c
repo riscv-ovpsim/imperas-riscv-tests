@@ -270,6 +270,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->csrMask.utvt.u64.bits  = params->utvt_mask;
 
     // get uninterpreted architectural configuration parameters
+    cfg->ABI_d               = params->ABI_d;
     cfg->user_version        = params->user_version;
     cfg->priv_version        = params->priv_version;
     cfg->vect_version        = params->vector_version;
@@ -343,6 +344,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->require_vstart0     = params->require_vstart0;
     cfg->align_whole         = params->align_whole;
     cfg->vill_trap           = params->vill_trap;
+    cfg->mstatus_FS_zero     = params->mstatus_FS_zero;
     cfg->ELEN                = powerOfTwo(params->ELEN, "ELEN");
     cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN, "VLEN");
     cfg->SEW_min             = powerOfTwo(params->SEW_min, "SEW_min");
@@ -364,9 +366,10 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->mclicbase_undefined = params->mclicbase_undefined;
     cfg->GEILEN              = params->GEILEN;
     cfg->xtinst_basic        = params->xtinst_basic;
+    cfg->Zfinx               = params->Zfinx;
 
-    // some K-extension parameters require a commercial product
-    REQUIRE_COMMERCIAL(riscv, params, K_scalar_profile);
+    // some F-extension parameters require a commercial product
+    REQUIRE_COMMERCIAL(riscv, params, Zfinx);
 
     // some V-extension parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, Zvlsseg);
@@ -509,6 +512,12 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     } else {
         misa_Extensions |= ISA_I;
     }
+
+    // bits in the misa fixed mask may not be updated
+    misa_Extensions = (
+        (cfg->arch       &  cfg->archFixed) |
+        (misa_Extensions & ~cfg->archFixed)
+    );
 
     // the E bit is always read only (it is a complement of the I bit)
     misa_Extensions_mask &= ~ISA_E;

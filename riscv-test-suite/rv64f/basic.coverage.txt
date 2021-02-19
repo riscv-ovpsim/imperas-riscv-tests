@@ -2668,7 +2668,7 @@ Extension : F, instructions: 30
                 a5           1/1 : 100.00%
                 a6           1/1 : 100.00%
                 a7           1/1 : 100.00%
-                gp         1374/1 : 100.00%
+                gp         1373/1 : 100.00%
                 ra           1/1 : 100.00%
                 s0         891/1 : 100.00%
                 s1         321/1 : 100.00%
@@ -2690,7 +2690,7 @@ Extension : F, instructions: 30
                 t4           1/1 : 100.00%
                 t5           1/1 : 100.00%
                 t6           0/1 :   0.00% ZERO
-                tp         718/1 : 100.00%
+                tp         719/1 : 100.00%
                 zero         1/1 : 100.00%
             gpr 31/32 :  96.88%
         rs1 31/32 :  96.88%
@@ -3845,7 +3845,7 @@ Extension : F, instructions: 30
                 a6           1/1 : 100.00%
                 a7           1/1 : 100.00%
                 gp           1/1 : 100.00%
-                ra         1776/1 : 100.00%
+                ra         1777/1 : 100.00%
                 s0           1/1 : 100.00%
                 s1           1/1 : 100.00%
                 s10          1/1 : 100.00%
@@ -3867,10 +3867,10 @@ Extension : F, instructions: 30
                 t5           1/1 : 100.00%
                 t6           0/1 :   0.00% ZERO
                 tp           1/1 : 100.00%
-                zero         1/1 : 100.00%
-            gpr 31/32 :  96.88%
-        rs1 31/32 :  96.88%
-    fsw 64/66 :  96.97%
+                zero         0/1 :   0.00% ZERO
+            gpr 30/32 :  93.75%
+        rs1 30/32 :  93.75%
+    fsw 63/66 :  95.45%
 Coverage points missed:
   fadd_s/fd/fpr/ft11
   fadd_s/frm/rmm
@@ -4165,10 +4165,11 @@ Coverage points missed:
   fsub_s/implicit/csr/frm/fields/frm/rmm
   fsw/fs2/fpr/ft11
   fsw/rs1/gpr/t6
-Coverage points missed: 293/3040
+  fsw/rs1/gpr/zero
+Coverage points missed: 294/3040
 
 Info TOTAL INSTRUCTION COVERAGE : F
 Info   Threshold             : 1
 Info   Instructions counted  : 0
 Info   Unique instructions   : 30/30 : 100.00%
-Info   Coverage points hit   : 2747/3040 :  90.36%
+Info   Coverage points hit   : 2746/3040 :  90.33%

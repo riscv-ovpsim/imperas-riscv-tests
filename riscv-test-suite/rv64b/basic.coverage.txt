@@ -4,83 +4,83 @@ Extension : B, instructions: 100
     addiwu         
         imm            
             sign           
-                neg          0/1 :   0.00% ZERO
-                pos          0/1 :   0.00% ZERO
-            sign 0/2 :   0.00%
-        imm 0/2 :   0.00%
+                neg         82/1 : 100.00%
+                pos        192/1 : 100.00%
+            sign 2/2 : 100.00%
+        imm 2/2 : 100.00%
         rd             
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rd 0/32 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           9/1 : 100.00%
+                ra           9/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          8/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           8/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           9/1 : 100.00%
+                t0           9/1 : 100.00%
+                t1           9/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           8/1 : 100.00%
+                t4           8/1 : 100.00%
+                t5           8/1 : 100.00%
+                t6           8/1 : 100.00%
+                tp           9/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rd 32/32 : 100.00%
         rs1            
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rs1 0/32 :   0.00%
-    addiwu 0/66 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           8/1 : 100.00%
+                ra           8/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          9/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           9/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           8/1 : 100.00%
+                t0           8/1 : 100.00%
+                t1           8/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           9/1 : 100.00%
+                t4           9/1 : 100.00%
+                t5           9/1 : 100.00%
+                t6           9/1 : 100.00%
+                tp           8/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rs1 32/32 : 100.00%
+    addiwu 66/66 : 100.00%
     addu_w         
         rd             
             gpr            
@@ -194,113 +194,113 @@ Extension : B, instructions: 100
     addwu          
         rd             
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rd 0/32 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           9/1 : 100.00%
+                ra           9/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          8/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           8/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           9/1 : 100.00%
+                t0           9/1 : 100.00%
+                t1           9/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           8/1 : 100.00%
+                t4           8/1 : 100.00%
+                t5           8/1 : 100.00%
+                t6           8/1 : 100.00%
+                tp           9/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rd 32/32 : 100.00%
         rs1            
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rs1 0/32 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           8/1 : 100.00%
+                ra           8/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           8/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          9/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           9/1 : 100.00%
+                s9          10/1 : 100.00%
+                sp           8/1 : 100.00%
+                t0           8/1 : 100.00%
+                t1           8/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           9/1 : 100.00%
+                t4           9/1 : 100.00%
+                t5           9/1 : 100.00%
+                t6           9/1 : 100.00%
+                tp           8/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rs1 32/32 : 100.00%
         rs2            
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rs2 0/32 :   0.00%
-    addwu 0/96 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           8/1 : 100.00%
+                gp           9/1 : 100.00%
+                ra           9/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          9/1 : 100.00%
+                s2           8/1 : 100.00%
+                s3           8/1 : 100.00%
+                s4           8/1 : 100.00%
+                s5           8/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           8/1 : 100.00%
+                s8           9/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           9/1 : 100.00%
+                t0           9/1 : 100.00%
+                t1           9/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           9/1 : 100.00%
+                t4           9/1 : 100.00%
+                t5           9/1 : 100.00%
+                t6           9/1 : 100.00%
+                tp           9/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rs2 32/32 : 100.00%
+    addwu 96/96 : 100.00%
     andn           
         rd             
             gpr            
@@ -9464,113 +9464,113 @@ Extension : B, instructions: 100
     subwu          
         rd             
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rd 0/32 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           9/1 : 100.00%
+                ra           9/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          8/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           8/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           9/1 : 100.00%
+                t0           9/1 : 100.00%
+                t1           9/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           8/1 : 100.00%
+                t4           8/1 : 100.00%
+                t5           8/1 : 100.00%
+                t6           8/1 : 100.00%
+                tp           9/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rd 32/32 : 100.00%
         rs1            
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rs1 0/32 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           9/1 : 100.00%
+                gp           8/1 : 100.00%
+                ra           8/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           8/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          9/1 : 100.00%
+                s2           9/1 : 100.00%
+                s3           9/1 : 100.00%
+                s4           9/1 : 100.00%
+                s5           9/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           9/1 : 100.00%
+                s8           9/1 : 100.00%
+                s9          10/1 : 100.00%
+                sp           8/1 : 100.00%
+                t0           8/1 : 100.00%
+                t1           8/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           9/1 : 100.00%
+                t4           9/1 : 100.00%
+                t5           9/1 : 100.00%
+                t6           9/1 : 100.00%
+                tp           8/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rs1 32/32 : 100.00%
         rs2            
             gpr            
-                a0           0/1 :   0.00% ZERO
-                a1           0/1 :   0.00% ZERO
-                a2           0/1 :   0.00% ZERO
-                a3           0/1 :   0.00% ZERO
-                a4           0/1 :   0.00% ZERO
-                a5           0/1 :   0.00% ZERO
-                a6           0/1 :   0.00% ZERO
-                a7           0/1 :   0.00% ZERO
-                gp           0/1 :   0.00% ZERO
-                ra           0/1 :   0.00% ZERO
-                s0           0/1 :   0.00% ZERO
-                s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
-                s2           0/1 :   0.00% ZERO
-                s3           0/1 :   0.00% ZERO
-                s4           0/1 :   0.00% ZERO
-                s5           0/1 :   0.00% ZERO
-                s6           0/1 :   0.00% ZERO
-                s7           0/1 :   0.00% ZERO
-                s8           0/1 :   0.00% ZERO
-                s9           0/1 :   0.00% ZERO
-                sp           0/1 :   0.00% ZERO
-                t0           0/1 :   0.00% ZERO
-                t1           0/1 :   0.00% ZERO
-                t2           0/1 :   0.00% ZERO
-                t3           0/1 :   0.00% ZERO
-                t4           0/1 :   0.00% ZERO
-                t5           0/1 :   0.00% ZERO
-                t6           0/1 :   0.00% ZERO
-                tp           0/1 :   0.00% ZERO
-                zero         0/1 :   0.00% ZERO
-            gpr 0/32 :   0.00%
-        rs2 0/32 :   0.00%
-    subwu 0/96 :   0.00%
+                a0           9/1 : 100.00%
+                a1           9/1 : 100.00%
+                a2           9/1 : 100.00%
+                a3           9/1 : 100.00%
+                a4           9/1 : 100.00%
+                a5           9/1 : 100.00%
+                a6           9/1 : 100.00%
+                a7           8/1 : 100.00%
+                gp           9/1 : 100.00%
+                ra           9/1 : 100.00%
+                s0           9/1 : 100.00%
+                s1           9/1 : 100.00%
+                s10          9/1 : 100.00%
+                s11          9/1 : 100.00%
+                s2           8/1 : 100.00%
+                s3           8/1 : 100.00%
+                s4           8/1 : 100.00%
+                s5           8/1 : 100.00%
+                s6           9/1 : 100.00%
+                s7           8/1 : 100.00%
+                s8           9/1 : 100.00%
+                s9           9/1 : 100.00%
+                sp           9/1 : 100.00%
+                t0           9/1 : 100.00%
+                t1           9/1 : 100.00%
+                t2           9/1 : 100.00%
+                t3           9/1 : 100.00%
+                t4           9/1 : 100.00%
+                t5           9/1 : 100.00%
+                t6           9/1 : 100.00%
+                tp           9/1 : 100.00%
+                zero         1/1 : 100.00%
+            gpr 32/32 : 100.00%
+        rs2 32/32 : 100.00%
+    subwu 96/96 : 100.00%
     unshfl         
         rd             
             gpr            
@@ -9982,168 +9982,6 @@ Extension : B, instructions: 100
         rs2 32/32 : 100.00%
     xnor 96/96 : 100.00%
 Coverage points missed:
-  addiwu/imm/sign/neg
-  addiwu/imm/sign/pos
-  addiwu/rd/gpr/a0
-  addiwu/rd/gpr/a1
-  addiwu/rd/gpr/a2
-  addiwu/rd/gpr/a3
-  addiwu/rd/gpr/a4
-  addiwu/rd/gpr/a5
-  addiwu/rd/gpr/a6
-  addiwu/rd/gpr/a7
-  addiwu/rd/gpr/gp
-  addiwu/rd/gpr/ra
-  addiwu/rd/gpr/s0
-  addiwu/rd/gpr/s1
-  addiwu/rd/gpr/s10
-  addiwu/rd/gpr/s11
-  addiwu/rd/gpr/s2
-  addiwu/rd/gpr/s3
-  addiwu/rd/gpr/s4
-  addiwu/rd/gpr/s5
-  addiwu/rd/gpr/s6
-  addiwu/rd/gpr/s7
-  addiwu/rd/gpr/s8
-  addiwu/rd/gpr/s9
-  addiwu/rd/gpr/sp
-  addiwu/rd/gpr/t0
-  addiwu/rd/gpr/t1
-  addiwu/rd/gpr/t2
-  addiwu/rd/gpr/t3
-  addiwu/rd/gpr/t4
-  addiwu/rd/gpr/t5
-  addiwu/rd/gpr/t6
-  addiwu/rd/gpr/tp
-  addiwu/rd/gpr/zero
-  addiwu/rs1/gpr/a0
-  addiwu/rs1/gpr/a1
-  addiwu/rs1/gpr/a2
-  addiwu/rs1/gpr/a3
-  addiwu/rs1/gpr/a4
-  addiwu/rs1/gpr/a5
-  addiwu/rs1/gpr/a6
-  addiwu/rs1/gpr/a7
-  addiwu/rs1/gpr/gp
-  addiwu/rs1/gpr/ra
-  addiwu/rs1/gpr/s0
-  addiwu/rs1/gpr/s1
-  addiwu/rs1/gpr/s10
-  addiwu/rs1/gpr/s11
-  addiwu/rs1/gpr/s2
-  addiwu/rs1/gpr/s3
-  addiwu/rs1/gpr/s4
-  addiwu/rs1/gpr/s5
-  addiwu/rs1/gpr/s6
-  addiwu/rs1/gpr/s7
-  addiwu/rs1/gpr/s8
-  addiwu/rs1/gpr/s9
-  addiwu/rs1/gpr/sp
-  addiwu/rs1/gpr/t0
-  addiwu/rs1/gpr/t1
-  addiwu/rs1/gpr/t2
-  addiwu/rs1/gpr/t3
-  addiwu/rs1/gpr/t4
-  addiwu/rs1/gpr/t5
-  addiwu/rs1/gpr/t6
-  addiwu/rs1/gpr/tp
-  addiwu/rs1/gpr/zero
-  addwu/rd/gpr/a0
-  addwu/rd/gpr/a1
-  addwu/rd/gpr/a2
-  addwu/rd/gpr/a3
-  addwu/rd/gpr/a4
-  addwu/rd/gpr/a5
-  addwu/rd/gpr/a6
-  addwu/rd/gpr/a7
-  addwu/rd/gpr/gp
-  addwu/rd/gpr/ra
-  addwu/rd/gpr/s0
-  addwu/rd/gpr/s1
-  addwu/rd/gpr/s10
-  addwu/rd/gpr/s11
-  addwu/rd/gpr/s2
-  addwu/rd/gpr/s3
-  addwu/rd/gpr/s4
-  addwu/rd/gpr/s5
-  addwu/rd/gpr/s6
-  addwu/rd/gpr/s7
-  addwu/rd/gpr/s8
-  addwu/rd/gpr/s9
-  addwu/rd/gpr/sp
-  addwu/rd/gpr/t0
-  addwu/rd/gpr/t1
-  addwu/rd/gpr/t2
-  addwu/rd/gpr/t3
-  addwu/rd/gpr/t4
-  addwu/rd/gpr/t5
-  addwu/rd/gpr/t6
-  addwu/rd/gpr/tp
-  addwu/rd/gpr/zero
-  addwu/rs1/gpr/a0
-  addwu/rs1/gpr/a1
-  addwu/rs1/gpr/a2
-  addwu/rs1/gpr/a3
-  addwu/rs1/gpr/a4
-  addwu/rs1/gpr/a5
-  addwu/rs1/gpr/a6
-  addwu/rs1/gpr/a7
-  addwu/rs1/gpr/gp
-  addwu/rs1/gpr/ra
-  addwu/rs1/gpr/s0
-  addwu/rs1/gpr/s1
-  addwu/rs1/gpr/s10
-  addwu/rs1/gpr/s11
-  addwu/rs1/gpr/s2
-  addwu/rs1/gpr/s3
-  addwu/rs1/gpr/s4
-  addwu/rs1/gpr/s5
-  addwu/rs1/gpr/s6
-  addwu/rs1/gpr/s7
-  addwu/rs1/gpr/s8
-  addwu/rs1/gpr/s9
-  addwu/rs1/gpr/sp
-  addwu/rs1/gpr/t0
-  addwu/rs1/gpr/t1
-  addwu/rs1/gpr/t2
-  addwu/rs1/gpr/t3
-  addwu/rs1/gpr/t4
-  addwu/rs1/gpr/t5
-  addwu/rs1/gpr/t6
-  addwu/rs1/gpr/tp
-  addwu/rs1/gpr/zero
-  addwu/rs2/gpr/a0
-  addwu/rs2/gpr/a1
-  addwu/rs2/gpr/a2
-  addwu/rs2/gpr/a3
-  addwu/rs2/gpr/a4
-  addwu/rs2/gpr/a5
-  addwu/rs2/gpr/a6
-  addwu/rs2/gpr/a7
-  addwu/rs2/gpr/gp
-  addwu/rs2/gpr/ra
-  addwu/rs2/gpr/s0
-  addwu/rs2/gpr/s1
-  addwu/rs2/gpr/s10
-  addwu/rs2/gpr/s11
-  addwu/rs2/gpr/s2
-  addwu/rs2/gpr/s3
-  addwu/rs2/gpr/s4
-  addwu/rs2/gpr/s5
-  addwu/rs2/gpr/s6
-  addwu/rs2/gpr/s7
-  addwu/rs2/gpr/s8
-  addwu/rs2/gpr/s9
-  addwu/rs2/gpr/sp
-  addwu/rs2/gpr/t0
-  addwu/rs2/gpr/t1
-  addwu/rs2/gpr/t2
-  addwu/rs2/gpr/t3
-  addwu/rs2/gpr/t4
-  addwu/rs2/gpr/t5
-  addwu/rs2/gpr/t6
-  addwu/rs2/gpr/tp
-  addwu/rs2/gpr/zero
   cmix/rs3/gpr/a6
   cmix/rs3/gpr/s8
   cmix/rs3/gpr/zero
@@ -10182,107 +10020,11 @@ Coverage points missed:
   sloiw/imm/sign/neg
   sroi/imm/sign/neg
   sroiw/imm/sign/neg
-  subwu/rd/gpr/a0
-  subwu/rd/gpr/a1
-  subwu/rd/gpr/a2
-  subwu/rd/gpr/a3
-  subwu/rd/gpr/a4
-  subwu/rd/gpr/a5
-  subwu/rd/gpr/a6
-  subwu/rd/gpr/a7
-  subwu/rd/gpr/gp
-  subwu/rd/gpr/ra
-  subwu/rd/gpr/s0
-  subwu/rd/gpr/s1
-  subwu/rd/gpr/s10
-  subwu/rd/gpr/s11
-  subwu/rd/gpr/s2
-  subwu/rd/gpr/s3
-  subwu/rd/gpr/s4
-  subwu/rd/gpr/s5
-  subwu/rd/gpr/s6
-  subwu/rd/gpr/s7
-  subwu/rd/gpr/s8
-  subwu/rd/gpr/s9
-  subwu/rd/gpr/sp
-  subwu/rd/gpr/t0
-  subwu/rd/gpr/t1
-  subwu/rd/gpr/t2
-  subwu/rd/gpr/t3
-  subwu/rd/gpr/t4
-  subwu/rd/gpr/t5
-  subwu/rd/gpr/t6
-  subwu/rd/gpr/tp
-  subwu/rd/gpr/zero
-  subwu/rs1/gpr/a0
-  subwu/rs1/gpr/a1
-  subwu/rs1/gpr/a2
-  subwu/rs1/gpr/a3
-  subwu/rs1/gpr/a4
-  subwu/rs1/gpr/a5
-  subwu/rs1/gpr/a6
-  subwu/rs1/gpr/a7
-  subwu/rs1/gpr/gp
-  subwu/rs1/gpr/ra
-  subwu/rs1/gpr/s0
-  subwu/rs1/gpr/s1
-  subwu/rs1/gpr/s10
-  subwu/rs1/gpr/s11
-  subwu/rs1/gpr/s2
-  subwu/rs1/gpr/s3
-  subwu/rs1/gpr/s4
-  subwu/rs1/gpr/s5
-  subwu/rs1/gpr/s6
-  subwu/rs1/gpr/s7
-  subwu/rs1/gpr/s8
-  subwu/rs1/gpr/s9
-  subwu/rs1/gpr/sp
-  subwu/rs1/gpr/t0
-  subwu/rs1/gpr/t1
-  subwu/rs1/gpr/t2
-  subwu/rs1/gpr/t3
-  subwu/rs1/gpr/t4
-  subwu/rs1/gpr/t5
-  subwu/rs1/gpr/t6
-  subwu/rs1/gpr/tp
-  subwu/rs1/gpr/zero
-  subwu/rs2/gpr/a0
-  subwu/rs2/gpr/a1
-  subwu/rs2/gpr/a2
-  subwu/rs2/gpr/a3
-  subwu/rs2/gpr/a4
-  subwu/rs2/gpr/a5
-  subwu/rs2/gpr/a6
-  subwu/rs2/gpr/a7
-  subwu/rs2/gpr/gp
-  subwu/rs2/gpr/ra
-  subwu/rs2/gpr/s0
-  subwu/rs2/gpr/s1
-  subwu/rs2/gpr/s10
-  subwu/rs2/gpr/s11
-  subwu/rs2/gpr/s2
-  subwu/rs2/gpr/s3
-  subwu/rs2/gpr/s4
-  subwu/rs2/gpr/s5
-  subwu/rs2/gpr/s6
-  subwu/rs2/gpr/s7
-  subwu/rs2/gpr/s8
-  subwu/rs2/gpr/s9
-  subwu/rs2/gpr/sp
-  subwu/rs2/gpr/t0
-  subwu/rs2/gpr/t1
-  subwu/rs2/gpr/t2
-  subwu/rs2/gpr/t3
-  subwu/rs2/gpr/t4
-  subwu/rs2/gpr/t5
-  subwu/rs2/gpr/t6
-  subwu/rs2/gpr/tp
-  subwu/rs2/gpr/zero
   unshfli/imm/sign/neg
-Coverage points missed: 297/8620
+Coverage points missed: 39/8620
 
 Info TOTAL INSTRUCTION COVERAGE : B
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 97/100 :  97.00%
-Info   Coverage points hit   : 8323/8620 :  96.55%
+Info   Unique instructions   : 100/100 : 100.00%
+Info   Coverage points hit   : 8581/8620 :  99.55%

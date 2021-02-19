@@ -65,7 +65,7 @@
 #define RISCV_FF                RISCV_CPU_REG(vFirstFault)
 #define RISCV_PRESERVE          RISCV_CPU_REG(vPreserve)
 #define RISCV_VLMAX             RISCV_CPU_TEMP(vlMax)
-#define RISCV_VL_EEW1           RISCV_CPU_REG(vl_EEW1)
+#define RISCV_VL_EEW1           RISCV_CPU_REG(vlEEW1)
 #define RISCV_OFFSETS_LMULx2    RISCV_CPU_REG(offsetsLMULx2)
 #define RISCV_OFFSETS_LMULx4    RISCV_CPU_REG(offsetsLMULx4)
 #define RISCV_OFFSETS_LMULx8    RISCV_CPU_REG(offsetsLMULx8)
