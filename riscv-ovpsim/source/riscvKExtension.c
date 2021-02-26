@@ -877,53 +877,52 @@ typedef struct opDescS {
 //
 static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
 
-    OPENTRYxV_S      (Zkb,           Zkb                 ),
-    OPENTRYxV_S      (Zkg,           Zkg                 ),
-    OPENTRYxV_S      (Zkr,           Zkr                 ),
-    OPENTRYxV_S      (Zknd,          Zknd                ),
-    OPENTRYxV_S      (Zkne,          Zkne                ),
-    OPENTRYxV_S      (Zknh,          Zknh                ),
-    OPENTRYxV_S      (Zksd,          Zksd                ),
-    OPENTRYxV_S      (Zkse,          Zkse                ),
-    OPENTRYxV_S      (Zksh,          Zksh                ),
+    OPENTRYxV_S      (Zkb,           Zkb                  ),
+    OPENTRYxV_S      (Zkg,           Zkg                  ),
+    OPENTRYxV_S      (Zkr,           Zkr                  ),
+    OPENTRYxV_S      (Zknd,          Zknd                 ),
+    OPENTRYxV_S      (Zkne,          Zkne                 ),
+    OPENTRYxV_S      (Zknh,          Zknh                 ),
+    OPENTRYxV_S      (Zksed,         Zksed                ),
+    OPENTRYxV_S      (Zksh,          Zksh                 ),
 
-    OPENTRYxV_S_CB   (LUT4LO,        Zkb,  LUT4LO        ),
-    OPENTRYxV_S_CB   (LUT4HI,        Zkb,  LUT4HI        ),
-    OPENTRYxV_S_CB64 (LUT4,          Zkb,  LUT4          ),
+    OPENTRYxV_S_CB   (LUT4LO,        Zkb,   LUT4LO        ),
+    OPENTRYxV_S_CB   (LUT4HI,        Zkb,   LUT4HI        ),
+    OPENTRYxV_S_CB64 (LUT4,          Zkb,   LUT4          ),
 
-    OPENTRYxV_S_CB32 (SAES32_ENCS,   Zkne, SAES32_ENCS   ),
-    OPENTRYxV_S_CB32 (SAES32_ENCSM,  Zkne, SAES32_ENCSM  ),
-    OPENTRYxV_S_CB32 (SAES32_DECS,   Zknd, SAES32_DECS   ),
-    OPENTRYxV_S_CB32 (SAES32_DECSM,  Zknd, SAES32_DECSM  ),
+    OPENTRYxV_S_CB32 (SAES32_ENCS,   Zkne,  SAES32_ENCS   ),
+    OPENTRYxV_S_CB32 (SAES32_ENCSM,  Zkne,  SAES32_ENCSM  ),
+    OPENTRYxV_S_CB32 (SAES32_DECS,   Zknd,  SAES32_DECS   ),
+    OPENTRYxV_S_CB32 (SAES32_DECSM,  Zknd,  SAES32_DECSM  ),
 
-    OPENTRYxV_S_CB64 (SAES64_KS1,    Zkne, SAES64_KS1    ),
-    OPENTRYxV_S_CB64 (SAES64_KS2,    Zkne, SAES64_KS2    ),
-    OPENTRYxV_S_CB64 (SAES64_IMIX,   Zknd, SAES64_IMIX   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCS,   Zkne, SAES64_ENCS   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCSM,  Zkne, SAES64_ENCSM  ),
-    OPENTRYxV_S_CB64 (SAES64_DECS,   Zknd, SAES64_DECS   ),
-    OPENTRYxV_S_CB64 (SAES64_DECSM,  Zknd, SAES64_DECSM  ),
+    OPENTRYxV_S_CB64 (SAES64_KS1,    Zkne,  SAES64_KS1    ),
+    OPENTRYxV_S_CB64 (SAES64_KS2,    Zkne,  SAES64_KS2    ),
+    OPENTRYxV_S_CB64 (SAES64_IMIX,   Zknd,  SAES64_IMIX   ),
+    OPENTRYxV_S_CB64 (SAES64_ENCS,   Zkne,  SAES64_ENCS   ),
+    OPENTRYxV_S_CB64 (SAES64_ENCSM,  Zkne,  SAES64_ENCSM  ),
+    OPENTRYxV_S_CB64 (SAES64_DECS,   Zknd,  SAES64_DECS   ),
+    OPENTRYxV_S_CB64 (SAES64_DECSM,  Zknd,  SAES64_DECSM  ),
 
-    OPENTRYxV_S_CB   (SSM3_P0,       Zksh, SSM3_P0       ),
-    OPENTRYxV_S_CB   (SSM3_P1,       Zksh, SSM3_P1       ),
-    OPENTRYxV_S_CB   (SSM4_ED,       Zkse, SSM4_ED       ),
-    OPENTRYxV_S_CB   (SSM4_KS,       Zkse, SSM4_KS       ),
+    OPENTRYxV_S_CB   (SSM3_P0,       Zksh,  SSM3_P0       ),
+    OPENTRYxV_S_CB   (SSM3_P1,       Zksh,  SSM3_P1       ),
+    OPENTRYxV_S_CB   (SSM4_ED,       Zksed, SSM4_ED       ),
+    OPENTRYxV_S_CB   (SSM4_KS,       Zksed, SSM4_KS       ),
 
-    OPENTRYxV_S_CB   (SSHA256_SIG0,  Zknh, SSHA256_SIG0  ),
-    OPENTRYxV_S_CB   (SSHA256_SIG1,  Zknh, SSHA256_SIG1  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM0,  Zknh, SSHA256_SUM0  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM1,  Zknh, SSHA256_SUM1  ),
+    OPENTRYxV_S_CB   (SSHA256_SIG0,  Zknh,  SSHA256_SIG0  ),
+    OPENTRYxV_S_CB   (SSHA256_SIG1,  Zknh,  SSHA256_SIG1  ),
+    OPENTRYxV_S_CB   (SSHA256_SUM0,  Zknh,  SSHA256_SUM0  ),
+    OPENTRYxV_S_CB   (SSHA256_SUM1,  Zknh,  SSHA256_SUM1  ),
 
-    OPENTRYxV_S_CB32 (SSHA512_SIG0L, Zknh, SSHA512_SIG0L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG0H, Zknh, SSHA512_SIG0H ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1L, Zknh, SSHA512_SIG1L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1H, Zknh, SSHA512_SIG1H ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM0R, Zknh, SSHA512_SUM0R ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM1R, Zknh, SSHA512_SUM1R ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG0,  Zknh, SSHA512_SIG0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG1,  Zknh, SSHA512_SIG1  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM0,  Zknh, SSHA512_SUM0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM1,  Zknh, SSHA512_SUM1  ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG0L, Zknh,  SSHA512_SIG0L ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG0H, Zknh,  SSHA512_SIG0H ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG1L, Zknh,  SSHA512_SIG1L ),
+    OPENTRYxV_S_CB32 (SSHA512_SIG1H, Zknh,  SSHA512_SIG1H ),
+    OPENTRYxV_S_CB32 (SSHA512_SUM0R, Zknh,  SSHA512_SUM0R ),
+    OPENTRYxV_S_CB32 (SSHA512_SUM1R, Zknh,  SSHA512_SUM1R ),
+    OPENTRYxV_S_CB64 (SSHA512_SIG0,  Zknh,  SSHA512_SIG0  ),
+    OPENTRYxV_S_CB64 (SSHA512_SIG1,  Zknh,  SSHA512_SIG1  ),
+    OPENTRYxV_S_CB64 (SSHA512_SUM0,  Zknh,  SSHA512_SUM0  ),
+    OPENTRYxV_S_CB64 (SSHA512_SUM1,  Zknh,  SSHA512_SUM1  ),
 };
 
 //
@@ -957,15 +956,14 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
 
     // get missing subset description
     switch(requiredSet) {
-        case RVKS_Zkb  : description = "Zkb";  break;
-        case RVKS_Zkg  : description = "Zkg";  break;
-        case RVKS_Zkr  : description = "Zkr";  break;
-        case RVKS_Zknd : description = "Zknd"; break;
-        case RVKS_Zkne : description = "Zkne"; break;
-        case RVKS_Zknh : description = "Zknh"; break;
-        case RVKS_Zksd : description = "Zksd"; break;
-        case RVKS_Zkse : description = "Zkse"; break;
-        case RVKS_Zksh : description = "Zksh"; break;
+        case RVKS_Zkb   : description = "Zkb";   break;
+        case RVKS_Zkg   : description = "Zkg";   break;
+        case RVKS_Zkr   : description = "Zkr";   break;
+        case RVKS_Zknd  : description = "Zknd";  break;
+        case RVKS_Zkne  : description = "Zkne";  break;
+        case RVKS_Zknh  : description = "Zknh";  break;
+        case RVKS_Zksed : description = "Zksed"; break;
+        case RVKS_Zksh  : description = "Zksh";  break;
     }
 
     // sanity check known subset

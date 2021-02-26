@@ -159,10 +159,10 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zknd);
     VMI_BOOL_PARAM(Zkne);
     VMI_BOOL_PARAM(Zknh);
-    VMI_BOOL_PARAM(Zksd);
-    VMI_BOOL_PARAM(Zkse);
+    VMI_BOOL_PARAM(Zksed);
     VMI_BOOL_PARAM(Zksh);
-    VMI_BOOL_PARAM(Zfinx);
+    VMI_BOOL_PARAM(Zfh);
+    VMI_ENUM_PARAM(Zfinx_version);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);
@@ -230,6 +230,11 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 // Return Debug Architecture description
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv);
+
+//
+// Return Zfinx version description
+//
+const char *riscvGetZfinxVersionDesc(riscvP riscv);
 
 //
 // Return 16-bit floating point description

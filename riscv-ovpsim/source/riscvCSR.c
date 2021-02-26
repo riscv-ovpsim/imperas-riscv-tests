@@ -5310,7 +5310,7 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
 
     // FS is writable if Zfinx is absent and either D or F extension is present,
     // or S-mode is implemented and mstatus_FS_zero is not specified
-    if(cfg->Zfinx) {
+    if(cfg->Zfinx_version) {
         WR_CSR_FIELDC(riscv, mstatus, FS, 0);
     } else if((arch&ISA_DF) || (!cfg->mstatus_FS_zero && (arch&ISA_S))) {
         WR_CSR_MASK_FIELDC_1(riscv, mstatus, FS);

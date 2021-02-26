@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : K, instructions: 42
+Extension : K, instructions: 41
     aes64ds        
         rd             
             gpr            
@@ -1080,80 +1080,6 @@ Extension : K, instructions: 42
             gpr 0/32 :   0.00%
         rd 0/32 :   0.00%
     getnoise 0/32 :   0.00%
-    gorci          
-        rd             
-            gpr            
-                a0           9/1 : 100.00%
-                a1           9/1 : 100.00%
-                a2           9/1 : 100.00%
-                a3           9/1 : 100.00%
-                a4           9/1 : 100.00%
-                a5           9/1 : 100.00%
-                a6           9/1 : 100.00%
-                a7           9/1 : 100.00%
-                gp           9/1 : 100.00%
-                ra           9/1 : 100.00%
-                s0           9/1 : 100.00%
-                s1           9/1 : 100.00%
-                s10          9/1 : 100.00%
-                s11          8/1 : 100.00%
-                s2           9/1 : 100.00%
-                s3           9/1 : 100.00%
-                s4           9/1 : 100.00%
-                s5           9/1 : 100.00%
-                s6           9/1 : 100.00%
-                s7           9/1 : 100.00%
-                s8           8/1 : 100.00%
-                s9           9/1 : 100.00%
-                sp           9/1 : 100.00%
-                t0           9/1 : 100.00%
-                t1           9/1 : 100.00%
-                t2           9/1 : 100.00%
-                t3           8/1 : 100.00%
-                t4           8/1 : 100.00%
-                t5           8/1 : 100.00%
-                t6           8/1 : 100.00%
-                tp           9/1 : 100.00%
-                zero         1/1 : 100.00%
-            gpr 32/32 : 100.00%
-        rd 32/32 : 100.00%
-        rs1            
-            gpr            
-                a0           9/1 : 100.00%
-                a1           9/1 : 100.00%
-                a2           9/1 : 100.00%
-                a3           9/1 : 100.00%
-                a4           9/1 : 100.00%
-                a5           9/1 : 100.00%
-                a6           9/1 : 100.00%
-                a7           9/1 : 100.00%
-                gp           8/1 : 100.00%
-                ra           8/1 : 100.00%
-                s0           9/1 : 100.00%
-                s1           9/1 : 100.00%
-                s10          9/1 : 100.00%
-                s11          9/1 : 100.00%
-                s2           9/1 : 100.00%
-                s3           9/1 : 100.00%
-                s4           9/1 : 100.00%
-                s5           9/1 : 100.00%
-                s6           9/1 : 100.00%
-                s7           9/1 : 100.00%
-                s8           9/1 : 100.00%
-                s9           9/1 : 100.00%
-                sp           8/1 : 100.00%
-                t0           8/1 : 100.00%
-                t1           8/1 : 100.00%
-                t2           9/1 : 100.00%
-                t3           9/1 : 100.00%
-                t4           9/1 : 100.00%
-                t5           9/1 : 100.00%
-                t6           9/1 : 100.00%
-                tp           8/1 : 100.00%
-                zero         1/1 : 100.00%
-            gpr 32/32 : 100.00%
-        rs1 32/32 : 100.00%
-    gorci 64/64 : 100.00%
     grevi          
         imm            
             sign           
@@ -4168,10 +4094,10 @@ Coverage points missed:
   rev_b/rs1/gpr/zero
   rori/imm/sign/neg
   roriw/imm/sign/neg
-Coverage points missed: 331/3321
+Coverage points missed: 331/3257
 
 Info TOTAL INSTRUCTION COVERAGE : K
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 36/42 :  85.71%
-Info   Coverage points hit   : 2990/3321 :  90.03%
+Info   Unique instructions   : 35/41 :  85.37%
+Info   Coverage points hit   : 2926/3257 :  89.84%

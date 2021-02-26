@@ -42,8 +42,7 @@ typedef enum riscvKExtOpE {
     RVKOP_Zknd,         // NIST AES decryption instructions
     RVKOP_Zkne,         // NIST AES encryption instructions
     RVKOP_Zknh,         // NIST SHA2 hash function instructions
-    RVKOP_Zksd,         // SM4 decryption instructions
-    RVKOP_Zkse,         // SM4 encryption instructions
+    RVKOP_Zksed,        // SM4 instructions
     RVKOP_Zksh,         // SM3 hash function instructions
 
     // operations implemented as callbacks or version-specific

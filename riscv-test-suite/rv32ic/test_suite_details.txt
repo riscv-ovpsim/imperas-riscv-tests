@@ -26,14 +26,14 @@ Instruction category: arithmetic
   c-addi : 978
   c-li : 1,169
   c-lui : 1,503
+  c-add : 730
   c-mv : 146
   c-sub : 147
-  c-add : 730
 Instruction category: logical 
   c-and : 146
   c-or : 146
-  c-andi : 146
   c-xor : 146
+  c-andi : 146
 Instruction category: branch 
   c-bnez : 170
   c-beqz : 146
@@ -41,16 +41,16 @@ Instruction category: OPI_IMN
   c-ebreak : 1
 Instruction category: jump 
   c-j : 170
-  c-jr : 146
   c-jalr : 146
+  c-jr : 146
 Instruction category: load 
   c-lwsp : 146
 Instruction category: store 
   c-swsp : 282
 Instruction category: shift 
   c-slli : 170
-  c-srli : 146
   c-srai : 146
+  c-srli : 146
 
 Other instructions (those not the focus of this suite)
   csrrs : 98

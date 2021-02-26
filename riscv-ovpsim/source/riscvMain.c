@@ -206,10 +206,18 @@ static Uns64 powerOfTwo(Uns64 oldValue, const char *name) {
 }
 
 //
+// Handle parameters that are overridden only if explicitly set
+//
+#define EXPLICIT_PARAM(_CFG, _PARAMS, _CNAME, _PNAME) \
+    if(_PARAMS->SETBIT(_PNAME)) {               \
+        _CFG->_CNAME = _PARAMS->_PNAME;         \
+    }
+
+//
 // Handle parameters that require a commercial product
 //
 #define REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME) \
-    if(_PARAMS->_NAME##__set) {                 \
+    if(_PARAMS->SETBIT(_NAME)) {                \
         _PROC->commercial = True;               \
     }
 
@@ -269,16 +277,23 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->csrMask.stvt.u64.bits  = params->stvt_mask;
     cfg->csrMask.utvt.u64.bits  = params->utvt_mask;
 
+    // handle parameters that are overridden only if explicitly set (affects
+    // disassembly of instructions for extensions that are not configured)
+    EXPLICIT_PARAM(cfg, params, vect_version,     vector_version);
+    EXPLICIT_PARAM(cfg, params, bitmanip_version, bitmanip_version);
+    EXPLICIT_PARAM(cfg, params, crypto_version,   crypto_version);
+
+    // handle alias parameters fp16_version and Zfh
+    EXPLICIT_PARAM(cfg, params, fp16_version, Zfh);
+    EXPLICIT_PARAM(cfg, params, fp16_version, fp16_version);
+
     // get uninterpreted architectural configuration parameters
     cfg->ABI_d               = params->ABI_d;
     cfg->user_version        = params->user_version;
     cfg->priv_version        = params->priv_version;
-    cfg->vect_version        = params->vector_version;
-    cfg->bitmanip_version    = params->bitmanip_version;
     cfg->hyp_version         = params->hypervisor_version;
-    cfg->crypto_version      = params->crypto_version;
     cfg->dbg_version         = params->debug_version;
-    cfg->fp16_version        = params->fp16_version;
+    cfg->Zfinx_version       = params->Zfinx_version;
     cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
     cfg->MXL_writable        = params->MXL_writable;
     cfg->SXL_writable        = params->SXL_writable;
@@ -366,10 +381,9 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->mclicbase_undefined = params->mclicbase_undefined;
     cfg->GEILEN              = params->GEILEN;
     cfg->xtinst_basic        = params->xtinst_basic;
-    cfg->Zfinx               = params->Zfinx;
 
     // some F-extension parameters require a commercial product
-    REQUIRE_COMMERCIAL(riscv, params, Zfinx);
+    REQUIRE_COMMERCIAL(riscv, params, Zfinx_version);
 
     // some V-extension parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, Zvlsseg);
@@ -438,8 +452,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     ADD_K_SET(riscv, cfg, params, Zknd);
     ADD_K_SET(riscv, cfg, params, Zkne);
     ADD_K_SET(riscv, cfg, params, Zknh);
-    ADD_K_SET(riscv, cfg, params, Zksd);
-    ADD_K_SET(riscv, cfg, params, Zkse);
+    ADD_K_SET(riscv, cfg, params, Zksed);
     ADD_K_SET(riscv, cfg, params, Zksh);
 
     // set number of children

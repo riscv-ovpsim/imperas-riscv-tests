@@ -10,6 +10,13 @@ NOTE: X-commit messages below refer to git commits in the following
       Risc-V specification document repositories:
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
+  
+- Parameter Zfinx replaced with Zfinx_version (enabling support for different
+  Zfinx versions in future). Currently, values "none" and "0.4" are implemented.
+
+Date 2021-February-19
+Release 20210218.0
+===
 
 - Some Vector Extension issues have been corrected:
   - whole-register load/store instructions now allow register counts of 2, 4 or

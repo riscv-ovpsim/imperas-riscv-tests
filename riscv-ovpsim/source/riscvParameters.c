@@ -284,6 +284,24 @@ static vmiEnumParameter debugVariants[] = {
 };
 
 //
+// Supported Xfinx variants
+//
+static vmiEnumParameter ZfinxVariants[] = {
+    [RVZFINX_NA] = {
+        .name        = "none",
+        .value       = RVZFINX_NA,
+        .description = "Zfinx not implemented",
+    },
+    [RVZFINX_0_4] = {
+        .name        = "0.4",
+        .value       = RVZFINX_0_4,
+        .description = "Zfinx version 0.4",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
 // Supported 16-bit floating point variants
 //
 static vmiEnumParameter fp16Variants[] = {
@@ -493,6 +511,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(bitmanip_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(hyp_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(crypto_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(dbg_version);
+static RISCV_ENUM_PDEFAULT_CFG_FN(Zfinx_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(fp16_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(mstatus_fs_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_mode);
@@ -542,7 +561,6 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
-static RISCV_BOOL_PDEFAULT_CFG_FN(Zfinx);
 
 //
 // Set default value of raw Uns32 parameters
@@ -571,6 +589,13 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(force_sideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_ideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_edeleg)
 
+
+//
+// Specify whether halt-precision floating point is implemented
+//
+static RISCV_PDEFAULT_FN(default_Zfh) {
+    setBoolParamDefault(param, cfg->fp16_version==RVFP16_IEEE754);
+}
 
 //
 // Specify whether D registers are used for parameter passing (ABI semihosting)
@@ -916,8 +941,7 @@ static RISCV_KSET_PDEFAULT_CFG_FN(Zkr);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zknd);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zkne);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zknh);
-static RISCV_KSET_PDEFAULT_CFG_FN(Zksd);
-static RISCV_KSET_PDEFAULT_CFG_FN(Zkse);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zksed);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zksh);
 
 //
@@ -1110,16 +1134,16 @@ static riscvParameter parameters[] = {
     {  RVPV_BK,      default_Zbr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbr,                  False,                     RV_GROUP(B),     "Specify that Zbr is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbs,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbs,                  False,                     RV_GROUP(B),     "Specify that Zbs is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbt,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbt,                  False,                     RV_GROUP(B),     "Specify that Zbt is implemented (bit manipulation extension)")},
-    {  RVPV_K,       default_Zkb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkb,                  False,                     RV_GROUP(B),     "Specify that Zkb is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                  False,                     RV_GROUP(B),     "Specify that Zkg is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zkr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkr,                  False,                     RV_GROUP(B),     "Specify that Zkr is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zknd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknd,                 False,                     RV_GROUP(B),     "Specify that Zknd is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zkne,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkne,                 False,                     RV_GROUP(B),     "Specify that Zkne is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zknh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknh,                 False,                     RV_GROUP(B),     "Specify that Zknh is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zksd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksd,                 False,                     RV_GROUP(B),     "Specify that Zksd is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zkse,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkse,                 False,                     RV_GROUP(B),     "Specify that Zkse is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zksh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksh,                 False,                     RV_GROUP(B),     "Specify that Zksh is implemented (cryptographic extension)")},
-    {  RVPV_FP,      default_Zfinx,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zfinx,                False,                     RV_GROUP(B),     "Specify that Zfinx is implemented (use integer register file for floating point instructions)")},
+    {  RVPV_K,       default_Zkb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkb,                  False,                     RV_GROUP(K),     "Specify that Zkb is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                  False,                     RV_GROUP(K),     "Specify that Zkg is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkr,                  False,                     RV_GROUP(K),     "Specify that Zkr is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zknd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknd,                 False,                     RV_GROUP(K),     "Specify that Zknd is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zkne,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkne,                 False,                     RV_GROUP(K),     "Specify that Zkne is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zknh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknh,                 False,                     RV_GROUP(K),     "Specify that Zknh is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zksed,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksed,                False,                     RV_GROUP(K),     "Specify that Zksed is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zksh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksh,                 False,                     RV_GROUP(K),     "Specify that Zksh is implemented (cryptographic extension)")},
+    {  RVPV_FP,      default_Zfh,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zfh,                  False,                     RV_GROUP(FP),    "Specify that Zfh is implemented (IEEE half-precision floating point is supported)")},
+    {  RVPV_FP,      default_Zfinx_version,        VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zfinx_version,        ZfinxVariants,             RV_GROUP(FP),    "Specify that Zfinx is implemented (use integer register file for floating point instructions)")},
 
     // CLIC configuration
     {  RVPV_INT_CFG, default_CLICLEVELS,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, CLICLEVELS,           0, 0,          256,        RV_GROUP(CLIC),  "Specify number of interrupt levels implemented by CLIC, or 0 if CLIC absent")},
@@ -1708,6 +1732,13 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv) {
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv) {
     return debugVariants[RISCV_DBG_VERSION(riscv)].description;
+}
+
+//
+// Return Zfinx version description
+//
+const char *riscvGetZfinxVersionDesc(riscvP riscv) {
+    return ZfinxVariants[RISCV_ZFINX_VERSION(riscv)].description;
 }
 
 //

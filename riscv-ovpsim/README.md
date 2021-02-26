@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 18 Feb 2021
+Date      : 26 Feb 2021
 
-Version   : 20210218.0
+Version   : 20210226.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -34,6 +34,10 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
     - Version 1.11 : Deprecated and equivalent to 20190405
     - Version 20190405 : Privileged Architecture Version 20190405-Priv-MSU-Ratification
     - Version master : Privileged Architecture Master Branch (1.12 draft)
+
+- RISC-V K Cryptographic Extension (crypto_version)
+    - Version 0.7.2 : Cryptographic Architecture Version 0.7.2
+    - Version 0.8.1 : Cryptographic Architecture Version 0.8.1
 
 - RISC-V I Base ISA
 - RISC-V E Embedded ISA
@@ -69,10 +73,6 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
 
 - RISC-V H Hypervisor Extension  (hypervisor_version)
     - Version 0.6.1 : Hypervisor Architecture Version 0.6.1
-
-- RISC-V K Cryptographic Extension  (crypto_version)
-    - Version 0.7.2 : Cryptographic Architecture Version 0.7.2
-    - Version 0.8.1 : Cryptographic Architecture Version 0.8.1
 
 - RISC-V Debug Module (debug_version)
     - Version 0.13.2

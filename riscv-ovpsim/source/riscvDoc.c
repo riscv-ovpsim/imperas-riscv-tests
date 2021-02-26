@@ -699,21 +699,31 @@ void riscvDoc(riscvP rootProcessor) {
         if(cfg->fp16_version) {
             snprintf(
                 SNPRINTF_TGT(string),
-                "16-bit floating point is implemented (%s format).",
+                "16-bit floating point is implemented (%s format). Use "
+                "parameter \"Zfh\" to disable this if required.",
                 riscvGetFP16VersionDesc(riscv)
             );
             vmidocAddText(Features, string);
-        }
-
-        if(cfg->Zfinx) {
-
-            // document Zfinx
+        } else {
             vmidocAddText(
                 Features,
-                "Zfinx is implemented, meaning that all floating point "
-                "operations use the integer register file. This feature is "
-                "currently being defined and subject to change."
+                "Half precision floating point is not implemented. Use "
+                "parameter \"Zfh\" to enable this if required."
             );
+        }
+
+        if(cfg->Zfinx_version) {
+
+            // document Zfinx
+            snprintf(
+                SNPRINTF_TGT(string),
+                "%s is implemented, meaning that all floating point operations "
+                "that would normally use the floating point register file use "
+                "the integer register file instead. This feature is currently "
+                "being defined and subject to change.",
+                riscvGetZfinxVersionDesc(riscv)
+            );
+            vmidocAddText(Features, string);
 
         } else {
 
@@ -1131,12 +1141,8 @@ void riscvDoc(riscvP rootProcessor) {
                 "NIST SHA2 hash function"
             );
             addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksd, "Zksd",
-                "SM4 decryption"
-            );
-            addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkse, "Zkse",
-                "SM4 encryption"
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksed, "Zksed",
+                "SM4 encryption and decryption"
             );
             addKFeature(
                 cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksh, "Zksh",

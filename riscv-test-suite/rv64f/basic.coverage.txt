@@ -124,8 +124,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -143,8 +143,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -290,8 +290,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          64/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          64/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -309,8 +309,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          64/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          64/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -418,8 +418,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -437,8 +437,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -546,8 +546,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -565,8 +565,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -674,8 +674,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -693,8 +693,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -802,8 +802,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -821,8 +821,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -930,8 +930,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -949,8 +949,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          76/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          76/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -1058,8 +1058,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          64/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          64/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -1077,8 +1077,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          64/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          64/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -1186,8 +1186,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -1205,8 +1205,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -1385,11 +1385,11 @@ Extension : F, instructions: 30
                 fcsr           
                     fields         
                         fflags         
-                            DZ           0/1 :   0.00% ZERO
-                            NV          60/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            DZ          16/1 : 100.00%
+                            NV           0/1 :   0.00% ZERO
+                            NX          60/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
-                            UF          16/1 : 100.00%
+                            UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
                         frm            
                             illegal      0/1 :   0.00% ZERO
@@ -1404,11 +1404,11 @@ Extension : F, instructions: 30
                 fflags         
                     fields         
                         fflags         
-                            DZ           0/1 :   0.00% ZERO
-                            NV          60/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            DZ          16/1 : 100.00%
+                            NV           0/1 :   0.00% ZERO
+                            NX          60/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
-                            UF          16/1 : 100.00%
+                            UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
                     fields 2/5 :  40.00%
                 fflags 2/5 :  40.00%
@@ -1996,8 +1996,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2015,8 +2015,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2416,8 +2416,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2435,8 +2435,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2580,8 +2580,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2599,8 +2599,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2928,8 +2928,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -2947,8 +2947,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -3128,8 +3128,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -3147,8 +3147,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          32/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          32/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -3586,8 +3586,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -3605,8 +3605,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          48/1 : 100.00%
-                            NX          44/1 : 100.00%
+                            NV          44/1 : 100.00%
+                            NX          48/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 2/5 :  40.00%
@@ -3750,8 +3750,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          60/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          60/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -3769,8 +3769,8 @@ Extension : F, instructions: 30
                     fields         
                         fflags         
                             DZ           0/1 :   0.00% ZERO
-                            NV          60/1 : 100.00%
-                            NX           0/1 :   0.00% ZERO
+                            NV           0/1 :   0.00% ZERO
+                            NX          60/1 : 100.00%
                             OF           0/1 :   0.00% ZERO
                             UF           0/1 :   0.00% ZERO
                         fflags 1/5 :  20.00%
@@ -3877,13 +3877,13 @@ Coverage points missed:
   fadd_s/fs1/fpr/ft11
   fadd_s/fs2/fpr/ft11
   fadd_s/implicit/csr/fcsr/fields/fflags/DZ
-  fadd_s/implicit/csr/fcsr/fields/fflags/NX
+  fadd_s/implicit/csr/fcsr/fields/fflags/NV
   fadd_s/implicit/csr/fcsr/fields/fflags/OF
   fadd_s/implicit/csr/fcsr/fields/fflags/UF
   fadd_s/implicit/csr/fcsr/fields/frm/illegal
   fadd_s/implicit/csr/fcsr/fields/frm/rmm
   fadd_s/implicit/csr/fflags/fields/fflags/DZ
-  fadd_s/implicit/csr/fflags/fields/fflags/NX
+  fadd_s/implicit/csr/fflags/fields/fflags/NV
   fadd_s/implicit/csr/fflags/fields/fflags/OF
   fadd_s/implicit/csr/fflags/fields/fflags/UF
   fadd_s/implicit/csr/frm/fields/frm/illegal
@@ -3893,13 +3893,13 @@ Coverage points missed:
   fcvt_l_s/frm/rmm
   fcvt_l_s/fs1/fpr/ft11
   fcvt_l_s/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_l_s/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_l_s/implicit/csr/fcsr/fields/fflags/NV
   fcvt_l_s/implicit/csr/fcsr/fields/fflags/OF
   fcvt_l_s/implicit/csr/fcsr/fields/fflags/UF
   fcvt_l_s/implicit/csr/fcsr/fields/frm/illegal
   fcvt_l_s/implicit/csr/fcsr/fields/frm/rmm
   fcvt_l_s/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_l_s/implicit/csr/fflags/fields/fflags/NX
+  fcvt_l_s/implicit/csr/fflags/fields/fflags/NV
   fcvt_l_s/implicit/csr/fflags/fields/fflags/OF
   fcvt_l_s/implicit/csr/fflags/fields/fflags/UF
   fcvt_l_s/implicit/csr/frm/fields/frm/illegal
@@ -3921,13 +3921,13 @@ Coverage points missed:
   fcvt_s_l/fd/fpr/ft11
   fcvt_s_l/frm/rmm
   fcvt_s_l/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_s_l/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_s_l/implicit/csr/fcsr/fields/fflags/NV
   fcvt_s_l/implicit/csr/fcsr/fields/fflags/OF
   fcvt_s_l/implicit/csr/fcsr/fields/fflags/UF
   fcvt_s_l/implicit/csr/fcsr/fields/frm/illegal
   fcvt_s_l/implicit/csr/fcsr/fields/frm/rmm
   fcvt_s_l/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_s_l/implicit/csr/fflags/fields/fflags/NX
+  fcvt_s_l/implicit/csr/fflags/fields/fflags/NV
   fcvt_s_l/implicit/csr/fflags/fields/fflags/OF
   fcvt_s_l/implicit/csr/fflags/fields/fflags/UF
   fcvt_s_l/implicit/csr/frm/fields/frm/illegal
@@ -3936,13 +3936,13 @@ Coverage points missed:
   fcvt_s_lu/fd/fpr/ft11
   fcvt_s_lu/frm/rmm
   fcvt_s_lu/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_s_lu/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_s_lu/implicit/csr/fcsr/fields/fflags/NV
   fcvt_s_lu/implicit/csr/fcsr/fields/fflags/OF
   fcvt_s_lu/implicit/csr/fcsr/fields/fflags/UF
   fcvt_s_lu/implicit/csr/fcsr/fields/frm/illegal
   fcvt_s_lu/implicit/csr/fcsr/fields/frm/rmm
   fcvt_s_lu/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_s_lu/implicit/csr/fflags/fields/fflags/NX
+  fcvt_s_lu/implicit/csr/fflags/fields/fflags/NV
   fcvt_s_lu/implicit/csr/fflags/fields/fflags/OF
   fcvt_s_lu/implicit/csr/fflags/fields/fflags/UF
   fcvt_s_lu/implicit/csr/frm/fields/frm/illegal
@@ -3951,13 +3951,13 @@ Coverage points missed:
   fcvt_s_w/fd/fpr/ft11
   fcvt_s_w/frm/rmm
   fcvt_s_w/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_s_w/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_s_w/implicit/csr/fcsr/fields/fflags/NV
   fcvt_s_w/implicit/csr/fcsr/fields/fflags/OF
   fcvt_s_w/implicit/csr/fcsr/fields/fflags/UF
   fcvt_s_w/implicit/csr/fcsr/fields/frm/illegal
   fcvt_s_w/implicit/csr/fcsr/fields/frm/rmm
   fcvt_s_w/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_s_w/implicit/csr/fflags/fields/fflags/NX
+  fcvt_s_w/implicit/csr/fflags/fields/fflags/NV
   fcvt_s_w/implicit/csr/fflags/fields/fflags/OF
   fcvt_s_w/implicit/csr/fflags/fields/fflags/UF
   fcvt_s_w/implicit/csr/frm/fields/frm/illegal
@@ -3966,13 +3966,13 @@ Coverage points missed:
   fcvt_s_wu/fd/fpr/ft11
   fcvt_s_wu/frm/rmm
   fcvt_s_wu/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_s_wu/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_s_wu/implicit/csr/fcsr/fields/fflags/NV
   fcvt_s_wu/implicit/csr/fcsr/fields/fflags/OF
   fcvt_s_wu/implicit/csr/fcsr/fields/fflags/UF
   fcvt_s_wu/implicit/csr/fcsr/fields/frm/illegal
   fcvt_s_wu/implicit/csr/fcsr/fields/frm/rmm
   fcvt_s_wu/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_s_wu/implicit/csr/fflags/fields/fflags/NX
+  fcvt_s_wu/implicit/csr/fflags/fields/fflags/NV
   fcvt_s_wu/implicit/csr/fflags/fields/fflags/OF
   fcvt_s_wu/implicit/csr/fflags/fields/fflags/UF
   fcvt_s_wu/implicit/csr/frm/fields/frm/illegal
@@ -3981,13 +3981,13 @@ Coverage points missed:
   fcvt_w_s/frm/rmm
   fcvt_w_s/fs1/fpr/ft11
   fcvt_w_s/implicit/csr/fcsr/fields/fflags/DZ
-  fcvt_w_s/implicit/csr/fcsr/fields/fflags/NX
+  fcvt_w_s/implicit/csr/fcsr/fields/fflags/NV
   fcvt_w_s/implicit/csr/fcsr/fields/fflags/OF
   fcvt_w_s/implicit/csr/fcsr/fields/fflags/UF
   fcvt_w_s/implicit/csr/fcsr/fields/frm/illegal
   fcvt_w_s/implicit/csr/fcsr/fields/frm/rmm
   fcvt_w_s/implicit/csr/fflags/fields/fflags/DZ
-  fcvt_w_s/implicit/csr/fflags/fields/fflags/NX
+  fcvt_w_s/implicit/csr/fflags/fields/fflags/NV
   fcvt_w_s/implicit/csr/fflags/fields/fflags/OF
   fcvt_w_s/implicit/csr/fflags/fields/fflags/UF
   fcvt_w_s/implicit/csr/frm/fields/frm/illegal
@@ -4010,14 +4010,14 @@ Coverage points missed:
   fdiv_s/frm/rmm
   fdiv_s/fs1/fpr/ft11
   fdiv_s/fs2/fpr/ft11
-  fdiv_s/implicit/csr/fcsr/fields/fflags/DZ
-  fdiv_s/implicit/csr/fcsr/fields/fflags/NX
+  fdiv_s/implicit/csr/fcsr/fields/fflags/NV
   fdiv_s/implicit/csr/fcsr/fields/fflags/OF
+  fdiv_s/implicit/csr/fcsr/fields/fflags/UF
   fdiv_s/implicit/csr/fcsr/fields/frm/illegal
   fdiv_s/implicit/csr/fcsr/fields/frm/rmm
-  fdiv_s/implicit/csr/fflags/fields/fflags/DZ
-  fdiv_s/implicit/csr/fflags/fields/fflags/NX
+  fdiv_s/implicit/csr/fflags/fields/fflags/NV
   fdiv_s/implicit/csr/fflags/fields/fflags/OF
+  fdiv_s/implicit/csr/fflags/fields/fflags/UF
   fdiv_s/implicit/csr/frm/fields/frm/illegal
   fdiv_s/implicit/csr/frm/fields/frm/rmm
   feq_s/fs1/fpr/ft11
@@ -4038,13 +4038,13 @@ Coverage points missed:
   fmadd_s/fs2/fpr/ft11
   fmadd_s/fs3/fpr/fa7
   fmadd_s/implicit/csr/fcsr/fields/fflags/DZ
-  fmadd_s/implicit/csr/fcsr/fields/fflags/NX
+  fmadd_s/implicit/csr/fcsr/fields/fflags/NV
   fmadd_s/implicit/csr/fcsr/fields/fflags/OF
   fmadd_s/implicit/csr/fcsr/fields/fflags/UF
   fmadd_s/implicit/csr/fcsr/fields/frm/illegal
   fmadd_s/implicit/csr/fcsr/fields/frm/rmm
   fmadd_s/implicit/csr/fflags/fields/fflags/DZ
-  fmadd_s/implicit/csr/fflags/fields/fflags/NX
+  fmadd_s/implicit/csr/fflags/fields/fflags/NV
   fmadd_s/implicit/csr/fflags/fields/fflags/OF
   fmadd_s/implicit/csr/fflags/fields/fflags/UF
   fmadd_s/implicit/csr/frm/fields/frm/illegal
@@ -4061,13 +4061,13 @@ Coverage points missed:
   fmsub_s/fs2/fpr/ft11
   fmsub_s/fs3/fpr/fa7
   fmsub_s/implicit/csr/fcsr/fields/fflags/DZ
-  fmsub_s/implicit/csr/fcsr/fields/fflags/NX
+  fmsub_s/implicit/csr/fcsr/fields/fflags/NV
   fmsub_s/implicit/csr/fcsr/fields/fflags/OF
   fmsub_s/implicit/csr/fcsr/fields/fflags/UF
   fmsub_s/implicit/csr/fcsr/fields/frm/illegal
   fmsub_s/implicit/csr/fcsr/fields/frm/rmm
   fmsub_s/implicit/csr/fflags/fields/fflags/DZ
-  fmsub_s/implicit/csr/fflags/fields/fflags/NX
+  fmsub_s/implicit/csr/fflags/fields/fflags/NV
   fmsub_s/implicit/csr/fflags/fields/fflags/OF
   fmsub_s/implicit/csr/fflags/fields/fflags/UF
   fmsub_s/implicit/csr/frm/fields/frm/illegal
@@ -4077,13 +4077,13 @@ Coverage points missed:
   fmul_s/fs1/fpr/ft11
   fmul_s/fs2/fpr/ft11
   fmul_s/implicit/csr/fcsr/fields/fflags/DZ
-  fmul_s/implicit/csr/fcsr/fields/fflags/NX
+  fmul_s/implicit/csr/fcsr/fields/fflags/NV
   fmul_s/implicit/csr/fcsr/fields/fflags/OF
   fmul_s/implicit/csr/fcsr/fields/fflags/UF
   fmul_s/implicit/csr/fcsr/fields/frm/illegal
   fmul_s/implicit/csr/fcsr/fields/frm/rmm
   fmul_s/implicit/csr/fflags/fields/fflags/DZ
-  fmul_s/implicit/csr/fflags/fields/fflags/NX
+  fmul_s/implicit/csr/fflags/fields/fflags/NV
   fmul_s/implicit/csr/fflags/fields/fflags/OF
   fmul_s/implicit/csr/fflags/fields/fflags/UF
   fmul_s/implicit/csr/frm/fields/frm/illegal
@@ -4097,13 +4097,13 @@ Coverage points missed:
   fnmadd_s/fs2/fpr/ft11
   fnmadd_s/fs3/fpr/fa7
   fnmadd_s/implicit/csr/fcsr/fields/fflags/DZ
-  fnmadd_s/implicit/csr/fcsr/fields/fflags/NX
+  fnmadd_s/implicit/csr/fcsr/fields/fflags/NV
   fnmadd_s/implicit/csr/fcsr/fields/fflags/OF
   fnmadd_s/implicit/csr/fcsr/fields/fflags/UF
   fnmadd_s/implicit/csr/fcsr/fields/frm/illegal
   fnmadd_s/implicit/csr/fcsr/fields/frm/rmm
   fnmadd_s/implicit/csr/fflags/fields/fflags/DZ
-  fnmadd_s/implicit/csr/fflags/fields/fflags/NX
+  fnmadd_s/implicit/csr/fflags/fields/fflags/NV
   fnmadd_s/implicit/csr/fflags/fields/fflags/OF
   fnmadd_s/implicit/csr/fflags/fields/fflags/UF
   fnmadd_s/implicit/csr/frm/fields/frm/illegal
@@ -4114,13 +4114,13 @@ Coverage points missed:
   fnmsub_s/fs2/fpr/ft11
   fnmsub_s/fs3/fpr/fa7
   fnmsub_s/implicit/csr/fcsr/fields/fflags/DZ
-  fnmsub_s/implicit/csr/fcsr/fields/fflags/NX
+  fnmsub_s/implicit/csr/fcsr/fields/fflags/NV
   fnmsub_s/implicit/csr/fcsr/fields/fflags/OF
   fnmsub_s/implicit/csr/fcsr/fields/fflags/UF
   fnmsub_s/implicit/csr/fcsr/fields/frm/illegal
   fnmsub_s/implicit/csr/fcsr/fields/frm/rmm
   fnmsub_s/implicit/csr/fflags/fields/fflags/DZ
-  fnmsub_s/implicit/csr/fflags/fields/fflags/NX
+  fnmsub_s/implicit/csr/fflags/fields/fflags/NV
   fnmsub_s/implicit/csr/fflags/fields/fflags/OF
   fnmsub_s/implicit/csr/fflags/fields/fflags/UF
   fnmsub_s/implicit/csr/frm/fields/frm/illegal
@@ -4152,13 +4152,13 @@ Coverage points missed:
   fsub_s/fs1/fpr/ft11
   fsub_s/fs2/fpr/ft11
   fsub_s/implicit/csr/fcsr/fields/fflags/DZ
-  fsub_s/implicit/csr/fcsr/fields/fflags/NX
+  fsub_s/implicit/csr/fcsr/fields/fflags/NV
   fsub_s/implicit/csr/fcsr/fields/fflags/OF
   fsub_s/implicit/csr/fcsr/fields/fflags/UF
   fsub_s/implicit/csr/fcsr/fields/frm/illegal
   fsub_s/implicit/csr/fcsr/fields/frm/rmm
   fsub_s/implicit/csr/fflags/fields/fflags/DZ
-  fsub_s/implicit/csr/fflags/fields/fflags/NX
+  fsub_s/implicit/csr/fflags/fields/fflags/NV
   fsub_s/implicit/csr/fflags/fields/fflags/OF
   fsub_s/implicit/csr/fflags/fields/fflags/UF
   fsub_s/implicit/csr/frm/fields/frm/illegal

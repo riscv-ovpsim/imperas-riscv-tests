@@ -313,15 +313,14 @@ typedef enum riscvCryptoVerE {
 // Cryptographic Architecture subsets
 //
 typedef enum riscvCryptoSetE {
-    RVKS_Zkb  = (1<<0),                 // bitmanip subset not in Zkg
-    RVKS_Zkg  = (1<<1),                 // carry-less multiply
-    RVKS_Zkr  = (1<<2),                 // entropy source
-    RVKS_Zknd = (1<<3),                 // NIST AES decryption instructions
-    RVKS_Zkne = (1<<4),                 // NIST AES encryption instructions
-    RVKS_Zknh = (1<<5),                 // NIST SHA2 hash function instructions
-    RVKS_Zksd = (1<<6),                 // SM4 decryption instructions
-    RVKS_Zkse = (1<<7),                 // SM4 encryption instructions
-    RVKS_Zksh = (1<<8),                 // SM3 hash function instructions
+    RVKS_Zkb   = (1<<0),                // bitmanip subset not in Zkg
+    RVKS_Zkg   = (1<<1),                // carry-less multiply
+    RVKS_Zkr   = (1<<2),                // entropy source
+    RVKS_Zknd  = (1<<3),                // NIST AES decryption instructions
+    RVKS_Zkne  = (1<<4),                // NIST AES encryption instructions
+    RVKS_Zknh  = (1<<5),                // NIST SHA2 hash function instructions
+    RVKS_Zksed = (1<<6),                // SM4 instructions
+    RVKS_Zksh  = (1<<7),                // SM3 hash function instructions
 } riscvCryptoSet;
 
 //
@@ -341,6 +340,14 @@ typedef enum riscvDebugVerE {
     RVDBG_0_14_0,                       // 0.14.0-DRAFT
     RVDBG_DEFAULT = RVDBG_0_14_0,       // default version
 } riscvDebugVer;
+
+//
+// Supported Zfinx versions
+//
+typedef enum riscvZfinxVerE {
+    RVZFINX_NA,                         // Zfinx not implemented (default)
+    RVZFINX_0_4,                        // Zfinx version 0.4
+} riscvZfinxVer;
 
 //
 // Supported 16-bit floating point version
@@ -408,6 +415,9 @@ typedef enum riscvDERETModeE {
 
 // macro returning Debug Architecture version
 #define RISCV_DBG_VERSION(_P)       ((_P)->configInfo.dbg_version)
+
+// macro returning Zfinx version
+#define RISCV_ZFINX_VERSION(_P)     ((_P)->configInfo.Zfinx_version)
 
 // macro returning 16-bit floating point version
 #define RISCV_FP16_VERSION(_P)      ((_P)->configInfo.fp16_version)

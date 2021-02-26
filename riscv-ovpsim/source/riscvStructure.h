@@ -321,6 +321,7 @@ typedef struct riscvS {
     Uns32              sec_lvl_Handle;  // security level
 
     // Timers
+    Uns32              stepICount;      // Instructions when single-step set
     vmiModelTimerP     stepTimer;       // Debug mode single-step timer
 
     // CSR support
@@ -627,8 +628,8 @@ inline static Uns32 getTriggerNum(riscvP riscv) {
 //
 // Is Zfinx configured?
 //
-inline static Bool Zfinx(riscvP riscv) {
-    return riscv->configInfo.Zfinx;
+inline static riscvZfinxVer Zfinx(riscvP riscv) {
+    return RISCV_ZFINX_VERSION(riscv);
 }
 
 //

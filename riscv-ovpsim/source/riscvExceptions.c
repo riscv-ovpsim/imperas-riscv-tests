@@ -1571,19 +1571,36 @@ inline static Bool enableDebugStep(riscvP riscv) {
 }
 
 //
+// Return least-significant 32 bits of instruction count
+//
+inline static Uns32 getExecutedICount32(riscvP riscv) {
+    return vmirtGetExecutedICount((vmiProcessorP)riscv);
+}
+
+//
 // Instruction step breakpoint callback
 //
 static VMI_ICOUNT_FN(riscvStepExcept) {
 
-    riscvP riscv  = (riscvP)processor;
-    Bool   doStep = False;
+    riscvP riscv = (riscvP)processor;
 
-    if(enableDebugStep(riscv)) {
-        doSynchronousInterrupt(riscv);
-        doStep = True;
+    if(riscv->stepICount != getExecutedICount32(riscv)) {
+
+        // single-step time has expired
+        Bool doStep = False;
+
+        if(enableDebugStep(riscv)) {
+            doSynchronousInterrupt(riscv);
+            doStep = True;
+        }
+
+        riscv->netValue.stepreq = doStep;
+
+    } else {
+
+        // reset timer for another cycle if cycles have been skipped
+        riscvSetStepBreakpoint(riscv);
     }
-
-    riscv->netValue.stepreq = doStep;
 }
 
 //
@@ -1592,6 +1609,7 @@ static VMI_ICOUNT_FN(riscvStepExcept) {
 void riscvSetStepBreakpoint(riscvP riscv) {
 
     if(enableDebugStep(riscv)) {
+        riscv->stepICount = getExecutedICount32(riscv);
         vmirtSetModelTimer(riscv->stepTimer, 1);
     }
 }
@@ -3766,6 +3784,7 @@ void riscvTimerSave(
     if(phase==SRT_END_CORE) {
 
         if(riscv->stepTimer) {
+            VMIRT_SAVE_FIELD(cxt, riscv, stepICount);
             vmirtSaveModelTimer(cxt, RV_STEP_TIMER, riscv->stepTimer);
         }
     }
@@ -3782,6 +3801,7 @@ void riscvTimerRestore(
     if(phase==SRT_END_CORE) {
 
         if(riscv->stepTimer) {
+            VMIRT_RESTORE_FIELD(cxt, riscv, stepICount);
             vmirtRestoreModelTimer(cxt, RV_STEP_TIMER, riscv->stepTimer);
         }
     }

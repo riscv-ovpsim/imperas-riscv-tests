@@ -219,6 +219,11 @@ Bool riscvEmitCheckLegalRM(riscvP riscv, riscvRMDesc rm);
 //
 void riscvEmitTrapTVM(riscvP riscv);
 
+//
+// Emit trap when mstatus.TSR=1 in Supervisor mode
+//
+void riscvEmitTrapTSR(riscvP riscv);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // VECTOR EXTENSION

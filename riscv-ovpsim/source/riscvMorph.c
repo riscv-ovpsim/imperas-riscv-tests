@@ -383,6 +383,12 @@ inline static Bool vectorNoFaultOnlyFirst(riscvP riscv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Function to emit an exception
+//
+#define EMIT_EXCEPTION_FN(_NAME) void _NAME(void)
+typedef EMIT_EXCEPTION_FN((*emitExceptionFn));
+
+//
 // Emit call to take Illegal Instruction exception
 //
 static void emitIllegalInstruction(void) {
@@ -410,38 +416,6 @@ static void illegalInstructionMessage(riscvP riscv, const char *reason) {
 }
 
 //
-// Emit code to take an Illegal Instruction exception for the given reason
-//
-void riscvEmitIllegalInstructionMessage(riscvP riscv, const char *reason) {
-
-    // emit message in verbose mode
-    if(riscv->verbose) {
-        vmimtArgProcessor();
-        vmimtArgNatAddress(reason);
-        vmimtCall((vmiCallFn)illegalInstructionMessage);
-    }
-
-    // take Illegal Instruction exception
-    emitIllegalInstruction();
-}
-
-//
-// Emit code to take a Virtual Instruction exception for the given reason
-//
-void riscvEmitVirtualInstructionMessage(riscvP riscv, const char *reason) {
-
-    // emit message in verbose mode
-    if(riscv->verbose) {
-        vmimtArgProcessor();
-        vmimtArgNatAddress(reason);
-        vmimtCall((vmiCallFn)illegalInstructionMessage);
-    }
-
-    // take Virtual Instruction exception
-    emitVirtualInstruction();
-}
-
-//
 // Emit Illegal Instruction description message
 //
 static void illegalInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
@@ -453,35 +427,67 @@ static void illegalInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
 }
 
 //
-// Emit Illegal Instruction message and take Illegal Instruction exception
+// Emit code to take exception for the given reason
 //
-void riscvEmitIllegalInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
+static void emitIllegalInstructionMessage(
+    riscvP          riscv,
+    const char     *reason,
+    emitExceptionFn emitException
+) {
+    if(riscv->verbose) {
+        vmimtArgProcessor();
+        vmimtArgNatAddress(reason);
+        vmimtCall((vmiCallFn)illegalInstructionMessage);
+    }
 
-    // emit message in verbose mode
+    // take exception
+    emitException();
+}
+
+//
+// Emit code to take exception for the given reason using descriptor
+//
+static void emitIllegalInstructionMessageDesc(
+    riscvP          riscv,
+    illegalDescP    desc,
+    emitExceptionFn emitException
+) {
     if(riscv->verbose) {
         vmimtArgProcessor();
         vmimtArgNatAddress(desc);
         vmimtCall((vmiCallFn)illegalInstructionMessageDesc);
     }
 
-    // take Illegal Instruction exception
-    emitIllegalInstruction();
+    // take exception
+    emitException();
+}
+
+//
+// Emit code to take an Illegal Instruction exception for the given reason
+//
+void riscvEmitIllegalInstructionMessage(riscvP riscv, const char *reason) {
+    emitIllegalInstructionMessage(riscv, reason, emitIllegalInstruction);
+}
+
+//
+// Emit code to take a Virtual Instruction exception for the given reason
+//
+void riscvEmitVirtualInstructionMessage(riscvP riscv, const char *reason) {
+    emitIllegalInstructionMessage(riscv, reason, emitVirtualInstruction);
+}
+
+//
+// Emit Illegal Instruction message and take Illegal Instruction exception
+//
+void riscvEmitIllegalInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
+    emitIllegalInstructionMessageDesc(riscv, desc, emitIllegalInstruction);
 }
 
 //
 // Emit Illegal Instruction message and take Virtual Instruction exception
 //
 void riscvEmitVirtualInstructionMessageDesc(riscvP riscv, illegalDescP desc) {
-
-    // emit message in verbose mode
-    if(riscv->verbose) {
-        vmimtArgProcessor();
-        vmimtArgNatAddress(desc);
-        vmimtCall((vmiCallFn)illegalInstructionMessageDesc);
-    }
-
-    // take Virtual Instruction exception
-    emitVirtualInstruction();
+    emitIllegalInstructionMessageDesc(riscv, desc, emitVirtualInstruction);
 }
 
 //
@@ -1076,22 +1082,15 @@ static void emitTrapInstructionMaskHSorVS(
 //
 // Emit trap when mstatus.TVM=1 in Supervisor mode
 //
-static void emitTrapTVM(riscvP riscv) {
+void riscvEmitTrapTVM(riscvP riscv) {
     EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TVM, 1);
 }
 
 //
 // Emit trap when mstatus.TSR=1 in Supervisor mode
 //
-static void emitTrapTSR(riscvP riscv) {
+void riscvEmitTrapTSR(riscvP riscv) {
     EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TSR, 1);
-}
-
-//
-// Emit trap when mstatus.TVM=1 in Supervisor mode
-//
-void riscvEmitTrapTVM(riscvP riscv) {
-    emitTrapTVM(riscv);
 }
 
 
@@ -2117,6 +2116,48 @@ static void emitTriggerVA(riscvMorphStateP state, vmiReg *raP, Uns64 *offsetP) {
 }
 
 //
+// Invoke load address trigger if required
+//
+static void emitTriggerLA(Bool doTrigger, Uns32 memBits) {
+
+    if(doTrigger) {
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLA, VMCA_NA);
+    }
+}
+
+//
+// Invoke load value trigger if required
+//
+static void emitTriggerLV(
+    Bool   doTrigger,
+    vmiReg rdTmp,
+    Uns32  rdBits,
+    Uns32  memBits
+) {
+    if(doTrigger) {
+        vmimtMoveExtendRR(64, rdTmp, rdBits, rdTmp, False);
+        vmimtArgProcessor();
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
+    }
+}
+
+//
+// Invoke store address/value trigger if required
+//
+static void emitTriggerS(Bool doTrigger, vmiReg rs, Uns32 memBits) {
+
+    if(doTrigger) {
+        vmimtArgProcessor();
+        vmimtArgRegSimAddress(memBits, rs);
+        vmimtArgUns32(memBits/8);
+        vmimtCallAttrs((vmiCallFn)riscvTriggerS, VMCA_NA);
+    }
+}
+
+//
 // Load value from memory for explicit memBits and offset
 //
 static void emitLoadCommonMBO(
@@ -2142,11 +2183,7 @@ static void emitLoadCommonMBO(
     }
 
     // invoke load address trigger if required
-    if(triggerLA) {
-        vmimtArgProcessor();
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerLA, VMCA_NA);
-    }
+    emitTriggerLA(triggerLA, memBits);
 
     // if a transactional domain access, perform try-load in current data
     // domain (to update VM and PMP structures and generate access exceptions)
@@ -2167,12 +2204,7 @@ static void emitLoadCommonMBO(
     );
 
     // invoke load value trigger if required
-    if(triggerLV) {
-        vmimtMoveExtendRR(64, rdTmp, rdBits, rdTmp, False);
-        vmimtArgProcessor();
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
-    }
+    emitTriggerLV(triggerLV, rdTmp, rdBits, memBits);
 
     // commit result
     vmimtMoveRR(rdBits, rd, rdTmp);
@@ -2194,17 +2226,13 @@ static void emitStoreCommonMBO(
     memEndian  endian   = getLoadStoreEndianMT(state);
     Bool       triggerS = doLSTrig && triggerStoreMT(state->riscv);
 
+    // generate trigger VA
     if(triggerS) {
-
-        // generate trigger VA
         emitTriggerVA(state, &ra, &offset);
-
-        // call trigger function
-        vmimtArgProcessor();
-        vmimtArgRegSimAddress(memBits, rs);
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerS, VMCA_NA);
     }
+
+    // invoke store address/value trigger if required
+    emitTriggerS(triggerS, rs, memBits);
 
     // if a transactional domain access, perform try-store in current data
     // domain (to update VM and PMP structures and generate access exceptions)
@@ -2762,11 +2790,7 @@ static void emitAMOCommonInt(
     }
 
     // invoke load address trigger if required
-    if(triggerLA) {
-        vmimtArgProcessor();
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerLA, VMCA_NA);
-    }
+    emitTriggerLA(triggerLA, memBits);
 
     // this is an atomic operation
     vmimtAtomic();
@@ -2774,30 +2798,20 @@ static void emitAMOCommonInt(
     // generate Store/AMO exception in preference to Load exception
     emitTryStoreCommon(state, ra, constraint);
 
-    // disable load/store triggers
+    // disable load/store triggers in emitLoadCommon/emitStoreCommon
     state->doLSTrig = False;
 
     // do initial load
     emitLoadCommon(state, tmp1, bits, ra, constraint);
 
     // invoke load value trigger if required
-    if(triggerLV) {
-        vmimtMoveExtendRR(64, tmp1, bits, tmp1, False);
-        vmimtArgProcessor();
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerLV, VMCA_NA);
-    }
+    emitTriggerLV(triggerLV, tmp1, bits, memBits);
 
     // do AMO operation
     opCB(state, bits, tmp2, tmp1, rs);
 
-    // invoke store trigger if required
-    if(triggerS) {
-        vmimtArgProcessor();
-        vmimtArgRegSimAddress(memBits, rs);
-        vmimtArgUns32(memBits/8);
-        vmimtCallAttrs((vmiCallFn)riscvTriggerS, VMCA_NA);
-    }
+    // invoke store address/value trigger if required
+    emitTriggerS(triggerS, rs, memBits);
 
     // do store
     emitStoreCommon(state, tmp2, ra, constraint);
@@ -2805,7 +2819,7 @@ static void emitAMOCommonInt(
     // commit result
     vmimtMoveRR(bits, rd, tmp1);
 
-    // enable load/store triggers
+    // enable load/store triggers in emitLoadCommon/emitStoreCommon
     state->doLSTrig = True;
 
     // free temporaries
@@ -3197,7 +3211,7 @@ static RISCV_MORPH_FN(emitSRET) {
     requireModeMT(riscv, RISCV_MODE_S);
 
     // instruction is trapped if mstatus.TSR=1
-    emitTrapTSR(riscv);
+    riscvEmitTrapTSR(riscv);
 
     emitException(inVMode(riscv) ? riscvVSRET : riscvHSRET);
 }
@@ -3260,7 +3274,7 @@ static void emitFENCECommon(
 
     // instruction is trapped if mstatus.TVM=1 if required
     if(doTrap) {
-        emitTrapTVM(riscv);
+        riscvEmitTrapTVM(riscv);
     }
 
     // emit processor argument
@@ -3395,7 +3409,7 @@ static void emitCSRRCommon(riscvMorphStateP state, vmiReg rs1, Bool write) {
 
         // handle traps if mstatus.TVM=1 (e.g. satp register)
         if(attrs->TVMT) {
-            emitTrapTVM(riscv);
+            riscvEmitTrapTVM(riscv);
         }
 
         // emit code to read the CSR if required

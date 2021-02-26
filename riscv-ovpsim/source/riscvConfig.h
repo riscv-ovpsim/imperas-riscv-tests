@@ -75,6 +75,7 @@ typedef struct riscvConfigS {
     riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
     riscvHypVer       hyp_version;      // hypervisor architecture version
     riscvDebugVer     dbg_version;      // debugger architecture version
+    riscvZfinxVer     Zfinx_version;    // Zfinx version
     riscvFP16Ver      fp16_version;     // 16-bit floating point version
     riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
     riscvDMMode       debug_mode;       // is Debug mode implemented?
@@ -161,7 +162,6 @@ typedef struct riscvConfigS {
     Bool              tval_zero_ebreak; // whether [smu]tval always zero on ebreak
     Bool              tval_ii_code;     // instruction bits in [smu]tval for
                                         // illegal instruction exception?
-    Bool              Zfinx;            // Zfinx extension implemented?
 
     // CLIC configuration
     Uns32             CLICLEVELS;       // number of CLIC interrupt levels

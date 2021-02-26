@@ -1570,6 +1570,7 @@
     r3       : RS_F_19_15,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VFM,          \
+    notZfinx : True,                \
 }
 
 //
@@ -1585,6 +1586,7 @@
     r3       : RS_F_19_15,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_NA,           \
+    notZfinx : True,                \
 }
 
 //
@@ -1629,6 +1631,7 @@
     r2       : RS_F_19_15,          \
     VIType   : RV_VIT_NA,           \
     wF       : WF_ARCH,             \
+    notZfinx : True,                \
 }
 
 //
@@ -1671,6 +1674,7 @@
     r2       : RS_V_24_20,          \
     VIType   : RV_VIT_NA,           \
     wF       : WF_ARCH,             \
+    notZfinx : True,                \
 }
 
 //
