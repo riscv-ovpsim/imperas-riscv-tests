@@ -3,14 +3,14 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 26 Feb 2021
+Date      : 29 Mar 2021
 
-Version   : 20210226.0
+Version   : 20210329.0
 
 
 License   : Model source included under Apache 2.0 open source license
 
-License   : Simulator riscvOVPsim licensed under Open Virtual Platforms (OVP) Fixed Platform Kits license
+License   : Simulator riscvOVPsimPlus licensed under Open Virtual Platforms (OVP) Fixed Platform Kits license
 
 ## Imperas Simulators
 Imperas is the leading developer of RISC-V simulators for compliance testing, test development, hardware design verification, and operating system and application software development.
@@ -35,6 +35,16 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
     - Version 20190405 : Privileged Architecture Version 20190405-Priv-MSU-Ratification
     - Version master : Privileged Architecture Master Branch (1.12 draft)
 
+- RISC-V I Base ISA
+- RISC-V E Embedded ISA
+- RISC-V M Multiply/Divide
+- RISC-V A Atomic Instructions
+- RISC-V F Single precision floating point
+- RISC-V D Double precision floating point
+- RISC-V C Compressed instructions
+- RISC-V S Supervisor mode
+- RISC-V U User mode
+- RISC-V N User-level interrupts
 - RISC-V V Vector Extension (vector_version)
     - Version 0.7.1-draft-20190605 : Vector Architecture Version 0.7.1-draft-20190605
     - Version 0.7.1-draft-20190605+ : Vector Architecture Version 0.7.1-draft-20190605 with custom features (not for general use)
@@ -45,7 +55,7 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
     - Version 0.8 : Vector Architecture Version 0.8
     - Version 0.9 : Vector Architecture Version 0.9
     - Version 1.0-draft-20210130 : Vector Architecture Version 1.0-draft-20210130
-    - Version master : Vector Architecture Master Branch as of commit 8e768b0 (this is subject to change)
+    - Version master : Vector Architecture Master Branch as of commit 4ab6506 (this is subject to change)
 
 - RISC-V B Bit Manipulation Extension (bitmanip_version)
     - Version 0.90 : Bit Manipulation Architecture Version v0.90-20190610
@@ -58,17 +68,8 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
 - RISC-V K Cryptographic Extension (crypto_version)
     - Version 0.7.2 : Cryptographic Architecture Version 0.7.2
     - Version 0.8.1 : Cryptographic Architecture Version 0.8.1
+    - Version 0.9.0 : Cryptographic Architecture Version 0.9.0
 
-- RISC-V I Base ISA
-- RISC-V E Embedded ISA
-- RISC-V M Multiply/Divide
-- RISC-V A Atomic Instructions
-- RISC-V F Single precision floating point
-- RISC-V D Double precision floating point
-- RISC-V C Compressed instructions
-- RISC-V S Supervisor mode
-- RISC-V U User mode
-- RISC-V N User-level interrupts
 
 ## Additional specifications available in Imperas simulators currently not supported in this product
 - RISC-V H Hypervisor Extension  (hypervisor_version)
@@ -77,6 +78,7 @@ All three simulators are based on the Imperas CpuManager simulator base technolo
 - RISC-V Debug Module (debug_version)
     - Version 0.13.2
     - Version 0.14.0
+
 
 ## About riscvOVPsimPlus
 **riscvOVPsim** is a free download from its [GitHub](https://github.com/riscv-ovpsim/imperas-riscv-tests) repository and supports only the ratified parts of the RISC-V specification.
@@ -93,9 +95,19 @@ The simulator is developed, licensed and maintained by [Imperas Software](https:
 
 As a member of the RISC-V Foundation community of software and hardware innovators collaboratively driving RISC-V adoption, Imperas has developed the family of riscvOVPsim simulators to assist RISC-V adopters to become compliant to the RISC-V specifications.
 
-riscvOVPsim includes an industrial quality model and simulator of RISC-V processors for use for compliance testing purposes. It has been developed for personal, academic, or commercial use, and the model is provided as open source under the Apache 2.0 license. The simulator is provided under the  Open Virtual Platforms (OVP) Fixed Platform Kits license that enables download and usage. Imperas actively maintains, enhances, and supports riscvOVPsim and its use. To ensure you make use of the current version of riscvOVPsim this release will expire. Please download the latest version.
+The riscvOVPsim simulators include an industrial quality model and simulator of RISC-V processors for use for compliance testing purposes.
 
- Runtime configurable settings for all enabled RISC-V specification options makes it very easy to use.
+The model is provided as open source under the Apache 2.0 license. 
+
+The simulator is provided under the Open Virtual Platforms (OVP) Fixed Platform Kits license that enables download and usage.
+
+It has been developed for personal, academic, or commercial use. 
+
+Imperas actively maintains, enhances, and supports riscvOVPsimPlus and its use. 
+
+To ensure you make use of the current version of riscvOVPsimPlus this release will expire. Please download the latest version.
+
+Runtime configurable settings for all enabled RISC-V specification options makes it very easy to use.
 
 Full commercial features are provided including variant selection, RISC-V specification model configuration options, semihosting, and RISC-V compliance group signature dump facility for compliance testing.
 
@@ -121,12 +133,12 @@ For example on Linux:
          $ cd fibonacci
          $ ./RUN_RV32_fibonacci.sh
 
-         CpuManagerFixedPlatform 20180425.0 Open Virtual Platform simulator from www.IMPERAS.com.
+         CpuManagerFixedPlatform 20210310.0 Open Virtual Platform simulator from www.IMPERAS.com.
          Copyright (c) 2005-2021 Imperas Software Ltd.  Contains Imperas Proprietary Information.
          Licensed Software, All Rights Reserved.
          Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.
 
-         riscvOVPsimPlus started: Tue Apr 24 19:12:06 2018
+         riscvOVPsimPlus started: Fri Mar 12 12:12:06 2021
 
          Info (OR_OF) Target 'riscvOVPsim/cpu' has object file read from 'fibonacci.RISCV32-O0-g.elf'
          Info (OR_PH) Program Headers:
@@ -161,11 +173,11 @@ For example on Linux:
          Info   Real time ratio       : 14.18x faster
          Info ---------------------------------------------------
 
-         riscvOVPsimPlus finished: Tue Apr 24 19:12:10 2018
+         riscvOVPsimPlus finished: Fri Mar 12 12:12:10 2021
 
-         CpuManagerFixedPlatform 20180425.0 Open Virtual Platform simulator from www.IMPERAS.com.
+         CpuManagerFixedPlatform 20210310.0 Open Virtual Platform simulator from www.IMPERAS.com.
          Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.
-## Measuring Instruction Functional Coverage with the riscvOVPsim coverage engine
+## Measuring Instruction Functional Coverage with the coverage engine
 Instruction Functional Coverage as it relates to processor verification is a technology solution to measure what is being stimulated in the ISA in terms of which instructions, operands and values are driven into a processor.
 
 

@@ -2023,17 +2023,31 @@ const static decodeEntry32 decodeBPostV093[] = {
 // This specifies decodes for 32-bit opcodes for Bit manipulation Extension
 // partial instructions shared with the Cryptographic extension
 //
-const static decodeEntry32 decodeBPartialK[] = {
+const static decodeEntry32 decodeBPartialKAll[] = {
+
+    // B-extension I-type instructions
+    //                               |        imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(      GREVI_I_K, "|011010|000111|.....|101|.....|0010011|"), // imm32=7
+    DECODE32_ENTRY(      GREVI_I_K, "|011010|.11000|.....|101|.....|0010011|"), // imm32=24,56
+    DECODE32_ENTRY(      SHFLI_I_K, "|000010|001111|.....|001|.....|0010011|"), // imm32=15
+    DECODE32_ENTRY(    UNSHFLI_I_K, "|000010|001111|.....|101|.....|0010011|"), // imm32=15
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
+// partial instructions shared with the Cryptographic extension (removed from
+// version 0.9.0)
+//
+const static decodeEntry32 decodeBPartialKPreV090[] = {
 
     // B-extension I-type instructions
     //                               |        imm32|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(      GORCI_I_K, "|001010|000011|.....|101|.....|0010011|"), // imm32=3
     DECODE32_ENTRY(      GORCI_I_K, "|001010|000100|.....|101|.....|0010011|"), // imm32=4
     DECODE32_ENTRY(      GORCI_I_K, "|001010|000111|.....|101|.....|0010011|"), // imm32=7
-    DECODE32_ENTRY(      GREVI_I_K, "|011010|000111|.....|101|.....|0010011|"), // imm32=7
-    DECODE32_ENTRY(      GREVI_I_K, "|011010|.11000|.....|101|.....|0010011|"), // imm32=24,56
-    DECODE32_ENTRY(      SHFLI_I_K, "|000010|001111|.....|001|.....|0010011|"), // imm32=15
-    DECODE32_ENTRY(    UNSHFLI_I_K, "|000010|001111|.....|101|.....|0010011|"), // imm32=15
 
     // table termination entry
     {0}
@@ -3523,11 +3537,30 @@ static vmidDecodeTableP createExtDecodeTable32(
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // BIT MANIPULATION PARTIAL EXTENSION ENTRIES SHARED WITH K EXTENSION
+    // VERSION-DEPENDENT CRYPTOGRAPHIC EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // insert version-specific Cryptographic extension decodes
+    if(crypto_version==RVKV_0_7_2) {
+        insertEntries32(table, &decodeKV072[0]);
+    } else {
+        insertEntries32(table, &decodeKV081[0]);
+        insertEntries32(table, &decodeKV081_64[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // VERSION-DEPENDENT CRYPTOGRAPHIC/BIT MANIPULATION PARTIAL SHARED ENTRIES
     ////////////////////////////////////////////////////////////////////////////
 
     if(K) {
-        insertEntries32(table, &decodeBPartialK[0]);
+
+        // shared entries in all versions
+        insertEntries32(table, &decodeBPartialKAll[0]);
+
+        // shared entries prior to version 0.9.0
+        if(crypto_version<RVKV_0_9_0) {
+            insertEntries32(table, &decodeBPartialKPreV090[0]);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3587,14 +3620,6 @@ static vmidDecodeTableP createExtDecodeTable32(
     // insert vector-extension-dependent table entries after 0.9
     if(vect_version>RVVV_0_9) {
         insertEntries32(table, &decodeVInitial10[0]);
-    }
-
-    // insert version-specific Cryptographic extension decodes
-    if(crypto_version==RVKV_0_7_2) {
-        insertEntries32(table, &decodeKV072[0]);
-    } else {
-        insertEntries32(table, &decodeKV081[0]);
-        insertEntries32(table, &decodeKV081_64[0]);
     }
 
     return table;
@@ -3665,6 +3690,16 @@ static riscvIType32 getInstructionType32(riscvP riscv, riscvInstrInfoP info) {
 
         // RV64 zext.h is treated as packw on RV32
         result = IT32_PACKW_R;
+
+    } else if((result==IT32_SHFLI_I_K) && (getXLenBits(riscv)!=32)) {
+
+        // RV64 zip (shfli) is only in B extension (not K)
+        result = IT32_SHFLI_I;
+
+    } else if((result==IT32_UNSHFLI_I_K) && (getXLenBits(riscv)!=32)) {
+
+        // RV64 unzip (unshfli) is only in B extension (not K)
+        result = IT32_UNSHFLI_I;
 
     } else if(isCryptoAES32_81(result) && (getXLenBits(riscv)==64)) {
 

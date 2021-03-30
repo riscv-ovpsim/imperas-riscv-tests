@@ -118,7 +118,9 @@ typedef struct riscvConfigS {
     Uns8              mvalue_bits;      // implemented bits in textra.mvalue
     Uns8              svalue_bits;      // implemented bits in textra.svalue
     Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
+    Uns8              dcsr_ebreak_mask; // mask of writable dcsr.ebreak* bits
     Bool              isPSE;            // whether a PSE (internal use only)
+    Bool              endianFixed;      // endianness is fixed (UBE/SBE/MBE r/o)
     Bool              ABI_d;            // ABI uses D registers for parameters
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL

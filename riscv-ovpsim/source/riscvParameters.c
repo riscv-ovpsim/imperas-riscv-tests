@@ -261,6 +261,11 @@ static vmiEnumParameter cryptoVariants[] = {
         .value       = RVKV_0_8_1,
         .description = "Cryptographic Architecture Version 0.8.1",
     },
+    [RVKV_0_9_0] = {
+        .name        = "0.9.0",
+        .value       = RVKV_0_9_0,
+        .description = "Cryptographic Architecture Version 0.9.0",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -521,6 +526,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(debug_eret_mode);
 //
 // Set default value of raw Bool parameters
 //
+static RISCV_BOOL_PDEFAULT_CFG_FN(endianFixed);
 static RISCV_BOOL_PDEFAULT_CFG_FN(updatePTEA);
 static RISCV_BOOL_PDEFAULT_CFG_FN(updatePTED);
 static RISCV_BOOL_PDEFAULT_CFG_FN(unaligned);
@@ -565,6 +571,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
 //
 // Set default value of raw Uns32 parameters
 //
+static RISCV_UNS32_PDEFAULT_CFG_FN(dcsr_ebreak_mask);
 static RISCV_UNS32_PDEFAULT_CFG_FN(trigger_num);
 static RISCV_UNS32_PDEFAULT_CFG_FN(mcontrol_maskmax);
 static RISCV_UNS32_PDEFAULT_CFG_FN(tinfo);
@@ -1027,6 +1034,7 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   default_debug_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, debug_address,        0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump to enter debug in vectored mode")},
     {  RVPV_DEBUG,   default_dexc_address,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, dexc_address,         0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump on debug exception in vectored mode")},
     {  RVPV_DEBUG,   default_debug_eret_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_eret_mode,      DERETModes,                RV_GROUP(DBG),   "Specify behavior for MRET, SRET or URET in Debug mode (nop, jump to dexc_address or trap to dexc_address)")},
+    {  RVPV_DEBUG,   default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,     0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
     {  RVPV_D,       default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
     {  RVPV_ALL,     0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, verbose,              False,                     RV_GROUP(ARTIF), "Specify verbose output messages")},
     {  RVPV_MPCORE,  default_numHarts,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, numHarts,             0, 0,          32,         RV_GROUP(FUND),  "Specify the number of hart contexts in a multiprocessor")},
@@ -1096,6 +1104,7 @@ static riscvParameter parameters[] = {
 
     // fundamental configuration
     {  RVPV_ALL,     0,                            VMI_ENDIAN_GROUP_PARAM_SPEC(riscvParamValues, endian,                                          RV_GROUP(FUND),  "Model endian")},
+    {  RVPV_ALL,     default_endianFixed,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, endianFixed,          False,                     RV_GROUP(FUND),  "Specify that data endianness is fixed (mstatus.{MBE,SBE,UBE} fields are read-only)")},
 
     // ISA configuration
     {  RVPV_PRE,     default_misa_MXL,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, misa_MXL,             1, 1,          2,          RV_GROUP(FUND),  "Override default value of misa.MXL")},

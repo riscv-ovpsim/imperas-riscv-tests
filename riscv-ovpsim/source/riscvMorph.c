@@ -6173,11 +6173,12 @@ static void setVStartZero(riscvMorphStateP state) {
 //
 typedef enum overlapTypeE {
 
-    OT_NA  = 0x0,    // no special constraints
-    OT_S   = 0x1,    // destination must not overlap vector source
-    OT_M   = 0x2,    // destination must not overlap mask source
-    OT_M71 = 0x4,    // destination must not overlap mask source (0.7.1 only)
-    OT_XSM = 0x8,    // destination must not overlap any source if segmented
+    OT_NA   = 0x00, // no special constraints
+    OT_S    = 0x01, // destination must not overlap vector source
+    OT_M    = 0x02, // destination must not overlap mask source
+    OT_M71  = 0x04, // destination must not overlap mask source (0.7.1 only)
+    OT_VMSF = 0x08, // vmsif/vmsbf/vmsof overlap constraints
+    OT_XSM  = 0x10, // destination must not overlap any source if segmented
 
     OT___   = OT_NA,
     OT_S_   = OT_S,
@@ -6262,6 +6263,7 @@ static const shapeInfo shapeDetails[RVVW_LAST] = {
 
     // MASK ARGUMENTS
     [RVVW_P1I_P1I_P1I]      = {1, {1,1,1}, {0,0,0}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT___  },
+    [RVVW_P1I_P1I_P1I_VMSF] = {1, {1,1,1}, {0,0,0}, {0,0,0}, {1,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT_VMSF},
     [RVVW_V1I_P1I_P1I_IOTA] = {1, {1,1,1}, {0,0,0}, {0,0,0}, {0,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT_SM  },
     [RVVW_V1I_P1I_P1I_ID]   = {1, {1,1,1}, {0,0,0}, {0,0,0}, {0,1,1}, {0,0,0}, {0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, OT_SM71},
 
@@ -6682,6 +6684,12 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
         // version 0.7.1 only (constraint relaxed from 0.8)
         if((ot&OT_M71) && riscvVFSupport(riscv, RVVF_STRICT_OVERLAP)) {
             ot |= OT_M;
+        }
+
+        // destination must not overlap source or mask for vmsof/vmsif/vmsbf
+        // in some cases
+        if((ot&OT_VMSF) && riscvVFSupport(riscv, RVVF_NO_VMSF_OVERLAP)) {
+            ot |= OT_SM;
         }
 
         // validate overlap with mask if required
@@ -8467,6 +8475,13 @@ inline static Bool isRegNumP2(Uns32 regNum) {
 }
 
 //
+// Get alignment constraint for vector load/store operations (always aligned)
+//
+inline static memConstraint getLoadStoreConstraintV(riscvMorphStateP state) {
+    return MEM_CONSTRAINT_ALIGNED;
+}
+
+//
 // Emit checks specific to segment loads/stores
 //
 static Bool emitVLdStCheckSeg(riscvMorphStateP state, iterDescP id) {
@@ -8684,7 +8699,7 @@ static RISCV_MORPHV_FN(emitVLdStInitCB) {
     if(eew && state->info.isWhole && state->riscv->configInfo.align_whole) {
         unpackedReg ra = unpackRX(state, 1);
         setAddressMaskMT(state);
-        vmimtTryLoadRC(eew, 0, ra.r, MEM_CONSTRAINT_ALIGNED);
+        vmimtTryLoadRC(eew, 0, ra.r, getLoadStoreConstraintV(state));
     }
 
     // set first-fault active indication if required
@@ -8787,7 +8802,7 @@ static void emitVLdInt(riscvMorphStateP state, iterDescP id, vmiReg ra) {
             ra,
             memBits,
             memBytes*i,
-            MEM_CONSTRAINT_ALIGNED
+            getLoadStoreConstraintV(state)
         );
 
         // for a fault-only-first load, only commit the value if no fault
@@ -8827,7 +8842,7 @@ static void emitVStInt(riscvMorphStateP state, iterDescP id, vmiReg ra) {
             ra,
             memBits,
             memBytes*i,
-            MEM_CONSTRAINT_ALIGNED
+            getLoadStoreConstraintV(state)
         );
     }
 }
@@ -10341,15 +10356,6 @@ static RISCV_MORPHV_FN(emitVFMVFS) {
 }
 
 //
-// Handle explicit NaN-boxing of scalar floating point input register
-//
-inline static void emitVFNaNBox(iterDescP id, Uns32 sBits, vmiReg vd) {
-    if(id->SEW>sBits) {
-        vmimtMoveRC(id->SEW-sBits, VMI_REG_DELTA(vd,sBits/8), -1);
-    }
-}
-
-//
 // Per-element callback for VFMV.S.F
 //
 static RISCV_MORPHV_FN(emitVFMVSF) {
@@ -10365,9 +10371,6 @@ static RISCV_MORPHV_FN(emitVFMVSF) {
 
     // assign element 0 of result
     vmimtMoveRR(sBits, vd, fs1);
-
-    // handle NaN boxing if required
-    emitVFNaNBox(id, sBits, vd);
 }
 
 //
@@ -10493,11 +10496,8 @@ static RISCV_MORPHV_FN(initVFSLIDE1CB) {
     Uns32        sBits = getMinBits(id, getRBits(fs1A));
     vmiReg       fs1   = getVMIRegFS(state, setRBits(fs1A, sBits));
 
-    // prepare unextended input
+    // prepare input (never extended)
     vmimtMoveRR(sBits, RISCV_VTMP, fs1);
-
-    // handle NaN boxing if required
-    emitVFNaNBox(id, sBits, RISCV_VTMP);
 }
 
 //
@@ -11192,9 +11192,9 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VEXT_X_V]         = {morph:emitScalarOp, opTCB:emitVEXTXV,                                                              vShape:RVVW_V1I_S1I_V1I,                      },
     [RV_IT_VPOPC_M]          = {morph:emitVectorOp, opTCB:emitVPOPCCB,                     checkCB:initVPOPCCB,                    vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
     [RV_IT_VFIRST_M]         = {morph:emitVectorOp, opTCB:emitVFIRSTCB,                    checkCB:initVFIRSTCB,                   vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VMSBF_M]          = {morph:emitVectorOp, opTCB:emitVMSBFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VMSOF_M]          = {morph:emitVectorOp, opTCB:emitVMSOFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VMSIF_M]          = {morph:emitVectorOp, opTCB:emitVMSIFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
+    [RV_IT_VMSBF_M]          = {morph:emitVectorOp, opTCB:emitVMSBFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
+    [RV_IT_VMSOF_M]          = {morph:emitVectorOp, opTCB:emitVMSOFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
+    [RV_IT_VMSIF_M]          = {morph:emitVectorOp, opTCB:emitVMSIFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
     [RV_IT_VIOTA_M]          = {morph:emitVectorOp, opTCB:emitVIOTACB,                     initCB:initVIOTACB,                     vShape:RVVW_V1I_P1I_P1I_IOTA,vstart0:RVVS_ZERO},
     [RV_IT_VID_V]            = {morph:emitVectorOp, opTCB:emitVIDTCB,    opFCB:emitVIDFCB, initCB:initVIOTACB,                     vShape:RVVW_V1I_P1I_P1I_ID,                   },
     [RV_IT_VCOMPRESS_VM]     = {morph:emitVectorOp, opTCB:emitVCOMPRESSCB,                 initCB:initVCOMPRESSCB,                 vShape:RVVW_V1I_V1I_V1I_CMP, vstart0:RVVS_ZERO, implicitTZ:1},
@@ -11369,17 +11369,6 @@ VMI_MORPH_FN(riscvMorph) {
     // dependency on mstatus.FS
     if(vectorFPRequiresFSNZ(riscv) && isFloat(state.attrs->vShape)) {
         state.info.arch |= ISA_FS;
-    }
-
-    // if the instruction is present for both B and K extensions and both B and
-    // K are configured on the processor then validate B and K enabled state
-    // using block mask (required to handle non-overlapping B/K instruction
-    // subsets)
-    if(
-        ((state.info.arch        & ISA_BK) == ISA_BK) &&
-        ((riscv->configInfo.arch & ISA_BK) == ISA_BK)
-    ) {
-        emitBlockMask(riscv, ISA_BK);
     }
 
     if(disableMorph(&state)) {

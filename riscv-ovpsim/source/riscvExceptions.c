@@ -397,7 +397,7 @@ static Uns32 mapVSIntCode(trapCxtP cxt) {
                result--;
                break;
            default:
-               break;
+               break;   // LCOV_EXCL_LINE
         }
     }
 
@@ -752,6 +752,16 @@ inline static void notifyTrapDerived(riscvP riscv, riscvMode mode) {
 }
 
 //
+// Pre Notify a derived model of trap if required
+//
+inline static void preNotifyTrapDerived(riscvP riscv, riscvMode mode) {
+    ITER_EXT_CB(
+        riscv, extCB, trapPreNotifier,
+        extCB->trapPreNotifier(riscv, mode, extCB->clientData);
+    )
+}
+
+//
 // Notify a derived model of exception return if required
 //
 inline static void notifyERETDerived(riscvP riscv, riscvMode mode) {
@@ -857,6 +867,9 @@ void riscvTakeException(
         if(riscv->configInfo.tval_zero) {
             tval = 0;
         }
+
+        // notify derived model of exception entry if required
+        preNotifyTrapDerived(riscv, cxt.modeX);
 
         // update state dependent on target exception level
         if(cxt.modeX==RISCV_MODE_U) {
@@ -1458,7 +1471,7 @@ static void enterDM(riscvP riscv, dmCause cause) {
         setDM(riscv, True);
 
         // save current mode
-        WR_CSR_FIELDC(riscv, dcsr, prv, getCurrentMode3(riscv));
+        riscvSetDCSRMode(riscv, getCurrentMode5(riscv));
 
         // save cause
         WR_CSR_FIELDC(riscv, dcsr, cause, cause);
@@ -1507,9 +1520,9 @@ static void enterDM(riscvP riscv, dmCause cause) {
 //
 static void leaveDM(riscvP riscv) {
 
-    riscvMode       PRV     = RD_CSR_FIELDC(riscv, dcsr, prv);
-    riscvMode       minMode = riscvGetMinMode(riscv);
-    riscvMode       newMode = getERETMode(riscv, PRV, minMode);
+    riscvMode       dcsrMode = riscvGetDCSRMode(riscv);
+    riscvMode       minMode  = riscvGetMinMode(riscv);
+    riscvMode       newMode  = getERETMode(riscv, dcsrMode, minMode);
     riscvCountState state;
 
     // get state before possible inhibit update
@@ -1643,21 +1656,9 @@ void riscvBreakpointException(riscvP riscv) {
 //
 void riscvEBREAK(riscvP riscv) {
 
-    riscvMode mode  = getCurrentMode3(riscv);
-    Bool      useDM = False;
+    Uns32 modeMask = WM32_dcsr_ebreaku << getCurrentMode5(riscv);
 
-    // determine whether ebreak should cause debug module entry
-    if(inDebugMode(riscv)) {
-        useDM = True;
-    } else if(mode==RISCV_MODE_USER) {
-        useDM = RD_CSR_FIELDC(riscv, dcsr, ebreaku);
-    } else if(mode==RISCV_MODE_SUPERVISOR) {
-        useDM = RD_CSR_FIELDC(riscv, dcsr, ebreaks);
-    } else if(mode==RISCV_MODE_MACHINE) {
-        useDM = RD_CSR_FIELDC(riscv, dcsr, ebreakm);
-    }
-
-    if(useDM) {
+    if(inDebugMode(riscv) || (RD_CSRC(riscv, dcsr) & modeMask)) {
 
         // don't count the ebreak instruction if dcsr.stopcount is set
         if(RD_CSR_FIELDC(riscv, dcsr, stopcount)) {

@@ -50,6 +50,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(debug_address);
     VMI_UNS64_PARAM(dexc_address);
     VMI_ENUM_PARAM(debug_eret_mode);
+    VMI_UNS32_PARAM(dcsr_ebreak_mask);
     VMI_BOOL_PARAM(updatePTEA);
     VMI_BOOL_PARAM(updatePTED);
     VMI_BOOL_PARAM(unaligned);
@@ -116,6 +117,7 @@ typedef struct riscvParamValuesS {
 
     // fundamental configuration
     VMI_ENDIAN_PARAM(endian);
+    VMI_BOOL_PARAM(endianFixed);
 
     // ISA configuration
     VMI_UNS32_PARAM(misa_MXL);

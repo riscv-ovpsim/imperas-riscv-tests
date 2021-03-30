@@ -3949,13 +3949,40 @@ inline static RISCV_CSR_PRESENTFN(debugP) {
 }
 
 //
+// Return the mode encoded in DCSR
+//
+riscvMode riscvGetDCSRMode(riscvP riscv) {
+
+    riscvMode prv = RD_CSR_FIELDC(riscv, dcsr, prv);
+
+    if(!RD_CSR_FIELDC(riscv, dcsr, v)) {
+        // no action
+    } else if(prv<=RISCV_MODE_S) {
+        prv |= RISCV_MODE_V;
+    } else {
+        // invalid mode
+        prv = RISCV_MODE_H;
+    }
+
+    return prv;
+}
+
+//
+// Set the mode encoded in DCSR
+//
+void riscvSetDCSRMode(riscvP riscv, riscvMode mode) {
+
+    WR_CSR_FIELDC(riscv, dcsr, prv, mode);
+    WR_CSR_FIELDC(riscv, dcsr, v,   modeIsVirtual(mode));
+}
+
+//
 // Internal interface for dcsr write
 //
 static void dcsrWInt(riscvP riscv, Uns32 newValue, Bool updateCause) {
 
     Uns32           oldValue = RD_CSRC(riscv, dcsr);
     Uns32           mask     = RD_CSR_MASKC(riscv, dcsr);
-    riscvMode       oldPRV   = RD_CSR_FIELDC(riscv, dcsr, prv);
     riscvCountState state;
 
     // get state before possible inhibit update
@@ -3967,13 +3994,16 @@ static void dcsrWInt(riscvP riscv, Uns32 newValue, Bool updateCause) {
     }
 
     // update value
+    riscvMode oldMode = riscvGetDCSRMode(riscv);
     WR_CSRC(riscv, dcsr, ((newValue & mask) | (oldValue & ~mask)));
+    riscvMode newMode = riscvGetDCSRMode(riscv);
 
-    // revert dcsr.prv if target mode is not implemented from version 0.14.0
+    // revert dcsr.prv and dcsr.v if target mode is not implemented from
+    // version 0.14.0
     if(RISCV_DBG_VERSION(riscv)<RVDBG_0_14_0) {
         // no reversion
-    } else if(!riscvHasMode(riscv, RD_CSR_FIELDC(riscv, dcsr, prv))) {
-        WR_CSR_FIELDC(riscv, dcsr, prv, oldPRV);
+    } else if(!riscvHasMode(riscv, newMode)) {
+        riscvSetDCSRMode(riscv, oldMode);
     }
 
     // set step breakpoint if required
@@ -5146,7 +5176,8 @@ void riscvCSRReset(riscvP riscv) {
     resetTriggers(riscv);
 
     // reset dcsr
-    dcsrWInt(riscv, RISCV_MODE_MACHINE, True);
+    Uns32 ebreak_mask = riscv->configInfo.dcsr_ebreak_mask << DCSR_EBREAK_SHIFT;
+    dcsrWInt(riscv, RISCV_MODE_M + ebreak_mask, True);
 
     // clear exclusive tag
     riscv->exclusiveTag = RISCV_NO_TAG;
@@ -5338,22 +5369,23 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     // initialize endian values and write masks
     if(riscvSupportEndian(riscv)) {
 
-        Bool BE = riscv->dendian;
+        Bool BE    = riscv->dendian;
+        Bool fixed = cfg->endianFixed;
 
-        // enable and initialize MBE field in mstatus or mstatush
-        WR_CSR_MASK_FIELD64_1(riscv, mstatus, MBE);
-        WR_CSR_FIELD64(riscv, mstatus, MBE, BE);
+        // enable and initialize MBE field defaults in mstatus or mstatush
+        WR_CSR_MASK_FIELDC(riscv, mstatus, MBE, !fixed);
+        cfg->csr.mstatus.u64.fields.MBE = BE;
 
-        // enable and initialize SBE field in mstatus or mstatush
+        // enable and initialize SBE field defaults in mstatus or mstatush
         if(arch&ISA_S) {
-            WR_CSR_MASK_FIELD64_1(riscv, mstatus, SBE);
-            WR_CSR_FIELD64(riscv, mstatus, SBE, BE);
+            WR_CSR_MASK_FIELDC(riscv, mstatus, SBE, !fixed);
+            cfg->csr.mstatus.u64.fields.SBE = BE;
         }
 
-        // enable and initialize UBE field in mstatus
+        // enable and initialize UBE field defaults in mstatus
         if(arch&ISA_U) {
-            WR_CSR_MASK_FIELDC_1(riscv, mstatus, UBE);
-            WR_CSR_FIELDC(riscv, mstatus, UBE, BE);
+            WR_CSR_MASK_FIELDC(riscv, mstatus, UBE, !fixed);
+            cfg->csr.mstatus.u64.fields.UBE = BE;
         }
     }
 
@@ -5380,10 +5412,11 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     // initialize endian values and write masks
     if(riscvSupportEndian(riscv)) {
 
-        Bool BE = riscv->dendian;
+        Bool BE    = riscv->dendian;
+        Bool fixed = cfg->endianFixed;
 
         // enable and initialize VSBE field in hstatus
-        WR_CSR_MASK_FIELDC_1(riscv, hstatus, VSBE);
+        WR_CSR_MASK_FIELDC(riscv, hstatus, VSBE, !fixed);
         WR_CSR_FIELDC(riscv, hstatus, VSBE, BE);
 
         // initialize UBE field in vsstatus
@@ -5809,6 +5842,13 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     // initialize dcsr mask writable fields if User mode present
     if(arch&ISA_U) {
         WR_CSR_MASK_FIELDC_1(riscv, dcsr, ebreaku);
+    }
+
+    // initialize dcsr mask writable fields if Hypervisor mode present
+    if(arch&ISA_H) {
+        WR_CSR_MASK_FIELDC_1(riscv, dcsr, ebreakvu);
+        WR_CSR_MASK_FIELDC_1(riscv, dcsr, ebreakvs);
+        WR_CSR_MASK_FIELDC_1(riscv, dcsr, v);
     }
 
     // initialize dcsr read-only fields

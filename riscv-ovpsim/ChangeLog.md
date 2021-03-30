@@ -2,7 +2,7 @@ riscvOVPsim Change Log
 ===
 Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
 
-This CHANGELOG contains information for the riscvOVPsim fixed platform which includes information of the OVP Simulator and RISCV processor model
+This CHANGELOG contains information for the riscvOVPsim (and derivative) fixed platforms which include information of the OVP Simulator and RISCV processor model
 
 ---
 
@@ -10,6 +10,23 @@ NOTE: X-commit messages below refer to git commits in the following
       Risc-V specification document repositories:
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
+
+Date 2021-March-15
+Release 20210312.0
+===
+
+- New parameter endianFixed forces mstatus.{MBE,SBE,UBE} to be read-only.
+- Cryptographic extension is now implemented in the model with version defined
+  using by parameter crypto_version (0.7.2, 0.8.1 or 0.9.0).
+  - When enabled, parameters Zkb, Zkg, Zkr, Zknd, Zkne, Zknh, Zksed and Zksh
+    allow the precise subset of supported instructions to be specified.
+- Some Vector Extension issues have been corrected:
+  - vmsbf.m, vmsif.m and vmsof.m no longer allow overlap of destination with 
+    source or mask registers for vector version 0.9 and later.
+
+Date 2021-February-26
+Release 20210226.0
+===
   
 - Parameter Zfinx replaced with Zfinx_version (enabling support for different
   Zfinx versions in future). Currently, values "none" and "0.4" are implemented.

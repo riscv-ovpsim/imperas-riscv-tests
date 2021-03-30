@@ -35,8 +35,8 @@ Instruction category: OPV_PERMU permutation
 Instruction category: OPV_CONFIG config
 Instruction category: OPV_VMV whole vector register move
   vmv1r.v : 32
-  vmv2r.v : 32
   vmv4r.v : 32
+  vmv2r.v : 32
   vmv8r.v : 16
 Instruction category: OPV_SLIDE slide
   vslide1down.vx : 639

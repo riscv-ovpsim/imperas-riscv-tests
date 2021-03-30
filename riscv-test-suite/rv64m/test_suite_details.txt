@@ -23,18 +23,18 @@ Architectural Test Suite Data for RV64M C Compressed Integer Instructions:
     23,478 total instructions
 
 Instruction category: arithmetic 
-  mul : 274
-  mulhsu : 274
-  mulh : 274
-  mulhu : 274
-  remu : 274
+  divu : 274
   rem : 274
   div : 274
-  divu : 274
-  remw : 274
+  remu : 274
+  mul : 274
+  mulhu : 274
+  mulhsu : 274
+  mulh : 274
+  mulw : 274
   divw : 274
   divuw : 274
-  mulw : 274
+  remw : 274
   remuw : 274
 
 Other instructions (those not the focus of this suite)

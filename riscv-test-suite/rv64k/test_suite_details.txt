@@ -24,52 +24,52 @@ Architectural Test Suite Data for RV64K K Crypto/Scalar:
 
 Instruction category: OPK_Zknd NIST AES Decryption Instructions
   aes64ds : 274
-  aes64im : 274
   aes64dsm : 274
+  aes64im : 274
 Instruction category: OPK_Zkne NIST AES Encryption Instructions
-  aes64esm : 274
-  aes64ks1i : 274
-  aes64ks2 : 274
   aes64es : 274
+  aes64esm : 274
+  aes64ks2 : 274
+  aes64ks1i : 274
 Instruction category: OPB_LWNE Logic With Negate
   andn : 274
   xnor : 274
   orn : 274
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 274
   clmulh : 274
+  clmul : 274
 Instruction category: OPK_Zkr Entropy source for seeding random number generators
 Instruction category: OPB_GORC Generalised Or-Combine
   gorci : 274
 Instruction category: OPB_PACK Packing
+  packw : 274
   pack : 274
   packu : 274
   packh : 274
   packuw : 274
-  packw : 274
 Instruction category: OPK_Zkb Bitmanip Subset included in the scalar cryptography extension, minus those in Zkg
 Instruction category: OPB_ROTS Rotations
-  ror : 274
   rol : 274
-  roriw : 274
+  ror : 274
   rolw : 274
   rori : 274
+  roriw : 274
   rorw : 274
 Instruction category: OPK_Zknh NIST SHA2 Hash function instructions
   sha256sig0 : 274
   sha256sum0 : 274
+  sha256sum1 : 274
   sha256sig1 : 274
   sha512sig0 : 274
   sha512sig1 : 274
-  sha256sum1 : 274
   sha512sum0 : 274
   sha512sum1 : 274
 Instruction category: OPK_Zksh SM3 Hash function instructions
-  sm3p0 : 274
   sm3p1 : 274
+  sm3p0 : 274
 Instruction category: OPK_Zkse SM4 Encryption Instructions
-  sm4ks : 274
   sm4ed : 274
+  sm4ks : 274
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

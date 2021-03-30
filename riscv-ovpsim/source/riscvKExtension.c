@@ -846,6 +846,7 @@ typedef struct opDescS {
 #define OPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
     [RVKV_0_7_2] = OPENTRY_S(_S),               \
     [RVKV_0_8_1] = OPENTRY_S(_S),               \
+    [RVKV_0_9_0] = OPENTRY_S(_S),               \
 }
 
 //
@@ -854,6 +855,7 @@ typedef struct opDescS {
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
     [RVKV_0_7_2] = OPENTRY_S_CB(_S, _CB),       \
     [RVKV_0_8_1] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_9_0] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
@@ -862,6 +864,7 @@ typedef struct opDescS {
 #define OPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
     [RVKV_0_7_2] = OPENTRY_S_CB32(_S, _CB32),   \
     [RVKV_0_8_1] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_9_0] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
@@ -870,6 +873,7 @@ typedef struct opDescS {
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
     [RVKV_0_7_2] = OPENTRY_S_CB64(_S, _CB64),   \
     [RVKV_0_8_1] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_9_0] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //
@@ -954,11 +958,12 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
     // get feature description
     const char *description = 0;
 
-    // get missing subset description
+    // get missing subset description (NOTE: RVKS_Zkr controls presence of CSRs
+    // and has no effect here)
     switch(requiredSet) {
         case RVKS_Zkb   : description = "Zkb";   break;
         case RVKS_Zkg   : description = "Zkg";   break;
-        case RVKS_Zkr   : description = "Zkr";   break;
+        case RVKS_Zkr   : description = "Zkr";   break; // LCOV_EXCL_LINE
         case RVKS_Zknd  : description = "Zknd";  break;
         case RVKS_Zkne  : description = "Zkne";  break;
         case RVKS_Zknh  : description = "Zknh";  break;

@@ -230,8 +230,8 @@ typedef enum riscvPrivVerE {
 //
 // Date and tag of master version
 //
-#define RVVV_MASTER_DATE    "30 January 2021"
-#define RVVV_MASTER_TAG     "8e768b0"
+#define RVVV_MASTER_DATE    "19 March 2021"
+#define RVVV_MASTER_TAG     "4ab6506"
 
 //
 // Supported Vector Architecture versions
@@ -305,8 +305,9 @@ typedef enum riscvBitManipSetE {
 typedef enum riscvCryptoVerE {
     RVKV_0_7_2,                         // version 0.7.2
     RVKV_0_8_1,                         // version 0.8.1
+    RVKV_0_9_0,                         // version 0.9.0
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_0_7_2,          // default version
+    RVKV_DEFAULT = RVKV_0_9_0,          // default version
 } riscvCryptoVer;
 
 //
@@ -373,7 +374,7 @@ typedef enum riscvFSModeE {
 typedef enum riscvIntCfgE {
     RVCP_ORIG,                          // original (CLIC absent)
     RVCP_CLIC,                          // CLIC present
-    RVCP_BOTH                           // both originl and CLIC present
+    RVCP_BOTH                           // both original and CLIC present
 } riscvIntCfg;
 
 //
@@ -387,7 +388,7 @@ typedef enum riscvDMModeE {
 } riscvDMMode;
 
 //
-// Supported Debug mode implementation options
+// How MRET, SRET or URET is handled in Debug mode
 //
 typedef enum riscvDERETModeE {
     RVDRM_NOP,                          // treat as NOP
@@ -456,6 +457,8 @@ typedef enum riscvVFeatureE {
     RVVF_VLR_HINT,          // do VLR instructions encode hints?
     RVVF_VTYPE_10,          // is vtype in 1.0 format?
     RVVF_SETVLZ_ILLEGAL,    // setvl* preserving vl illegal if preserve fails
+    RVVF_NO_VMSF_OVERLAP,   // no overlap with any source for vmfif/vmsbf/mvsof
+    RVVF_VLM_VSM,           // use vlm/vsm syntax?
     RVVF_LAST,              // for sizing
 } riscvVFeature;
 

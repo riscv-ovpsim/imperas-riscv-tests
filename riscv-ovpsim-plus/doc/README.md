@@ -1,4 +1,4 @@
-riscvOVPsim/doc/README.md
+riscvOVPsimPlus/doc/README.md
 ---
 In this directory is the simulator documentation as a pdf file.
 

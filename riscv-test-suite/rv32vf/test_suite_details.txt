@@ -87,8 +87,8 @@ Instruction category: OPV_SQRT floating-point square-root
 Instruction category: OPV_WFAS widening floating-point add/subtract
   vfwadd.vf : 150
   vfwadd.vv : 150
-  vfwadd.wf : 150
   vfwadd.wv : 150
+  vfwadd.wf : 150
   vfwsub.vf : 150
   vfwsub.vv : 150
   vfwsub.wf : 150

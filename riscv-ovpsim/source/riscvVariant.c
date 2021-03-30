@@ -117,6 +117,7 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
             [RVVF_FRACT_LMUL]         = 1,
             [RVVF_AGNOSTIC]           = 1,
             [RVVF_MLEN1]              = 1,
+            [RVVF_NO_VMSF_OVERLAP]    = 1,
         },
 
         // version 1.0-draft-20210130
@@ -141,6 +142,7 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
             [RVVF_VLR_HINT]           = 1,
             [RVVF_VTYPE_10]           = 1,
             [RVVF_SETVLZ_ILLEGAL]     = 1,
+            [RVVF_NO_VMSF_OVERLAP]    = 1,
         },
 
         // version master
@@ -165,6 +167,8 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
             [RVVF_VLR_HINT]           = 1,
             [RVVF_VTYPE_10]           = 1,
             [RVVF_SETVLZ_ILLEGAL]     = 1,
+            [RVVF_NO_VMSF_OVERLAP]    = 1,
+            [RVVF_VLM_VSM]            = 1,
         },
     };
 

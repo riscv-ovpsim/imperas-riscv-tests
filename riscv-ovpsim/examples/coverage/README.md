@@ -10,10 +10,10 @@ For full documentation please read the documentation in the [riscvOVPsim user gu
 
 Files
 ---
-The _.bat_ files are scripts to execute the example under Windows.  
-The _.sh_ files are used when running under Linux or in an MSYS shell on Windows.
+The  _.bat_  files are scripts to execute the example under Windows.  
+The  _.sh_  files are used when running under Linux or in an MSYS shell on Windows.
 
-The _.elf_ and source files are in the fibonacci examples directory.
+The  _.elf_  and source files are in the fibonacci examples directory.
 
 Example run under Linux
 ---

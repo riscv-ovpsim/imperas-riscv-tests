@@ -29,22 +29,22 @@ Instruction category: arithmetic
   addiw : 12,184
   sub : 550
   add : 3,332
-  subw : 274
   addw : 274
+  subw : 274
 Instruction category: logical 
   ori : 275
   andi : 298
   xori : 275
-  xor : 275
   and : 275
   or : 275
+  xor : 275
 Instruction category: branch 
   bne : 337
   bge : 337
   beq : 517
-  blt : 308
   bltu : 277
   bgeu : 277
+  blt : 308
 Instruction category: OPI_IMN 
   ecall : 61
   ebreak : 1
@@ -54,36 +54,36 @@ Instruction category: jump
   jal : 1,056
   jalr : 283
 Instruction category: load 
-  lh : 279
-  lw : 280
   lb : 275
-  ld : 1,379
-  lhu : 280
+  lw : 280
+  lh : 279
   lbu : 280
+  lhu : 280
+  ld : 1,379
   lwu : 274
 Instruction category: store 
   sd : 13,776
-  sh : 278
   sb : 274
+  sh : 278
   sw : 462
 Instruction category: shift 
   slli : 8,651
-  sll : 275
   srli : 275
+  sll : 275
   srai : 275
-  srl : 275
-  sra : 275
   slliw : 274
   srliw : 274
+  sra : 275
+  srl : 275
+  srlw : 274
   sraiw : 274
   sllw : 274
-  srlw : 274
   sraw : 274
 Instruction category: compare 
-  sltiu : 275
   slti : 275
-  slt : 275
+  sltiu : 275
   sltu : 275
+  slt : 275
 
 Other instructions (those not the focus of this suite)
   csrrs : 313

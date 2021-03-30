@@ -266,7 +266,6 @@ typedef struct riscvS {
     riscvConfig        configInfo;      // model configuration
     riscvMode          dataMode;        // mode in which to access data
     memEndian          dendian;         // data endianness
-    memEndian          iendian;         // instruction endianness
     Uns64              jumpBase;        // address of jump instruction
     Uns32              writtenXMask;    // mask of written X registers
 

@@ -201,6 +201,12 @@ typedef RISCV_ILLEGAL_VERBOSE_FN((*riscvIllegalVerboseFn));
 typedef RISCV_TAKE_EXCEPTION_FN((*riscvTakeExceptionFn));
 
 //
+// Take processor reset
+//
+#define RISCV_TAKE_RESET_FN(_NAME) void _NAME(riscvP riscv)
+typedef RISCV_TAKE_RESET_FN((*riscvTakeResetFn));
+
+//
 // Fetch an instruction at the given simulated address and if it matches a
 // decode pattern in the given instruction table unpack the instruction fields
 // into 'info'
@@ -617,6 +623,7 @@ typedef struct riscvModelCBS {
     riscvIllegalInstructionFn virtualInstruction;
     riscvIllegalVerboseFn     virtualVerbose;
     riscvTakeExceptionFn      takeException;
+    riscvTakeResetFn          takeReset;
 
     // from riscvDecode.h
     riscvFetchInstructionFn   fetchInstruction;
@@ -670,6 +677,7 @@ typedef struct riscvExtCBS {
     riscvSuppressMemExceptFn  suppressMemExcept;
     riscvCustomNMIFn          customNMI;
     riscvTrapNotifierFn       trapNotifier;
+    riscvTrapNotifierFn       trapPreNotifier;
     riscvTrapNotifierFn       ERETNotifier;
     riscvResetNotifierFn      resetNotifier;
     riscvFirstExceptionFn     firstException;

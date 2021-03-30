@@ -178,15 +178,104 @@ static riscvArchitecture getNotEnabled(riscvConfigCP cfg) {
 }
 
 //
+// Return the length of a string required to hold the elements concatenated
+// using sep[0] for all but the last pair and sep[1] for the last pair
+//
+static Uns32 concatLength(
+    const char **members,
+    const char **sep,
+    Uns32        numMembers
+) {
+    Uns32 result = 1;   // string terminator
+    Uns32 i;
+
+    // account for first member
+    result += strlen(members[0]);
+
+    // account for remaining members
+    for(i=1; i<numMembers; i++) {
+        result += strlen(sep[i==(numMembers-1)]);
+        result += strlen(members[i]);
+    }
+
+    return result;
+}
+
+//
+// Concatenate the members into result string, separating with sep[0] for all
+// but the last pair and sep[1] for the last pair
+//
+static const char *concat(
+    char        *result,
+    const char **members,
+    const char **sep,
+    Uns32        numMembers
+) {
+    Uns32 i;
+
+    // append first member
+    strcpy(result, members[0]);
+
+    // append remaining members
+    for(i=1; i<numMembers; i++) {
+        strcat(result, sep[i==(numMembers-1)]);
+        strcat(result, members[i]);
+    }
+
+    return result;
+}
+
+//
+// Emit documentation for an AMP cluster
+//
+static vmiDocNodeP docAMP(riscvP ampRoot) {
+
+    vmiDocNodeP  root     = vmidocAddSection(0, "Root");
+    vmiDocNodeP  desc     = vmidocAddSection(root, "Description");
+    Uns32        numAMP   = ampRoot->configInfo.numHarts;
+    const char **variants = ampRoot->configInfo.members;
+    char         string[1024];
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DESCRIPTION
+    ////////////////////////////////////////////////////////////////////////////
+
+    static const char *sep[] = {", ", " and "};
+    char               variantsString[concatLength(variants, sep, numAMP)];
+    snprintf(
+        SNPRINTF_TGT(string),
+        "This model implements an AMP RISC-V system containing %s members.",
+        concat(variantsString, variants, sep, numAMP)
+    );
+    vmidocAddText(desc, string);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // LICENSING
+    ////////////////////////////////////////////////////////////////////////////
+
+    vmiDocNodeP lic = vmidocAddSection(root, "Licensing");
+
+    // refer to cluster documentation for details
+    vmidocAddText(
+        lic,
+        "This document describes the interface to the MultiCluster only. "
+        "Refer to documentation of individual clusters for information "
+        "regarding implemented features, licensing and limitations."
+    );
+
+    return root;
+}
+
+//
 // Create processor documentation
 //
-void riscvDoc(riscvP rootProcessor) {
+static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
     vmiDocNodeP   Root     = vmidocAddSection(0, "Root");
     riscvP        riscv    = rootProcessor;
     riscvP        child    = getChild(rootProcessor);
     riscvConfigCP cfg      = &riscv->configInfo;
-    Bool          isSMP    = child && !riscvIsCluster(riscv);
+    Bool          isSMP    = child;
     Uns32         numHarts = cfg->numHarts;
     char          string[1024];
 
@@ -973,6 +1062,10 @@ void riscvDoc(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
+                "- assignments of instructions to Z extension groups changed;"
+            );
+            vmidocAddText(
+                Version,
                 "- exchange encodings of max and minu instructions;"
             );
             vmidocAddText(
@@ -994,7 +1087,13 @@ void riscvDoc(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- instructions subu.w, addiwu, addwu, subwu, clmulw, clmulrw "
-                "and clmulhw removed."
+                "and clmulhw removed;"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions slo, sro, sloi, sroi, slow, srow, sloiw and "
+                "sroi removed from all Z extension groups and are therefore "
+                "never implemented;"
             );
             vmidocAddText(
                 Version,
@@ -1098,10 +1197,10 @@ void riscvDoc(riscvP rootProcessor) {
 
     if(cfg->arch&ISA_K) {
 
-        vmiDocNodeP Crypto = vmidocAddSection(Root, "Cryptographic Extension");
+        vmiDocNodeP extK = vmidocAddSection(Root, "Cryptographic Extension");
 
         vmidocAddText(
-            Crypto,
+            extK,
             "This variant implements the RISC-V cryptographic extension with "
             "version specified in the References section of this document."
         );
@@ -1112,7 +1211,7 @@ void riscvDoc(riscvP rootProcessor) {
 
         {
             vmiDocNodeP Parameters = vmidocAddSection(
-                Crypto, "Cryptographic Extension Parameters"
+                extK, "Cryptographic Extension Parameters"
             );
 
             // add subset control parameter description
@@ -1147,6 +1246,76 @@ void riscvDoc(riscvP rootProcessor) {
             addKFeature(
                 cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksh, "Zksh",
                 "SM3 hash function"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                extK, "Cryptographic Extension Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "The Cryptographic Extension specification has been under "
+                "active development. To enable simulation of hardware that may "
+                "be based on an older version of the specification, the model "
+                "implements behavior for a number of previous versions of the "
+                "specification. The differing features of these are listed "
+                "below, in chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 0.7.2
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 0.7.2");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.7.2 version of November 25 2020."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 0.8.1
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 0.8.1");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.8.1 version of December 18 2020, with these changes "
+                "compared to version 0.7.2:"
+            );
+            vmidocAddText(
+                Version,
+                "- encodings of SM4 instructions changed to source rd from the "
+                "rs1 field."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 0.9.0
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 0.9.0");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.9.0 version of March 4 2021, with these changes "
+                "compared to version 0.8.1:"
+            );
+            vmidocAddText(
+                Version,
+                "- gorci instruction has been removed."
             );
         }
     }
@@ -1659,7 +1828,12 @@ void riscvDoc(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- for implementations with SLEN != VLEN, striping is applied "
-                "horizontally rather than the previous vertical striping."
+                "horizontally rather than the previous vertical striping;"
+            );
+            vmidocAddText(
+                Version,
+                "- vmsbf.m, vmsif.m and vmsof.m no longer allow overlap of "
+                "destination with source or mask registers."
             );
         }
 
@@ -1736,7 +1910,12 @@ void riscvDoc(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVVV_MASTER_DATE" (commit "
-                RVVV_MASTER_TAG"), currently identical to 1.0-draft-20210130."
+                RVVV_MASTER_TAG"), with these changes compared to version "
+                "1.0-draft-20210130:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions vle1.v/vse1.v renamed vlm.v/vsm.v."
             );
         }
     }
@@ -2843,6 +3022,24 @@ void riscvDoc(riscvP rootProcessor) {
         addOptDocList(References, cfg->specificDocs);
     }
 
-    vmidocProcessor((vmiProcessorP)rootProcessor, Root);
+    return Root;
+}
+
+//
+// Create processor documentation
+//
+void riscvDoc(riscvP riscv) {
+
+    vmiDocNodeP root;
+
+    // emit AMP or SMP variants
+    if(riscvIsCluster(riscv)) {
+        root = docAMP(riscv);
+    } else {
+        root = docSMP(riscv);
+    }
+
+    // add documenation to root
+    vmidocProcessor((vmiProcessorP)riscv, root);
 }
 

@@ -90,6 +90,7 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.virtualInstruction = riscvVirtualInstruction;
     riscv->cb.virtualVerbose     = riscvVirtualInstructionMessage;
     riscv->cb.takeException      = riscvTakeAsynchonousException;
+    riscv->cb.takeReset          = riscvReset,
 
     // from riscvDecode.h
     riscv->cb.fetchInstruction   = riscvExtFetchInstruction;
@@ -206,6 +207,33 @@ static Uns64 powerOfTwo(Uns64 oldValue, const char *name) {
 }
 
 //
+// Report extensions that are fixed
+//
+static void reportFixed(riscvArchitecture fixed, riscvConfigP cfg) {
+
+    char  fixedString[32] = {0};
+    Uns32 dst             = 0;
+    Uns32 src;
+
+    for(src=0; fixed; src++) {
+
+        Uns32 mask = 1<<src;
+
+        if(fixed & mask) {
+            fixed &= ~mask;
+            fixedString[dst++] = 'A'+src;
+        }
+    }
+
+    vmiMessage("W", CPU_PREFIX"_IEXT",
+        "Extension%s %s may not be enabled or disabled on %s variant",
+        (dst==1) ? "" : "s",
+        fixedString,
+        cfg->name
+    );
+}
+
+//
 // Handle parameters that are overridden only if explicitly set
 //
 #define EXPLICIT_PARAM(_CFG, _PARAMS, _CNAME, _PNAME) \
@@ -251,14 +279,11 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     // set simulation controls
     riscv->verbose = params->verbose;
 
-    // set endian
-    riscv->iendian = riscv->dendian = params->endian;
+    // set data endian (instruction fetch is always little-endian)
+    riscv->dendian = params->endian;
 
     // get architectural configuration parameters
-    Uns32             misa_MXL             = params->misa_MXL;
-    riscvArchitecture misa_Extensions      = params->misa_Extensions;
-    riscvArchitecture misa_Extensions_mask = params->misa_Extensions_mask;
-    Int32             lr_sc_grain          = params->lr_sc_grain;
+    Int32 lr_sc_grain = params->lr_sc_grain;
 
     // get uninterpreted CSR configuration parameters
     cfg->csr.mvendorid.u64.bits    = params->mvendorid;
@@ -288,6 +313,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     EXPLICIT_PARAM(cfg, params, fp16_version, fp16_version);
 
     // get uninterpreted architectural configuration parameters
+    cfg->endianFixed         = params->endianFixed;
     cfg->ABI_d               = params->ABI_d;
     cfg->user_version        = params->user_version;
     cfg->priv_version        = params->priv_version;
@@ -311,6 +337,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->mvalue_bits         = params->mvalue_bits;
     cfg->svalue_bits         = params->svalue_bits;
     cfg->mcontrol_maskmax    = params->mcontrol_maskmax;
+    cfg->dcsr_ebreak_mask    = params->dcsr_ebreak_mask;
     cfg->PMP_grain           = params->PMP_grain;
     cfg->PMP_registers       = params->PMP_registers;
     cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");
@@ -324,7 +351,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->force_sideleg       = params->force_sideleg;
     cfg->no_ideleg           = params->no_ideleg;
     cfg->no_edeleg           = params->no_edeleg;
-    cfg->lr_sc_grain         = powerOfTwo(params->lr_sc_grain, "lr_sc_grain");
+    cfg->lr_sc_grain         = powerOfTwo(lr_sc_grain, "lr_sc_grain");
     cfg->debug_mode          = params->debug_mode;
     cfg->debug_address       = params->debug_address;
     cfg->dexc_address        = params->dexc_address;
@@ -489,6 +516,9 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
         cfg->SEW_min = cfg->ELEN;
     }
 
+    // get specified MXL
+    Uns32 misa_MXL = params->misa_MXL;
+
     if(misa_MXL==1) {
 
         // modify configuration for 32-bit cores - MXL/SXL/UXL/VSXL not writable
@@ -508,6 +538,10 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
         cfg->Sv_modes &= RISCV_VMM_64;
     }
 
+    // get explicit extensions and extension mask
+    riscvArchitecture misa_Extensions      = params->misa_Extensions;
+    riscvArchitecture misa_Extensions_mask = params->misa_Extensions_mask;
+
     // include extensions specified by letter
     misa_Extensions      |= riscvParseExtensions(params->add_Extensions);
     misa_Extensions_mask |= riscvParseExtensions(params->add_Extensions_mask);
@@ -526,11 +560,20 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
         misa_Extensions |= ISA_I;
     }
 
+    // get extensions before masking for fixed
+    riscvArchitecture rawExtensions = misa_Extensions;
+
     // bits in the misa fixed mask may not be updated
     misa_Extensions = (
         (cfg->arch       &  cfg->archFixed) |
         (misa_Extensions & ~cfg->archFixed)
     );
+
+    // report extensions that are fixed and may not be modified
+    riscvArchitecture fixed = (rawExtensions^misa_Extensions) & ((1<<26)-1);
+    if(fixed && !getNumChildren(riscv)) {
+        reportFixed(fixed, cfg);
+    }
 
     // the E bit is always read only (it is a complement of the I bit)
     misa_Extensions_mask &= ~ISA_E;

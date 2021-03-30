@@ -26,12 +26,12 @@ Instruction category: arithmetic
   c-addi : 2,049
   c-li : 3,522
   c-lui : 2,525
+  c-add : 2,466
   c-addiw : 1,148
   c-addw : 274
   c-mv : 274
-  c-add : 2,466
-  c-subw : 274
   c-sub : 275
+  c-subw : 274
 Instruction category: logical 
   c-and : 274
   c-or : 274
@@ -44,8 +44,8 @@ Instruction category: OPI_IMN
   c-ebreak : 1
 Instruction category: jump 
   c-j : 305
-  c-jr : 274
   c-jalr : 274
+  c-jr : 274
 Instruction category: load 
   c-lwsp : 274
   c-ldsp : 274
@@ -69,9 +69,9 @@ Other instructions (those not the focus of this suite)
   mret : 32
   lui : 1,659
   sd : 7,957
-  slli : 3
   fence : 31
   ecall : 31
+  slli : 3
   jal : 496
   ld : 1,370
   lw : 274

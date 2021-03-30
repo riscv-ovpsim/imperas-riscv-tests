@@ -110,7 +110,7 @@ void riscvSetCurrentArch(riscvP riscv) {
     }
 
     // handle big endian access if required
-    if(riscv->checkEndian && riscvGetCurrentDataEndian(riscv)) {
+    if(riscvGetCurrentDataEndian(riscv)) {
         arch |= ISA_BE;
     }
 
@@ -337,7 +337,7 @@ VMI_ENDIAN_FN(riscvGetEndian) {
     riscvP riscv = (riscvP)processor;
 
     if(isFetch) {
-        return riscv->iendian;
+        return MEM_ENDIAN_LITTLE;
     } else {
         return riscvGetCurrentDataEndian(riscv);
     }
@@ -703,47 +703,24 @@ VMI_MODE_INFO_FN(riscvModeInfo) {
 }
 
 //
+// Return number of members of an array
+//
+#define NUM_MEMBERS(_A) (sizeof(_A)/sizeof((_A)[0]))
+
+//
 // Return the indexed X register name
 //
 const char *riscvGetXRegName(Uns32 index) {
 
-    static const char *map[32] = {
-        [0] = "zero",
-        [1] = "ra",
-        [2] = "sp",
-        [3] = "gp",
-        [4] = "tp",
-        [5] = "t0",
-        [6] = "t1",
-        [7] = "t2",
-        [8] = "s0",
-        [9] = "s1",
-        [10] = "a0",
-        [11] = "a1",
-        [12] = "a2",
-        [13] = "a3",
-        [14] = "a4",
-        [15] = "a5",
-        [16] = "a6",
-        [17] = "a7",
-        [18] = "s2",
-        [19] = "s3",
-        [20] = "s4",
-        [21] = "s5",
-        [22] = "s6",
-        [23] = "s7",
-        [24] = "s8",
-        [25] = "s9",
-        [26] = "s10",
-        [27] = "s11",
-        [28] = "t3",
-        [29] = "t4",
-        [30] = "t5",
-        [31] = "t6",
+    static const char *map[] = {
+        "zero", "ra",   "sp",   "gp",   "tp",   "t0",   "t1",   "t2",
+        "s0",   "s1",   "a0",   "a1",   "a2",   "a3",   "a4",   "a5",
+        "a6",   "a7",   "s2",   "s3",   "s4",   "s5",   "s6",   "s7",
+        "s8",   "s9",   "s10",  "s11",  "t3",   "t4",   "t5",   "t6",
     };
 
     // sanity check index is in range
-    VMI_ASSERT(index<32, "Illegal index %u", index);
+    VMI_ASSERT(index<NUM_MEMBERS(map), "Illegal index %u", index);
 
     return map[index];
 }
@@ -753,43 +730,15 @@ const char *riscvGetXRegName(Uns32 index) {
 //
 const char *riscvGetFRegName(Uns32 index) {
 
-    static const char *map[32] = {
-        [0] = "ft0",
-        [1] = "ft1",
-        [2] = "ft2",
-        [3] = "ft3",
-        [4] = "ft4",
-        [5] = "ft5",
-        [6] = "ft6",
-        [7] = "ft7",
-        [8] = "fs0",
-        [9] = "fs1",
-        [10] = "fa0",
-        [11] = "fa1",
-        [12] = "fa2",
-        [13] = "fa3",
-        [14] = "fa4",
-        [15] = "fa5",
-        [16] = "fa6",
-        [17] = "fa7",
-        [18] = "fs2",
-        [19] = "fs3",
-        [20] = "fs4",
-        [21] = "fs5",
-        [22] = "fs6",
-        [23] = "fs7",
-        [24] = "fs8",
-        [25] = "fs9",
-        [26] = "fs10",
-        [27] = "fs11",
-        [28] = "ft8",
-        [29] = "ft9",
-        [30] = "ft10",
-        [31] = "ft11",
+    static const char *map[] = {
+        "ft0",  "ft1",  "ft2",  "ft3",  "ft4",  "ft5",  "ft6",  "ft7",
+        "fs0",  "fs1",  "fa0",  "fa1",  "fa2",  "fa3",  "fa4",  "fa5",
+        "fa6",  "fa7",  "fs2",  "fs3",  "fs4",  "fs5",  "fs6",  "fs7",
+        "fs8",  "fs9",  "fs10", "fs11", "ft8",  "ft9",  "ft10", "ft11",
     };
 
     // sanity check index is in range
-    VMI_ASSERT(index<32, "Illegal index %u", index);
+    VMI_ASSERT(index<NUM_MEMBERS(map), "Illegal index %u", index);
 
     return map[index];
 }
@@ -799,43 +748,15 @@ const char *riscvGetFRegName(Uns32 index) {
 //
 const char *riscvGetVRegName(Uns32 index) {
 
-    static const char *map[32] = {
-        [0] = "v0",
-        [1] = "v1",
-        [2] = "v2",
-        [3] = "v3",
-        [4] = "v4",
-        [5] = "v5",
-        [6] = "v6",
-        [7] = "v7",
-        [8] = "v8",
-        [9] = "v9",
-        [10] = "v10",
-        [11] = "v11",
-        [12] = "v12",
-        [13] = "v13",
-        [14] = "v14",
-        [15] = "v15",
-        [16] = "v16",
-        [17] = "v17",
-        [18] = "v18",
-        [19] = "v19",
-        [20] = "v20",
-        [21] = "v21",
-        [22] = "v22",
-        [23] = "v23",
-        [24] = "v24",
-        [25] = "v25",
-        [26] = "v26",
-        [27] = "v27",
-        [28] = "v28",
-        [29] = "v29",
-        [30] = "v30",
-        [31] = "v31",
+    static const char *map[] = {
+        "v0",   "v1",   "v2",   "v3",   "v4",   "v5",   "v6",   "v7",
+        "v8",   "v9",   "v10",  "v11",  "v12",  "v13",  "v14",  "v15",
+        "v16",  "v17",  "v18",  "v19",  "v20",  "v21",  "v22",  "v23",
+        "v24",  "v25",  "v26",  "v27",  "v28",  "v29",  "v30",  "v31",
     };
 
     // sanity check index is in range
-    VMI_ASSERT(index<32, "Illegal index %u", index);
+    VMI_ASSERT(index<NUM_MEMBERS(map), "Illegal index %u", index);
 
     return map[index];
 }
@@ -891,8 +812,8 @@ const char *riscvGetFeatureName(riscvArchitecture feature) {
         [RISCV_FEATURE_INDEX('A')]         = "extension A (atomic instructions)",
         [RISCV_FEATURE_INDEX('B')]         = "extension B (bit manipulation extension)",
         [RISCV_FEATURE_INDEX('C')]         = "extension C (compressed instructions)",
-        [RISCV_FEATURE_INDEX('E')]         = "RV32E base integer instruction set (embedded)",
         [RISCV_FEATURE_INDEX('D')]         = "extension D (double-precision floating point)",
+        [RISCV_FEATURE_INDEX('E')]         = "RV32E base integer instruction set (embedded)",
         [RISCV_FEATURE_INDEX('F')]         = "extension F (single-precision floating point)",
         [RISCV_FEATURE_INDEX('H')]         = "extension H (hypervisor)",
         [RISCV_FEATURE_INDEX('I')]         = "RV32I/RV64I/RV128I base integer instruction set",

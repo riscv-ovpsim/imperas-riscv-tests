@@ -504,6 +504,21 @@ void riscvConsolidateFPFlags(riscvP riscv);
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// DCSR MODE
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Return the mode encoded in DCSR
+//
+riscvMode riscvGetDCSRMode(riscvP riscv);
+
+//
+// Set the mode encoded in DCSR
+//
+void riscvSetDCSRMode(riscvP riscv, riscvMode mode);
+
+
+////////////////////////////////////////////////////////////////////////////////
 // REGISTER DEFINITIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1418,7 +1433,7 @@ typedef struct {
     Uns32   step      :  1;
     Uns32   nmip      :  1;
     Uns32   mprven    :  1;
-    Uns32   _u0       :  1;
+    Uns32   v         :  1;
     dmCause cause     :  3;
     Uns32   stoptime  :  1;
     Uns32   stopcount :  1;
@@ -1427,15 +1442,21 @@ typedef struct {
     Uns32   ebreaks   :  1;
     Uns32   _u1       :  1;
     Uns32   ebreakm   :  1;
-    Uns32   _u2       : 12;
+    Uns32   ebreakvu  :  1;
+    Uns32   ebreakvs  :  1;
+    Uns32   _u2       : 10;
     Uns32   xdebugver :  4;
 } CSR_REG_TYPE_32(dcsr);
 
 // define 32 bit type
 CSR_REG_STRUCT_DECL_32(dcsr);
 
-#define WM32_dcsr_nmip  0x008
-#define WM32_dcsr_cause 0x1c0
+#define WM32_dcsr_nmip    0x0008
+#define WM32_dcsr_cause   0x01c0
+#define WM32_dcsr_ebreaku 0x1000
+
+// shift to ebreak fields in dcsr
+#define DCSR_EBREAK_SHIFT 12
 
 // -----------------------------------------------------------------------------
 // dpc          (id 0x7B1)
@@ -2173,7 +2194,7 @@ typedef struct riscvCSRMasksS {
 
 // set field mask to the given value in common view
 #define WR_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, _VALUE) \
-    WR_CSR_MASK_FIELD32(_CPU, _RNAME, _FIELD, _VALUE)
+    WR_CSR_MASK_FIELD64(_CPU, _RNAME, _FIELD, _VALUE)
 
 // set field mask to all 1's in 64-bit view
 #define WR_CSR_MASK_FIELD64_1(_CPU, _RNAME, _FIELD) \

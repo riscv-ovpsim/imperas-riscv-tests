@@ -84,8 +84,9 @@ typedef enum riscvVShapeE {
 
                             // MASK ARGUMENTS
     RVVW_P1I_P1I_P1I,       // SEW = SEW op SEW
-    RVVW_V1I_P1I_P1I_IOTA,  // SEW = SEW op SEW, V VIOTA instruction
-    RVVW_V1I_P1I_P1I_ID,    // SEW = SEW op SEW, V VID instruction
+    RVVW_P1I_P1I_P1I_VMSF,  // SEW = SEW op SEW, VMSBF/VMSOF/VMSIF instructions
+    RVVW_V1I_P1I_P1I_IOTA,  // SEW = SEW op SEW, VIOTA instruction
+    RVVW_V1I_P1I_P1I_ID,    // SEW = SEW op SEW, VID instruction
 
                             // SLIDING ARGUMENTS
     RVVW_V1I_V1I_V1I_GR,    // SEW, VRGATHER instructions

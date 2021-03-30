@@ -422,7 +422,12 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
             putD(result, info->nf+1);
         }
 
-        if(info->eew) {
+        if((info->eew==1) && riscvVFSupport(riscv, RVVF_VLM_VSM)) {
+
+            // mask load or store
+            putString(result, "m");
+
+        } else if(info->eew) {
 
             // version 0.9 EEW
             putChar(result, 'e');

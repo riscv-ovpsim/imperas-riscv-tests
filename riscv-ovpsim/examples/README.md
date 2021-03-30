@@ -4,13 +4,25 @@ In this directory are several examples showing the use of the riscvOVPsim platfo
 
 Application ELF Files
 ---
-The examples include cross-compiled C applications as _elf_ files and scripts to load onto the processor in the riscvOVPsim platform and execute.
+The examples include cross-compiled C applications as  _elf_  files and scripts to load onto the processor in the riscvOVPsim platform and execute.
 
 The source of the applications are included and it is expected that you have your own cross-compiler toolchain installed to re-compile.
+
+Debugging Applications
+---
+If you want to see an example of debugging an application using GDB, then look at the [dhrystone](dhrystone) example.
 
 Signature Dump
 ---
 If you want to see an example of the riscv compatible signature dumper, then look at the [fibonacci](fibonacci) example.
+
+Vector Extension
+---
+If you want to see an example of the riscv vector extension being used, then look at the [vector](vector) example.
+
+Bit Manipulation Extension
+---
+If you want to see an example of the riscv bit manipulation extension being used, then look at the [bitmanip](bitmanip) example.
 
 Instruction Functional Coverage
 ---

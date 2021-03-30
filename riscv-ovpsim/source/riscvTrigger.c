@@ -883,7 +883,7 @@ void riscvTriggerSave(
             for(i=0; i<numTriggers(riscv); i++) {
 
                 riscvTriggerP trigger = &riscv->triggers[i];
-                char          name[16];
+                char          name[32];
 
                 fillTriggerName(name, i);
                 VMIRT_SAVE_REG(cxt, name, trigger);
@@ -909,7 +909,7 @@ void riscvTriggerRestore(
             for(i=0; i<numTriggers(riscv); i++) {
 
                 riscvTriggerP trigger = &riscv->triggers[i];
-                char          name[16];
+                char          name[32];
 
                 fillTriggerName(name, i);
                 VMIRT_RESTORE_REG(cxt, name, trigger);
