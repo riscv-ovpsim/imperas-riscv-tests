@@ -109,7 +109,7 @@ and then to run:
 
     make help
     make clean simulate verify cover \
-        RISCV_ISA=rv32i RISCV_DEVICE=rv32i
+        RISCV_ISA=rv32m_i RISCV_DEVICE=I
         
     and set RISCV_TARGET to either riscvOVPsim or riscvOVPsimPlus, for example RISCV_TARGET=riscvOVPsim
 
