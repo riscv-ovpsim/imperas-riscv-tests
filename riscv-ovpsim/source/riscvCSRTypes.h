@@ -86,6 +86,12 @@ typedef RISCV_CSR_PRESENTFN((*riscvCSRPresentFn));
 // CSR DEFINITION TYPE
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef enum riscvCSRTraceE {
+    RCSRT_YES,          // always trace CSR
+    RCSRT_NO,           // never trace CSR
+    RCSRT_VOLATILE,     // trace only in volatile mode
+} riscvCSRTrace;
+
 //
 // This structure records information about each CSR
 //
@@ -97,13 +103,14 @@ typedef struct riscvCSRAttrsS {
     riscvArchitecture arch;             // required architecture (presence)
     riscvArchitecture access;           // required architecture (access)
     riscvPrivVer      version;          // minimum specification version
-    Bool              wEndBlock;        // whether write terminates this block
-    Bool              wEndRM;           // whether write invalidates RM assumption
-    Bool              noSaveRestore;    // whether to exclude from save/restore
-    Bool              noTraceChange;    // whether to exclude from trace change
-    Bool              TVMT;             // whether trapped by mstatus.TVM
-    Bool              writeRd;          // whether write updates Rd
-    Bool              aliasV;           // whether CSR has virtual alias
+    riscvCSRTrace     noTraceChange:2;  // trace mode
+    Bool              wEndBlock    :1;  // whether write terminates this block
+    Bool              wEndRM       :1;  // whether write invalidates RM assumption
+    Bool              noSaveRestore:1;  // whether to exclude from save/restore
+    Bool              TVMT         :1;  // whether trapped by mstatus.TVM
+    Bool              writeRd      :1;  // whether write updates Rd
+    Bool              aliasV       :1;  // whether CSR has virtual alias
+    Bool              undefined    :1;  // whether CSR is undefined
     riscvCSRPresentFn presentCB;        // CSR present callback
     riscvCSRReadFn    readCB;           // read callback
     riscvCSRReadFn    readWriteCB;      // read callback (in r/w context)

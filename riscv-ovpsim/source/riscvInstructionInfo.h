@@ -91,6 +91,21 @@
 }
 
 //
+// Rd, Rs1, Rs2, bs (WX=0, with conflicting higher-priority RV64 decode)
+//
+#define ATTR32_RD_RS1_RS2_BS_WX0_H64(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_SIMM,   \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    cs       : CS_U_31_30,          \
+    higher64 : True,                \
+}
+
+//
 // Rd, Rs1, bs (WX=0)
 //
 #define ATTR32_RD_RS1_BS_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -102,6 +117,21 @@
     r2       : RS_X_19_15,          \
     r3       : RS_X_24_20,          \
     cs       : CS_U_31_30,          \
+}
+
+//
+// Rd, Rs1, bs (WX=0, with conflicting higher-priority RV64 decode)
+//
+#define ATTR32_RD_RS1_BS_WX0_H64(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R3_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_19_15,          \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    cs       : CS_U_31_30,          \
+    higher64 : True,                \
 }
 
 //
@@ -291,17 +321,30 @@
 }
 
 //
-// Rd, Rs1, USHIFT
+// Rd, Rs1, SSHIFT (B extension semantics)
 //
-#define ATTR32_RD_RS1_USHIFT(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_RD_RS1_SSHIFT_B(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_SIMM,      \
     type     : RV_IT_##_GENERIC,    \
     arch     : _ARCH,               \
     r1       : RS_X_11_7,           \
     r2       : RS_X_19_15,          \
-    cs       : CS_U_26_20,          \
+    cs       : CS_SHAMT_26_20_B,    \
     wX       : WX_3,                \
+}
+
+//
+// Rd, Rs1, SSHIFT (B extension semantics, WX=0)
+//
+#define ATTR32_RD_RS1_SSHIFT_B_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    cs       : CS_SHAMT_26_20_B,    \
 }
 
 //
@@ -1056,6 +1099,21 @@
 }
 
 //
+// Vd, Vs1, Vm (V, cur)
+//
+#define ATTR32_VD_VS1_M_V_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_V,            \
+    rm       : RM_CUR,              \
+}
+
+//
 // Vd, Vs1, Vm (V, rtz)
 //
 #define ATTR32_VD_VS1_M_V_RTZ(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1101,9 +1159,9 @@
 }
 
 //
-// Vd, Vs1, Vm (VN)
+// Vd, Vs1, Vm (VN, cur)
 //
-#define ATTR32_VD_VS1_M_VN(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_VS1_M_VN_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_RM,        \
     type     : RV_IT_##_GENERIC,    \
@@ -1112,6 +1170,7 @@
     r2       : RS_V_24_20,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VN,           \
+    rm       : RM_CUR,              \
 }
 
 //
@@ -1144,6 +1203,22 @@
 }
 
 //
+// Vd, Vs1, Vs2, Vm (VV, cur)
+//
+#define ATTR32_VD_VS1_VS2_M_VV_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    r3       : RS_V_19_15,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VV,           \
+    rm       : RM_CUR,              \
+}
+
+//
 // Vd, Vs1, Vs2(EI16), Vm (VV)
 //
 #define ATTR32_VD_VS1_EI16_M_VV(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1172,6 +1247,22 @@
     r3       : RS_V_24_20,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VV,           \
+}
+
+//
+// Vd, Vs2, Vs1, Vm (VV, cur)
+//
+#define ATTR32_VD_VS2_VS1_M_VV_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_19_15,          \
+    r3       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VV,           \
+    rm       : RM_CUR,              \
 }
 
 //
@@ -1235,6 +1326,22 @@
 }
 
 //
+// Vd, Vs1, Vs2, Vm (VS, cur)
+//
+#define ATTR32_VD_VS1_VS2_M_VS_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    r3       : RS_V_19_15,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VS,           \
+    rm       : RM_CUR,              \
+}
+
+//
 // Vd, Vs1, Vs2, Vm (WV)
 //
 #define ATTR32_VD_VS1_VS2_M_WV(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1247,6 +1354,22 @@
     r3       : RS_V_19_15,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_WV,           \
+}
+
+//
+// Vd, Vs1, Vs2, Vm (WV, cur)
+//
+#define ATTR32_VD_VS1_VS2_M_WV_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    r3       : RS_V_19_15,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_WV,           \
+    rm       : RM_CUR,              \
 }
 
 //
@@ -1543,9 +1666,9 @@
 }
 
 //
-// Vd, Vs1, Fs2, Vm (VF)
+// Vd, Vs1, Fs2, Vm (VF, cur)
 //
-#define ATTR32_VD_VS1_FS2_M_VF(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_VS1_FS2_M_VF_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_R3_RM,     \
     type     : RV_IT_##_GENERIC,    \
@@ -1555,12 +1678,13 @@
     r3       : RS_F_19_15,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VF,           \
+    rm       : RM_CUR,              \
 }
 
 //
-// Vd, Vs1, Fs2, Vm (VFM)
+// Vd, Vs1, Fs2, Vm (VFM, cur)
 //
-#define ATTR32_VD_VS1_FS2_M_VFM(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_VS1_FS2_M_VFM_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_R3_RMR,    \
     type     : RV_IT_##_GENERIC,    \
@@ -1571,12 +1695,13 @@
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VFM,          \
     notZfinx : True,                \
+    rm       : RM_CUR,              \
 }
 
 //
-// Vd[, Vs1], Fs2, Vm
+// Vd[, Vs1], Fs2, Vm, cur
 //
-#define ATTR32_VD_vs1_FS2_M(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_vs1_FS2_M_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R3,           \
     type     : RV_IT_##_GENERIC,    \
@@ -1587,12 +1712,13 @@
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_NA,           \
     notZfinx : True,                \
+    rm       : RM_CUR,              \
 }
 
 //
-// Vd, Fs2, Vs1, Vm (VF)
+// Vd, Fs2, Vs1, Vm (VF, cur)
 //
-#define ATTR32_VD_FS2_VS1_M_VF(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_FS2_VS1_M_VF_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_R3_RM,     \
     type     : RV_IT_##_GENERIC,    \
@@ -1602,12 +1728,13 @@
     r3       : RS_V_24_20,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VF,           \
+    rm       : RM_CUR,              \
 }
 
 //
-// Vd, Vs1, Fs2, Vm (WF)
+// Vd, Vs1, Fs2, Vm (WF, cur)
 //
-#define ATTR32_VD_VS1_FS2_M_WF(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_VS1_FS2_M_WF_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_R3_RM,     \
     type     : RV_IT_##_GENERIC,    \
@@ -1617,12 +1744,13 @@
     r3       : RS_F_19_15,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_WF,           \
+    rm       : RM_CUR,              \
 }
 
 //
-// Vd, Fs2
+// Vd, Fs2, cur
 //
-#define ATTR32_VD_FS2(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_VD_FS2_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2,           \
     type     : RV_IT_##_GENERIC,    \
@@ -1632,6 +1760,7 @@
     VIType   : RV_VIT_NA,           \
     wF       : WF_ARCH,             \
     notZfinx : True,                \
+    rm       : RM_CUR,              \
 }
 
 //
@@ -1665,7 +1794,7 @@
 //
 // Fd, Vs1
 //
-#define ATTR32_FD_VS1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_FD_VS1_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2,           \
     type     : RV_IT_##_GENERIC,    \
@@ -1675,6 +1804,7 @@
     VIType   : RV_VIT_NA,           \
     wF       : WF_ARCH,             \
     notZfinx : True,                \
+    rm       : RM_CUR,              \
 }
 
 //

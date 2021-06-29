@@ -30,24 +30,25 @@
 //
 #define XLEN32_CHAR             ('Z'+1)
 #define XLEN64_CHAR             ('Z'+2)
-#define RM_INVALID_CHAR         ('Z'+3)
-#define MSTATUS_FS_CHAR         ('Z'+4)
-#define MSTATUS_BE_CHAR         ('Z'+5)
-#define HSTATUS_SPVP_CHAR       ('Z'+6)
-#define HSTATUS_VSBE_CHAR       ('Z'+7)
-#define VSSTATUS_UBE_CHAR       ('Z'+8)
-#define HSTATUS_HU_CHAR         ('Z'+9)
-#define VIRTUAL_VM_CHAR         ('Z'+10)
-#define MXL64_CHAR              ('Z'+11)
-#define SXL64_CHAR              ('Z'+12)
-#define UXL64_CHAR              ('Z'+13)
-#define VSXL64_CHAR             ('Z'+14)
-#define VUXL64_CHAR             ('Z'+15)
-#define TM_LA_CHAR              ('Z'+16)
-#define TM_LV_CHAR              ('Z'+17)
-#define TM_S_CHAR               ('Z'+18)
-#define TM_X_CHAR               ('Z'+19)
-#define RISCV_FAND_CHAR         ('Z'+20)
+#define XLEN128_CHAR            ('Z'+3)
+#define RM_INVALID_CHAR         ('Z'+4)
+#define MSTATUS_FS_CHAR         ('Z'+5)
+#define MSTATUS_BE_CHAR         ('Z'+6)
+#define HSTATUS_SPVP_CHAR       ('Z'+7)
+#define HSTATUS_VSBE_CHAR       ('Z'+8)
+#define VSSTATUS_UBE_CHAR       ('Z'+9)
+#define HSTATUS_HU_CHAR         ('Z'+10)
+#define VIRTUAL_VM_CHAR         ('Z'+11)
+#define MXL64_CHAR              ('Z'+12)
+#define SXL64_CHAR              ('Z'+13)
+#define UXL64_CHAR              ('Z'+14)
+#define VSXL64_CHAR             ('Z'+15)
+#define VUXL64_CHAR             ('Z'+16)
+#define TM_LA_CHAR              ('Z'+17)
+#define TM_LV_CHAR              ('Z'+18)
+#define TM_S_CHAR               ('Z'+19)
+#define TM_X_CHAR               ('Z'+20)
+#define RISCV_FAND_CHAR         ('Z'+21)
 #define RISCV_FEATURE_INDEX(_C) ((_C)-'A')
 #define RISCV_FEATURE_BIT(_C)   (1ULL<<RISCV_FEATURE_INDEX(_C))
 #define XLEN_SHIFT              RISCV_FEATURE_INDEX(XLEN32_CHAR)
@@ -63,7 +64,8 @@ typedef enum riscvArchitectureE {
     // CURRENT REGISTER SIZE
     ISA_XLEN_32  = RISCV_FEATURE_BIT(XLEN32_CHAR),  // supported for XLEN=32
     ISA_XLEN_64  = RISCV_FEATURE_BIT(XLEN64_CHAR),  // supported for XLEN=64
-    ISA_XLEN_ANY = (ISA_XLEN_32|ISA_XLEN_64),
+    ISA_XLEN_128 = RISCV_FEATURE_BIT(XLEN128_CHAR), // supported for XLEN=128
+    ISA_XLEN_ANY = (ISA_XLEN_32|ISA_XLEN_64|ISA_XLEN_128),
 
     // ROUNDING MODE INVALID
     ISA_RM_INVALID = RISCV_FEATURE_BIT(RM_INVALID_CHAR),
@@ -106,6 +108,7 @@ typedef enum riscvArchitectureE {
     ISA_K      = RISCV_FEATURE_BIT('K'),    // cryptographic ISA
     ISA_M      = RISCV_FEATURE_BIT('M'),    // integer multiply/divide instructions
     ISA_N      = RISCV_FEATURE_BIT('N'),    // user-mode interrupts
+    ISA_Q      = RISCV_FEATURE_BIT('Q'),    // quad-precision floating point
     ISA_S      = RISCV_FEATURE_BIT('S'),    // supervisor mode implemented
     ISA_U      = RISCV_FEATURE_BIT('U'),    // user mode implemented
     ISA_V      = RISCV_FEATURE_BIT('V'),    // vector extension implemented
@@ -113,6 +116,7 @@ typedef enum riscvArchitectureE {
     ISA_DF     = (ISA_D|ISA_F),             // floating point
     ISA_DFS    = (ISA_D|ISA_F|ISA_S),       // either floating point or S-mode
     ISA_DFV    = (ISA_D|ISA_F|ISA_V),       // either floating point or vector
+    ISA_SandK  = (ISA_S|ISA_K|ISA_and),     // both supervisor and cryptographic
     ISA_SorN   = (ISA_S|ISA_N),             // either supervisor or user interrupts
     ISA_SandN  = (ISA_S|ISA_N|ISA_and),     // both supervisor and user interrupts
     ISA_FSandV = (ISA_FS|ISA_V|ISA_and),    // both FS and vector extension
@@ -228,10 +232,10 @@ typedef enum riscvPrivVerE {
 } riscvPrivVer;
 
 //
-// Date and tag of master version
+// Date and tag of Vector Architecture master version
 //
-#define RVVV_MASTER_DATE    "19 March 2021"
-#define RVVV_MASTER_TAG     "4ab6506"
+#define RVVV_MASTER_DATE    "8 June 2021"
+#define RVVV_MASTER_TAG     "795a4dd"
 
 //
 // Supported Vector Architecture versions
@@ -246,13 +250,35 @@ typedef enum riscvVectVerE {
     RVVV_0_8,                           // version 0.8
     RVVV_0_9,                           // version 0.9
     RVVV_1_0_20210130,                  // version 1.0-draft-20210130
+    RVVV_1_0_20210608,                  // version 1.0-rc1-20210608
     RVVV_MASTER,                        // master branch
     RVVV_LAST,                          // for sizing
-    RVVV_DEFAULT = RVVV_1_0_20210130,   // default version
+    RVVV_DEFAULT = RVVV_1_0_20210608,   // default version
 } riscvVectVer;
 
 //
-// Date and tag of master version
+// Vector Architecture extension subsets
+//
+typedef enum riscvVectorSetE {
+
+    // individual features
+    RVVS_Application = 0,               // application processor profile
+    RVVS_Embedded    = (1<<0),          // embedded processor profile
+    RVVS_EEW64       = (1<<1),          // EEW=64 supported
+    RVVS_F           = (1<<2),          // FP32 supported
+    RVVS_D           = (1<<3),          // FP64 supported
+
+    // embedded profiles
+    RVVS_Zve32x = RVVS_Embedded,
+    RVVS_Zve32f = RVVS_Embedded           |RVVS_F,
+    RVVS_Zve64x = RVVS_Embedded|RVVS_EEW64,
+    RVVS_Zve64f = RVVS_Embedded|RVVS_EEW64|RVVS_F,
+    RVVS_Zve64d = RVVS_Embedded|RVVS_EEW64|RVVS_F|RVVS_D,
+
+} riscvVectorSet;
+
+//
+// Date and tag of Bit Manipulation Architecture master version
 //
 #define RVBV_MASTER_DATE    "26 August 2020"
 #define RVBV_MASTER_TAG     "c1bd8ee"
@@ -266,9 +292,11 @@ typedef enum riscvBitManipVerE {
     RVBV_0_92,                          // version 0.92
     RVBV_0_93_DRAFT,                    // version 0.93 (intermediate draft)
     RVBV_0_93,                          // version 0.93
+    RVBV_0_94,                          // version 0.94
+    RVBV_1_0_0,                         // version 1.0.0
     RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
-    RVBV_DEFAULT = RVBV_0_93,           // default version
+    RVBV_DEFAULT = RVBV_1_0_0,          // default version
 } riscvBitManipVer;
 
 //
@@ -306,22 +334,27 @@ typedef enum riscvCryptoVerE {
     RVKV_0_7_2,                         // version 0.7.2
     RVKV_0_8_1,                         // version 0.8.1
     RVKV_0_9_0,                         // version 0.9.0
+    RVKV_0_9_2,                         // version 0.9.2
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_0_9_0,          // default version
+    RVKV_DEFAULT = RVKV_0_9_2,          // default version
 } riscvCryptoVer;
 
 //
 // Cryptographic Architecture subsets
 //
 typedef enum riscvCryptoSetE {
-    RVKS_Zkb   = (1<<0),                // bitmanip subset not in Zkg
-    RVKS_Zkg   = (1<<1),                // carry-less multiply
-    RVKS_Zkr   = (1<<2),                // entropy source
-    RVKS_Zknd  = (1<<3),                // NIST AES decryption instructions
-    RVKS_Zkne  = (1<<4),                // NIST AES encryption instructions
-    RVKS_Zknh  = (1<<5),                // NIST SHA2 hash function instructions
-    RVKS_Zksed = (1<<6),                // SM4 instructions
-    RVKS_Zksh  = (1<<7),                // SM3 hash function instructions
+    RVKS_Zk_   = 0,                     // absent for all sets
+    RVKS_Zbkb  = (1<<0),                // bitmanip subset not in Zbkc or Zbkx
+    RVKS_Zbkc  = (1<<1),                // carry-less multiply
+    RVKS_Zbkx  = (1<<2),                // crossbar permutation
+    RVKS_Zkr   = (1<<3),                // entropy source
+    RVKS_Zknd  = (1<<4),                // NIST AES decryption instructions
+    RVKS_Zkne  = (1<<5),                // NIST AES encryption instructions
+    RVKS_Zknh  = (1<<6),                // NIST SHA2 hash function instructions
+    RVKS_Zksed = (1<<7),                // SM4 instructions
+    RVKS_Zksh  = (1<<8),                // SM3 hash function instructions
+    RVKS_Zkb   = RVKS_Zbkb,             // (deprecated alias for Zbkb)
+    RVKS_Zkg   = RVKS_Zbkc,             // (deprecated alias for Zbkc)
 } riscvCryptoSet;
 
 //
@@ -339,8 +372,24 @@ typedef enum riscvHypVerE {
 typedef enum riscvDebugVerE {
     RVDBG_0_13_2,                       // 0.13.2-DRAFT
     RVDBG_0_14_0,                       // 0.14.0-DRAFT
-    RVDBG_DEFAULT = RVDBG_0_14_0,       // default version
+    RVDBG_1_0_0,                        // 1.0.0-STABLE
+    RVDBG_DEFAULT = RVDBG_1_0_0,        // default version
 } riscvDebugVer;
+
+//
+// Date and tag of master version
+//
+#define RVCLC_MASTER_DATE    "11 May 2021"
+#define RVCLC_MASTER_TAG     "dd15cd3"
+
+//
+// Supported CLIC version
+//
+typedef enum riscvCLICVerE {
+    RVCLC_0_9_20191208,                 // 0.9-draft-20191208
+    RVCLC_MASTER,                       // master branch
+    RVCLC_DEFAULT = RVCLC_0_9_20191208, // default version
+} riscvCLICVer;
 
 //
 // Supported Zfinx versions
@@ -348,6 +397,7 @@ typedef enum riscvDebugVerE {
 typedef enum riscvZfinxVerE {
     RVZFINX_NA,                         // Zfinx not implemented (default)
     RVZFINX_0_4,                        // Zfinx version 0.4
+    RVZFINX_0_41,                       // Zfinx version 0.41
 } riscvZfinxVer;
 
 //
@@ -417,6 +467,9 @@ typedef enum riscvDERETModeE {
 // macro returning Debug Architecture version
 #define RISCV_DBG_VERSION(_P)       ((_P)->configInfo.dbg_version)
 
+// macro returning CLIC version
+#define RISCV_CLIC_VERSION(_P)      ((_P)->configInfo.CLIC_version)
+
 // macro returning Zfinx version
 #define RISCV_ZFINX_VERSION(_P)     ((_P)->configInfo.Zfinx_version)
 
@@ -445,9 +498,10 @@ typedef enum riscvVFeatureE {
     RVVF_VCSR_PRESENT,      // is vcsr register present?
     RVVF_VS_STATUS_8,       // is [ms]status.VS field in version 0.8 location?
     RVVF_VS_STATUS_9,       // is [ms]status.VS field in version 0.9 location?
-    RVVF_FP_RESTRICT_VMVR,  // whole register move restricted?
-    RVVF_FP_RESTRICT_VLSR1, // whole register load/store restricted to 1?
-    RVVF_FP_RESTRICT_VLSRP2,// whole register load/store restricted to power of 2?
+    RVVF_RESTRICT_VMVR,     // whole register move restricted?
+    RVVF_RESTRICT_VLSR1,    // whole register load/store restricted to 1?
+    RVVF_RESTRICT_VLSRP2,   // whole register load/store restricted to power of 2?
+    RVVF_VMVR_VLSR_EEW,     // whole register instructions use encoded EEW?
     RVVF_FRACT_LMUL,        // is fractional LMUL implemented?
     RVVF_AGNOSTIC,          // are agnostic bits implemented?
     RVVF_MLEN1,             // is MLEN always 1?

@@ -37,12 +37,15 @@ VMI_DESTRUCTOR_FN(riscvDestructor);
 // morph function
 VMI_START_END_BLOCK_FN(riscvStartBlock);
 VMI_START_END_BLOCK_FN(riscvEndBlock);
+VMI_MORPH_FN(riscvPreMorph);
 VMI_MORPH_FN(riscvMorph);
+VMI_MORPH_FN(riscvPostMorph);
 VMI_FETCH_SNAP_FN(riscvFetchSnap);
 
 // simulation support functions
 VMI_ENDIAN_FN(riscvGetEndian);
 VMI_NEXT_PC_FN(riscvNextPC);
+VMI_FETCH_FN(riscvFetch);
 VMI_DISASSEMBLE_FN(riscvDisassemble);
 VMI_IASSWITCH_FN(riscvContextSwitchCB);
 

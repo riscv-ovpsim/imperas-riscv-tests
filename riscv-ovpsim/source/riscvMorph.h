@@ -203,10 +203,16 @@ void riscvRstFS(riscvMorphStateP state, Bool useRS1);
 vmiReg riscvGetFPFlagsMT(riscvP riscv);
 
 //
-// Validate the given rounding mode is legal and emit an Illegal Instruction
-// exception call if not
+// Validate the hart operation mode is at least the specified mode and emit an
+// Illegal Instruction or Virtual Instruction exception if not
 //
 Bool riscvEmitRequireMode(riscvP riscv, riscvMode mode);
+
+//
+// Validate the hart is not in virtual mode and emit a Virtual Instruction
+// exception if not
+//
+Bool riscvEmitRequireNotV(riscvP riscv);
 
 //
 // Validate the given rounding mode is legal and emit an Illegal Instruction

@@ -253,7 +253,7 @@ static void putOptRM(
     Bool        explicitRM,
     Bool        uncooked
 ) {
-    if(rm) {
+    if(rm && (rm!=RV_RM_CURRENT)) {
 
         putUncookedKey(result, " RM", uncooked);
 
@@ -264,15 +264,14 @@ static void putOptRM(
         } else {
 
             static const char *map[] = {
-                [RV_RM_CURRENT] = "",
-                [RV_RM_RNE]     = "rne",
-                [RV_RM_RTZ]     = "rtz",
-                [RV_RM_RDN]     = "rdn",
-                [RV_RM_RUP]     = "rup",
-                [RV_RM_RMM]     = "rmm",
-                [RV_RM_ROD]     = "rod",
-                [RV_RM_BAD5]    = "rm5",
-                [RV_RM_BAD6]    = "rm6",
+                [RV_RM_RNE]  = "rne",
+                [RV_RM_RTZ]  = "rtz",
+                [RV_RM_RDN]  = "rdn",
+                [RV_RM_RUP]  = "rup",
+                [RV_RM_RMM]  = "rmm",
+                [RV_RM_ROD]  = "rod",
+                [RV_RM_BAD5] = "rm5",
+                [RV_RM_BAD6] = "rm6",
             };
 
             putString(result, map[rm]);

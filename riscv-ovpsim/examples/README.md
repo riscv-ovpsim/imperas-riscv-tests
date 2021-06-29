@@ -16,17 +16,18 @@ Signature Dump
 ---
 If you want to see an example of the riscv compatible signature dumper, then look at the [fibonacci](fibonacci) example.
 
-Vector Extension
+Examples
 ---
-If you want to see an example of the riscv vector extension being used, then look at the [vector](vector) example.
+There are a number of examples provided, each is self-contained in separate directories.
 
-Bit Manipulation Extension
----
-If you want to see an example of the riscv bit manipulation extension being used, then look at the [bitmanip](bitmanip) example.
+These include basic examples, such as Fibonacci and Dhrystone that run on the base cores.
+
+These may also include examples for specific extensions, if the core supports the extension, such as Vector, Bit Manipulation, Crypto and DSP Extension Examples.
+If these examples are not present the core contained in the fixed platform does not support the extension.
 
 Instruction Functional Coverage
 ---
-If you want to see an example of the Imperas instruction functional coverage being used, then look at the [coverage](coverage) example.
+Imperas instruction functional coverage can be enabled on any example, please see the User Guide for the additional command line arguments.
 
 Notes
 ---

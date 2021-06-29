@@ -1,0 +1,80 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64D RV64D Double-Precision Floating-Point:
+    176 test source files
+    5 different instruction categories
+    48 different instructions
+    135,108 total instructions
+
+Instruction category: OPD_DCI Double-Precision Floating-Point Computational
+  fadd.d : 310
+  fdiv.d : 310
+  fmadd.d : 310
+  fmax.d : 31
+  fmin.d : 31
+  fmsub.d : 310
+  fmul.d : 310
+  fnmadd.d : 310
+  fnmsub.d : 310
+  fsqrt.d : 310
+  fsub.d : 310
+Instruction category: OPD_DCL 
+  fclass.d : 31
+Instruction category: OPD_DCM Double-Precision Floating-Point Conversion and Move
+  fmv.d.x : 8,711
+  fmv.x.d : 4,061
+  fcvt.d.l : 310
+  fcvt.d.lu : 310
+  fcvt.d.s : 31
+  fcvt.d.w : 31
+  fcvt.d.wu : 31
+  fcvt.l.d : 310
+  fcvt.lu.d : 310
+  fcvt.s.d : 310
+  fcvt.w.d : 310
+  fcvt.wu.d : 310
+  fsgnj.d : 31
+  fsgnjn.d : 31
+  fsgnjx.d : 31
+Instruction category: OPD_DCP Double-Precision Floating-Point Compare
+  feq.d : 31
+  fle.d : 31
+  flt.d : 31
+Instruction category: OPD_DLS Double-Precision Floating-Point Load and Store
+  fsd : 4,061
+  fld : 31
+
+Other instructions (those not the focus of this suite)
+  jal : 176
+  lui : 12,479
+  addiw : 13,516
+  csrrs : 704
+  auipc : 2,143
+  addi : 35,337
+  csrrw : 528
+  mret : 176
+  slli : 34,604
+  csrrci : 5,425
+  sd : 6,851
+  fence : 176
+  ecall : 176
+  beq : 528
+  add : 62
+  ld : 31
+

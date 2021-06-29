@@ -1,0 +1,169 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64B B Bit Manipulation:
+    100 test source files
+    23 different instruction categories
+    119 different instructions
+    185,101 total instructions
+
+Instruction category: OPB_POZE Postfix Zero-Extend
+  addwu : 274
+  addiwu : 274
+  subwu : 274
+Instruction category: OPB_PRZE Prefix Zero-Extend
+  addu.w : 274
+  subu.w : 274
+  slliu.w : 274
+Instruction category: OPB_LWNE Logic With Negate
+  andn : 274
+  orn : 274
+  xnor : 274
+Instruction category: OPB_EXDE Bit Extract/Deposit
+  bdep : 274
+  bext : 274
+  bdepw : 274
+  bextw : 274
+Instruction category: OPB_BFPL Bit-Field Place
+  bfp : 274
+  bfpw : 274
+Instruction category: OPB_MTRX Bit-Matrix
+  bmatflip : 274
+  bmator : 274
+  bmatxor : 274
+Instruction category: OPB_CLML Carry-less Multiply
+  clmul : 274
+  clmulh : 274
+  clmulr : 274
+  clmulw : 274
+  clmulhw : 274
+  clmulrw : 274
+Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
+  clz : 274
+  ctz : 274
+  clzw : 274
+  ctzw : 274
+Instruction category: OPB_COND Conditional
+  cmix : 274
+  cmov : 274
+Instruction category: OPB_CRCI CRC
+  crc32.b : 274
+  crc32.h : 274
+  crc32.w : 274
+  crc32c.b : 274
+  crc32c.h : 274
+  crc32c.w : 274
+  crc32.d : 274
+  crc32c.d : 274
+Instruction category: OPB_FNSH Funnel Shift
+  fsl : 274
+  fsr : 274
+  fsri : 274
+  fslw : 274
+  fsriw : 274
+  fsrw : 274
+Instruction category: OPB_GORC Generalised Or-Combine
+  gorc : 274
+  gorci : 274
+  gorciw : 274
+  gorcw : 274
+Instruction category: OPB_GREV Generalised Reverse
+  grev : 274
+  grevi : 274
+  greviw : 274
+  grevw : 274
+Instruction category: OPB_MNMX Min/Max
+  max : 274
+  maxu : 274
+  min : 274
+  minu : 274
+Instruction category: OPB_PACK Packing
+  pack : 274
+  packh : 274
+  packu : 274
+  packuw : 274
+  packw : 274
+Instruction category: OPB_CNTB Count Bits
+  pcnt : 274
+  pcntw : 274
+Instruction category: OPB_ROTS Rotations
+  rol : 274
+  ror : 274
+  rori : 274
+  rolw : 274
+  roriw : 274
+  rorw : 274
+Instruction category: OPB_SBIT Single-Bit
+  sbclr : 274
+  sbclri : 274
+  sbext : 274
+  sbexti : 274
+  sbinv : 274
+  sbinvi : 274
+  sbset : 274
+  sbseti : 274
+  sbclriw : 274
+  sbclrw : 274
+  sbextw : 274
+  sbinviw : 274
+  sbinvw : 274
+  sbsetiw : 274
+  sbsetw : 274
+Instruction category: OPB_SEXT Sign Extend
+  sext.b : 274
+  sext.h : 274
+Instruction category: OPB_ADDR Address Calculation
+Instruction category: OPB_SHFL Generalised Shuffle
+  shfl : 274
+  shfli : 274
+  unshfl : 274
+  unshfli : 274
+  shflw : 274
+  unshflw : 274
+Instruction category: OPB_SFT1 Shift Ones
+  slo : 274
+  sloi : 274
+  sro : 274
+  sroi : 274
+  sloiw : 274
+  slow : 274
+  sroiw : 274
+  srow : 274
+Instruction category: OPB_XBAR Crossbar Permutation
+
+Other instructions (those not the focus of this suite)
+  c-j : 100
+  c-lui : 796
+  addiw : 27,566
+  csrrs : 300
+  auipc : 6,000
+  addi : 41,077
+  csrrw : 200
+  mret : 100
+  lui : 15,276
+  slli : 27,644
+  sd : 26,400
+  c-sdsp : 1,000
+  fence : 100
+  ecall : 100
+  c-li : 2,556
+  beq : 300
+  c-slli : 5,164
+  c-addiw : 1,102
+  c-addi : 1,920
+

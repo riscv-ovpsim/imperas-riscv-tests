@@ -36,8 +36,9 @@ typedef enum riscvKExtOpE {
     RVKOP_NONE,         // not a K-extension operation
 
     // operation subsets (if not callbacks)
-    RVKOP_Zkb,          // bitmanip subset not in Zkg
-    RVKOP_Zkg,          // carry-less multiply
+    RVKOP_Zbkb,         // bitmanip cryptography subset
+    RVKOP_Zbkc,         // bitmanip carryless multiply subset
+    RVKOP_Zbkx,         // bitmanip crossbar multiply subset
     RVKOP_Zkr,          // entropy source
     RVKOP_Zknd,         // NIST AES decryption instructions
     RVKOP_Zkne,         // NIST AES encryption instructions
@@ -46,6 +47,11 @@ typedef enum riscvKExtOpE {
     RVKOP_Zksh,         // SM3 hash function instructions
 
     // operations implemented as callbacks or version-specific
+    RVKOP_GORCI,        // gorci
+    RVKOP_PACKU,        // packu
+    RVKOP_PACKUW,       // packuw
+    RVKOP_REV8W,        // rev8.w
+    RVKOP_XPERM,        // xperm.[bn]
     RVKOP_LUT4LO,       // lut4lo
     RVKOP_LUT4HI,       // lut4hi
     RVKOP_LUT4,         // lut4
@@ -97,10 +103,14 @@ vmiCallFn riscvGetKOpCB(riscvP riscv, riscvKExtOp op, Uns32 bits);
 
 //
 // Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not. Note that instructions shared with the
+// Illegal Instruction exception if not - note that instructions shared with the
 // bit manipulation extension are not handled here if that extension is enabled
 //
-Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op, Bool isBOp);
+Bool riscvValidateKExtSubset(
+    riscvP            riscv,
+    riscvKExtOp       op,
+    riscvArchitecture requiredVariant
+);
 
 //
 // Save K-extension state not covered by register read/write API

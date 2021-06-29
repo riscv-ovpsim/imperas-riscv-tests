@@ -97,11 +97,6 @@ void riscvVirtualInstructionMessage(riscvP riscv, const char *reason);
 void riscvInstructionAddressMisaligned(riscvP riscv, Uns64 tval);
 
 //
-// Take breakpoint exception
-//
-void riscvBreakpointException(riscvP riscv);
-
-//
 // Execute ECALL instruction
 //
 void riscvECALL(riscvP riscv);

@@ -107,6 +107,12 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
 DEFINE_CS(isrDetails);
 
 //
+// Function type indicating ISR presence
+//
+#define ISR_PRESENT_FN(_NAME) Bool _NAME(riscvP riscv, isrDetailsCP this)
+typedef ISR_PRESENT_FN((*isrPresentFn));
+
+//
 // Structure providing details of integration support registers
 //
 typedef struct isrDetailsS {
@@ -120,16 +126,40 @@ typedef struct isrDetailsS {
     vmiRegWriteFn     writeCB;
     vmiRegAccess      access;
     Bool              noTraceChange;
-    riscvDMMode       DM;
+    Bool              noSaveRestore;
+    Bool              instrAttrIgnore;
+    isrPresentFn      present;
 } isrDetails;
+
+//
+// Is DM artifact register present?
+//
+static ISR_PRESENT_FN(presentDM) {
+    return riscv->configInfo.debug_mode>=RVDM_VECTOR;
+}
+
+//
+// Is DMStall artifact register present?
+//
+static ISR_PRESENT_FN(presentDMStall) {
+    return riscv->configInfo.debug_mode>=RVDM_HALT;
+}
+
+//
+// Is fflags_i artifact register present?
+//
+static ISR_PRESENT_FN(presentFFlagsI) {
+    return perInstructionFFlags(riscv);
+}
 
 //
 // Write processor DM bit (enables or disables Debug mode)
 //
 static VMI_REG_WRITE_FN(writeDM) {
 
-    riscvP riscv = (riscvP)processor;
-    Uns8   DM    = *(Uns8*)buffer;
+    riscvP      riscv = (riscvP)processor;
+    const Uns8 *DMP   = buffer;
+    Uns8        DM    = *DMP;
 
     riscvSetDM(riscv, DM&1);
 
@@ -141,10 +171,73 @@ static VMI_REG_WRITE_FN(writeDM) {
 //
 static VMI_REG_WRITE_FN(writeDMStall) {
 
-    riscvP riscv   = (riscvP)processor;
-    Uns8   DMStall = *(Uns8*)buffer;
+    riscvP      riscv    = (riscvP)processor;
+    const Uns8 *DMStallP = buffer;
+    Uns8        DMStall  = *DMStallP;
 
     riscvSetDMStall(riscv, DMStall&1);
+
+    return True;
+}
+
+//
+// Read readPTWStage (indicates page table walk active stage)
+//
+static VMI_REG_READ_FN(readPTWStage) {
+
+    riscvP riscv     = (riscvP)processor;
+    Uns8  *PTWStageP = buffer;
+
+    *PTWStageP = riscv->PTWActive ? riscv->activeTLB+1 : 0;
+
+    return True;
+}
+
+//
+// Read readPTWInputAddr (indicates page table walk input address)
+//
+static VMI_REG_READ_FN(readPTWInputAddr) {
+
+    riscvP riscv         = (riscvP)processor;
+    Uns64 *PTWInputAddrP = buffer;
+
+    *PTWInputAddrP = riscv->PTWActive ? riscv->originalVA : 0;
+
+    return True;
+}
+
+//
+// Read readPTWLevel (indicates page table walk active level)
+//
+static VMI_REG_READ_FN(readPTWLevel) {
+
+    riscvP riscv     = (riscvP)processor;
+    Uns8  *PTWLevelP = buffer;
+
+    *PTWLevelP = riscv->PTWActive ? riscv->PTWLevel : 0;
+
+    return True;
+}
+
+//
+// Read fflags_i (indicafes floating point flags written by current instruction)
+//
+static VMI_REG_READ_FN(readFFlagsI) {
+
+    riscvP      riscv    = (riscvP)processor;
+    Uns8       *FFlagsIP = buffer;
+    vmiFPFlags  vmiFlags = {bits : riscv->fpFlagsI};
+    CSR_REG_DECL(fflags) = {u32 : {bits:0}};
+
+    // compose register value
+    fflags.u32.fields.NX = vmiFlags.f.P;
+    fflags.u32.fields.UF = vmiFlags.f.U;
+    fflags.u32.fields.OF = vmiFlags.f.O;
+    fflags.u32.fields.DZ = vmiFlags.f.Z;
+    fflags.u32.fields.NV = vmiFlags.f.I;
+
+    // return composed value
+    *FFlagsIP = fflags.u32.bits;
 
     return True;
 }
@@ -154,18 +247,52 @@ static VMI_REG_WRITE_FN(writeDMStall) {
 //
 static const isrDetails isRegs[] = {
 
-    {"LRSCAddress", "LR/SC active lock address", ISA_A, 0, 0, RISCV_EA_TAG,     0, 0,            vmi_RA_RW, 0, 0          },
-    {"DM",          "Debug mode active",         0,     1, 8, RISCV_DM,         0, writeDM,      vmi_RA_RW, 0, RVDM_VECTOR},
-    {"DMStall",     "Debug mode stalled",        0,     2, 8, RISCV_DM_STALL,   0, writeDMStall, vmi_RA_RW, 0, RVDM_HALT  },
-    {"commercial",  "Commercial feature in use", 0,     3, 8, RISCV_COMMERCIAL, 0, 0,            vmi_RA_R,  0, 0          },
+    {"LRSCAddress",  "LR/SC active lock address",               ISA_A,  0,  0, RISCV_EA_TAG,     0,                0,            vmi_RA_RW, 0, 0, 0, 0             },
+    {"DM",           "Debug mode active",                       0,      1,  8, RISCV_DM,         0,                writeDM,      vmi_RA_RW, 0, 0, 0, presentDM     },
+    {"DMStall",      "Debug mode stalled",                      0,      2,  8, RISCV_DM_STALL,   0,                writeDMStall, vmi_RA_RW, 0, 0, 0, presentDMStall},
+    {"commercial",   "Commercial feature in use",               0,      3,  8, RISCV_COMMERCIAL, 0,                0,            vmi_RA_R,  0, 0, 0, 0             },
+    {"PTWStage",     "PTW active stage (0:none 1:HS 2:VS 3:G)", ISA_S,  4,  8, VMI_NOREG,        readPTWStage,     0,            vmi_RA_R,  1, 1, 0, 0             },
+    {"PTWInputAddr", "PTW input address",                       ISA_S,  5, 64, VMI_NOREG,        readPTWInputAddr, 0,            vmi_RA_R,  1, 1, 0, 0             },
+    {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,            vmi_RA_R,  1, 1, 0, 0             },
+    {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,            vmi_RA_R,  0, 0, 1, presentFFlagsI},
 
     // KEEP LAST
     {0}
 };
 
 //
+// Is the ISR present?
+//
+static Bool isISRPresent(riscvP riscv, isrDetailsCP this) {
+
+    riscvArchitecture required = this->arch;
+    riscvArchitecture actual   = riscv->configInfo.arch;
+    Bool              present  = True;
+
+    if(this->present && !this->present(riscv, this)) {
+
+        // excluded by presence callback
+        present = False;
+
+    } else if(required & ISA_and) {
+
+        // all specified features are required
+        present = !(required & ~(actual|ISA_and));
+
+    } else if(required) {
+
+        // one or more of the specified features is required
+        present = (required & actual);
+    }
+
+    return present;
+}
+
+//
 // Given the previous integration support register, return the next one for this
-// variant.
+// variant. Note that no integration support registers are returned in the
+// client debug interface view (RSP 'g' and 'p' packets), indicated by 'normal'
+// being False.
 //
 static isrDetailsCP getNextISRDetails(
     riscvP       riscv,
@@ -174,18 +301,9 @@ static isrDetailsCP getNextISRDetails(
 ) {
     if(normal) {
 
-        riscvArchitecture arch = riscv->configInfo.arch;
-        isrDetailsCP      this = prev ? prev+1 : isRegs;
+        isrDetailsCP this = prev ? prev+1 : isRegs;
 
-        while(
-            this->name &&
-            (
-                // exclude registers not applicable to this architecture
-                ((this->arch&arch)!=this->arch) ||
-                // exclude debug mode registers if that mode is absent
-                (riscv->configInfo.debug_mode<this->DM)
-            )
-        ) {
+        while(this->name && !isISRPresent(riscv, this)) {
             this++;
         }
 
@@ -293,47 +411,57 @@ static vmiRegUsage getGPRUsage(Uns32 i) {
 }
 
 //
-// Return register list (either normal or debug)
+// Should the CSR be excluded from trace change?
+//
+static Bool getCSRNoTraceChange(riscvP riscv, riscvCSRTrace traceMode) {
+    return (
+        (traceMode==RCSRT_NO) ||
+        ((traceMode==RCSRT_VOLATILE) && !riscv->traceVolatile)
+    );
+}
+
+//
+// Return number of GPRs (see below for meaning of 'normal' parameter)
+//
+inline static Uns32 getGPRNum(riscvP riscv, Bool normal) {
+    return (!normal || (riscv->configInfo.arch&ISA_I)) ? 32 : 16;
+}
+
+//
+// Return number of FPRs
+//
+inline static Uns32 getFPRNum(riscvP riscv) {
+    return (riscv->configInfo.arch&ISA_DF) && !Zfinx(riscv) ? 32 : 0;
+}
+
+//
+// Return number of vector registers
+//
+inline static Uns32 getVRNum(riscvP riscv) {
+    return (riscv->configInfo.arch&ISA_V) ? VREG_NUM : 0;
+}
+
+//
+// Return register list (either normal or debug). When parameter 'normal' is
+// True, all processor registers should be returned; when False, registers
+// that should be reported using RSP 'g' or 'p' packets should be returned.
 //
 static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
 
     // create registers if they have not been created
     if(!riscv->regInfo[normal]) {
 
-        Uns32             XLEN   = riscvGetXlenArch(riscv);
-        Uns32             FLEN   = riscvGetFlenArch(riscv) ? : XLEN;
-        riscvArchitecture arch   = riscv->configInfo.arch;
-        Uns32             gprNum = (!normal || (arch&ISA_I))  ? 32       : 16;
-        Uns32             fprNum = (!normal || (arch&ISA_DF)) ? 32       : 0;
-        Uns32             vrNum  = ( normal && (arch&ISA_V))  ? VREG_NUM : 0;
-        Uns32             regNum = 0;
-        Uns32             csrNum;
-        riscvCSRDetails   csrDetails;
-        isrDetailsCP      isrDetails;
-        vmiRegInfoP       dst;
-        Uns32             i;
-
-        if(Zfinx(riscv)) {
-
-            // when Zfinx is implemented there are no floating point registers
-            fprNum = 0;
-
-        } else if(!normal && (XLEN!=FLEN)) {
-
-            // gdb workaround code (mismatched FPR and GPR widths not supported)
-            if(!isPSE(riscv)) {
-                vmiMessage("W", CPU_PREFIX "_URC",
-                    NO_SRCREF_FMT
-                    "this processor implements %u-bit GPRs but %u-bit FPRs, "
-                    "which is currently not supported by gdb - forcing "
-                    "apparent FPR width to %u bits (matching GPRs)",
-                    NO_SRCREF_ARGS(riscv),
-                    XLEN, FLEN, XLEN
-                );
-            }
-
-            FLEN = XLEN;
-        }
+        Uns32           XLEN   = riscvGetXlenArch(riscv);
+        Uns32           FLEN   = riscvGetFlenArch(riscv);
+        Uns32           gprNum = getGPRNum(riscv, normal);
+        Uns32           fprNum = getFPRNum(riscv);
+        Uns32           vrNum  = getVRNum(riscv);
+        Uns32           regNum = 0;
+        Uns32           csrNum;
+        riscvCSRDetails csrDetails;
+        isrDetailsCP    isrDetails;
+        vmiRegInfoP     dst;
+        Uns32           i;
 
         // count GPR entries
         regNum += gprNum;
@@ -348,9 +476,8 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         regNum += vrNum;
 
         // count visible CSRs
-        csrDetails.attrs = 0;
-        csrNum           = 0;
-        while(riscvGetCSRDetails(riscv, &csrDetails, &csrNum, normal)) {
+        csrNum = 0;
+        while(riscvGetCSRDetails(riscv, &csrDetails, &csrNum)) {
             regNum++;
         }
 
@@ -411,9 +538,8 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         }
 
         // fill visible CSRs
-        csrDetails.attrs = 0;
-        csrNum           = 0;
-        while(riscvGetCSRDetails(riscv, &csrDetails, &csrNum, normal)) {
+        csrNum = 0;
+        while(riscvGetCSRDetails(riscv, &csrDetails, &csrNum)) {
             riscvCSRAttrsCP attrs = csrDetails.attrs;
             dst->name          = attrs->name;
             dst->description   = attrs->desc;
@@ -426,7 +552,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst->writeCB       = csrDetails.wrRaw ? 0 : writeCSR;
             dst->userData      = (void *)attrs;
             dst->noSaveRestore = attrs->noSaveRestore;
-            dst->noTraceChange = attrs->noTraceChange;
+            dst->noTraceChange = getCSRNoTraceChange(riscv, attrs->noTraceChange);
             dst->extension     = csrDetails.extension;
             dst++;
         }
@@ -434,16 +560,18 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         // fill visible ISRs
         isrDetails = 0;
         while((isrDetails=getNextISRDetails(riscv, isrDetails, normal))) {
-            dst->name          = isrDetails->name;
-            dst->description   = isrDetails->desc;
-            dst->group         = RV_GROUP(INTEGRATION);
-            dst->bits          = isrDetails->bits ? : XLEN;
-            dst->gdbIndex      = isrDetails->index+RISCV_ISR0_INDEX;
-            dst->access        = isrDetails->access;
-            dst->raw           = isrDetails->raw;
-            dst->readCB        = isrDetails->readCB;
-            dst->writeCB       = isrDetails->writeCB;
-            dst->noTraceChange = isrDetails->noTraceChange;
+            dst->name            = isrDetails->name;
+            dst->description     = isrDetails->desc;
+            dst->group           = RV_GROUP(INTEGRATION);
+            dst->bits            = isrDetails->bits ? : XLEN;
+            dst->gdbIndex        = isrDetails->index+RISCV_ISR0_INDEX;
+            dst->access          = isrDetails->access;
+            dst->raw             = isrDetails->raw;
+            dst->readCB          = isrDetails->readCB;
+            dst->writeCB         = isrDetails->writeCB;
+            dst->noTraceChange   = isrDetails->noTraceChange;
+            dst->noSaveRestore   = isrDetails->noSaveRestore;
+            dst->instrAttrIgnore = isrDetails->instrAttrIgnore;
             dst++;
         }
     }
@@ -453,27 +581,15 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
 }
 
 //
-// Does this register group contain CSRs?
-//
-static Bool isCSRGroup(vmiRegGroupCP group) {
-    return (
-        (group==RV_GROUP(U_CSR)) ||
-        (group==RV_GROUP(S_CSR)) ||
-        (group==RV_GROUP(H_CSR)) ||
-        (group==RV_GROUP(M_CSR))
-    );
-}
-
-//
 // Is the register visible in this view?
 //
 static Bool isRegVisible(vmiRegInfoCP reg, vmiRegInfoType type) {
     if(type==VMIRIT_NORMAL) {
         return True;
     } else if(type==VMIRIT_GPACKET) {
-        return !isCSRGroup(reg->group);
+        return (reg->group==RV_GROUP(CORE));
     } else {
-        return isCSRGroup(reg->group);
+        return (reg->group!=RV_GROUP(CORE));
     }
 }
 
@@ -606,6 +722,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     RISCV_FIELD_IMPL_IGNORE(currentArch);
     RISCV_FIELD_IMPL_IGNORE(triggerVA);
     RISCV_FIELD_IMPL_IGNORE(triggerLV);
+    RISCV_FIELD_IMPL_IGNORE(fpFlagsI);
 }
 
 

@@ -185,6 +185,11 @@ static vmiEnumParameter vectorVariants[] = {
         .value       = RVVV_1_0_20210130,
         .description = "Vector Architecture Version 1.0-draft-20210130",
     },
+    [RVVV_1_0_20210608] = {
+        .name        = "1.0-rc1-20210608",
+        .value       = RVVV_1_0_20210608,
+        .description = "Vector Architecture Version 1.0-rc1-20210608",
+    },
     [RVVV_MASTER] = {
         .name        = "master",
         .value       = RVVV_MASTER,
@@ -223,6 +228,16 @@ static vmiEnumParameter bitmanipVariants[] = {
         .name        = "0.93",
         .value       = RVBV_0_93,
         .description = "Bit Manipulation Architecture Version v0.93-20210110",
+    },
+    [RVBV_0_94] = {
+        .name        = "0.94",
+        .value       = RVBV_0_94,
+        .description = "Bit Manipulation Architecture Version v0.94-20210120",
+    },
+    [RVBV_1_0_0] = {
+        .name        = "1.0.0",
+        .value       = RVBV_1_0_0,
+        .description = "Bit Manipulation Architecture Version 1.0.0",
     },
     [RVBV_MASTER] = {
         .name        = "master",
@@ -266,6 +281,11 @@ static vmiEnumParameter cryptoVariants[] = {
         .value       = RVKV_0_9_0,
         .description = "Cryptographic Architecture Version 0.9.0",
     },
+    [RVKV_0_9_2] = {
+        .name        = "0.9.2",
+        .value       = RVKV_0_9_2,
+        .description = "Cryptographic Architecture Version 0.9.2",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -284,6 +304,30 @@ static vmiEnumParameter debugVariants[] = {
         .value       = RVDBG_0_14_0,
         .description = "RISC-V External Debug Support Version 0.14.0-DRAFT",
     },
+    [RVDBG_1_0_0] = {
+        .name        = "1.0.0-STABLE",
+        .value       = RVDBG_1_0_0,
+        .description = "RISC-V External Debug Support Version 1.0.0-STABLE",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
+// Supported CLIC variants
+//
+static vmiEnumParameter CLICVariants[] = {
+    [RVCLC_0_9_20191208] = {
+        .name        = "0.9-draft-20191208",
+        .value       = RVCLC_0_9_20191208,
+        .description = "CLIC Version 0.9-draft-20191208",
+    },
+    [RVCLC_MASTER] = {
+        .name        = "master",
+        .value       = RVCLC_MASTER,
+        .description = "CLIC Master Branch as of commit "
+                       RVCLC_MASTER_TAG" (this is subject to change)",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -301,6 +345,11 @@ static vmiEnumParameter ZfinxVariants[] = {
         .name        = "0.4",
         .value       = RVZFINX_0_4,
         .description = "Zfinx version 0.4",
+    },
+    [RVZFINX_0_41] = {
+        .name        = "0.41",
+        .value       = RVZFINX_0_41,
+        .description = "Zfinx version 0.41",
     },
     // KEEP LAST: terminator
     {0}
@@ -491,6 +540,14 @@ static void setUns32ParamMax(vmiParameterP param, Uns32 value) {
 }
 
 //
+// Macro to define a function to set a raw Bool parameter value from the
+// negation of a "no" prefixed equivalent in the configuration
+//
+#define RISCV_NOT_PDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+    setBoolParamDefault(param, !cfg->no##_NAME);  \
+}
+
+//
 // Macro to define a function to set a raw Uns32 parameter value from the
 // configuration
 //
@@ -516,6 +573,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(bitmanip_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(hyp_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(crypto_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(dbg_version);
+static RISCV_ENUM_PDEFAULT_CFG_FN(CLIC_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(Zfinx_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(fp16_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(mstatus_fs_mode);
@@ -549,6 +607,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(no_hit);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_sselect_2);
 static RISCV_BOOL_PDEFAULT_CFG_FN(enable_CSR_bus);
 static RISCV_BOOL_PDEFAULT_CFG_FN(d_requires_f);
+static RISCV_BOOL_PDEFAULT_CFG_FN(enable_fflags_i);
 static RISCV_BOOL_PDEFAULT_CFG_FN(xret_preserves_lr);
 static RISCV_BOOL_PDEFAULT_CFG_FN(require_vstart0);
 static RISCV_BOOL_PDEFAULT_CFG_FN(align_whole);
@@ -567,6 +626,13 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
+static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_decompose);
+
+//
+// Set default value of raw negated Bool parameters
+//
+static RISCV_NOT_PDEFAULT_CFG_FN(Zicsr);
+static RISCV_NOT_PDEFAULT_CFG_FN(Zifencei);
 
 //
 // Set default value of raw Uns32 parameters
@@ -801,7 +867,7 @@ static RISCV_PDEFAULT_FN(default_VMID_bits) {
 }
 
 //
-// Set default and maximum value of CLICCFGMBITS
+// Set default value of CLICCFGMBITS
 //
 static RISCV_PDEFAULT_FN(default_CLICINTCTLBITS) {
 
@@ -809,7 +875,7 @@ static RISCV_PDEFAULT_FN(default_CLICINTCTLBITS) {
 }
 
 //
-// Set default and maximum value of CLICVERSION
+// Set default value of CLICVERSION
 //
 static RISCV_PDEFAULT_FN(default_CLICVERSION) {
 
@@ -862,28 +928,72 @@ static RISCV_CSR_PMDEFAULT_CFG_FN(stvt)
 static RISCV_CSR_PMDEFAULT_CFG_FN(utvt)
 
 //
+// Set default value of CSR sign-extend parameters
+//
+static RISCV_BOOL_PDEFAULT_CFG_FN(mtvec_sext);
+static RISCV_BOOL_PDEFAULT_CFG_FN(stvec_sext);
+static RISCV_BOOL_PDEFAULT_CFG_FN(utvec_sext);
+static RISCV_BOOL_PDEFAULT_CFG_FN(mtvt_sext);
+static RISCV_BOOL_PDEFAULT_CFG_FN(stvt_sext);
+static RISCV_BOOL_PDEFAULT_CFG_FN(utvt_sext);
+
+//
 // Set default values of ELEN, SLEN, VLEN and SEW_min (Vector Extension)
 //
 static RISCV_PDEFAULT_FN(default_ELEN) {
-    setUns32ParamDefault(param, cfg->ELEN ? cfg->ELEN : ELEN_DEFAULT);
+    setUns32ParamDefault(param, cfg->ELEN ? : ELEN_DEFAULT);
 }
 static RISCV_PDEFAULT_FN(default_SLEN) {
-    setUns32ParamDefault(param, cfg->SLEN ? cfg->SLEN : SLEN_DEFAULT);
+    setUns32ParamDefault(param, cfg->SLEN ? : SLEN_DEFAULT);
 }
 static RISCV_PDEFAULT_FN(default_VLEN) {
-    setUns32ParamDefault(param, cfg->VLEN ? cfg->VLEN : VLEN_DEFAULT);
+    setUns32ParamDefault(param, cfg->VLEN ? : VLEN_DEFAULT);
+}
+static RISCV_PDEFAULT_FN(default_EEW_index) {
+    setUns32ParamDefault(param, cfg->EEW_index);
 }
 static RISCV_PDEFAULT_FN(default_SEW_min) {
     setUns32ParamDefault(param, cfg->SEW_min ? cfg->SEW_min : SEW_MIN);
 }
 
 //
-// Set default values of Zvlsseg, Zvamo and Zvediv (vector extensions)
+// Set default values of agnostic_ones, Zvlsseg, Zvamo and Zvediv (Vector
+// Extension)
 //
+static RISCV_BOOL_PDEFAULT_CFG_FN(agnostic_ones);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zvlsseg);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zvamo);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zvediv);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zvqmac);
+
+//
+// Set vector extension embedded profile parameter default
+//
+static void setVProfileParamDefault(
+    riscvConfigCP  cfg,
+    vmiParameterP  param,
+    riscvVectorSet option
+) {
+    CHECK_PARAM_TYPE(param, vmi_PT_BOOL, "Bool");
+    param->u.boolParam.defaultValue = (cfg->vect_profile == option);
+}
+
+//
+// Macro to define a function to set a raw Bool vector extension embedded
+// profile parameter value from the configuration
+//
+#define RISCV_VPROF_PDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+    setVProfileParamDefault(cfg, param, RVVS_##_NAME); \
+}
+
+//
+// Set default values of vector extension embedded profile options
+//
+static RISCV_VPROF_PDEFAULT_CFG_FN(Zve32x);
+static RISCV_VPROF_PDEFAULT_CFG_FN(Zve32f);
+static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64x);
+static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64f);
+static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64d);
 
 //
 // Set bit manipulation extension subset option parameter default
@@ -942,14 +1052,17 @@ static void setKSetParamDefault(
 //
 // Set default values of cryptographic extension subset options
 //
-static RISCV_KSET_PDEFAULT_CFG_FN(Zkb);
-static RISCV_KSET_PDEFAULT_CFG_FN(Zkg);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zbkb);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zbkc);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zbkx);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zkr);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zknd);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zkne);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zknh);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zksed);
 static RISCV_KSET_PDEFAULT_CFG_FN(Zksh);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkb);
+static RISCV_KSET_PDEFAULT_CFG_FN(Zkg);
 
 //
 // Set default values of hypervisor extension subset options
@@ -1028,6 +1141,7 @@ static riscvParameter parameters[] = {
     {  RVPV_H,       default_hyp_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, hypervisor_version,   hypervisorVariants,        RV_GROUP(H),     "Specify required Hypervisor Architecture version")},
     {  RVPV_K,       default_crypto_version,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, crypto_version,       cryptoVariants,            RV_GROUP(K),     "Specify required Cryptographic Architecture version")},
     {  RVPV_DBGT,    default_dbg_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_version,        debugVariants,             RV_GROUP(DBG),   "Specify required Debug Architecture version")},
+    {  RVPV_CLIC,    default_CLIC_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, CLIC_version,         CLICVariants,              RV_GROUP(CLIC),  "Specify required CLIC version")},
     {  RVPV_FPV,     default_fp16_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, fp16_version,         fp16Variants,              RV_GROUP(V),     "Specify required 16-bit floating point format")},
     {  RVPV_FP,      default_mstatus_fs_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, mstatus_fs_mode,      FSModes,                   RV_GROUP(FP),    "Specify conditions causing update of mstatus.FS to dirty")},
     {  RVPV_PRE,     default_debug_mode,           VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_mode,           DMModes,                   RV_GROUP(DBG),   "Specify how Debug mode is implemented")},
@@ -1037,6 +1151,7 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,     0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
     {  RVPV_D,       default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
     {  RVPV_ALL,     0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, verbose,              False,                     RV_GROUP(ARTIF), "Specify verbose output messages")},
+    {  RVPV_ALL,     0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, traceVolatile,        False,                     RV_GROUP(ARTIF), "Specify whether volatile registers (e.g. minstret) should be shown in change trace")},
     {  RVPV_MPCORE,  default_numHarts,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, numHarts,             0, 0,          32,         RV_GROUP(FUND),  "Specify the number of hart contexts in a multiprocessor")},
     {  RVPV_S,       default_updatePTEA,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTEA,           False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE A bit is supported")},
     {  RVPV_S,       default_updatePTED,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTED,           False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE D bit is supported")},
@@ -1053,6 +1168,12 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC,    default_mtvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mtvt_mask,            0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC mtvt register")},
     {  RVPV_CLIC_S,  default_stvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, stvt_mask,            0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC stvt register")},
     {  RVPV_CLIC_N,  default_utvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, utvt_mask,            0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC utvt register")},
+    {  RVPV_ALL,     default_mtvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mtvec_sext,           False,                     RV_GROUP(CSRMK), "Specify whether mtvec is sign-extended from most-significant bit")},
+    {  RVPV_S,       default_stvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, stvec_sext,           False,                     RV_GROUP(CSRMK), "Specify whether stvec is sign-extended from most-significant bit")},
+    {  RVPV_N,       default_utvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, utvec_sext,           False,                     RV_GROUP(CSRMK), "Specify whether utvec is sign-extended from most-significant bit")},
+    {  RVPV_CLIC,    default_mtvt_sext,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mtvt_sext,            False,                     RV_GROUP(CSRMK), "Specify whether mtvt is sign-extended from most-significant bit")},
+    {  RVPV_CLIC_S,  default_stvt_sext,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, stvt_sext,            False,                     RV_GROUP(CSRMK), "Specify whether stvt is sign-extended from most-significant bit")},
+    {  RVPV_CLIC_N,  default_utvt_sext,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, utvt_sext,            False,                     RV_GROUP(CSRMK), "Specify whether utvt is sign-extended from most-significant bit")},
     {  RVPV_ALL,     default_ecode_mask,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_mask,           0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in xcause.ExceptionCode")},
     {  RVPV_ALL,     default_ecode_nmi,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi,            0, 0,          -1,         RV_GROUP(INTXC), "Specify xcause.ExceptionCode for NMI")},
     {  RVPV_ALL,     default_tval_zero,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero,            False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are hard wired to zero")},
@@ -1073,6 +1194,7 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     default_enable_CSR_bus,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, enable_CSR_bus,       False,                     RV_GROUP(ARTIF), "Add artifact CSR bus port, allowing CSR registers to be externally implemented")},
     {  RVPV_ALL,     0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, CSR_remap,            "",                        RV_GROUP(ARTIF), "Comma-separated list of CSR number mappings, each of the form <csrName>=<number>")},
     {  RVPV_FP,      default_d_requires_f,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, d_requires_f,         False,                     RV_GROUP(FP),    "If D and F extensions are separately enabled in the misa CSR, whether D is enabled only if F is enabled")},
+    {  RVPV_FP,      default_enable_fflags_i,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, enable_fflags_i,      False,                     RV_GROUP(FP),    "Whether fflags_i artifact register present (shows per-instruction floating point flags)")},
     {  RVPV_ALL,     default_xret_preserves_lr,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, xret_preserves_lr,    False,                     RV_GROUP(INTXC), "Whether an xRET instruction preserves the value of LR")},
     {  RVPV_V,       default_require_vstart0,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, require_vstart0,      False,                     RV_GROUP(V),     "Whether CSR vstart must be 0 for non-interruptible vector instructions")},
     {  RVPV_V,       default_align_whole,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, align_whole,          False,                     RV_GROUP(V),     "Whether whole-register load addresses must be aligned using the encoded EEW")},
@@ -1093,6 +1215,7 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     default_PMP_grain,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_grain,            0, 0,          29,         RV_GROUP(MEM),   "Specify PMP region granularity, G (0 => 4 bytes, 1 => 8 bytes, etc)")},
     {  RVPV_ALL,     default_PMP_registers,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_registers,        0, 0,          0,          RV_GROUP(MEM),   "Specify the number of implemented PMP address registers")},
     {  RVPV_ALL,     default_PMP_max_page,         VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_max_page,         0, 0,          -1,         RV_GROUP(MEM),   "Specify the maximum size of PMP region to map if non-zero (may improve performance; constrained to a power of two)")},
+    {  RVPV_ALL,     default_PMP_decompose,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_decompose,        False,                     RV_GROUP(MEM),   "Whether unaligned PMP accesses are decomposed into separate aligned accesses")},
     {  RVPV_S,       default_Sv_modes,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, Sv_modes,             0, 0,          (1<<16)-1,  RV_GROUP(MEM),   "Specify bit mask of implemented Sv modes (e.g. 1<<8 is Sv39)")},
     {  RVPV_ALL,     default_local_int_num,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, local_int_num,        0, 0,          0,          RV_GROUP(INTXC), "Specify number of supplemental local interrupts")},
     {  RVPV_ALL,     default_unimp_int_mask,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, unimp_int_mask,       0, 0,          -1,         RV_GROUP(INTXC), "Specify mask of unimplemented interrupts (e.g. 1<<9 indicates Supervisor external interrupt unimplemented)")},
@@ -1110,8 +1233,12 @@ static riscvParameter parameters[] = {
     {  RVPV_PRE,     default_misa_MXL,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, misa_MXL,             1, 1,          2,          RV_GROUP(FUND),  "Override default value of misa.MXL")},
     {  RVPV_PRE,     default_misa_Extensions,      VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, misa_Extensions,      0, 0,          (1<<26)-1,  RV_GROUP(FUND),  "Override default value of misa.Extensions")},
     {  RVPV_PRE,     0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, add_Extensions,       "",                        RV_GROUP(FUND),  "Add extensions specified by letters to misa.Extensions (for example, specify \"VD\" to add V and D features)")},
+    {  RVPV_PRE,     0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, sub_Extensions,       "",                        RV_GROUP(FUND),  "Remove extensions specified by letters from misa.Extensions (for example, specify \"VD\" to remove V and D features)")},
     {  RVPV_ALL,     default_misa_Extensions_mask, VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, misa_Extensions_mask, 0, 0,          (1<<26)-1,  RV_GROUP(FUND),  "Override mask of writable bits in misa.Extensions")},
     {  RVPV_ALL,     0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, add_Extensions_mask,  "",                        RV_GROUP(FUND),  "Add extensions specified by letters to mask of writable bits in misa.Extensions (for example, specify \"VD\" to add V and D features)")},
+    {  RVPV_ALL,     0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, sub_Extensions_mask,  "",                        RV_GROUP(FUND),  "Remove extensions specified by letters from mask of writable bits in misa.Extensions (for example, specify \"VD\" to remove V and D features)")},
+    {  RVPV_ALL,     default_Zicsr,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicsr,                False,                     RV_GROUP(FUND),  "Specify that Zicsr is implemented")},
+    {  RVPV_ALL,     default_Zifencei,             VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zifencei,             False,                     RV_GROUP(FUND),  "Specify that Zifencei is implemented")},
     {  RVPV_ALL,     default_mvendorid,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mvendorid,            0, 0,          -1,         RV_GROUP(CSRDV), "Override mvendorid register")},
     {  RVPV_ALL,     default_marchid,              VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, marchid,              0, 0,          -1,         RV_GROUP(CSRDV), "Override marchid register")},
     {  RVPV_ALL,     default_mimpid,               VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mimpid,               0, 0,          -1,         RV_GROUP(CSRDV), "Override mimpid register")},
@@ -1128,11 +1255,18 @@ static riscvParameter parameters[] = {
     {  RVPV_V,       default_ELEN,                 VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ELEN,                 0, ELEN_MIN,   ELEN_MAX,   RV_GROUP(V),     "Override ELEN (vector extension)")},
     {  RVPV_V,       default_SLEN,                 VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, SLEN,                 0, SLEN_MIN,   VLEN_MAX,   RV_GROUP(V),     "Override SLEN (vector extension before version 1.0 only)")},
     {  RVPV_V,       default_VLEN,                 VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, VLEN,                 0, SLEN_MIN,   VLEN_MAX,   RV_GROUP(V),     "Override VLEN (vector extension)")},
+    {  RVPV_V,       default_EEW_index,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, EEW_index,            0, 0,          ELEN_MAX,   RV_GROUP(V),     "Override maximum supported index EEW (vector extension, use ELEN if zero)")},
     {  RVPV_V,       default_SEW_min,              VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, SEW_min,              0, SEW_MIN,    ELEN_MAX,   RV_GROUP(V),     "Override minimum supported SEW (vector extension)")},
+    {  RVPV_V,       default_agnostic_ones,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, agnostic_ones,        False,                     RV_GROUP(V),     "Specify that vector agnostic elements are set to 1 (vector extension)")},
     {  RVPV_V,       default_Zvlsseg,              VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zvlsseg,              False,                     RV_GROUP(V),     "Specify that Zvlsseg is implemented (vector extension)")},
     {  RVPV_V,       default_Zvamo,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zvamo,                False,                     RV_GROUP(V),     "Specify that Zvamo is implemented (vector extension)")},
     {  RVPV_V,       default_Zvediv,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zvediv,               False,                     RV_GROUP(V),     "Specify that Zvediv is implemented (vector extension)")},
     {  RVPV_V,       default_Zvqmac,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zvqmac,               False,                     RV_GROUP(V),     "Specify that Zvqmac is implemented (vector extension)")},
+    {  RVPV_V,       default_Zve32x,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zve32x,               False,                     RV_GROUP(V),     "Specify that Zve32x is implemented (vector extension)")},
+    {  RVPV_V,       default_Zve32f,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zve32f,               False,                     RV_GROUP(V),     "Specify that Zve32f is implemented (vector extension)")},
+    {  RVPV_V,       default_Zve64x,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zve64x,               False,                     RV_GROUP(V),     "Specify that Zve64x is implemented (vector extension)")},
+    {  RVPV_V,       default_Zve64f,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zve64f,               False,                     RV_GROUP(V),     "Specify that Zve64f is implemented (vector extension)")},
+    {  RVPV_V,       default_Zve64d,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zve64d,               False,                     RV_GROUP(V),     "Specify that Zve64d is implemented (vector extension)")},
     {  RVPV_BK,      default_Zba,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zba,                  False,                     RV_GROUP(B),     "Specify that Zba is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbb,                  False,                     RV_GROUP(B),     "Specify that Zbb is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbc,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbc,                  False,                     RV_GROUP(B),     "Specify that Zbc is implemented (bit manipulation extension)")},
@@ -1143,8 +1277,9 @@ static riscvParameter parameters[] = {
     {  RVPV_BK,      default_Zbr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbr,                  False,                     RV_GROUP(B),     "Specify that Zbr is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbs,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbs,                  False,                     RV_GROUP(B),     "Specify that Zbs is implemented (bit manipulation extension)")},
     {  RVPV_BK,      default_Zbt,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbt,                  False,                     RV_GROUP(B),     "Specify that Zbt is implemented (bit manipulation extension)")},
-    {  RVPV_K,       default_Zkb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkb,                  False,                     RV_GROUP(K),     "Specify that Zkb is implemented (cryptographic extension)")},
-    {  RVPV_K,       default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                  False,                     RV_GROUP(K),     "Specify that Zkg is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zbkb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbkb,                 False,                     RV_GROUP(K),     "Specify that Zbkb is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zbkc,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbkc,                 False,                     RV_GROUP(K),     "Specify that Zbkc is implemented (cryptographic extension)")},
+    {  RVPV_K,       default_Zbkx,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zbkx,                 False,                     RV_GROUP(K),     "Specify that Zbkx is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zkr,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkr,                  False,                     RV_GROUP(K),     "Specify that Zkr is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zknd,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zknd,                 False,                     RV_GROUP(K),     "Specify that Zknd is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zkne,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkne,                 False,                     RV_GROUP(K),     "Specify that Zkne is implemented (cryptographic extension)")},
@@ -1152,6 +1287,8 @@ static riscvParameter parameters[] = {
     {  RVPV_K,       default_Zksed,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksed,                False,                     RV_GROUP(K),     "Specify that Zksed is implemented (cryptographic extension)")},
     {  RVPV_K,       default_Zksh,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zksh,                 False,                     RV_GROUP(K),     "Specify that Zksh is implemented (cryptographic extension)")},
     {  RVPV_FP,      default_Zfh,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zfh,                  False,                     RV_GROUP(FP),    "Specify that Zfh is implemented (IEEE half-precision floating point is supported)")},
+    {  RVPV_K,       default_Zkb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkb,                  False,                     RV_GROUP(K),     "Specify that Zkb is implemented (cryptographic extension, deprecated alias of Zbkb)")},
+    {  RVPV_K,       default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                  False,                     RV_GROUP(K),     "Specify that Zkg is implemented (cryptographic extension, deprecated alias of Zbkc)")},
     {  RVPV_FP,      default_Zfinx_version,        VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zfinx_version,        ZfinxVariants,             RV_GROUP(FP),    "Specify that Zfinx is implemented (use integer register file for floating point instructions)")},
 
     // CLIC configuration
@@ -1579,6 +1716,31 @@ VMI_PROC_PARAM_SPECS_FN(riscvGetPreParamSpec) {
 }
 
 //
+// Append extensions in the given list to the name, prefixed by the operation
+// character
+//
+static void appendExtensions(char *name, riscvArchitecture arch, char op) {
+
+    if(arch) {
+
+        char *tail = name + strlen(name);
+        char  extension;
+
+        // append operation
+        *tail++ = op;
+
+        // append modified architectural settings
+        for(extension='A'; arch; arch>>=1, extension++) {
+            if(arch&1) {
+                *tail++ = extension;
+            }
+        }
+
+        // terminate string
+        *tail++ = 0;
+    }
+}
+//
 // Function to apply pre-parameter values
 //
 VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
@@ -1609,34 +1771,48 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
         riscv->configInfo.user_version = params->user_version;
         riscv->configInfo.priv_version = params->priv_version;
 
+        // old and new architecture
+        riscvArchitecture oldArch = riscv->configInfo.arch;
+        riscvArchitecture newArch = oldArch;
+
         // apply misa_Extensions override if required
         if(SETBIT(params->misa_Extensions)) {
-            riscvArchitecture keep = riscv->configInfo.arch & (-1 << XLEN_SHIFT);
-            riscv->configInfo.arch = params->misa_Extensions | keep;
+            newArch = params->misa_Extensions | (newArch & (-1 << XLEN_SHIFT));
         }
 
-        // apply add_Extensions override if required
-        const char       *add_Extensions = params->add_Extensions;
-        riscvArchitecture addArch        = riscvParseExtensions(add_Extensions);
-        riscv->configInfo.arch |= addArch;
+        // apply sub_Extensions and add_Extensions overrides if required
+        newArch &= ~riscvParseExtensions(params->sub_Extensions);
+        newArch |=  riscvParseExtensions(params->add_Extensions);
 
-        // N extension requires U extension
-        if(!(riscv->configInfo.arch&ISA_U)) {
-            riscv->configInfo.arch &= ~ISA_N;
+        // S extension implies U extension, and N extension requires U extension
+        if(newArch&ISA_S) {
+            newArch |= ISA_U;
+        } else if(!(newArch&ISA_U)) {
+            newArch &= ~ISA_N;
         }
+
+        // update variant to show modified extensions if required
+        if(oldArch!=newArch) {
+
+            char tmp[strlen(variant)+32];
+
+            // seed new name
+            strcpy(tmp, variant);
+
+            // append removed and added extensions
+            appendExtensions(tmp, oldArch&~newArch, '-');
+            appendExtensions(tmp, newArch&~oldArch, '+');
+
+            // set variant name
+            vmirtSetProcessorVariant(processor, tmp);
+        }
+
+        // apply updated architecture
+        riscv->configInfo.arch = newArch;
 
         // H extension requires privileged version 1.12 or later (for mstatush)
-        if(!(riscv->configInfo.arch&ISA_H)) {
-            // no action
-        } else if(riscv->configInfo.priv_version<RVPV_1_12) {
+        if((newArch&ISA_H) && (riscv->configInfo.priv_version<RVPV_1_12)) {
             riscv->configInfo.priv_version = RVPV_1_12;
-        }
-
-        // modify variant to show added extensions if required
-        if(addArch) {
-            char tmp[strlen(variant)+strlen(add_Extensions)+2];
-            sprintf(tmp, "%s+%s", variant, add_Extensions);
-            vmirtSetProcessorVariant(processor, tmp);
         }
 
         // apply CLICLEVELS override if required
@@ -1741,6 +1917,13 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv) {
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv) {
     return debugVariants[RISCV_DBG_VERSION(riscv)].description;
+}
+
+//
+// Return CLIC description
+//
+const char *riscvGetCLICVersionDesc(riscvP riscv) {
+    return CLICVariants[RISCV_CLIC_VERSION(riscv)].description;
 }
 
 //

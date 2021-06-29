@@ -42,6 +42,15 @@ typedef enum riscvTLBIdE {
 } riscvTLBId;
 
 //
+// Enumeration of supported translation modes
+//
+typedef enum riscvVAModeE {
+    VAM_Sv32 = 1,   // Sv32 translation (32-bit VA)
+    VAM_Sv39 = 8,   // Sv39 translation (39-bit VA)
+    VAM_Sv48 = 9,   // Sv48 translation (48-bit VA)
+} riscvVAMode;
+
+//
 // Processor disable reasons (bitmask)
 //
 typedef enum riscvDisableReasonE {
@@ -82,7 +91,8 @@ typedef enum atomicCodeE {
 //
 typedef enum riscvRMDescE {
 
-    RV_RM_CURRENT,  // round using current rounding mode (or no mode)
+    RV_RM_NONE,     // no rounding mode
+    RV_RM_CURRENT,  // round using current rounding mode
     RV_RM_RNE,      // round to nearest, ties to even
     RV_RM_RTZ,      // round towards zero
     RV_RM_RDN,      // round towards -infinity

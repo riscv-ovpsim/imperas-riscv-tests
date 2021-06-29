@@ -33,6 +33,7 @@
     .user_version     = RVUV_DEFAULT,                       \
     .priv_version     = RVPV_DEFAULT,                       \
     .bitmanip_version = RVBV_DEFAULT,                       \
+    .crypto_version   = RVKV_DEFAULT,                       \
     .hyp_version      = RVHV_DEFAULT,                       \
     .vect_version     = RVVV_DEFAULT,                       \
     .dbg_version      = RVDBG_DEFAULT,                      \
@@ -40,7 +41,7 @@
     .Zvamo            = 1,                                  \
     .Zvediv           = 0,                                  \
     .Zvqmac           = 1,                                  \
-    .Zfinx_version    = _Zfinx ? RVZFINX_0_4 : RVZFINX_NA,  \
+    .Zfinx_version    = _Zfinx ? RVZFINX_0_41 : RVZFINX_NA, \
     .PMP_registers    = _PMP_REGS,                          \
     .tval_ii_code     = True,                               \
     .ASID_bits        = ((_ARCH)&RV64) ? 16 : 9,            \

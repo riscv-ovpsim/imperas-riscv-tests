@@ -33,6 +33,7 @@
 #include "riscvExceptions.h"
 #include "riscvKExtension.h"
 #include "riscvMessage.h"
+#include "riscvMorph.h"
 #include "riscvStructure.h"
 
 
@@ -350,19 +351,19 @@ static Uns32 doSAES32_DECSM(Uns32 rs1, Uns32 bs, Uns32 rs2) {
 //
 // Do SAES64_KS1
 //
-static Uns64 doSAES64_KS1(Uns64 rs1, Uns32 enc_rcon) {
+static Uns64 doSAES64_KS1(Uns64 rs1, Uns32 rnum) {
 
     Uns32 temp = (rs1 >> 32);
     Uns8  rcon = 0;
 
-    if(enc_rcon != 0xA) {
+    if(rnum < 0xA) {
 
         static const Uns8 round_consts[] = {
             0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
         };
 
         temp = (temp >> 8) | (temp << 24); // Rotate left by 8
-        rcon = round_consts[enc_rcon];
+        rcon = round_consts[rnum];
     }
 
     temp =
@@ -847,6 +848,17 @@ typedef struct opDescS {
     [RVKV_0_7_2] = OPENTRY_S(_S),               \
     [RVKV_0_8_1] = OPENTRY_S(_S),               \
     [RVKV_0_9_0] = OPENTRY_S(_S),               \
+    [RVKV_0_9_2] = OPENTRY_S(_S),               \
+}
+
+//
+// Entries with version-dependent subset
+//
+#define OPENTRYxV_SxV(_NAME, _S072, _S081, _S090, _S092) [RVKOP_##_NAME] = { \
+    [RVKV_0_7_2] = OPENTRY_S(_S072),            \
+    [RVKV_0_8_1] = OPENTRY_S(_S081),            \
+    [RVKV_0_9_0] = OPENTRY_S(_S090),            \
+    [RVKV_0_9_2] = OPENTRY_S(_S092),            \
 }
 
 //
@@ -856,6 +868,7 @@ typedef struct opDescS {
     [RVKV_0_7_2] = OPENTRY_S_CB(_S, _CB),       \
     [RVKV_0_8_1] = OPENTRY_S_CB(_S, _CB),       \
     [RVKV_0_9_0] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_9_2] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
@@ -865,6 +878,7 @@ typedef struct opDescS {
     [RVKV_0_7_2] = OPENTRY_S_CB32(_S, _CB32),   \
     [RVKV_0_8_1] = OPENTRY_S_CB32(_S, _CB32),   \
     [RVKV_0_9_0] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_9_2] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
@@ -874,6 +888,7 @@ typedef struct opDescS {
     [RVKV_0_7_2] = OPENTRY_S_CB64(_S, _CB64),   \
     [RVKV_0_8_1] = OPENTRY_S_CB64(_S, _CB64),   \
     [RVKV_0_9_0] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_9_2] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //
@@ -881,14 +896,21 @@ typedef struct opDescS {
 //
 static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
 
-    OPENTRYxV_S      (Zkb,           Zkb                  ),
-    OPENTRYxV_S      (Zkg,           Zkg                  ),
+    OPENTRYxV_S      (Zbkb,          Zbkb                 ),
+    OPENTRYxV_S      (Zbkc,          Zbkc                 ),
+    OPENTRYxV_S      (Zbkx,          Zbkx                 ),
     OPENTRYxV_S      (Zkr,           Zkr                  ),
     OPENTRYxV_S      (Zknd,          Zknd                 ),
     OPENTRYxV_S      (Zkne,          Zkne                 ),
     OPENTRYxV_S      (Zknh,          Zknh                 ),
     OPENTRYxV_S      (Zksed,         Zksed                ),
     OPENTRYxV_S      (Zksh,          Zksh                 ),
+
+    OPENTRYxV_SxV    (GORCI,         Zkb, Zkb, Zk_, Zk_   ),
+    OPENTRYxV_SxV    (PACKU,         Zkb, Zkb, Zkb, Zk_   ),
+    OPENTRYxV_SxV    (PACKUW,        Zkb, Zkb, Zkb, Zk_   ),
+    OPENTRYxV_SxV    (REV8W,         Zkb, Zkb, Zkb, Zk_   ),
+    OPENTRYxV_SxV    (XPERM,         Zkb, Zkb, Zkb, Zbkx  ),
 
     OPENTRYxV_S_CB   (LUT4LO,        Zkb,   LUT4LO        ),
     OPENTRYxV_S_CB   (LUT4HI,        Zkb,   LUT4HI        ),
@@ -961,8 +983,14 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
     // get missing subset description (NOTE: RVKS_Zkr controls presence of CSRs
     // and has no effect here)
     switch(requiredSet) {
-        case RVKS_Zkb   : description = "Zkb";   break;
-        case RVKS_Zkg   : description = "Zkg";   break;
+
+        // ALWAYS ABSENT
+        case RVKS_Zk_   : description = "always"; break;
+
+        // INDIVIDUAL SETS
+        case RVKS_Zbkb  : description = "Zbkb";  break; // or Zkb
+        case RVKS_Zbkc  : description = "Zbkc";  break; // or Zkg
+        case RVKS_Zbkx  : description = "Zbkx";  break;
         case RVKS_Zkr   : description = "Zkr";   break; // LCOV_EXCL_LINE
         case RVKS_Zknd  : description = "Zknd";  break;
         case RVKS_Zkne  : description = "Zkne";  break;
@@ -1009,18 +1037,18 @@ static void emitIllegalInstructionAbsentSubset(riscvCryptoSet requiredSet) {
 
 //
 // Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not. Note that instructions shared with the
+// Illegal Instruction exception if not - note that instructions shared with the
 // bit manipulation extension are not handled here if that extension is enabled
 //
-Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op, Bool isBOp) {
+Bool riscvValidateKExtSubset(
+    riscvP            riscv,
+    riscvKExtOp       op,
+    riscvArchitecture requiredVariant
+) {
+    if(op && !((requiredVariant&ISA_B) && bitmanipEnabled(riscv))) {
 
-    if((op!=RVKOP_NONE) && !(isBOp && bitmanipEnabled(riscv))) {
-
-        opDescCP       desc        = getOpDesc(riscv, op);
-        riscvCryptoSet requiredSet = desc->subset;
-
-        // sanity check subset is specified
-        VMI_ASSERT(requiredSet, "require subset for operation %u", op);
+        opDescCP         desc        = getOpDesc(riscv, op);
+        riscvBitManipSet requiredSet = desc->subset;
 
         if(!(requiredSet&~riscv->configInfo.crypto_absent)) {
             emitIllegalInstructionAbsentSubset(requiredSet);

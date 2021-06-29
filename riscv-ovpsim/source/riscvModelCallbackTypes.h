@@ -247,6 +247,19 @@ typedef struct extCSRAttrsS {
 DEFINE_CS(extCSRAttrs);
 
 //
+// Undefined CSR (overrides base model definition)
+//
+#define XCSR_ATTR_UIP(_ID, _NUM, _ARCH, _EXT) [XCSR_ID(_ID)] = { \
+    .extension = _EXT,                              \
+    .baseAttrs = {                                  \
+        name          : #_ID,                       \
+        csrNum        : _NUM,                       \
+        arch          : _ARCH,                      \
+        undefined     : True                        \
+    }                                               \
+}
+
+//
 // Defined but unimplemented CSR
 //
 #define XCSR_ATTR_NIP( \

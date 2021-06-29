@@ -1,7 +1,7 @@
 riscvOVPsim/source/README.md
 ---
 
-In this directory is the **full source** of the OVP model of the RISC-V processor and it is **available as open source under the Apache 2.0 license**.
+In this directory is the **full source** (provided for reference only) of the OVP model of the RISC-V processor and it is **available as open source under the Apache 2.0 license**.
 
 The model makes use of the OVP headers and OVP open standard APIs which are available as open source from Open Virtual Platforms (OVP).  
 

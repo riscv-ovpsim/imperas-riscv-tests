@@ -139,8 +139,8 @@ typedef struct riscvNetPortS {
 //
 // Set of domains, per processor physical mode
 //
-typedef memDomainP riscvDomainSetP[RISCV_MODE_LAST_BASE][2];
-typedef riscvDomainSetP *riscvDomainSetPP;
+typedef memDomainP riscvDomainSetPM[RISCV_MODE_LAST_BASE][2];
+typedef riscvDomainSetPM *riscvDomainSetPMP;
 
 //
 // Set of domains, per processor virtual mode
@@ -175,10 +175,11 @@ typedef struct riscvTData1UPS {
 // types in uniform way)
 //
 typedef struct riscvTData3UPS {
-    Uns64 sselect  :  2;
-    Uns64 mhselect :  3;
-    Uns64 svalue   : 34;
-    Uns64 mhvalue  : 13;
+    Uns64 sselect   :  2;
+    Uns64 mhselect  :  3;
+    Uns64 svalue    : 34;
+    Uns64 mhvalue   : 13;
+    Uns64 sbytemask :  5;
 } riscvTData3UP;
 
 //
@@ -188,6 +189,11 @@ typedef struct riscvTriggerS {
 
     // instruction count when trigger matches
     Uns64 matchICount;
+
+    // management of trigger value
+    Uns64 tval;
+    Bool  tvalValid;
+    Bool  triggered;
 
     // tdata1 and tdata3 fields in unpacked form
     riscvTData1UP tdata1UP;
@@ -237,7 +243,9 @@ typedef struct riscvS {
     riscvDisableReason disable;         // reason why processor is disabled
     Uns32              numHarts;        // number of hart contexts in container
     Bool               verbose       :1;// whether verbose output enabled
-    Bool               artifactAccess:1;// whether current access is an artifact
+    Bool               traceVolatile :1;// whether to trace volatile registers
+    Bool               artifactAccess:1;// whether artifact access active
+    Bool               suppressExcept:1;// whether to suppress exceptions
     Bool               externalActive:1;// whether external CSR access active
     Bool               inSaveRestore :1;// is save/restore active?
     Bool               useTMode      :1;// has transaction mode been enabled?
@@ -254,6 +262,7 @@ typedef struct riscvS {
     Uns8               xlenMaskSR;      // XLEN mask (during save/restore)
     Uns8               fpFlagsMT;       // flags set by JIT instructions
     Uns8               fpFlagsCSR;      // flags set by CSR write
+    Uns8               fpFlagsI;        // flags set per instruction (not sticky)
     Uns8               SFMT;            // SF set by JIT instructions
     Uns8               SFCSR;           // SF set by CSR write
     Uns8               SF;              // operation saturation flag
@@ -274,7 +283,6 @@ typedef struct riscvS {
 
     // Interrupt and exception control
     vmiExceptionInfoCP exceptions;      // all exceptions (including extensions)
-    Uns32              nonLocalNum;     // number of exceptions except local int
     Uns32              swip;            // software interrupt pending bits
     Uns64              exceptionMask;   // mask of all implemented exceptions
     Uns64              interruptMask;   // mask of all implemented interrupts
@@ -289,6 +297,7 @@ typedef struct riscvS {
     riscvICMode        UIMode    :  2;  // custom U interrupt mode
     riscvAccessFault   AFErrorIn :  3;  // input access fault error subtype
     riscvAccessFault   AFErrorOut:  3;  // latched access fault error subtype
+    Bool               inhv      :  1;  // is CLIC vector access active?
 
     // LR/SC support
     Uns64              exclusiveTag;    // tag for active exclusive access
@@ -331,9 +340,9 @@ typedef struct riscvS {
 
     // Memory management support
     memDomainP         extDomains[2];   // external domains (including CLIC)
-    riscvDomainSetP    pmaDomains;      // pma domains (per physical mode)
-    riscvDomainSetP    pmpDomains;      // pmp domains (per physical mode)
-    riscvDomainSetP    physDomains;     // physical domains (per physical mode)
+    riscvDomainSetPM   pmaDomains;      // pma domains (per physical mode)
+    riscvDomainSetPM   pmpDomains;      // pmp domains (per physical mode)
+    riscvDomainSetPM   physDomains;     // physical domains (per physical mode)
     riscvDomainSetVM   vmDomains;       // mapped domains (per virtual mode)
     memDomainP         guestPTWDomain;  // guest page table walk domain
     memDomainP         hlvxDomains[2];  // HLVX mapped domains (S and U)
@@ -346,6 +355,7 @@ typedef struct riscvS {
     Uns8               extBits    : 8;  // bit size of external domains
     Uns8               s2Offset   : 2;  // stage 2 additional page offset
     riscvTLBId         activeTLB  : 2;  // currently-active TLB context
+    Uns8               PTWLevel   : 2;  // page table walk level
     Bool               PTWActive  : 1;  // page table walk active
     Bool               PTWBadAddr : 1;  // page table walk address was bad
     Bool               hlvxActive : 1;  // HLVX access active
@@ -636,6 +646,13 @@ inline static riscvZfinxVer Zfinx(riscvP riscv) {
 //
 inline static Bool isPSE(riscvP riscv) {
     return riscv->configInfo.isPSE;
+}
+
+//
+// Are per-instruction fflags enabled?
+//
+inline static Bool perInstructionFFlags(riscvP riscv) {
+    return riscv->configInfo.enable_fflags_i;
 }
 
 

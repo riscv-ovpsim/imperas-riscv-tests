@@ -123,6 +123,14 @@ static const riscvExceptionDesc exceptions[] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Indicate whether the currently-active inhv affects the EPC behavior in an
+// exception
+//
+inline static Bool inhvAffectsEPC(riscvP riscv, Bool inhv) {
+    return inhv && (riscv->configInfo.CLIC_version>RVCLC_0_9_20191208);
+}
+
+//
 // Return current PC
 //
 inline static Uns64 getPC(riscvP riscv) {
@@ -418,7 +426,7 @@ static void trapU(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, mstatus, UIE, 0);
 
     // clear cause register if not in CLIC mode
-    if(!useCLICM(riscv)) {
+    if(!useCLICU(riscv)) {
         WR_CSR64(riscv, ucause, 0);
     }
 
@@ -457,7 +465,7 @@ static void trapVU(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, vsstatus, UIE, 0);
 
     // clear ucause register if not in CLIC mode
-    if(!useCLICM(riscv)) {
+    if(!useCLICVU(riscv)) {
         WR_CSR64(riscv, ucause, 0);
     }
 
@@ -494,7 +502,7 @@ static void trapHS(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, mstatus, SIE, 0);
 
     // clear scause register if not in CLIC mode
-    if(!useCLICM(riscv)) {
+    if(!useCLICS(riscv)) {
         WR_CSR64(riscv, scause, 0);
     }
 
@@ -545,7 +553,7 @@ static void trapVS(riscvP riscv, trapCxtP cxt) {
     WR_CSR_FIELDC(riscv, vsstatus, SIE, 0);
 
     // clear vscause register if not in CLIC mode
-    if(!useCLICM(riscv)) {
+    if(!useCLICVS(riscv)) {
         WR_CSR64(riscv, vscause, 0);
     }
 
@@ -623,105 +631,59 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
 }
 
 //
-// Get CLIC Vectored Interrupt table entry
+// Get CLIC vectored handler address at the given memory address
 //
-static Bool readCLICVectorTableEntry(riscvP riscv, trapCxtP cxt, Uns64 TBASE) {
+static Bool getCLICVPC(riscvP riscv, Uns64 address, Uns64 *handlerPCP) {
 
-    memEndian      endian   = riscvGetDataEndian(riscv, cxt->modeX);
-    memDomainP     domain   = getDataDomain(riscv);
-    memAccessAttrs memAttrs = MEM_AA_TRUE;
-    Uns32          ptrBytes = riscvGetXlenArch(riscv)/8;
-    Uns64          address  = TBASE + (ptrBytes*cxt->ecodeMod);
+    riscvMode      mode         = getCurrentMode5(riscv);
+    memEndian      endian       = riscvGetDataEndian(riscv, mode);
+    memDomainP     domain       = getDataDomain(riscv);
+    memAccessAttrs memAttrs     = MEM_AA_TRUE;
+    riscvException oldException = riscv->exception;
+    Bool           ok           = False;
     Uns64          handlerPC;
 
+    // clear exception indication
+    riscv->exception = 0;
+
+    // indicate CLIC vector access active
+    riscv->inhv = True;
+
     // read 4-byte or 8-byte entry
-    if(ptrBytes==4) {
+    if(riscvGetXlenMode(riscv)==32) {
         handlerPC = vmirtRead4ByteDomain(domain, address, endian, memAttrs);
     } else {
         handlerPC = vmirtRead8ByteDomain(domain, address, endian, memAttrs);
     }
 
-    // mask off LSB
-    cxt->handlerPC = handlerPC & -2;
+    // indicate CLIC vector access inactive
+    riscv->inhv = False;
 
-    // indicate whether there was a nested exception
-    return isInterrupt(riscv->exception);
-}
+    // determine whether exception occurred on table load
+    if(!riscv->exception) {
 
-//
-// Get U mode vectored handler address
-//
-static Bool getCLICVHandlerPCU(riscvP riscv, trapCxtP cxt) {
+        // restore previous exception context
+        riscv->exception = oldException;
 
-    // set xcause.inhv=1 before vector lookup
-    WR_CSR_FIELDC(riscv, ucause, inhv, 1);
+        // mask off LSB from result
+        *handlerPCP = handlerPC & -2;
 
-    // validate the memory access
-    Bool ok = readCLICVectorTableEntry(riscv, cxt, RD_CSR_U(riscv, utvt));
-
-    // set xcause.inhv=0 after vector lookup
-    if(ok) {
-        WR_CSR_FIELDC(riscv, ucause, inhv, 0);
+        ok = True;
     }
 
     return ok;
 }
 
 //
-// Get S mode vectored handler address
+// Get CLIC vectored handler address given table address
 //
-static Bool getCLICVHandlerPCS(riscvP riscv, trapCxtP cxt) {
+static Bool getCLICVHandlerPC(riscvP riscv, trapCxtP cxt, Uns64 TBASE) {
 
-    // set xcause.inhv=1 before vector lookup
-    WR_CSR_FIELDC(riscv, scause, inhv, 1);
+    Uns32 ptrBytes = riscvGetXlenMode(riscv)/8;
+    Uns64 address  = TBASE + (ptrBytes*cxt->ecodeMod);
 
-    // validate the memory access
-    Bool ok = readCLICVectorTableEntry(riscv, cxt, RD_CSR_S(riscv, stvt));
-
-    // set xcause.inhv=0 after vector lookup
-    if(ok) {
-        WR_CSR_FIELDC(riscv, scause, inhv, 0);
-    }
-
-    return ok;
-}
-
-//
-// Get M mode vectored handler address
-//
-static Bool getCLICVHandlerPCM(riscvP riscv, trapCxtP cxt) {
-
-    // set xcause.inhv=1 before vector lookup
-    WR_CSR_FIELDC(riscv, mcause, inhv, 1);
-
-    // validate the memory access
-    Bool ok = readCLICVectorTableEntry(riscv, cxt, RD_CSR_M(riscv, mtvt));
-
-    // set xcause.inhv=0 after vector lookup
-    if(ok) {
-        WR_CSR_FIELDC(riscv, mcause, inhv, 0);
-    }
-
-    return ok;
-}
-
-//
-// Does this exception code correspond to a retired instruction?
-//
-static Bool retiredCode(riscvP riscv, riscvException exception) {
-
-    switch(exception) {
-
-        case riscv_E_Breakpoint:
-        case riscv_E_EnvironmentCallFromUMode:
-        case riscv_E_EnvironmentCallFromSMode:
-        case riscv_E_EnvironmentCallFromVSMode:
-        case riscv_E_EnvironmentCallFromMMode:
-            return (RISCV_PRIV_VERSION(riscv)<RVPV_1_12);
-
-        default:
-            return False;
-    }
+    // get target PC from calculated address
+    return getCLICVPC(riscv, address, &cxt->handlerPC);
 }
 
 //
@@ -798,6 +760,13 @@ void riscvTakeException(
         writeNet(riscv, riscv->AMOActiveHandle, ACODE_NONE);
     }
 
+    // adjust baseInstructions based on the exception code to take into account
+    // whether the previous instruction has retired, unless inhibited by
+    // mcountinhibit.IR
+    if(!isInterrupt(exception) && !riscvInhibitInstret(riscv)) {
+        riscv->baseInstructions++;
+    }
+
     if(inDebugMode(riscv)) {
 
         // terminate execution of program buffer
@@ -808,24 +777,18 @@ void riscvTakeException(
 
         Bool  shv   = riscv->clic.sel.shv;
         Uns32 ecode = getExceptionCode(exception);
+        Bool  inhv  = riscv->inhv;
 
-        // see trap context information
+        // set trap context information
         trapCxt cxt = {
             handlerPC : 0,
-            EPC       : getEPC(riscv),
+            EPC       : inhvAffectsEPC(riscv, inhv) ? tval : getEPC(riscv),
             tval      : tval,
             ecodeMod  : ecode,
             level     : -1,
             modeY     : getCurrentMode5(riscv),
             isInt     : isInterrupt(exception)
         };
-
-        // adjust baseInstructions based on the exception code to take into
-        // account whether the previous instruction has retired, unless
-        // inhibited by mcountinhibit.IR
-        if(!retiredCode(riscv, exception) && !riscvInhibitInstret(riscv)) {
-            riscv->baseInstructions++;
-        }
 
         // latch or clear Access Fault detail depending on exception type
         if(accessFaultCode(exception)) {
@@ -845,6 +808,23 @@ void riscvTakeException(
         } else {
             cxt.modeX = getInterruptModeX(riscv, ecode);
         }
+
+        if(!inhv) {
+            // trap vector table read not active
+        } else if(cxt.modeX==RISCV_MODE_U) {
+            WR_CSR_FIELDC(riscv, ucause, inhv, 1);
+        } else if(cxt.modeY==RISCV_MODE_VU) {
+            WR_CSR_FIELDC(riscv, ucause, inhv, 1);
+        } else if(cxt.modeY==RISCV_MODE_S) {
+            WR_CSR_FIELDC(riscv, scause, inhv, 1);
+        } else if(cxt.modeY==RISCV_MODE_VS) {
+            WR_CSR_FIELDC(riscv, vscause, inhv, 1);
+        } else if(cxt.modeY==RISCV_MODE_M) {
+            WR_CSR_FIELDC(riscv, mcause, inhv, 1);
+        }
+
+        // indicate CLIC vector access inactive
+        riscv->inhv = False;
 
         // modify code reported for external interrupts if required
         if(isExternalInterrupt(exception)) {
@@ -914,11 +894,11 @@ void riscvTakeException(
             riscvAcknowledgeCLICInt(riscv, ecode);
 
             if(cxt.modeX==RISCV_MODE_U) {
-                ok = getCLICVHandlerPCU(riscv, &cxt);
+                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_U(riscv, utvt));
             } else if(cxt.modeX==RISCV_MODE_S) {
-                ok = getCLICVHandlerPCS(riscv, &cxt);
+                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_S(riscv, stvt));
             } else if(cxt.modeX==RISCV_MODE_M) {
-                ok = getCLICVHandlerPCM(riscv, &cxt);
+                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_M(riscv, mtvt));
             } else {                                    // LCOV_EXCL_LINE
                 VMI_ABORT("TODO: virtualized mode");    // LCOV_EXCL_LINE
             }
@@ -1191,15 +1171,18 @@ static void clearMPRV(riscvP riscv, riscvMode newMode) {
 //
 // Do common actions when returning from an exception
 //
-static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc) {
+static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc, Bool inhv) {
 
     riscvMode oldMode = getCurrentMode5(riscv);
 
     // switch to target mode
     riscvSetMode(riscv, newMode);
 
-    // jump to return address
-    setPCxRET(riscv, epc);
+    // jump to return address if either not vectored or vector address lookup
+    // succeeds
+    if(!inhv || getCLICVPC(riscv, epc, &epc)) {
+        setPCxRET(riscv, epc);
+    }
 
     // notify derived model of exception return if required
     notifyERETDerived(riscv, oldMode);
@@ -1239,6 +1222,33 @@ static void handleDebugModeERET(riscvP riscv) {
     }
 
 //
+// Get inhv for target mode
+//
+static Bool getXRETInhv(riscvP riscv, riscvMode newMode) {
+
+    Bool inhv = False;
+
+    if(newMode==RISCV_MODE_U) {
+        inhv = RD_CSR_FIELDC(riscv, ucause, inhv);
+        WR_CSR_FIELDC(riscv, ucause, inhv, 0);
+    } else if(newMode==RISCV_MODE_VU) {
+        inhv = RD_CSR_FIELDC(riscv, ucause, inhv);
+        WR_CSR_FIELDC(riscv, ucause, inhv, 0);
+    } else if(newMode==RISCV_MODE_S) {
+        inhv = RD_CSR_FIELDC(riscv, scause, inhv);
+        WR_CSR_FIELDC(riscv, scause, inhv, 0);
+    } else if(newMode==RISCV_MODE_VS) {
+        inhv = RD_CSR_FIELDC(riscv, vscause, inhv);
+        WR_CSR_FIELDC(riscv, vscause, inhv, 0);
+    } else if(newMode==RISCV_MODE_M) {
+        inhv = RD_CSR_FIELDC(riscv, mcause, inhv);
+        WR_CSR_FIELDC(riscv, mcause, inhv, 0);
+    }
+
+    return inhv;
+}
+
+//
 // Return from M-mode exception
 //
 void riscvMRET(riscvP riscv) {
@@ -1256,11 +1266,15 @@ void riscvMRET(riscvP riscv) {
         newMode |= RISCV_MODE_V;
     }
 
+    // derive target mode inhv value
+    Bool useCLIC = useCLICM(riscv);
+    Bool inhv    = useCLIC && inhvAffectsEPC(riscv, getXRETInhv(riscv, newMode));
+
     // clear any active exclusive access
     clearEAxRET(riscv);
 
     // restore previous mintstatus.mil (CLIC mode)
-    if(useCLICM(riscv)) {
+    if(useCLIC) {
         WR_CSR_FIELDC(riscv, mintstatus, mil, RD_CSR_FIELDC(riscv, mcause, pil));
     }
 
@@ -1283,7 +1297,7 @@ void riscvMRET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, tcontrol, mte, RD_CSR_FIELDC(riscv, tcontrol, mpte));
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_M(riscv, mepc));
+    doERETCommon(riscv, newMode, RD_CSR_M(riscv, mepc), inhv);
 }
 
 //
@@ -1303,11 +1317,15 @@ void riscvHSRET(riscvP riscv) {
         newMode |= RISCV_MODE_V;
     }
 
+    // derive target mode inhv value
+    Bool useCLIC = useCLICS(riscv);
+    Bool inhv    = useCLIC && inhvAffectsEPC(riscv, getXRETInhv(riscv, newMode));
+
     // clear any active exclusive access
     clearEAxRET(riscv);
 
     // restore previous mintstatus.sil (CLIC mode)
-    if(useCLICS(riscv)) {
+    if(useCLIC) {
         WR_CSR_FIELDC(riscv, mintstatus, sil, RD_CSR_FIELDC(riscv, scause, pil));
     }
 
@@ -1327,7 +1345,7 @@ void riscvHSRET(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_S(riscv, sepc));
+    doERETCommon(riscv, newMode, RD_CSR_S(riscv, sepc), inhv);
 }
 
 //
@@ -1345,6 +1363,10 @@ void riscvVSRET(riscvP riscv) {
     // always return to virtual mode
     newMode |= RISCV_MODE_V;
 
+    // derive target mode inhv value
+    Bool useCLIC = useCLICVS(riscv);
+    Bool inhv    = useCLIC && inhvAffectsEPC(riscv, getXRETInhv(riscv, newMode));
+
     // clear any active exclusive access
     clearEAxRET(riscv);
 
@@ -1361,7 +1383,7 @@ void riscvVSRET(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_VS(riscv, vsepc));
+    doERETCommon(riscv, newMode, RD_CSR_VS(riscv, vsepc), inhv);
 }
 
 //
@@ -1373,6 +1395,10 @@ void riscvURET(riscvP riscv) {
     HANDLE_DMODE_RET(riscv);
 
     riscvMode newMode = RISCV_MODE_U;
+
+    // derive target mode inhv value
+    Bool useCLIC = useCLICU(riscv);
+    Bool inhv    = useCLIC && inhvAffectsEPC(riscv, getXRETInhv(riscv, newMode));
 
     // clear any active exclusive access
     clearEAxRET(riscv);
@@ -1389,7 +1415,7 @@ void riscvURET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, mstatus, UPIE, 1);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_U(riscv, uepc));
+    doERETCommon(riscv, newMode, RD_CSR_U(riscv, uepc), inhv);
 }
 
 //
@@ -1402,6 +1428,10 @@ void riscvVURET(riscvP riscv) {
 
     riscvMode newMode = RISCV_MODE_VU;
 
+    // derive target mode inhv value
+    Bool useCLIC = useCLICVU(riscv);
+    Bool inhv    = useCLIC && inhvAffectsEPC(riscv, getXRETInhv(riscv, newMode));
+
     // clear any active exclusive access
     clearEAxRET(riscv);
 
@@ -1412,7 +1442,7 @@ void riscvVURET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, vsstatus, UPIE, 1);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_VU(riscv, uepc));
+    doERETCommon(riscv, newMode, RD_CSR_VU(riscv, uepc), inhv);
 }
 
 
@@ -1535,7 +1565,7 @@ static void leaveDM(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_M(riscv, dpc));
+    doERETCommon(riscv, newMode, RD_CSR_M(riscv, dpc), False);
 
     // set step breakpoint if required
     riscvSetStepBreakpoint(riscv);
@@ -1640,18 +1670,6 @@ void riscvDRET(riscvP riscv) {
 }
 
 //
-// Take breakpoint exception
-//
-void riscvBreakpointException(riscvP riscv) {
-
-    // whether EBREAK sets mtval to the PC is configurable
-    Uns64 tval = riscv->configInfo.tval_zero_ebreak ? 0 : getPC(riscv);
-
-    // handle EBREAK as normal exception
-    riscvTakeException(riscv, riscv_E_Breakpoint, tval);
-}
-
-//
 // Execute EBREAK instruction
 //
 void riscvEBREAK(riscvP riscv) {
@@ -1660,13 +1678,15 @@ void riscvEBREAK(riscvP riscv) {
 
     if(inDebugMode(riscv) || (RD_CSRC(riscv, dcsr) & modeMask)) {
 
+        // ebreak never increments instret
+        if(!riscvInhibitInstret(riscv)) {
+            riscv->baseInstructions++;
+        }
+
         // don't count the ebreak instruction if dcsr.stopcount is set
         if(RD_CSR_FIELDC(riscv, dcsr, stopcount)) {
             if(!riscvInhibitCycle(riscv)) {
                 riscv->baseCycles++;
-            }
-            if(!riscvInhibitInstret(riscv)) {
-                riscv->baseInstructions++;
             }
         }
 
@@ -1675,8 +1695,11 @@ void riscvEBREAK(riscvP riscv) {
 
     } else {
 
+        // whether EBREAK sets mtval to the PC is configurable
+        Uns64 tval = riscv->configInfo.tval_zero_ebreak ? 0 : getPC(riscv);
+
         // handle EBREAK as normal exception
-        riscvBreakpointException(riscv);
+        riscvTakeException(riscv, riscv_E_Breakpoint, tval);
     }
 }
 
@@ -1686,17 +1709,69 @@ void riscvEBREAK(riscvP riscv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Is a misaligned normal load to the given address permitted?
+// Should unaligned loads cause an access fault?
 //
-static Bool allowMisalignedLoad(riscvP riscv, Uns64 address, Uns32 bytes) {
-
-    Bool unaligned = riscv->configInfo.unaligned;
+static Bool faultMisalignedLoad(
+    riscvP     riscv,
+    memDomainP domain,
+    Uns64      address,
+    Uns32      bytes
+) {
+    Bool fault = False;
 
     // if unaligned accesses are not always permitted, query derived model to
     // determine whether a normal load of this address and size is allowed
     ITER_EXT_CB_WHILE(
-        riscv, extCB, rdSnapCB, !unaligned,
-        unaligned = extCB->rdSnapCB(riscv, address, bytes, ACODE_NONE);
+        riscv, extCB, rdFaultCB, !fault,
+        fault = extCB->rdFaultCB(
+            riscv, domain, address, bytes, extCB->clientData
+        )
+    )
+
+    return fault;
+}
+
+//
+// Should unaligned stores cause an access fault?
+//
+static Bool faultMisalignedStore(
+    riscvP     riscv,
+    memDomainP domain,
+    Uns64      address,
+    Uns32      bytes
+) {
+    Bool fault = False;
+
+    // if unaligned accesses are not always permitted, query derived model to
+    // determine whether a normal load of this address and size is allowed
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, wrFaultCB, !fault,
+        fault = extCB->wrFaultCB(
+            riscv, domain, address, bytes, extCB->clientData
+        )
+    )
+
+    return fault;
+}
+
+//
+// Is a misaligned normal load to the given address permitted?
+//
+static Bool allowMisalignedLoad(
+    riscvP     riscv,
+    memDomainP domain,
+    Uns64      address,
+    Uns32      bytes
+) {
+    Bool unaligned = riscv->configInfo.unaligned;
+
+    // if unaligned accesses are not always permitted, query derived model to
+    // determine whether a normal load of this address and size is allowed
+    ITER_EXT_CB(
+        riscv, extCB, rdSnapCB,
+        unaligned = extCB->rdSnapCB(
+            riscv, domain, address, bytes, ACODE_NONE, extCB->clientData
+        )
     )
 
     return unaligned;
@@ -1705,15 +1780,21 @@ static Bool allowMisalignedLoad(riscvP riscv, Uns64 address, Uns32 bytes) {
 //
 // Is a misaligned normal store to the given address permitted?
 //
-static Bool allowMisalignedStore(riscvP riscv, Uns64 address, Uns32 bytes) {
-
+static Bool allowMisalignedStore(
+    riscvP     riscv,
+    memDomainP domain,
+    Uns64      address,
+    Uns32      bytes
+) {
     Bool unaligned = riscv->configInfo.unaligned;
 
     // if unaligned accesses are not always permitted, query derived model to
     // determine whether a normal load of this address and size is allowed
-    ITER_EXT_CB_WHILE(
-        riscv, extCB, wrSnapCB, !unaligned,
-        unaligned = extCB->wrSnapCB(riscv, address, bytes, ACODE_NONE);
+    ITER_EXT_CB(
+        riscv, extCB, wrSnapCB,
+        unaligned = extCB->wrSnapCB(
+            riscv, domain, address, bytes, ACODE_NONE, extCB->clientData
+        )
     )
 
     return unaligned;
@@ -1756,10 +1837,20 @@ VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
     riscvP         riscv     = (riscvP)processor;
     riscvException exception = riscv_E_LoadAddressMisaligned;
 
-    // if this is an atomic operation and a normal load would not raise an
-    // LoadAddressMisaligned exception then raise a LoadAccessFault exception
-    // instead
-    if(riscv->atomic && allowMisalignedLoad(riscv, address, bytes)) {
+    if(faultMisalignedLoad(riscv, domain, address, bytes)) {
+
+        // raise LoadAccessFault if required
+        exception = riscv_E_LoadAccessFault;
+
+    } else if(!riscv->atomic) {
+
+        // no action
+
+    } else if(allowMisalignedLoad(riscv, domain, address, bytes)) {
+
+        // if this is an atomic operation and a normal load would not raise an
+        // LoadAddressMisaligned exception then raise a LoadAccessFault
+        // exception instead
         exception = riscv_E_LoadAccessFault;
     }
 
@@ -1776,10 +1867,20 @@ VMI_WR_ALIGN_EXCEPT_FN(riscvWrAlignExcept) {
     riscvP         riscv     = (riscvP)processor;
     riscvException exception = riscv_E_StoreAMOAddressMisaligned;
 
-    // if this is an atomic operation and a normal load would not raise an
-    // StoreAMOAddressMisaligned exception then raise a StoreAMOAccessFault
-    // exception instead
-    if(riscv->atomic && allowMisalignedStore(riscv, address, bytes)) {
+    if(faultMisalignedStore(riscv, domain, address, bytes)) {
+
+        // raise StoreAMOAccessFault if required
+        exception = riscv_E_StoreAMOAccessFault;
+
+    } else if(!riscv->atomic) {
+
+        // no action
+
+    } else if(allowMisalignedStore(riscv, domain, address, bytes)) {
+
+        // if this is an atomic operation and a normal store would not raise an
+        // StoreAMOAddressMisaligned exception then raise a StoreAMOAccessFault
+        // exception instead
         exception = riscv_E_StoreAMOAccessFault;
     }
 
@@ -1862,7 +1963,9 @@ VMI_RD_WR_SNAP_FN(riscvRdSnap) {
 
     ITER_EXT_CB_WHILE(
         riscv, extCB, rdSnapCB, !snap,
-        snap = extCB->rdSnapCB(riscv, address, bytes, riscv->atomic);
+        snap = extCB->rdSnapCB(
+            riscv, domain, address, bytes, riscv->atomic, extCB->clientData
+        )
     )
 
     return snap;
@@ -1878,7 +1981,9 @@ VMI_RD_WR_SNAP_FN(riscvWrSnap) {
 
     ITER_EXT_CB_WHILE(
         riscv, extCB, wrSnapCB, !snap,
-        snap = extCB->wrSnapCB(riscv, address, bytes, riscv->atomic);
+        snap = extCB->wrSnapCB(
+            riscv, domain, address, bytes, riscv->atomic, extCB->clientData
+        )
     )
 
     return snap;
@@ -2358,9 +2463,12 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     // actions *before* next instruction
     ////////////////////////////////////////////////////////////////////////////
 
-    } else if(triggerX && riscvTriggerX0(riscv, thisPC, complete)) {
+    } else if(complete && triggerX && riscvTriggerX0(riscv, thisPC)) {
 
-        // execute address trap (priority 4, handled in riscvTriggerX0)
+        // execute address trap (priority 4, handled in riscvTriggerX0 only if
+        // a lower-priority case below would otherwise cause an exception -
+        // normally, this is handled by a call to riscvTriggerX2 or
+        // riscvTriggerX4 just before the instruction is executed)
 
     } else if(riscv->netValue.resethaltreqS) {
 
@@ -2484,6 +2592,32 @@ static Int32 compareExceptionCode(const void *va, const void *vb) {
 }
 
 //
+// Clone strings in the exception structure
+//
+static void cloneExceptionStrings(vmiExceptionInfoP this) {
+
+    if(this->name) {
+        this->name = strdup(this->name);
+    }
+    if(this->description) {
+        this->description = strdup(this->description);
+    }
+}
+
+//
+// Free strings in the exception structure
+//
+static void freeExceptionStrings(vmiExceptionInfoCP this) {
+
+    if(this->name) {
+        free((char*)this->name);
+    }
+    if(this->description) {
+        free((char*)this->description);
+    }
+}
+
+//
 // Return all defined exceptions, including those from intercepts, in a null
 // terminated list
 //
@@ -2515,9 +2649,6 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
             }
         )
 
-        // record total number of exceptions that are not local interrupts
-        riscv->nonLocalNum = numExcept;
-
         // count local interrupts
         for(i=0; i<localIntNum; i++) {
             if(riscvHasStandardException(riscv, riscv_E_LocalInterrupt+i)) {
@@ -2548,7 +2679,12 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
             }
         )
 
-        // fill local exceptions
+        // clone all strings in exception structures
+        for(i=0; i<numExcept; i++) {
+            cloneExceptionStrings(&all[i]);
+        }
+
+        // fill local interrupts
         for(i=0; i<localIntNum; i++) {
 
             riscvException code = riscv_E_LocalInterrupt+i;
@@ -2556,14 +2692,21 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
             if(riscvHasStandardException(riscv, code)) {
 
                 vmiExceptionInfoP this = &all[numExcept++];
-                char              buffer[32];
+                char              name[32];
+                char              description[32];
 
                 // construct name
-                sprintf(buffer, "LocalInterrupt%u", i);
+                sprintf(name, "LocalInterrupt%u", i);
+
+                // construct description
+                getInterruptDesc(code, description);
 
                 this->code        = code;
-                this->name        = strdup(buffer);
-                this->description = strdup(getInterruptDesc(code, buffer));
+                this->name        = name;
+                this->description = description;
+
+                // clone strings in exception structure
+                cloneExceptionStrings(this);
             }
         }
 
@@ -2665,13 +2808,12 @@ void riscvExceptFree(riscvP riscv) {
 
     if(riscv->exceptions) {
 
-        vmiExceptionInfoCP local = &riscv->exceptions[riscv->nonLocalNum];
+        vmiExceptionInfoCP this = riscv->exceptions;
 
-        // free local exception description strings
-        while(local->name) {
-            free((char*)local->name);
-            free((char*)local->description);
-            local++;
+        // free exception description strings
+        while(this->name) {
+            freeExceptionStrings(this);
+            this++;
         }
 
         // free exception descriptions

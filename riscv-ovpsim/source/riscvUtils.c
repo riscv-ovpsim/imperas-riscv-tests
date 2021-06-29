@@ -807,23 +807,24 @@ const char *riscvGetFeatureName(riscvArchitecture feature) {
 
     // table mapping to feature descriptions
     static const char *featureDescs[32] = {
-        [RISCV_FEATURE_INDEX(XLEN32_CHAR)] = "32-bit XLEN",
-        [RISCV_FEATURE_INDEX(XLEN64_CHAR)] = "64-bit XLEN",
-        [RISCV_FEATURE_INDEX('A')]         = "extension A (atomic instructions)",
-        [RISCV_FEATURE_INDEX('B')]         = "extension B (bit manipulation extension)",
-        [RISCV_FEATURE_INDEX('C')]         = "extension C (compressed instructions)",
-        [RISCV_FEATURE_INDEX('D')]         = "extension D (double-precision floating point)",
-        [RISCV_FEATURE_INDEX('E')]         = "RV32E base integer instruction set (embedded)",
-        [RISCV_FEATURE_INDEX('F')]         = "extension F (single-precision floating point)",
-        [RISCV_FEATURE_INDEX('H')]         = "extension H (hypervisor)",
-        [RISCV_FEATURE_INDEX('I')]         = "RV32I/RV64I/RV128I base integer instruction set",
-        [RISCV_FEATURE_INDEX('K')]         = "extension K (cryptographic)",
-        [RISCV_FEATURE_INDEX('M')]         = "extension M (integer multiply/divide instructions)",
-        [RISCV_FEATURE_INDEX('N')]         = "extension N (user-level interrupts)",
-        [RISCV_FEATURE_INDEX('S')]         = "extension S (Supervisor mode)",
-        [RISCV_FEATURE_INDEX('U')]         = "extension U (User mode)",
-        [RISCV_FEATURE_INDEX('V')]         = "extension V (vector extension)",
-        [RISCV_FEATURE_INDEX('X')]         = "extension X (non-standard extensions present)"
+        [RISCV_FEATURE_INDEX(XLEN32_CHAR)]  = "32-bit XLEN",
+        [RISCV_FEATURE_INDEX(XLEN64_CHAR)]  = "64-bit XLEN",
+        [RISCV_FEATURE_INDEX(XLEN128_CHAR)] = "128-bit XLEN",
+        [RISCV_FEATURE_INDEX('A')]          = "extension A (atomic instructions)",
+        [RISCV_FEATURE_INDEX('B')]          = "extension B (bit manipulation extension)",
+        [RISCV_FEATURE_INDEX('C')]          = "extension C (compressed instructions)",
+        [RISCV_FEATURE_INDEX('D')]          = "extension D (double-precision floating point)",
+        [RISCV_FEATURE_INDEX('E')]          = "RV32E base integer instruction set (embedded)",
+        [RISCV_FEATURE_INDEX('F')]          = "extension F (single-precision floating point)",
+        [RISCV_FEATURE_INDEX('H')]          = "extension H (hypervisor)",
+        [RISCV_FEATURE_INDEX('I')]          = "RV32I/RV64I/RV128I base integer instruction set",
+        [RISCV_FEATURE_INDEX('K')]          = "extension K (cryptographic)",
+        [RISCV_FEATURE_INDEX('M')]          = "extension M (integer multiply/divide instructions)",
+        [RISCV_FEATURE_INDEX('N')]          = "extension N (user-level interrupts)",
+        [RISCV_FEATURE_INDEX('S')]          = "extension S (Supervisor mode)",
+        [RISCV_FEATURE_INDEX('U')]          = "extension U (User mode)",
+        [RISCV_FEATURE_INDEX('V')]          = "extension V (vector extension)",
+        [RISCV_FEATURE_INDEX('X')]          = "extension X (non-standard extensions present)"
     };
 
     // get feature description

@@ -91,6 +91,71 @@ static void fillSvModes(char *result, Uns32 Sv_modes) {
 }
 
 //
+// Add documentation of xtvec regiser
+//
+static void addDocXTVec(
+    riscvConfigCP cfg,
+    vmiDocNodeP   node,
+    Uns64         tvec_mask,
+    const char   *rname,
+    const char   *pmask
+) {
+    char string[1024];
+
+    // document mtvec_mask behavior
+    snprintf(
+        SNPRINTF_TGT(string),
+        "Values written to \"%s\" are masked using the value "
+        "0x"FMT_Ax". A different mask of writable bits may be "
+        "specified using parameter \"%s\" if required. In "
+        "addition, when Vectored interrupt mode is enabled, parameter "
+        "\"tvec_align\" may be used to specify additional "
+        "hardware-enforced base address alignment. In this variant, "
+        "\"tvec_align\" defaults to %u%s.",
+        rname, tvec_mask, pmask, cfg->tvec_align,
+        cfg->tvec_align ? "" : ", implying no alignment constraint"
+    );
+    vmidocAddText(node, string);
+}
+
+//
+// Add documentation of sign extension of register
+//
+static void addDocSExt(
+    vmiDocNodeP node,
+    Uns32       sext,
+    const char *rname,
+    const char *pname
+) {
+    char string[1024];
+
+    if(sext) {
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "If parameter \"%s\" is True, values written to \"%s\" are "
+            "sign-extended from the most-significant writable bit. In this "
+            "variant, \"%s\" is True, indicating that \"%s\" is sign-extended "
+            "from bit %u.",
+            pname, rname, pname, rname, sext
+        );
+
+    } else {
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "If parameter \"%s\" is True, values written to \"%s\" are "
+            "sign-extended from the most-significant writable bit. In this "
+            "variant, \"%s\" is False, indicating that \"%s\" is not "
+            "sign-extended.",
+            pname, rname, pname, rname
+        );
+    }
+
+    vmidocAddText(node, string);
+}
+
+//
 // Add documentation using the optional documentation callback
 //
 inline static void addOptDoc(riscvP riscv, vmiDocNodeP node, riscvDocFn docCB) {
@@ -159,22 +224,92 @@ static void addKFeature(
 }
 
 //
-// Get architecture options that may be enabled but are not by default
+// Add documentation of a deprecated K-extension subset parameter
 //
-static riscvArchitecture getNotEnabled(riscvConfigCP cfg) {
+static void addDeprecatedKFeature(
+    riscvConfigCP  cfg,
+    vmiDocNodeP    Parameters,
+    char          *string,
+    Uns32          stringLen,
+    riscvCryptoSet feature,
+    const char    *name,
+    const char    *alias,
+    const char    *desc
+) {
+    snprintf(
+        string, stringLen,
+        "Parameter %s used to specify that %s instructions are present; it is "
+        "a deprecated alias of parameter %s, which should be used instead. By "
+        "default, %s is set to %u in this variant. Updates to this parameter "
+        "require a commercial product license.",
+        name, desc, alias, name, !(cfg->crypto_absent & feature)
+    );
+    vmidocAddText(Parameters, string);
+}
 
-    riscvArchitecture arch   = cfg->arch|cfg->archFixed;
+//
+// Return bits in raw architecture that have named features associated with them
+//
+static riscvArchitecture getNamedSet(riscvArchitecture arch) {
+
     riscvArchitecture result = 0;
     Uns32             featureBit;
 
     for(featureBit=0; featureBit<=('Z'-'A'); featureBit++) {
         riscvArchitecture feature = 1<<featureBit;
-        if(!(feature & arch) && riscvGetFeatureName(feature)) {
+        if((feature & arch) && riscvGetFeatureName(feature)) {
            result |= feature;
         }
     }
 
     return result;
+}
+
+//
+// Get architecture options that may be enabled but are not by default
+//
+static riscvArchitecture getCanEnable(riscvConfigCP cfg) {
+    return getNamedSet(~cfg->arch & ~cfg->archFixed);
+}
+
+//
+// Get architecture options that are enabled by default, but can be disabled
+// NOTE: E and I are excluded because each is disabled by enabling the other
+//
+static riscvArchitecture getCanDisable(riscvConfigCP cfg) {
+    return getNamedSet(cfg->arch & ~cfg->archFixed & ~(ISA_E|ISA_I));
+}
+
+//
+// Add nodes listing features for feature letters
+//
+static void listFeatures(
+    vmiDocNodeP       node,
+    riscvArchitecture arch,
+    char             *string,
+    Uns32             stringLen
+) {
+    Uns32 featureBit;
+
+    for(featureBit = 0; featureBit <= ('Z'-'A'); featureBit++) {
+
+        riscvArchitecture feature = 1 << featureBit;
+
+        // report the extensions that are supported but not enabled
+        if(arch & feature) {
+
+            const char *name = riscvGetFeatureName(feature);
+
+            snprintf(
+                string, stringLen,
+                "misa bit %u: %s",
+                featureBit,
+                name ? name : "unknown feature"
+            );
+
+            vmidocAddText(node, string);
+        }
+    }
 }
 
 //
@@ -267,6 +402,32 @@ static vmiDocNodeP docAMP(riscvP ampRoot) {
 }
 
 //
+// Document extension with matching field in configuration
+//
+#define DOC_EXTENSION(_RISCV, _PARAMS, _STRING, _NAME) \
+    snprintf(                                                               \
+        SNPRINTF_TGT(_STRING),                                              \
+        "Parameter "#_NAME" is used to specify whether the "#_NAME" "       \
+        "extension is implemented. By default, "#_NAME" is set to %u in "   \
+        "this variant.",                                                    \
+        _RISCV->configInfo._NAME                                            \
+    );                                                                      \
+    vmidocAddText(_PARAMS, _STRING)
+
+//
+// Document vector profile option in configuration
+//
+#define DOC_VPROFILE(_RISCV, _PARAMS, _STRING, _NAME) \
+    snprintf(                                                               \
+        SNPRINTF_TGT(_STRING),                                              \
+        "Parameter "#_NAME" is used to specify whether the "#_NAME" "       \
+        "extension is implemented. By default, "#_NAME" is set to %u in "   \
+        "this variant.",                                                    \
+        _RISCV->configInfo.vect_profile==RVVS_##_NAME                       \
+    );                                                                      \
+    vmidocAddText(_PARAMS, _STRING)
+
+//
 // Create processor documentation
 //
 static vmiDocNodeP docSMP(riscvP rootProcessor) {
@@ -321,7 +482,8 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     {
         vmiDocNodeP       Extensions = vmidocAddSection(Root, "Extensions");
         riscvArchitecture arch       = cfg->arch;
-        riscvArchitecture disabled   = getNotEnabled(cfg);
+        riscvArchitecture canEnable  = getCanEnable(cfg);
+        riscvArchitecture canDisable = getCanDisable(cfg);
 
         vmiDocNodeP EnabledExt = vmidocAddSection(
             Extensions, "Extensions Enabled by Default"
@@ -330,28 +492,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         vmidocAddText(
             EnabledExt,
             "The model has the following architectural extensions enabled, "
-            "and the following bits in the misa CSR Extensions field will "
+            "and the corresponding bits in the misa CSR Extensions field will "
             "be set upon reset:"
         );
 
-        while(arch) {
-
-            riscvArchitecture feature     = arch & -arch;
-            const char       *featureDesc = riscvGetFeatureName(feature);
-            Uns32             featureBit  = RISCV_FEATURE_INDEX(riscvGetFeatureChar(feature));
-
-            if(featureBit <= ('Z' - 'A')) {
-                snprintf(
-                    SNPRINTF_TGT(string),
-                    "misa bit %u: %s",
-                    featureBit,
-                    featureDesc ? featureDesc : "unknown feature"
-                );
-                vmidocAddText(EnabledExt, string);
-            }
-
-            arch = arch & ~feature;
-        }
+        // list enabled extensions
+        listFeatures(EnabledExt, arch, SNPRINTF_TGT(string));
 
         vmidocAddText(
             EnabledExt,
@@ -361,7 +507,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             "containing the feature letters to add; for example, value \"DV\" "
             "indicates that double-precision floating point and the Vector "
             "Extension can be enabled or disabled by writes to the misa "
-            "register, if supported on this variant."
+            "register, if supported on this variant. Parameter "
+            "\"sub_Extensions_mask\" can be used to disable dynamic update of "
+            "features in the same way."
         );
 
         vmidocAddText(
@@ -382,54 +530,67 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         // AVAILABLE EXTENSIONS
         ////////////////////////////////////////////////////////////////////////////
 
-        if(disabled) {
+        if(canEnable) {
 
-            Uns32 featureBit;
-
-            vmiDocNodeP AvailExt = vmidocAddSection(
-                Extensions, "Available Extensions Not Enabled by Default"
+            vmiDocNodeP ExtSubset = vmidocAddSection(
+                Extensions, "Enabling Other Extensions"
             );
 
             vmidocAddText(
-                AvailExt,
+                ExtSubset,
                 "The following extensions are supported by the model, but not "
                 "enabled by default in this variant:"
             );
 
-            for(featureBit = 0; featureBit <= ('Z'-'A'); featureBit++) {
-
-                riscvArchitecture feature = 1 << featureBit;
-
-                // report the extensions that are supported but not enabled
-                if(disabled & feature) {
-
-                    snprintf(
-                        SNPRINTF_TGT(string),
-                        "misa bit %d: %s",
-                        featureBit,
-                        riscvGetFeatureName(feature)
-                    );
-
-                    vmidocAddText(AvailExt, string);
-                }
-            }
+            // report the extensions that are supported but not enabled
+            listFeatures(ExtSubset, canEnable, SNPRINTF_TGT(string));
 
             vmidocAddText(
-                AvailExt,
-                "To add features from this list to the base variant, use "
-                "parameter \"add_Extensions\". This is a string parameter "
-                "containing the feature letters to add; for example, value "
-                "\"DV\" indicates that double-precision floating point and the "
-                "Vector Extension should be enabled, if they are currently absent "
-                "and are available on this variant."
+                ExtSubset,
+                "To enable features from this list, use parameter "
+                "\"add_Extensions\". This is a string containing "
+                "identification letters of features to enable; for example, "
+                "value \"DV\" indicates that double-precision floating point "
+                "and the Vector Extension should be enabled, if they are "
+                "currently absent and are available on this variant."
             );
 
             vmidocAddText(
-                AvailExt,
+                ExtSubset,
                 "Legacy parameter \"misa_Extensions\" can also be used. This "
                 "Uns32-valued parameter specifies the reset value for the misa "
                 "CSR Extensions field, replacing any permitted bits defined "
                 "in the base variant."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////////
+        // ENABLED EXTENSIONS THAT CAN BE DISABLED
+        ////////////////////////////////////////////////////////////////////////////
+
+        if(canDisable) {
+
+            vmiDocNodeP ExtSubset = vmidocAddSection(
+                Extensions, "Disabling Extensions"
+            );
+
+            vmidocAddText(
+                ExtSubset,
+                "The following extensions are enabled by default in the model "
+                "and can be disabled:"
+            );
+
+            // report the extensions that are enabled and can be disabled
+            listFeatures(ExtSubset, canDisable, SNPRINTF_TGT(string));
+
+            vmidocAddText(
+                ExtSubset,
+                "To disable features that are enabled by default, use "
+                "parameter \"sub_Extensions\". This is a string containing "
+                "identification letters of features to disable; for example, "
+                "value \"DF\" indicates that double-precision and "
+                "single-precision floating point extensions should be "
+                "disabled, if they are enabled by default on this variant."
             );
         }
     }
@@ -443,203 +604,211 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
         // document multicore behavior
         if(isSMP) {
+
+            vmiDocNodeP sub = vmidocAddSection(Features, "Multicore Features");
             snprintf(
                 SNPRINTF_TGT(string),
-                "This is a multicore variant with %u cores by default. "
-                "The number of cores may be overridden with the "
-                "\"numHarts\" parameter.",
+                "This is a multicore variant with %u harts by default. The "
+                "number of harts may be overridden with the \"numHarts\" "
+                "parameter.",
                 numHarts
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
         }
 
-        // document mtvec_is_ro behavior
-        if(cfg->mtvec_is_ro) {
+        // document mtvec CSR behavior
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "mtvec CSR");
 
-            // mtvec is read-only
-            vmidocAddText(
-                Features,
-                "On this variant, the Machine trap-vector base-address "
-                "register (mtvec) is read-only. It can instead be configured "
-                "as writable using parameter \"mtvec_is_ro\"."
-            );
+            // document mtvec_is_ro behavior
+            if(cfg->mtvec_is_ro) {
 
-        } else {
+                // mtvec is read-only
+                vmidocAddText(
+                    sub,
+                    "On this variant, the Machine trap-vector base-address "
+                    "register (mtvec) is read-only. It can instead be "
+                    "configured as writable using parameter \"mtvec_is_ro\"."
+                );
 
-            // mtvec is read/write
-            vmidocAddText(
-                Features,
-                "On this variant, the Machine trap-vector base-address "
-                "register (mtvec) is writable. It can instead be configured "
-                "as read-only using parameter \"mtvec_is_ro\"."
-            );
+            } else {
 
-            // document mtvec_mask behavior
+                // mtvec is read/write
+                vmidocAddText(
+                    sub,
+                    "On this variant, the Machine trap-vector base-address "
+                    "register (mtvec) is writable. It can instead be "
+                    "configured as read-only using parameter \"mtvec_is_ro\"."
+                );
+
+                // document mtvec_mask and mtvec_sext behavior
+                Uns64 tvec_mask = RD_CSR_MASK_M(riscv, mtvec);
+                addDocXTVec(cfg, sub, tvec_mask, "mtvec", "mtvec_mask");
+                addDocSExt(sub, cfg->mtvec_sext, "mtvec", "mtvec_sext");
+            }
+
+            // document mtvec initial value
             snprintf(
                 SNPRINTF_TGT(string),
-                "Values written to \"mtvec\" are masked using the value "
-                "0x"FMT_Ax". A different mask of writable bits may be "
-                "specified using parameter \"mtvec_mask\" if required. In "
-                "addition, when Vectored interrupt mode is enabled, parameter "
-                "\"tvec_align\" may be used to specify additional "
-                "hardware-enforced base address alignment. In this variant, "
-                "\"tvec_align\" defaults to %u%s.",
-                RD_CSR_MASK_M(riscv, mtvec),
-                cfg->tvec_align,
-                cfg->tvec_align ? "" : ", implying no alignment constraint"
+                "The initial value of \"mtvec\" is 0x"FMT_Ax". A different "
+                "value may be specified using parameter \"mtvec\" if required.",
+                RD_CSR_M(riscv, mtvec)
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
         }
 
-        // document mtvec
-        snprintf(
-            SNPRINTF_TGT(string),
-            "The initial value of \"mtvec\" is 0x"FMT_Ax". A different value "
-            "may be specified using parameter \"mtvec\" if required.",
-            RD_CSR_M(riscv, mtvec)
-        );
-        vmidocAddText(Features, string);
-
-        // document stvec_mask etc size
+        // document stvec CSR behavior
         if(cfg->arch&ISA_S) {
 
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Values written to \"stvec\" are masked using the value "
-                "0x"FMT_Ax". A different mask of writable bits may be "
-                "specified using parameter \"stvec_mask\" if required. "
-                "parameter \"tvec_align\" may be used to specify additional "
-                "hardware-enforced base address alignment in the same manner "
-                "as for the \"mtvec\" register, described above.",
-                RD_CSR_MASK_S(riscv, stvec)
-            );
+            vmiDocNodeP sub       = vmidocAddSection(Features, "stvec CSR");
+            Uns64       tvec_mask = RD_CSR_MASK_S(riscv, stvec);
 
-            vmidocAddText(Features, string);
+            addDocXTVec(cfg, sub, tvec_mask, "stvec", "stvec_mask");
+            addDocSExt(sub, cfg->stvec_sext, "stvec", "stvec_sext");
         }
 
-        // document utvec_mask etc size
+        // document utvec_mask and utvec_sext behavior
         if(cfg->arch&ISA_N) {
 
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Values written to \"utvec\" are masked using the value "
-                "0x"FMT_Ax". A different mask of writable bits may be "
-                "specified using parameter \"ucdtvec_mask\" if required. "
-                "parameter \"tvec_align\" may be used to specify additional "
-                "hardware-enforced base address alignment in the same manner "
-                "as for the \"mtvec\" register, described above.",
-                RD_CSR_MASK_U(riscv, utvec)
-            );
+            vmiDocNodeP sub       = vmidocAddSection(Features, "utvec CSR");
+            Uns64       tvec_mask = RD_CSR_MASK_U(riscv, utvec);
 
-            vmidocAddText(Features, string);
+            addDocXTVec(cfg, sub, tvec_mask, "utvec", "utvec_mask");
+            addDocSExt(sub, cfg->utvec_sext, "utvec", "utvec_sext");
         }
 
         // document reset behavior
-        snprintf(
-            SNPRINTF_TGT(string),
-            "On reset, the model will restart at address 0x"FMT_Ax". A "
-            "different reset address may be specified using parameter "
-            "\"reset_address\" or applied using optional input port "
-            "\"reset_addr\" if required.",
-            cfg->reset_address
-        );
-        vmidocAddText(Features, string);
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "Reset");
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "On reset, the model will restart at address 0x"FMT_Ax". A "
+                "different reset address may be specified using parameter "
+                "\"reset_address\" or applied using optional input port "
+                "\"reset_addr\" if required.",
+                cfg->reset_address
+            );
+            vmidocAddText(sub, string);
+        }
 
         // document NMI behavior
-        snprintf(
-            SNPRINTF_TGT(string),
-            "On an NMI, the model will restart at address 0x"FMT_Ax". A "
-            "different NMI address may be specified using parameter "
-            "\"nmi_address\" or applied using optional input port "
-            "\"nmi_addr\" if required.",
-            cfg->nmi_address
-        );
-        vmidocAddText(Features, string);
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "NMI");
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "On an NMI, the model will restart at address 0x"FMT_Ax". A "
+                "different NMI address may be specified using parameter "
+                "\"nmi_address\" or applied using optional input port "
+                "\"nmi_addr\" if required.",
+                cfg->nmi_address
+            );
+            vmidocAddText(sub, string);
+        }
 
         // document WFI behavior
-        if(cfg->wfi_is_nop) {
-            vmidocAddText(
-                Features,
-                "WFI is implemented as a NOP. It can instead be configured to "
-                "halt the processor until an interrupt occurs using parameter "
-                "\"wfi_is_nop\". WFI timeout wait is implemented with a time "
-                "limit of 0 (i.e. WFI causes an Illegal Instruction trap in "
-                "Supervisor mode when mstatus.TW=1)."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "WFI will halt the processor until an interrupt occurs. It can "
-                "instead be configured as a NOP using parameter \"wfi_is_nop\". "
-                "WFI timeout wait is implemented with a time limit of 0 (i.e. "
-                "WFI causes an Illegal Instruction trap in Supervisor mode "
-                "when mstatus.TW=1)."
-            );
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "WFI");
+
+            if(cfg->wfi_is_nop) {
+                vmidocAddText(
+                    sub,
+                    "WFI is implemented as a NOP. It can instead be configured "
+                    "to halt the processor until an interrupt occurs using "
+                    "parameter \"wfi_is_nop\". WFI timeout wait is implemented "
+                    "with a time limit of 0 (i.e. WFI causes an Illegal "
+                    "Instruction trap in Supervisor mode when mstatus.TW=1)."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "WFI will halt the processor until an interrupt occurs. It "
+                    "can instead be configured as a NOP using parameter "
+                    "\"wfi_is_nop\". WFI timeout wait is implemented with a "
+                    "time limit of 0 (i.e. WFI causes an Illegal Instruction "
+                    "trap in Supervisor mode when mstatus.TW=1)."
+                );
+            }
         }
 
         // document whether cycle CSR is implemented
-        if(cfg->cycle_undefined) {
-            vmidocAddText(
-                Features,
-                "The \"cycle\" CSR is not implemented in this variant and "
-                "reads of it will require emulation in Machine mode. Set "
-                "parameter \"cycle_undefined\" to False to instead specify "
-                "that \"cycle\" is implemented."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "The \"cycle\" CSR is implemented in this variant. Set "
-                "parameter \"cycle_undefined\" to True to instead specify that "
-                "\"cycle\" is unimplemented and reads of it should trap to "
-                "Machine mode."
-            );
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "cycle CSR");
+
+            if(cfg->cycle_undefined) {
+                vmidocAddText(
+                    sub,
+                    "The \"cycle\" CSR is not implemented in this variant and "
+                    "reads of it will require emulation in Machine mode. Set "
+                    "parameter \"cycle_undefined\" to False to instead specify "
+                    "that \"cycle\" is implemented."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "The \"cycle\" CSR is implemented in this variant. Set "
+                    "parameter \"cycle_undefined\" to True to instead specify "
+                    "that \"cycle\" is unimplemented and reads of it should "
+                    "trap to Machine mode."
+                );
+            }
         }
 
         // document whether time CSR is implemented
-        if(cfg->time_undefined) {
-            vmidocAddText(
-                Features,
-                "The \"time\" CSR is not implemented in this variant and reads "
-                "of it will require emulation in Machine mode. Set parameter "
-                "\"time_undefined\" to False to instead specify that \"time\" "
-                "is implemented."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "The \"time\" CSR is implemented in this variant. Set "
-                "parameter \"time_undefined\" to True to instead specify that "
-                "\"time\" is unimplemented and reads of it should trap to "
-                "Machine mode. Usually, the value of the \"time\" CSR should "
-                "be provided by the platform - see notes below about the "
-                "artifact \"CSR\" bus for information about how this is done."
-            );
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "time CSR");
+
+            if(cfg->time_undefined) {
+                vmidocAddText(
+                    sub,
+                    "The \"time\" CSR is not implemented in this variant and "
+                    "reads of it will require emulation in Machine mode. Set "
+                    "parameter \"time_undefined\" to False to instead specify "
+                    "that \"time\" is implemented."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "The \"time\" CSR is implemented in this variant. Set "
+                    "parameter \"time_undefined\" to True to instead specify "
+                    "that \"time\" is unimplemented and reads of it should "
+                    "trap to Machine mode. Usually, the value of the \"time\" "
+                    "CSR should be provided by the platform - see notes below "
+                    "about the artifact \"CSR\" bus for information about how "
+                    "this is done."
+                );
+            }
         }
 
         // document whether instret CSR is implemented
-        if(cfg->instret_undefined) {
-            vmidocAddText(
-                Features,
-                "The \"instret\" CSR is not implemented in this variant and "
-                "reads of it will require emulation in Machine mode. Set "
-                "parameter \"instret_undefined\" to False to instead specify "
-                "that \"instret\" is implemented."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "The \"instret\" CSR is implemented in this variant. Set "
-                "parameter \"instret_undefined\" to True to instead specify "
-                "that \"instret\" is unimplemented and reads of it should trap "
-                "to Machine mode."
-            );
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "instret CSR");
+
+            if(cfg->instret_undefined) {
+                vmidocAddText(
+                    sub,
+                    "The \"instret\" CSR is not implemented in this variant "
+                    "and reads of it will require emulation in Machine mode. "
+                    "Set parameter \"instret_undefined\" to False to instead "
+                    "specify that \"instret\" is implemented."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "The \"instret\" CSR is implemented in this variant. Set "
+                    "parameter \"instret_undefined\" to True to instead "
+                    "specify that \"instret\" is unimplemented and reads of it "
+                    "should trap to Machine mode."
+                );
+            }
         }
 
         // document ASID size
         if(cfg->arch&ISA_S) {
 
-            char svModes[256];
+            vmiDocNodeP sub = vmidocAddSection(Features, "ASID");
+            char        svModes[256];
 
             snprintf(
                 SNPRINTF_TGT(string),
@@ -647,7 +816,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "specify a different implemented ASID size if required.",
                 cfg->ASID_bits
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
 
             fillSvModes(svModes, cfg->Sv_modes);
             snprintf(
@@ -657,7 +826,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "required.",
                 svModes
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
 
             snprintf(
                 SNPRINTF_TGT(string),
@@ -674,47 +843,54 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "is %u",
                 cfg->ASID_cache_size
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
         }
 
         // document unaligned access behavior
-        if(cfg->unaligned) {
-            vmidocAddText(
-                Features,
-                "Unaligned memory accesses are supported by this variant. Set "
-                "parameter \"unaligned\" to \"F\" to disable such accesses."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "Unaligned memory accesses are not supported by this variant. "
-                "Set parameter \"unaligned\" to \"T\" to enable such accesses."
-            );
-        }
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "Unaligned Accesses");
 
-        // document unaligned access behavior for AMO instructions
-        if(!(cfg->arch&ISA_A)) {
-            // no action
-        } else if(cfg->unalignedAMO) {
-            vmidocAddText(
-                Features,
-                "Unaligned memory accesses are supported for AMO instructions "
-                "by this variant. Set parameter \"unalignedAMO\" to \"F\" to "
-                "disable such accesses."
-            );
-        } else {
-            vmidocAddText(
-                Features,
-                "Unaligned memory accesses are not supported for AMO "
-                "instructions by this variant. Set parameter \"unalignedAMO\" "
-                "to \"T\" to enable such accesses."
-            );
+            if(cfg->unaligned) {
+                vmidocAddText(
+                    sub,
+                    "Unaligned memory accesses are supported by this variant. "
+                    "Set parameter \"unaligned\" to \"F\" to disable such "
+                    "accesses."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "Unaligned memory accesses are not supported by this "
+                    "variant. Set parameter \"unaligned\" to \"T\" to enable "
+                    "such accesses."
+                );
+            }
+
+            // document unaligned access behavior for AMO instructions
+            if(!(cfg->arch&ISA_A)) {
+                // no action
+            } else if(cfg->unalignedAMO) {
+                vmidocAddText(
+                    sub,
+                    "Unaligned memory accesses are supported for AMO "
+                    "instructions by this variant. Set parameter "
+                    "\"unalignedAMO\" to \"F\" to disable such accesses."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "Unaligned memory accesses are not supported for AMO "
+                    "instructions by this variant. Set parameter "
+                    "\"unalignedAMO\" to \"T\" to enable such accesses."
+                );
+            }
         }
 
         // document PMP regions
         if(cfg->PMP_registers) {
 
-            Uns64 grainBytes = 4ULL<<cfg->PMP_grain;
+            vmiDocNodeP sub        = vmidocAddSection(Features, "PMP");
+            Uns64       grainBytes = 4ULL<<cfg->PMP_grain;
 
             snprintf(
                 SNPRINTF_TGT(string),
@@ -723,18 +899,24 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "entries; set the parameter to 0 to disable the PMP unit. "
                 "The PMP grain size (G) is %u, meaning that PMP regions as "
                 "small as "FMT_Au" bytes are implemented. Use parameter "
-                "\"PMP_grain\" to specify a different grain size if required.",
+                "\"PMP_grain\" to specify a different grain size if required. "
+                "Unaligned PMP accesses are %sdecomposed into separate aligned "
+                "accesses; use parameter \"PMP_decompose\" to modify this "
+                "behavior if required.",
                 cfg->PMP_registers,
                 cfg->PMP_grain,
-                grainBytes
+                grainBytes,
+                cfg->PMP_decompose ? "" : "not "
             );
 
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
 
         } else {
 
+            vmiDocNodeP sub = vmidocAddSection(Features, "PMP");
+
             vmidocAddText(
-                Features,
+                sub,
                 "A PMP unit is not implemented by this variant. Set parameter "
                 "\"PMP_registers\" to indicate that the unit should be "
                 "implemented with that number of PMP entries."
@@ -743,6 +925,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
         // document LR/SC reservation granule
         if(cfg->arch&ISA_A) {
+
+            vmiDocNodeP sub = vmidocAddSection(Features, "LR/SC Granule");
+
             snprintf(
                 SNPRINTF_TGT(string),
                 "LR/SC instructions are implemented with a %u-byte reservation "
@@ -750,9 +935,37 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "parameter \"lr_sc_grain\".",
                 cfg->lr_sc_grain
             );
-            vmidocAddText(Features, string);
+            vmidocAddText(sub, string);
         }
 
+        // document Zicsr
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "Zicsr");
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"Zicsr\" is %u on this variant, meaning that "
+                "standard CSRs and CSR access instructions are %simplemented. "
+                "If CSRs are not implemented, an alternative scheme must "
+                "be provided as a processor extension.",
+                !cfg->noZicsr, cfg->noZicsr ? "not " : ""
+            );
+            vmidocAddText(sub, string);
+        }
+
+        // document Zifencei
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "Zifencei");
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"Zifencei\" is %u on this variant, meaning that "
+                "the fence.i instruction is %simplemented. If implemented, "
+                "this instruction is treated as a NOP by the model.",
+                !cfg->noZifencei, cfg->noZifencei ? "not " : ""
+            );
+            vmidocAddText(sub, string);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1105,6 +1318,44 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // BIT-MANIPULATION EXTENSION VERSION 0.94
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version 0.94");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.94 version of January 20 2021, with these changes "
+                "compared to version 0.93:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions bset[i]w, bclr[i]w, binv[i]w and bextw removed."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // BIT-MANIPULATION EXTENSION VERSION 1.0.0
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extB, "Version 1.0.0");
+
+            vmidocAddText(
+                Version,
+                "Stable 1.0.0 version of June 6 2021, with these changes "
+                "compared to version 0.94:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions with immediate shift operands now follow base "
+                "architecture semantics to determine operand legality instead "
+                "of masking to XLEN-1."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // BIT-MANIPULATION EXTENSION VERSION MASTER
         ////////////////////////////////////////////////////////////////////////
 
@@ -1113,12 +1364,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 Version,
-                "Unstable master version as of January 20 2021, with these "
-                "changes compared to version 0.93:"
-            );
-            vmidocAddText(
-                Version,
-                "- instructions bset[i]w, bclr[i]w, binv[i]w and bextw removed."
+                "Unstable master version, currently identical to 1.0.0"
             );
         }
     }
@@ -1216,12 +1462,16 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             // add subset control parameter description
             addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkb, "Zkb",
-                "shared bit manipulation (not Zkg)"
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zbkb, "Zbkb",
+                "shared bit manipulation (not Zbkc or Zbkx)"
             );
             addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkg, "Zkg",
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zbkc, "Zbkc",
                 "carry-less multiply"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zbkx, "Zbkx",
+                "crossbar permutation"
             );
             addKFeature(
                 cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zkr, "Zkr",
@@ -1246,6 +1496,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             addKFeature(
                 cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zksh, "Zksh",
                 "SM3 hash function"
+            );
+
+            vmiDocNodeP Deprecated = vmidocAddSection(
+                extK, "Cryptographic Extension Deprecated Parameters"
+            );
+
+            addDeprecatedKFeature(
+                cfg, Deprecated, SNPRINTF_TGT(string), RVKS_Zkb, "Zkb", "Zbkb",
+                "shared bit manipulation"
+            );
+            addDeprecatedKFeature(
+                cfg, Deprecated, SNPRINTF_TGT(string), RVKS_Zkg, "Zkg", "Zbkc",
+                "carry-less multiply"
             );
         }
 
@@ -1318,6 +1581,40 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "- gorci instruction has been removed."
             );
         }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 0.9.2
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 0.9.2");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.9.2 version of June 11 2021, with these changes "
+                "compared to version 0.9.0:"
+            );
+            vmidocAddText(
+                Version,
+                "- aes32* and sm4* instruction encodings have been changed;"
+            );
+            vmidocAddText(
+                Version,
+                "- extensions Zbkx, Zbkc and Zbkb have been implemented;"
+            );
+            vmidocAddText(
+                Version,
+                "- packu[w] and rev8.w instructions have been removed from Zbkb;"
+            );
+            vmidocAddText(
+                Version,
+                "- mentropy CSR has been removed;"
+            );
+            vmidocAddText(
+                Version,
+                "- sentropy and mseccfg CSRs have been added."
+            );
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1378,6 +1675,17 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(Parameters, string);
 
+            // document EEW_index
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter EEW_index is used to specify the maximum supported "
+                "EEW for index load/store instructions (a power of two in the "
+                "range 8 to ELEN). By default, EEW_index is set to %u in this "
+                "variant.",
+                riscv->configInfo.EEW_index
+            );
+            vmidocAddText(Parameters, string);
+
             // document SEW_min
             snprintf(
                 SNPRINTF_TGT(string),
@@ -1388,25 +1696,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(Parameters, string);
 
-            // document Zvlsseg
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Parameter Zvlsseg is used to specify whether the Zvlsseg "
-                "extension is implemented. By default, Zvlsseg is set to %u in "
-                "this variant.",
-                riscv->configInfo.Zvlsseg
-            );
-            vmidocAddText(Parameters, string);
-
-            // document Zvamo
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Parameter Zvamo is used to specify whether the Zvamo "
-                "extension is implemented. By default, Zvamo is set to %u in "
-                "this variant.",
-                riscv->configInfo.Zvamo
-            );
-            vmidocAddText(Parameters, string);
+            // document Zvlsseg and Zvamo
+            DOC_EXTENSION(riscv, Parameters, string, Zvlsseg);
+            DOC_EXTENSION(riscv, Parameters, string, Zvamo);
 
             // document Zvediv
             snprintf(
@@ -1425,6 +1717,13 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 riscv->configInfo.Zvqmac
             );
             vmidocAddText(Parameters, string);
+
+            // document vector embedded profile parameters
+            DOC_VPROFILE(riscv, Parameters, string, Zve32x);
+            DOC_VPROFILE(riscv, Parameters, string, Zve32f);
+            DOC_VPROFILE(riscv, Parameters, string, Zve64x);
+            DOC_VPROFILE(riscv, Parameters, string, Zve64f);
+            DOC_VPROFILE(riscv, Parameters, string, Zve64d);
 
             // document require_vstart0
             snprintf(
@@ -1454,6 +1753,23 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "write illegal values to vtype cause an Illegal Instruction "
                 "trap. By default, vill_trap is set to %u in this variant.",
                 riscv->configInfo.vill_trap
+            );
+            vmidocAddText(Parameters, string);
+
+            // document agnostic_ones
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter agnostic_ones is used to specify whether agnostic "
+                "fields are filled with all-ones (from Vector Extension "
+                "version 0.9 only). By default, agnostic_ones is set to %u in "
+                "this variant, meaning %s.",
+                riscv->configInfo.agnostic_ones,
+                riscv->configInfo.agnostic_ones ?
+                "this feature is active for all mask tails, for vector tail "
+                "elements when vtype.vta=1 and for vector masked-off elements "
+                "when vtype.vma=1" :
+                "mask tails, vector tail elements and vector masked-off "
+                "elements all show undisturbed behavior"
             );
             vmidocAddText(Parameters, string);
         }
@@ -1899,6 +2215,37 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // VECTOR EXTENSION VERSION 1.0-rc1-20210608
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                Vector, "Version 1.0-rc1-20210608"
+            );
+
+            vmidocAddText(
+                Version,
+                "Stable 1.0-rc1-20210608 official release (commit 795a4dd), "
+                "with these changes compared to version 1.0-draft-20210130:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions vle1.v/vse1.v renamed vlm.v/vsm.v."
+            );
+            vmidocAddText(
+                Version,
+                "- instructions vfredsum.vs/vfwredsum.vs renamed "
+                "vfredusum.vs/vfwredusum.vs"
+            );
+            vmidocAddText(
+                Version,
+                "- whole-register load/store instructions now use the EEW "
+                "encoded in the instruction to determine element size "
+                "(previously, this was a hint and element size 8 was used)."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // VECTOR EXTENSION VERSION master
         ////////////////////////////////////////////////////////////////////////
 
@@ -1910,12 +2257,8 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVVV_MASTER_DATE" (commit "
-                RVVV_MASTER_TAG"), with these changes compared to version "
-                "1.0-draft-20210130:"
-            );
-            vmidocAddText(
-                Version,
-                "- instructions vle1.v/vse1.v renamed vlm.v/vsm.v."
+                RVVV_MASTER_TAG"). This is currently identical to  "
+                "1.0-rc1-20210608:"
             );
         }
     }
@@ -1924,8 +2267,38 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     // CLIC
     ////////////////////////////////////////////////////////////////////////////
 
-    {
+    if(!cfg->CLICLEVELS) {
+
         vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
+
+        vmidocAddText(
+            CLIC,
+            "The model can be configured to implement a Core Local Interrupt "
+            "Controller (CLIC) using parameter \"CLICLEVELS\"; when non-zero, "
+            "the CLIC is present with the specified number of interrupt "
+            "levels (2-256), as described in the RISC-V Core-Local Interrupt "
+            "Controller specification, and further parameters are made "
+            "available to configure other aspects of the CLIC. \"CLICLEVELS\" "
+            "is zero in this variant, indicating that a CLIC is not "
+            "implemented."
+        );
+
+    } else {
+
+        vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
+
+        // document trigger_num
+        snprintf(
+            SNPRINTF_TGT(string),
+            "This model implements a Core Local Interrupt Controller (CLIC) "
+            "with %u levels. Parameter \"CLICLEVELS\" can be used to specify "
+            "a different number of interrupt levels (2-256), as described in "
+            "the RISC-V Core-Local Interrupt Controller specification (see "
+            "references). Set \"CLICLEVELS\" to zero to indicate the CLIC "
+            "is not implemented.",
+            cfg->CLICLEVELS
+        );
+        vmidocAddText(CLIC, string);
 
         vmidocAddText(
             CLIC,
@@ -2026,6 +2399,11 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Parameters,
+                "\"CLIC_version\": this defines the version of the CLIC "
+                "specification that is implemented."
+            );
+            vmidocAddText(
+                Parameters,
                 "\"CLICCFGMBITS\": this Uns32 parameter indicates the number "
                 "of bits implemented in cliccfg.nmbits, and also indirectly "
                 "defines CLICPRIVMODES. For cores which implement only Machine "
@@ -2117,6 +2495,73 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "\"sec_lvl_o\": this output signal indicates the current "
                 "secure status of the processor, as a 2-bit value (00=User, "
                 "01:Supervisor, 11=Machine)."
+            );
+        }
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                CLIC, "CLIC Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "The CLIC specification has been under active development. "
+                "To enable simulation of hardware that may be based on an "
+                "older version of the specification, the model implements "
+                "behavior for a number of previous versions of the "
+                "specification. The differing features of these are listed "
+                "below, in chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION 0.9-draft-20191208
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version 0.9-draft-20191208"
+            );
+
+            vmidocAddText(
+                Version,
+                "Stable 0.9 version of December 8 2019."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
+                RVCLC_MASTER_TAG"), with these changes compared to version "
+                "0.9-draft-20191208:"
+            );
+            vmidocAddText(
+                Version,
+                "- level-sensitive interrupts may no longer be set pending "
+                "by software;"
+            );
+            vmidocAddText(
+                Version,
+                "- if there is an access exception on table load when "
+                "Selective Hardware Vectoring is enabled, both xtval and xepc "
+                "hold the faulting address;"
+            );
+            vmidocAddText(
+                Version,
+                "- if the xinhv bit is set, the target address for an xret "
+                "instruction is obtained by a load from address xepc."
             );
         }
     }
@@ -2820,6 +3265,56 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "externally as described above."
             );
         }
+
+        if(cfg->arch&ISA_S) {
+
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "Page Table Walk Introspection"
+            );
+
+            vmidocAddText(
+                leafSection,
+                "Artifact register \"PTWStage\" shows the active page table "
+                "translation stage (0 if no stage active, 1 if HS-stage "
+                "active, 2 if VS-stage active and 3 if G-stage active). This "
+                "register is visibly non-zero only in a memory access callback "
+                "triggered by a page table walk event."
+            );
+
+            vmidocAddText(
+                leafSection,
+                "Artifact register \"PTWInputAddr\" shows the input address "
+                "of active page table translation. This register is visibly "
+                "non-zero only in a memory access callback triggered by a page "
+                "table walk event."
+            );
+
+            vmidocAddText(
+                leafSection,
+                "Artifact register \"PTWLevel\" shows the active level of "
+                "page table translation (corresponding to index variable \"i\" "
+                "in the algorithm described by Virtual Address Translation "
+                "Process in the RISC-V Privileged Architecture specification). "
+                "This register is visibly non-zero only in a memory access "
+                "callback triggered by a page table walk event."
+            );
+        }
+
+        if(cfg->arch&ISA_DF) {
+
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "Artifact Register \"fflags_i\""
+            );
+
+            vmidocAddText(
+                leafSection,
+                "If parameter \"enable_fflags_i\" is True, an 8-bit artifact "
+                "register \"fflags_i\" is added to the model. This register "
+                "shows the floating point flags set by the current "
+                "instruction (unlike the standard \"fflags\" CSR, in which the "
+                "flag bits are sticky)."
+            );
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3011,11 +3506,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         if(cfg->CLICLEVELS) {
-            vmidocAddText(
-                References,
-                "RISC-V Core-Local Interrupt Controller (CLIC) Version "
-                "0.9-draft-20191208"
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V Core-Local Interrupt Controller (%s)",
+                riscvGetCLICVersionDesc(riscv)
             );
+            vmidocAddText(References, string);
         }
 
         // add custom references if required

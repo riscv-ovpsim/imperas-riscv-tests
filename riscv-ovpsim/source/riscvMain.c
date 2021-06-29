@@ -23,6 +23,7 @@
 
 // VMI header files
 #include "vmi/vmiAttrs.h"
+#include "vmi/vmiCommand.h"
 #include "vmi/vmiMessage.h"
 #include "vmi/vmiRt.h"
 
@@ -110,6 +111,7 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.getFPFlagsMt       = riscvGetFPFlagsMT;
     riscv->cb.getDataEndianMt    = riscvGetCurrentDataEndianMT;
     riscv->cb.requireModeMt      = riscvEmitRequireMode;
+    riscv->cb.requireNotVMt      = riscvEmitRequireNotV;
     riscv->cb.checkLegalRMMt     = riscvEmitCheckLegalRM;
     riscv->cb.morphTrapTVM       = riscvEmitTrapTVM;
     riscv->cb.morphVOp           = riscvMorphVOp;
@@ -118,6 +120,8 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.newCSR             = riscvNewCSR;
 
     // from riscvVM.h
+    riscv->cb.mapAddress         = riscvVMMiss;
+    riscv->cb.unmapPMPRegion     = riscvVMUnmapPMPRegion;
     riscv->cb.updateLdStDomain   = riscvVMRefreshMPRVDomain;
     riscv->cb.newTLBEntry        = riscvVMNewTLBEntry;
     riscv->cb.freeTLBEntry       = riscvVMFreeTLBEntry;
@@ -264,9 +268,121 @@ static void reportFixed(riscvArchitecture fixed, riscvConfigP cfg) {
 //
 #define ADD_K_SET(_PROC, _CFG, _PARAMS, _NAME) { \
     if(!_PARAMS->_NAME) {                       \
-        _CFG->crypto_absent |= RVKS_##_NAME;  \
+        _CFG->crypto_absent |= RVKS_##_NAME;    \
     }                                           \
     REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME);  \
+}
+
+//
+// Handle absent cryptographic subsets, alternative parameter names
+//
+#define ADD_K_SET2(_PROC, _CFG, _PARAMS, _NAME1, _NAME2) { \
+    if(_PARAMS->SETBIT(_NAME1)) {                   \
+        ADD_K_SET(_PROC, _CFG, _PARAMS, _NAME1);    \
+    } else {                                        \
+        ADD_K_SET(_PROC, _CFG, _PARAMS, _NAME2);    \
+    }                                               \
+}
+
+//
+// If sext is True, return the number of zero bits at the top of the mask
+//
+static Uns32 getSExtendBits(Bool sext, Int64 mask) {
+
+    Uns32 result = 0;
+
+    if(!sext) {
+        // no action
+    } else while(mask>0) {
+        mask <<= 1;
+        result++;
+    }
+
+    return result;
+}
+
+//
+// Names for embedded profiles
+//
+static const char *VNames[] = {
+    [RVVS_Zve32x] ="Zve32x",
+    [RVVS_Zve32f] ="Zve32f",
+    [RVVS_Zve64x] ="Zve32x",
+    [RVVS_Zve64f] ="Zve32f",
+    [RVVS_Zve64d] ="Zve32d",
+};
+
+//
+// Return selected Vector Extension embedded profile (one only)
+//
+static riscvVectorSet selectVProfile(riscvVectorSet old, riscvVectorSet new) {
+
+    if(old) {
+        vmiMessage("W", CPU_PREFIX"_IDVP",
+            "'%s' parameter ignored because '%s' already set",
+            VNames[new], VNames[old]
+        );
+    }
+
+    return old ? old : new;
+}
+
+//
+// Macro selecting at most one Vector Extension embedded profile
+//
+#define SELECT_V_PROFILE(_PARAMS, _CUR, _NEW) \
+    if(_PARAMS->_NEW) {                             \
+        _CUR = selectVProfile(_CUR, RVVS_##_NEW);   \
+    }
+
+//
+// Set implied vector extension profile
+//
+static void setVProfile(riscvP riscv, riscvParamValuesP params) {
+
+    riscvConfigP   cfg = &riscv->configInfo;
+    Bool           F   = cfg->arch & ISA_F;
+    Bool           D   = cfg->arch & ISA_D;
+    riscvVectorSet V   = RVVS_Application;
+
+    // get selected embedded profile
+    SELECT_V_PROFILE(params, V, Zve32x);
+    SELECT_V_PROFILE(params, V, Zve32f);
+    SELECT_V_PROFILE(params, V, Zve64x);
+    SELECT_V_PROFILE(params, V, Zve64f);
+    SELECT_V_PROFILE(params, V, Zve64d);
+
+    if(V==RVVS_Application) {
+
+        // application profile: enable F and D extensions if enabled in the base
+        if(F) {V |= RVVS_F;}
+        if(D) {V |= RVVS_D;}
+
+    } else {
+
+        // embedded profile
+        cfg->ELEN = ((V&RVVS_EEW64) ? 64 : 32);
+
+        riscvVectorSet new = V;
+
+        if((V&RVVS_F) && !F) {
+            new = V & ~(RVVS_F|RVVS_D);
+            vmiMessage("W", CPU_PREFIX"_IDVF",
+                "'%s' disabled because F extension absent - using %s",
+                VNames[V], VNames[new]
+            );
+        } else if((V&RVVS_D) && !D) {
+            new = V & ~RVVS_D;
+            vmiMessage("W", CPU_PREFIX"_IDVD",
+                "'%s' disabled because D extension absent - using %s",
+                VNames[V], VNames[new]
+            );
+        }
+
+        V = new;
+    }
+
+    cfg->vect_profile = V;
 }
 
 //
@@ -277,7 +393,8 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     riscvConfigP cfg = &riscv->configInfo;
 
     // set simulation controls
-    riscv->verbose = params->verbose;
+    riscv->verbose       = params->verbose;
+    riscv->traceVolatile = params->traceVolatile;
 
     // set data endian (instruction fetch is always little-endian)
     riscv->dendian = params->endian;
@@ -302,6 +419,14 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->csrMask.stvt.u64.bits  = params->stvt_mask;
     cfg->csrMask.utvt.u64.bits  = params->utvt_mask;
 
+    // get implied CSR sign extension configuration parameters
+    cfg->mtvec_sext = getSExtendBits(params->mtvec_sext, params->mtvec_mask);
+    cfg->stvec_sext = getSExtendBits(params->stvec_sext, params->stvec_mask);
+    cfg->utvec_sext = getSExtendBits(params->utvec_sext, params->utvec_mask);
+    cfg->mtvt_sext  = getSExtendBits(params->mtvt_sext,  params->mtvt_mask);
+    cfg->stvt_sext  = getSExtendBits(params->stvt_sext,  params->stvt_mask);
+    cfg->utvt_sext  = getSExtendBits(params->utvt_sext,  params->utvt_mask);
+
     // handle parameters that are overridden only if explicitly set (affects
     // disassembly of instructions for extensions that are not configured)
     EXPLICIT_PARAM(cfg, params, vect_version,     vector_version);
@@ -319,8 +444,10 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->priv_version        = params->priv_version;
     cfg->hyp_version         = params->hypervisor_version;
     cfg->dbg_version         = params->debug_version;
+    cfg->CLIC_version        = params->CLIC_version;
     cfg->Zfinx_version       = params->Zfinx_version;
     cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
+    cfg->agnostic_ones       = params->agnostic_ones;
     cfg->MXL_writable        = params->MXL_writable;
     cfg->SXL_writable        = params->SXL_writable;
     cfg->UXL_writable        = params->UXL_writable;
@@ -341,6 +468,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->PMP_grain           = params->PMP_grain;
     cfg->PMP_registers       = params->PMP_registers;
     cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");
+    cfg->PMP_decompose       = params->PMP_decompose;
     cfg->Sv_modes            = params->Sv_modes | RISCV_VMM_BARE;
     cfg->local_int_num       = params->local_int_num;
     cfg->unimp_int_mask      = params->unimp_int_mask;
@@ -382,14 +510,16 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->no_sselect_2        = params->no_sselect_2;
     cfg->enable_CSR_bus      = params->enable_CSR_bus;
     cfg->d_requires_f        = params->d_requires_f;
+    cfg->enable_fflags_i     = params->enable_fflags_i;
     cfg->xret_preserves_lr   = params->xret_preserves_lr;
     cfg->require_vstart0     = params->require_vstart0;
     cfg->align_whole         = params->align_whole;
     cfg->vill_trap           = params->vill_trap;
     cfg->mstatus_FS_zero     = params->mstatus_FS_zero;
-    cfg->ELEN                = powerOfTwo(params->ELEN, "ELEN");
-    cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN, "VLEN");
-    cfg->SEW_min             = powerOfTwo(params->SEW_min, "SEW_min");
+    cfg->ELEN                = powerOfTwo(params->ELEN,      "ELEN");
+    cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN,      "VLEN");
+    cfg->EEW_index           = powerOfTwo(params->EEW_index, "EEW_index");
+    cfg->SEW_min             = powerOfTwo(params->SEW_min,   "SEW_min");
     cfg->Zvlsseg             = params->Zvlsseg;
     cfg->Zvamo               = params->Zvamo;
     cfg->Zvediv              = params->Zvediv;
@@ -408,113 +538,16 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->mclicbase_undefined = params->mclicbase_undefined;
     cfg->GEILEN              = params->GEILEN;
     cfg->xtinst_basic        = params->xtinst_basic;
+    cfg->noZicsr             = !params->Zicsr;
+    cfg->noZifencei          = !params->Zifencei;
 
-    // some F-extension parameters require a commercial product
-    REQUIRE_COMMERCIAL(riscv, params, Zfinx_version);
-
-    // some V-extension parameters require a commercial product
-    REQUIRE_COMMERCIAL(riscv, params, Zvlsseg);
-    REQUIRE_COMMERCIAL(riscv, params, Zvamo);
-    REQUIRE_COMMERCIAL(riscv, params, Zvqmac);
-    REQUIRE_COMMERCIAL(riscv, params, Zvediv);
-
-    // trigger module parameters require a commercial product
-    REQUIRE_COMMERCIAL(riscv, params, tinfo_undefined);
-    REQUIRE_COMMERCIAL(riscv, params, tcontrol_undefined);
-    REQUIRE_COMMERCIAL(riscv, params, mcontext_undefined);
-    REQUIRE_COMMERCIAL(riscv, params, scontext_undefined);
-    REQUIRE_COMMERCIAL(riscv, params, amo_trigger);
-    REQUIRE_COMMERCIAL(riscv, params, no_hit);
-    REQUIRE_COMMERCIAL(riscv, params, no_sselect_2);
-    REQUIRE_COMMERCIAL(riscv, params, trigger_num);
-    REQUIRE_COMMERCIAL(riscv, params, tinfo);
-    REQUIRE_COMMERCIAL(riscv, params, mcontext_bits);
-    REQUIRE_COMMERCIAL(riscv, params, scontext_bits);
-    REQUIRE_COMMERCIAL(riscv, params, mvalue_bits);
-    REQUIRE_COMMERCIAL(riscv, params, svalue_bits);
-    REQUIRE_COMMERCIAL(riscv, params, mcontrol_maskmax);
-
-    // handle SLEN (always the same as VLEN from version 1.0)
-    if(!riscvVFSupport(riscv, RVVF_SLEN_IS_VLEN)) {
-        cfg->SLEN = powerOfTwo(params->SLEN, "SLEN");
-    } else if((params->VLEN!=params->SLEN) && params->SETBIT(SLEN)) {
-        vmiMessage("W", CPU_PREFIX"_ISLEN",
-            "'SLEN' parameter now ignored - using VLEN (%u)",
-            cfg->SLEN
-        );
-    }
-
-    // initialise vector-version-dependent mstatus.VS
-    if(riscvVFSupport(riscv, RVVF_VS_STATUS_9)) {
-        cfg->csr.mstatus.u32.fields.VS_9 = params->mstatus_VS;
-    } else {
-        cfg->csr.mstatus.u32.fields.VS_8 = params->mstatus_VS;
-    }
-
-    // initialise vector-version-dependent vtype format
-    if(riscvVFSupport(riscv, RVVF_VTYPE_10)) {
-        riscv->vtypeFormat = RV_VTF_1_0;
-    } else {
-        riscv->vtypeFormat = RV_VTF_0_9;
-    }
-
-    // handle bit manipulation subset parameters
-    cfg->bitmanip_absent = 0;
-    ADD_BM_SET(riscv, cfg, params, Zba);
-    ADD_BM_SET(riscv, cfg, params, Zbb);
-    ADD_BM_SET(riscv, cfg, params, Zbc);
-    ADD_BM_SET(riscv, cfg, params, Zbe);
-    ADD_BM_SET(riscv, cfg, params, Zbf);
-    ADD_BM_SET(riscv, cfg, params, Zbm);
-    ADD_BM_SET(riscv, cfg, params, Zbp);
-    ADD_BM_SET(riscv, cfg, params, Zbr);
-    ADD_BM_SET(riscv, cfg, params, Zbs);
-    ADD_BM_SET(riscv, cfg, params, Zbt);
-
-    // handle cryptographic profile parameters
-    cfg->crypto_absent = 0;
-    ADD_K_SET(riscv, cfg, params, Zkb);
-    ADD_K_SET(riscv, cfg, params, Zkg);
-    ADD_K_SET(riscv, cfg, params, Zkr);
-    ADD_K_SET(riscv, cfg, params, Zknd);
-    ADD_K_SET(riscv, cfg, params, Zkne);
-    ADD_K_SET(riscv, cfg, params, Zknh);
-    ADD_K_SET(riscv, cfg, params, Zksed);
-    ADD_K_SET(riscv, cfg, params, Zksh);
+    ////////////////////////////////////////////////////////////////////////////
+    // FUNDAMENTAL CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
 
     // set number of children
     Bool isSMPMember = riscv->parent && !riscvIsCluster(riscv->parent);
     cfg->numHarts = isSMPMember ? 0 : params->numHarts;
-
-    // Zvqmac extension is only available after version RVVV_0_8_20191004
-    cfg->Zvqmac = params->Zvqmac && (params->vector_version>RVVV_0_8_20191004);
-
-    // force VLEN >= ELEN unless explicitly supported
-    if((cfg->VLEN<cfg->ELEN) && !riscvVFSupport(riscv, RVVF_ELEN_GT_VLEN)) {
-        vmiMessage("W", CPU_PREFIX"_IVLEN",
-            "'VLEN' (%u) less than 'ELEN' (%u) - forcing VLEN=%u",
-            cfg->VLEN, cfg->ELEN, cfg->ELEN
-        );
-        cfg->VLEN = cfg->ELEN;
-    }
-
-    // force SLEN <= VLEN
-    if(cfg->SLEN>cfg->VLEN) {
-        vmiMessage("W", CPU_PREFIX"_ISLEN",
-            "'SLEN' (%u) exceeds 'VLEN' (%u) - forcing SLEN=%u",
-            cfg->SLEN, cfg->VLEN, cfg->VLEN
-        );
-        cfg->SLEN = cfg->VLEN;
-    }
-
-    // force SEW_min <= ELEN
-    if(cfg->SEW_min>cfg->ELEN) {
-        vmiMessage("W", CPU_PREFIX"_ISEW",
-            "'SEW_min' (%u) exceeds 'ELEN' (%u) - forcing SEW_min=%u",
-            cfg->SEW_min, cfg->ELEN, cfg->ELEN
-        );
-        cfg->SEW_min = cfg->ELEN;
-    }
 
     // get specified MXL
     Uns32 misa_MXL = params->misa_MXL;
@@ -542,9 +575,11 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     riscvArchitecture misa_Extensions      = params->misa_Extensions;
     riscvArchitecture misa_Extensions_mask = params->misa_Extensions_mask;
 
-    // include extensions specified by letter
-    misa_Extensions      |= riscvParseExtensions(params->add_Extensions);
-    misa_Extensions_mask |= riscvParseExtensions(params->add_Extensions_mask);
+    // exclude/include extensions specified by letter
+    misa_Extensions      &= ~riscvParseExtensions(params->sub_Extensions);
+    misa_Extensions_mask &= ~riscvParseExtensions(params->sub_Extensions_mask);
+    misa_Extensions      |=  riscvParseExtensions(params->add_Extensions);
+    misa_Extensions_mask |=  riscvParseExtensions(params->add_Extensions_mask);
 
     // if the H extension is implemented then S and U must also be present
     if(misa_Extensions & ISA_H) {
@@ -581,10 +616,18 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     // only bits that are initially non-zero in misa_Extensions are writable
     misa_Extensions_mask &= misa_Extensions;
 
+    // from Zfinx version 0.41, misa.[FDQ] are read-only
+    if(cfg->Zfinx_version>=RVZFINX_0_41) {
+        misa_Extensions_mask &= ~(ISA_F|ISA_D|ISA_Q);
+    }
+
     // define architecture and writable bits
     Uns32 misa_MXL_mask = cfg->MXL_writable ? 3 : 0;
     cfg->arch     = misa_Extensions      | (misa_MXL<<XLEN_SHIFT);
     cfg->archMask = misa_Extensions_mask | (misa_MXL_mask<<XLEN_SHIFT);
+
+    // enable_fflags_i can only be set if floating point is present
+    cfg->enable_fflags_i = cfg->enable_fflags_i && (cfg->arch&ISA_DF);
 
     // initialize ISA_XLEN in currentArch and matching xlenMask (required so
     // WR_CSR_FIELD etc work correctly)
@@ -596,6 +639,156 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
 
     // allocate CSR remap list
     riscvNewCSRRemaps(riscv, params->CSR_remap);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // VALIDATE COMMERCIAL FEATURES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // some F-extension parameters require a commercial product
+    REQUIRE_COMMERCIAL(riscv, params, Zfinx_version);
+
+    // some V-extension parameters require a commercial product
+    REQUIRE_COMMERCIAL(riscv, params, Zvlsseg);
+    REQUIRE_COMMERCIAL(riscv, params, Zvamo);
+    REQUIRE_COMMERCIAL(riscv, params, Zvqmac);
+    REQUIRE_COMMERCIAL(riscv, params, Zvediv);
+    REQUIRE_COMMERCIAL(riscv, params, Zve32x);
+    REQUIRE_COMMERCIAL(riscv, params, Zve32f);
+    REQUIRE_COMMERCIAL(riscv, params, Zve64x);
+    REQUIRE_COMMERCIAL(riscv, params, Zve64f);
+    REQUIRE_COMMERCIAL(riscv, params, Zve64d);
+
+    // trigger module parameters require a commercial product
+    REQUIRE_COMMERCIAL(riscv, params, tinfo_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, tcontrol_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, mcontext_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, scontext_undefined);
+    REQUIRE_COMMERCIAL(riscv, params, amo_trigger);
+    REQUIRE_COMMERCIAL(riscv, params, no_hit);
+    REQUIRE_COMMERCIAL(riscv, params, no_sselect_2);
+    REQUIRE_COMMERCIAL(riscv, params, trigger_num);
+    REQUIRE_COMMERCIAL(riscv, params, tinfo);
+    REQUIRE_COMMERCIAL(riscv, params, mcontext_bits);
+    REQUIRE_COMMERCIAL(riscv, params, scontext_bits);
+    REQUIRE_COMMERCIAL(riscv, params, mvalue_bits);
+    REQUIRE_COMMERCIAL(riscv, params, svalue_bits);
+    REQUIRE_COMMERCIAL(riscv, params, mcontrol_maskmax);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // VECTOR EXTENSION CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // set the interpreted Vector Extension profile
+    setVProfile(riscv, params);
+
+    // handle SLEN (always the same as VLEN from version 1.0)
+    if(!riscvVFSupport(riscv, RVVF_SLEN_IS_VLEN)) {
+        cfg->SLEN = powerOfTwo(params->SLEN, "SLEN");
+    } else if((params->VLEN!=params->SLEN) && params->SETBIT(SLEN)) {
+        vmiMessage("W", CPU_PREFIX"_ISLEN",
+            "'SLEN' parameter now ignored - using VLEN (%u)",
+            cfg->SLEN
+        );
+    }
+
+    // initialise vector-version-dependent mstatus.VS
+    if(riscvVFSupport(riscv, RVVF_VS_STATUS_9)) {
+        cfg->csr.mstatus.u32.fields.VS_9 = params->mstatus_VS;
+    } else {
+        cfg->csr.mstatus.u32.fields.VS_8 = params->mstatus_VS;
+    }
+
+    // initialise vector-version-dependent vtype format
+    if(riscvVFSupport(riscv, RVVF_VTYPE_10)) {
+        riscv->vtypeFormat = RV_VTF_1_0;
+    } else {
+        riscv->vtypeFormat = RV_VTF_0_9;
+    }
+
+    // Zvqmac extension is only available after version RVVV_0_8_20191004
+    cfg->Zvqmac = params->Zvqmac && (params->vector_version>RVVV_0_8_20191004);
+
+    // force VLEN >= ELEN unless explicitly supported
+    if((cfg->VLEN<cfg->ELEN) && !riscvVFSupport(riscv, RVVF_ELEN_GT_VLEN)) {
+        vmiMessage("W", CPU_PREFIX"_IVLEN",
+            "'VLEN' (%u) less than 'ELEN' (%u) - forcing VLEN=%u",
+            cfg->VLEN, cfg->ELEN, cfg->ELEN
+        );
+        cfg->VLEN = cfg->ELEN;
+    }
+
+    // force SLEN <= VLEN
+    if(cfg->SLEN>cfg->VLEN) {
+        vmiMessage("W", CPU_PREFIX"_ISLEN",
+            "'SLEN' (%u) exceeds 'VLEN' (%u) - forcing SLEN=%u",
+            cfg->SLEN, cfg->VLEN, cfg->VLEN
+        );
+        cfg->SLEN = cfg->VLEN;
+    }
+
+    // force EEW_index <= ELEN
+    if(!cfg->EEW_index) {
+        cfg->EEW_index = cfg->ELEN;
+    } else if(cfg->EEW_index>cfg->ELEN) {
+        vmiMessage("W", CPU_PREFIX"_IEEWI",
+            "'EEW_index' (%u) exceeds 'ELEN' (%u) - forcing EEW_index=%u",
+            cfg->EEW_index, cfg->ELEN, cfg->ELEN
+        );
+        cfg->EEW_index = cfg->ELEN;
+    }
+
+    // force SEW_min <= ELEN
+    if(cfg->SEW_min>cfg->ELEN) {
+        vmiMessage("W", CPU_PREFIX"_ISEW",
+            "'SEW_min' (%u) exceeds 'ELEN' (%u) - forcing SEW_min=%u",
+            cfg->SEW_min, cfg->ELEN, cfg->ELEN
+        );
+        cfg->SEW_min = cfg->ELEN;
+    }
+
+    // disable agnostic_ones if not supported
+    if(cfg->agnostic_ones && !riscvVFSupport(riscv, RVVF_AGNOSTIC)) {
+        if(params->SETBIT(agnostic_ones)) {
+            vmiMessage("W", CPU_PREFIX"_A1NA",
+                "agnostic_ones not applicable for %s - ignored",
+                riscvGetVectorVersionDesc(riscv)
+            );
+        }
+        cfg->agnostic_ones = False;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // BIT MANIPULATION EXTENSION CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle bit manipulation subset parameters
+    cfg->bitmanip_absent = 0;
+    ADD_BM_SET(riscv, cfg, params, Zba);
+    ADD_BM_SET(riscv, cfg, params, Zbb);
+    ADD_BM_SET(riscv, cfg, params, Zbc);
+    ADD_BM_SET(riscv, cfg, params, Zbe);
+    ADD_BM_SET(riscv, cfg, params, Zbf);
+    ADD_BM_SET(riscv, cfg, params, Zbm);
+    ADD_BM_SET(riscv, cfg, params, Zbp);
+    ADD_BM_SET(riscv, cfg, params, Zbr);
+    ADD_BM_SET(riscv, cfg, params, Zbs);
+    ADD_BM_SET(riscv, cfg, params, Zbt);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CRYPTOGRAPHIC EXTENSION CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle cryptographic profile parameters
+    cfg->crypto_absent = 0;
+    ADD_K_SET2(riscv, cfg, params, Zbkb, Zkb);
+    ADD_K_SET2(riscv, cfg, params, Zbkc, Zkg);
+    ADD_K_SET(riscv, cfg, params, Zbkx);
+    ADD_K_SET(riscv, cfg, params, Zkr);
+    ADD_K_SET(riscv, cfg, params, Zknd);
+    ADD_K_SET(riscv, cfg, params, Zkne);
+    ADD_K_SET(riscv, cfg, params, Zknh);
+    ADD_K_SET(riscv, cfg, params, Zksed);
+    ADD_K_SET(riscv, cfg, params, Zksh);
 }
 
 //
@@ -700,6 +893,11 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         // allocate CLIC data structures if required
         if(CLICInternal(riscv)) {
             riscvNewCLIC(riscv, smpContext->index);
+        }
+
+        // add CSR commands
+        if(!isPSE(riscv)) {
+            riscvAddCSRCommands(riscv);
         }
 
         // do initial reset
@@ -854,6 +1052,7 @@ VMI_SAVE_STATE_FN(riscvSaveState) {
         case SRT_END_CORE:
             // end of individual core
             VMIRT_SAVE_FIELD(cxt, riscv, mode);
+            VMIRT_SAVE_FIELD(cxt, riscv, disable);
             VMIRT_SAVE_FIELD(cxt, riscv, exclusiveTag);
             VMIRT_SAVE_FIELD(cxt, riscv, disableMask);
             break;
@@ -914,6 +1113,7 @@ VMI_RESTORE_STATE_FN(riscvRestoreState) {
         case SRT_END_CORE:
             // end of individual core
             VMIRT_RESTORE_FIELD(cxt, riscv, mode);
+            VMIRT_RESTORE_FIELD(cxt, riscv, disable);
             VMIRT_RESTORE_FIELD(cxt, riscv, exclusiveTag);
             VMIRT_RESTORE_FIELD(cxt, riscv, disableMask);
             refreshModeRestore(riscv);

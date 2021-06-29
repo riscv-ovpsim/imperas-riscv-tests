@@ -69,12 +69,14 @@ typedef struct riscvConfigS {
     riscvUserVer      user_version;     // user-level ISA version
     riscvPrivVer      priv_version;     // privileged architecture version
     riscvVectVer      vect_version;     // vector architecture version
+    riscvVectorSet    vect_profile;     // vector architecture profile
     riscvBitManipVer  bitmanip_version; // bitmanip architecture version
     riscvBitManipSet  bitmanip_absent;  // bitmanip absent extensions
     riscvCryptoVer    crypto_version;   // cryptographic architecture version
     riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
     riscvHypVer       hyp_version;      // hypervisor architecture version
     riscvDebugVer     dbg_version;      // debugger architecture version
+    riscvCLICVer      CLIC_version;     // CLIC version
     riscvZfinxVer     Zfinx_version;    // Zfinx version
     riscvFP16Ver      fp16_version;     // 16-bit floating point version
     riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
@@ -107,6 +109,7 @@ typedef struct riscvConfigS {
     Uns32             ELEN;             // ELEN (vector extension)
     Uns32             SLEN;             // SLEN (vector extension)
     Uns32             VLEN;             // VLEN (vector extension)
+    Uns32             EEW_index;        // maximum index EEW (vector extension)
     Uns32             SEW_min;          // minimum SEW (vector extension)
     Uns32             ASID_cache_size;  // ASID cache size
     Uns16             tinfo;            // tinfo default value (all triggers)
@@ -119,9 +122,16 @@ typedef struct riscvConfigS {
     Uns8              svalue_bits;      // implemented bits in textra.svalue
     Uns8              mcontrol_maskmax; // configured value of mcontrol.maskmax
     Uns8              dcsr_ebreak_mask; // mask of writable dcsr.ebreak* bits
+    Uns8              mtvec_sext;       // mtvec sign-extended bit count
+    Uns8              stvec_sext;       // stvec sign-extended bit count
+    Uns8              utvec_sext;       // utvec sign-extended bit count
+    Uns8              mtvt_sext;        // mtvec sign-extended bit count
+    Uns8              stvt_sext;        // stvec sign-extended bit count
+    Uns8              utvt_sext;        // utvec sign-extended bit count
     Bool              isPSE;            // whether a PSE (internal use only)
     Bool              endianFixed;      // endianness is fixed (UBE/SBE/MBE r/o)
     Bool              ABI_d;            // ABI uses D registers for parameters
+    Bool              agnostic_ones;    // when agnostic elements set to 1
     Bool              MXL_writable;     // writable bits in misa.MXL
     Bool              SXL_writable;     // writable bits in mstatus.SXL
     Bool              UXL_writable;     // writable bits in mstatus.UXL
@@ -132,6 +142,8 @@ typedef struct riscvConfigS {
     Bool              Zvqmac;           // Zvqmac implemented?
     Bool              unitStrideOnly;   // only unit-stride operations supported
     Bool              noFaultOnlyFirst; // fault-only-first instructions absent?
+    Bool              noZicsr;          // whether Zicsr is absent
+    Bool              noZifencei;       // whether Zifencei is absent
     Bool              updatePTEA;       // hardware update of PTE A bit?
     Bool              updatePTED;       // hardware update of PTE D bit?
     Bool              unaligned;        // whether unaligned accesses supported
@@ -151,6 +163,7 @@ typedef struct riscvConfigS {
     Bool              no_hit;           // whether tdata1.hit is unimplemented
     Bool              no_sselect_2;     // whether textra.sselect=2 is illegal
     Bool              d_requires_f;     // whether misa D requires F to be set
+    Bool              enable_fflags_i;  // whether fflags_i register present
     Bool              mstatus_FS_zero;  // whether mstatus.FS hardwired to zero
     Bool              xret_preserves_lr;// whether xRET preserves current LR
     Bool              require_vstart0;  // require vstart 0 if uninterruptible?
@@ -158,6 +171,7 @@ typedef struct riscvConfigS {
     Bool              vill_trap;        // trap instead of setting vill?
     Bool              enable_CSR_bus;   // enable CSR implementation bus
     Bool              mcounteren_present;// force mcounteren to be present
+    Bool              PMP_decompose;    // decompose unaligned PMP accesses
     Bool              PMP_undefined;    // force all PMP registers undefined
     Bool              external_int_id;  // enable external interrupt ID ports
     Bool              tval_zero;        // whether [smu]tval are always zero

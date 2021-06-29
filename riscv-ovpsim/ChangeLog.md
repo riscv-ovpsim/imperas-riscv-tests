@@ -11,6 +11,81 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- When connected to a client gdb, floating point register values are now
+  available using 'p' packet transactions instead of being passed in the 'p'
+  packet (which does not work reliably on some versions of gdb).
+- CLIC behavior when exceptions occur in trap vector table reads occur has been
+  corrected - this is now indicated by setting inhv in the source mode cause
+  register (previously, it was indicated by setting inhv in the target mode
+  cause register)
+- Debug Mode has been enhanced:
+  - Version 1.0.0 has been defined;
+  - Trigger matching using sbytemask in textra32/textra64 is now implemented.
+- New cryptographic version 0.9.2 has been added, with these differences
+  compared to the previous 0.9.0 version:
+  - aes32* and sm4* instruction encodings have been changed;
+  - Extensions Zbkx, Zbkc and Zbkb have been implemented;
+  - packu[w] and rev8.w instructions have been removed from Zbkb;
+  - mentropy CSR has been removed;
+  - sentropy and mseccnf CSRs have been added.
+- The signature dump library has been updated to ensure the signature region 
+  is written by the test program. This check is not performed if the test is
+  found to contain the symbol main().
+- New vector version 1.0-rc1-20210608 has been added, with these differences
+  compared to the previous 1.0-draft-20210130 version:
+  - V-commit c841730: whole-register loads and stores use the encoded EEW to 
+    determine element size (previously, this was a hint and element size 8 was 
+    used);
+  - V-commit 4ab6506: vle1.v/vse1.v renamed vlm.v/vsm.v;
+  - V-commit a66753c: vfredsum.vs/vfwredsum.vs renamed vfredusum.vs/
+    vfwredusum.vs;
+  - V-commit 808a6f8: parameters Zve32x, Zve32f, Zve64x, Zve64f and Zve64d have
+    been added to enable embedded profiles.
+- Writes to PMP configuration registers that attempt to set the reserved
+  combination R=0/W=1 now set R=0/W=0 instead (following WARL semantics).
+- New Boolean parameter agnostic_ones has been added; when True, agnostic
+  elements of vector registers will be filled with ones; when False, they will
+  be left undisturbed.
+- New Boolean parameter enable_fflags_i has been added; when True, an additional
+  8-bit artifact register fflags_i is configured, which reports the floating 
+  point flags set by the current instruction only (unlike the standard fflags
+  CSR, which reports cumulative results). 
+- New parameters mtvec_sext, stvec_sext, utvec_sext, mtvt_sext, stvt_sext and
+  utvt_sext enable sign-extension of xtvec and xtvt registers from the most
+  significant writable bit (as specified by equivalent mask parameters).
+- Behavior of xperm.w has been corrected for large rs2 values.
+- For SC instructions, both alignment and access permissions are now checked
+  irrespective of whether a reservation is active. Previously, only alignment
+  constraints were checked if the reservation was inactive.
+- Writes to CSRs that disable counters (e.g. mcountinhibit) now take effect
+  before the next instruction instead of on the current instruction.
+- Behavior for Privileged Version 1.11 has been changed so that ECALL and EBREAK
+  instructions no longer count as retired (as specified in version 1.12), since
+  this appears to be an omission from the 1.11 specification and not an
+  intentional enhancement in version 1.12.
+- Zfinx version 0.41 is implemented. This is identical to version 0.4 except
+  that misa fields F, D and Q are hardwired to zero.
+- CLIC behavior when Selective Hardware Vectoring is enabled has been modified
+  to allow recovery from vertical traps.
+- Triggers that cause exceptions now write xtval registers with any address
+  causing the trigger, instead of the current program counter.
+- A bug has been fixed in which TLB entry mappings were not correctly
+  invalidated by hfence.gvma if those mappings were used for Guest page table
+  walks.
+- Decodes for Bit Manipulation instructions greviw, gorciw, sloiw, sroiw and 
+  roriw have been corrected.
+- New parameter PMP_decompose forces unaligned PMP accesses to be decomposed
+  into separate aligned accesses.
+- Scalar floating point fmin/fmax operations now execute successfully when the
+  current rounding mode is illegal; previously, an Illegal Instruction
+  exception was raised.
+- Some Vector Extension issues have been corrected:
+  - A bug in vfrec7.v when rounding to the maximum value has been fixed.
+  - For whole-register load/store instructions, the memory layout has been
+    corrected so that the lowest-numbered vector register is held in the 
+    lowest-numbered memory addresses and successive vector register numbers are
+    placed contiguously in memory
+
 Date 2021-March-15
 Release 20210312.0
 ===

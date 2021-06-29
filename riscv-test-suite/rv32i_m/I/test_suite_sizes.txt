@@ -1,0 +1,74 @@
+# Imperas RISC-V Architecture Tests for RV32I_M/I
+
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| ADDI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| ORI-01                             |     5,124 |       2,672  |           608  |                 642  |
+| ANDI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| LUI-01                             |     5,124 |       1,840  |           608  |                 438  |
+| AUIPC-01                           |     5,124 |       3,560  |           608  |                 874  |
+| JAL-01                             |     5,124 |       4,392  |           608  |                 786  |
+| JALR-01                            |     5,124 |       5,544  |           608  |               1,078  |
+| BEQ-01                             |     5,124 |       5,936  |           608  |               1,435  |
+| BNE-01                             |     5,124 |       5,936  |           608  |               1,176  |
+| BLT-01                             |     5,124 |       5,936  |           608  |               1,306  |
+| BGE-01                             |     5,124 |       5,936  |           608  |               1,305  |
+| BLTU-01                            |     5,124 |       5,936  |           608  |               1,367  |
+| BGEU-01                            |     5,124 |       5,936  |           608  |               1,244  |
+| LB-01                              |     5,124 |       4,776  |           608  |               1,170  |
+| LH-01                              |     5,124 |       4,776  |           608  |               1,170  |
+| LW-01                              |     5,380 |       4,776  |           608  |               1,170  |
+| LBU-01                             |     5,124 |       4,776  |           608  |               1,170  |
+| LHU-01                             |     5,124 |       4,776  |           608  |               1,170  |
+| SB-01                              |     5,124 |       4,916  |           608  |               1,206  |
+| SH-01                              |     5,124 |       4,916  |           608  |               1,206  |
+| SW-01                              |     5,124 |       4,916  |           608  |               1,206  |
+| SLTI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| SLTIU-01                           |     5,124 |       2,672  |           608  |                 642  |
+| XORI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| SLLI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| SRLI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| SRAI-01                            |     5,124 |       2,672  |           608  |                 642  |
+| ADD-01                             |     5,124 |       3,368  |           608  |                 822  |
+| SUB-01                             |     5,124 |       3,368  |           608  |                 822  |
+| SLL-01                             |     5,124 |       3,312  |           608  |                 810  |
+| SLT-01                             |     5,124 |       3,368  |           608  |                 822  |
+| SLTU-01                            |     5,124 |       3,368  |           608  |                 822  |
+| XOR-01                             |     5,124 |       3,368  |           608  |                 822  |
+| SRL-01                             |     5,124 |       3,312  |           608  |                 810  |
+| SRA-01                             |     5,124 |       3,312  |           608  |                 810  |
+| OR-01                              |     5,124 |       3,368  |           608  |                 822  |
+| AND-01                             |     5,124 |       3,368  |           608  |                 822  |
+| I-DELAY_SLOTS-01                   |     4,612 |         688  |            32  |                 146  |
+| I-EBREAK-01                        |     4,612 |         488  |            16  |                 104  |
+| I-ECALL-01                         |     4,612 |         488  |            16  |                 104  |
+| I-ENDIANESS-01                     |     4,612 |         488  |            32  |                 104  |
+| I-IO-01                            |     4,612 |       1,068  |           176  |                 251  |
+| I-MISALIGN_JMP-01                  |     4,612 |       1,012  |           144  |                 321  |
+| I-MISALIGN_LDST-01                 |     4,612 |         812  |           176  |                 285  |
+| I-NOP-01                           |     4,612 |         744  |           128  |                 164  |
+| I-RF_size-01                       |     4,612 |         816  |           144  |                 190  |
+| I-RF_width-01                      |     4,612 |       1,076  |           128  |                 214  |
+| I-RF_x0-01                         |     4,612 |         684  |            48  |                 147  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

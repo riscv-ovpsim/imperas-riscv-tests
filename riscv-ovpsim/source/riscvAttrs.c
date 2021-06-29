@@ -99,7 +99,9 @@ const vmiIASAttr modelAttrs = {
 
     .startBlockCB       = riscvStartBlock,
     .endBlockCB         = riscvEndBlock,
+    .preMorphCB         = riscvPreMorph,
     .morphCB            = riscvMorph,
+    .postMorphCB        = riscvPostMorph,
     .fetchSnapCB        = riscvFetchSnap,
     .rdSnapCB           = riscvRdSnap,
     .wrSnapCB           = riscvWrSnap,
@@ -110,6 +112,7 @@ const vmiIASAttr modelAttrs = {
 
     .getEndianCB        = riscvGetEndian,
     .nextPCCB           = riscvNextPC,
+    .fetchCB            = riscvFetch,
     .disCB              = riscvDisassemble,
     .switchCB           = riscvContextSwitchCB,
 

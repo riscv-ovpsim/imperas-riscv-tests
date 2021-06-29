@@ -53,11 +53,11 @@ typedef enum riscvBExtOpE {
 
     // operations implemented as callbacks or version-specific
     RVBOP_GORC,         // gorc/gorci
-    RVBOP_ORCB,         // gorci subset in Zbb set
-    RVBOP_ORC16,        // gorci subset in Zbb or Zbbp set
+    RVBOP_ORCB,         // orcb
+    RVBOP_ORC16,        // orc16
     RVBOP_GREV,         // grev/grevi
-    RVBOP_REV8,         // grevi subset in Zbb set
-    RVBOP_REV,          // grevi subset in Zbb set
+    RVBOP_REV8,         // rev8
+    RVBOP_REV,          // rev
     RVBOP_CRC32,        // crc32/crc32c
     RVBOP_SHFL,         // shfl/shfli
     RVBOP_UNSHFL,       // unshfl/unshfli

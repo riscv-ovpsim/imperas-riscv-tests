@@ -147,6 +147,11 @@ void riscvVMFreePMP(riscvP riscv);
 void riscvVMResetPMP(riscvP riscv);
 
 //
+// Unmap PMP region with the given index
+//
+void riscvVMUnmapPMPRegion(riscvP riscv, Uns32 regionIndex);
+
+//
 // Refresh the current data domain to reflect current mstatus.MPRV setting
 //
 void riscvVMRefreshMPRVDomain(riscvP riscv);

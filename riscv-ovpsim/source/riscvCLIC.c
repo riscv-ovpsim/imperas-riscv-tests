@@ -92,6 +92,13 @@ inline static Uns64 getCLICLow(riscvP root) {
 }
 
 //
+// Indicate whether software may set a level-sensitive interrupt pending
+//
+inline static Bool mayPendLevel(riscvP hart) {
+    return hart->configInfo.CLIC_version==RVCLC_0_9_20191208;
+}
+
+//
 // Return the page index of the given offset
 //
 inline static Uns32 getCLICPage(Uns32 offset) {
@@ -351,10 +358,10 @@ inline static void setCLICInterruptPending(
     riscvP hart,
     Uns32  intIndex,
     Bool   newValue,
-    Bool   isStore
+    Bool   mayPendAny
 ) {
     // level-triggered pending values are not latched
-    if(isStore || isCLICInterruptEdge(hart, intIndex)) {
+    if(mayPendAny || isCLICInterruptEdge(hart, intIndex)) {
         setCLICInterruptField(hart, intIndex, CIT_clicintip, newValue);
     }
 }
@@ -412,14 +419,14 @@ static void writeCLICInterruptPending(
     riscvP hart,
     Uns32  intIndex,
     Uns8   newValue,
-    Bool   isStore
+    Bool   mayPendAny
 ) {
     Bool oldIE = getCLICInterruptEnable(hart, intIndex);
     Bool newIP = newValue&1;
 
     // update field, detecting change in pending+enabled
     Bool oldIPE = getCLICPendingEnable(hart, intIndex);
-    setCLICInterruptPending(hart, intIndex, newIP, isStore);
+    setCLICInterruptPending(hart, intIndex, newIP, mayPendAny);
     Bool newIPE = oldIE && newIP;
 
     // update state if pending+enabled has changed
@@ -613,9 +620,11 @@ static void writeCLICInterrupt(riscvP root, Uns32 offset, Uns8 newValue) {
 
         switch(getCLICIntFieldType(offset)) {
 
-            case CIT_clicintip:
-                writeCLICInterruptPending(hart, intIndex, newValue, True);
+            case CIT_clicintip: {
+                Bool mayPendAny = mayPendLevel(hart);
+                writeCLICInterruptPending(hart, intIndex, newValue, mayPendAny);
                 break;
+            }
 
             case CIT_clicintie:
                 writeCLICInterruptEnable(hart, intIndex, newValue);
@@ -1007,7 +1016,12 @@ void riscvFreeCLIC(riscvP riscv) {
 void riscvResetCLIC(riscvP riscv) {
 
     if(riscv->clic.intState) {
+
+        // force all interrupts to M-mode at level 255
         cliccfgW(riscv, 0);
+
+        // indicate exception handler is inactive
+        WR_CSRC(riscv, mintstatus, 0);
     }
 }
 

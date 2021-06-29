@@ -324,6 +324,13 @@ typedef RISCV_GET_DATA_ENDIAN_MT_FN((*riscvGetDataEndianMtFn));
 typedef RISCV_REQUIRE_MODE_MT_FN((*riscvRequireModeMtFn));
 
 //
+// Validate the hart is not in virtual mode and  and emit a Virtual Instruction
+// exception call if not
+//
+#define RISCV_REQUIRE_NOT_V_MT_FN(_NAME) Bool _NAME(riscvP riscv)
+typedef RISCV_REQUIRE_NOT_V_MT_FN((*riscvRequireNotVMtFn));
+
+//
 // Validate the given rounding mode is legal and emit an Illegal Instruction
 // exception call if not
 //
@@ -367,6 +374,29 @@ typedef RISCV_MORPH_VOP_FN((*riscvMorphVOpFn));
 typedef RISCV_NEW_CSR_FN((*riscvNewCSRFn));
 
 //
+// Try mapping memory at the passed address for the specified access type and
+// return a status code indicating if virtual mapping failed
+//
+#define RISCV_MAP_ADDRESS_FN(_NAME) Bool _NAME( \
+    riscvP         riscv,           \
+    memDomainP     domain,          \
+    memPriv        requiredPriv,    \
+    Uns64          address,         \
+    Uns32          bytes,           \
+    memAccessAttrs attrs            \
+)
+typedef RISCV_MAP_ADDRESS_FN((*riscvMapAddressFn));
+
+//
+// Unmap the indexed PMP region
+//
+#define RISCV_UNMAP_PMP_REGION_FN(_NAME) void _NAME( \
+    riscvP riscv,                   \
+    Uns32  regionIndex              \
+)
+typedef RISCV_UNMAP_PMP_REGION_FN((*riscvUnmapPMPRegionFn));
+
+//
 // Update load/store domain on state change
 //
 #define RISCV_UPDATE_LD_ST_DOMAIN_FN(_NAME) void _NAME(riscvP riscv)
@@ -398,6 +428,20 @@ typedef RISCV_FREE_TLB_ENTRY_FN((*riscvFreeTLBEntryFn));
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Callback indicate whether misaligned read or write accesses should be
+// indicated by access fault exceptions instead of the default address
+// misaligned exceptions
+//
+#define RISCV_RD_WR_FAULT_FN(_NAME) Bool _NAME( \
+    riscvP     riscv,           \
+    memDomainP domain,          \
+    Addr       address,         \
+    Uns32      bytes,           \
+    void      *clientData       \
+)
+typedef RISCV_RD_WR_FAULT_FN((*riscvRdWrFaultFn));
+
+//
 // Callback to handle misaligned read or write accesses when these should either
 // cause the read/write address to be snapped or cause the read/written value to
 // be rotated, or both. The return value should be constructed using the
@@ -407,9 +451,11 @@ typedef RISCV_FREE_TLB_ENTRY_FN((*riscvFreeTLBEntryFn));
 //
 #define RISCV_RD_WR_SNAP_FN(_NAME) Uns32 _NAME( \
     riscvP     riscv,           \
+    memDomainP domain,          \
     Addr       address,         \
     Uns32      bytes,           \
-    atomicCode atomic           \
+    atomicCode atomic,          \
+    void      *clientData       \
 )
 typedef RISCV_RD_WR_SNAP_FN((*riscvRdWrSnapFn));
 
@@ -526,6 +572,17 @@ typedef RISCV_TLOAD_FN((*riscvTLoadFn));
 typedef RISCV_TSTORE_FN((*riscvTStoreFn));
 
 //
+// Refine access privilege for accesses to the indicated PMP region
+//
+#define RISCV_PMP_PRIV_FN(_NAME) memPriv _NAME( \
+    riscvP  riscv,              \
+    memPriv priv,               \
+    Uns32   regionIndex,        \
+    void   *clientData          \
+)
+typedef RISCV_PMP_PRIV_FN((*riscvPMPPrivFn));
+
+//
 // Does the extension implement PMA mapping?
 //
 #define RISCV_PMA_ENABLE_FN(_NAME) Bool _NAME( \
@@ -558,6 +615,18 @@ typedef RISCV_PMA_CHECK_FN((*riscvPMACheckFn));
     void      *clientData       \
 )
 typedef RISCV_VM_TRAP_FN((*riscvVMTrapFn));
+
+//
+// Do custom checks to indicate whether a PTE is valid
+//
+#define RISCV_VALID_PTE_FN(_NAME) Bool _NAME( \
+    riscvP      riscv,          \
+    riscvTLBId  id,             \
+    riscvVAMode vaMode,         \
+    Uns64       PTE,            \
+    void       *clientData      \
+)
+typedef RISCV_VALID_PTE_FN((*riscvValidPTEFn));
 
 //
 // Notifier called when current data domain is refreshed
@@ -643,6 +712,7 @@ typedef struct riscvModelCBS {
     riscvGetFPFlagsMtFn       getFPFlagsMt;
     riscvGetDataEndianMtFn    getDataEndianMt;
     riscvRequireModeMtFn      requireModeMt;
+    riscvRequireNotVMtFn      requireNotVMt;
     riscvCheckLegalRMMtFn     checkLegalRMMt;
     riscvMorphTrapTVMFn       morphTrapTVM;
     riscvMorphVOpFn           morphVOp;
@@ -651,6 +721,8 @@ typedef struct riscvModelCBS {
     riscvNewCSRFn             newCSR;
 
     // from riscvVM.h
+    riscvMapAddressFn         mapAddress;
+    riscvUnmapPMPRegionFn     unmapPMPRegion;
     riscvUpdateLdStDomainFn   updateLdStDomain;
     riscvNewTLBEntryFn        newTLBEntry;
     riscvFreeTLBEntryFn       freeTLBEntry;
@@ -670,6 +742,8 @@ typedef struct riscvExtCBS {
     void                     *clientData;
 
     // exception modification
+    riscvRdWrFaultFn          rdFaultCB;
+    riscvRdWrFaultFn          wrFaultCB;
     riscvRdWrSnapFn           rdSnapCB;
     riscvRdWrSnapFn           wrSnapCB;
 
@@ -696,12 +770,16 @@ typedef struct riscvExtCBS {
     riscvTLoadFn              tLoad;
     riscvTStoreFn             tStore;
 
+    // PMP support actions
+    riscvPMPPrivFn            PMPPriv;
+
     // PMA check actions
     riscvPMAEnableFn          PMAEnable;
     riscvPMACheckFn           PMACheck;
 
     // virtual memory actions
     riscvVMTrapFn             VMTrap;
+    riscvValidPTEFn           validPTE;
     riscvSetDomainNotifierFn  setDomainNotifier;
     riscvFreeEntryNotifierFn  freeEntryNotifier;
 

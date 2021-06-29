@@ -1,0 +1,72 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32F RV32F Single-Precision Floating-Point:
+    143 test source files
+    5 different instruction categories
+    40 different instructions
+    57,830 total instructions
+
+Instruction category: OPF_SCI Single-Precision Floating-Point Computational
+  fadd.s : 310
+  fdiv.s : 310
+  fmadd.s : 310
+  fmax.s : 31
+  fmin.s : 31
+  fmsub.s : 310
+  fmul.s : 310
+  fnmadd.s : 310
+  fnmsub.s : 310
+  fsqrt.s : 310
+  fsub.s : 310
+Instruction category: OPF_SCL Single-Precision Floating-Point Classify
+  fclass.s : 31
+Instruction category: OPF_SCM Single-Precision Floating-Point Conversion and Move
+  fmv.s.x : 7,750
+  fmv.x.s : 3,658
+  fcvt.s.w : 310
+  fcvt.s.wu : 310
+  fcvt.w.s : 310
+  fcvt.wu.s : 310
+  fsgnj.s : 31
+  fsgnjn.s : 31
+  fsgnjx.s : 31
+Instruction category: OPF_SCP Single-Precision Floating-Point Compare
+  feq.s : 31
+  fle.s : 31
+  flt.s : 31
+Instruction category: OPF_SLS Single-Precision Floating-Point Load and Store
+  fsw : 3,658
+  flw : 31
+
+Other instructions (those not the focus of this suite)
+  jal : 143
+  lui : 11,777
+  addi : 13,195
+  csrrs : 572
+  auipc : 1,747
+  csrrw : 429
+  mret : 143
+  csrrci : 4,402
+  sw : 5,208
+  fence : 143
+  ecall : 143
+  beq : 429
+  add : 62
+  lw : 31
+

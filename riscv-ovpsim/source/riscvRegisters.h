@@ -55,6 +55,7 @@
 #define RISCV_DM_STALL          RISCV_CPU_REG(DMStall)
 #define RISCV_COMMERCIAL        RISCV_CPU_REG(commercial)
 #define RISCV_FP_FLAGS          RISCV_CPU_REG(fpFlagsMT)
+#define RISCV_FP_FLAGS_I        RISCV_CPU_REG(fpFlagsI)
 #define RISCV_SF_FLAGS          RISCV_CPU_REG(SFMT)
 #define RISCV_JUMP_BASE         RISCV_CPU_REG(jumpBase)
 #define RISCV_PM_KEY            RISCV_CPU_REG(pmKey)

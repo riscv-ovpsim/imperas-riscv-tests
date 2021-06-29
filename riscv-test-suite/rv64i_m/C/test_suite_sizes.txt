@@ -1,0 +1,57 @@
+# Imperas RISC-V Architecture Tests for RV64I_M/C
+
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| C-ADD-01                           |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-ADDW-01                          |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-MV-01                            |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-ADDI-01                          |     6,664 |       4,922  |         2,208  |               1,521  |
+| C-ADDIW-01                         |     6,664 |       4,912  |         2,208  |               1,519  |
+| C-LI-01                            |     6,664 |       4,912  |         2,208  |               1,519  |
+| C-LUI-01                           |     6,664 |       3,064  |         2,208  |                 911  |
+| C-AND-01                           |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-OR-01                            |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-SUB-01                           |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-SUBW-01                          |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-XOR-01                           |     6,664 |       6,258  |         2,208  |               2,007  |
+| C-ANDI-01                          |     6,664 |       4,976  |         2,208  |               1,519  |
+| C-BEQZ-01                          |     6,664 |       8,688  |         2,208  |               2,666  |
+| C-BNEZ-01                          |     6,664 |       8,688  |         2,208  |               2,181  |
+| C-J-01                             |     6,664 |       6,586  |         2,208  |               1,569  |
+| C-JALR-01                          |     6,664 |       9,014  |         2,208  |               2,116  |
+| C-JR-01                            |     6,664 |       9,014  |         2,208  |               2,116  |
+| C-LW-01                            |     7,176 |       7,804  |         2,208  |               2,282  |
+| C-LD-01                            |     7,944 |       7,856  |         2,208  |               2,279  |
+| C-LWSP-01                          |     7,176 |       7,670  |         2,208  |               2,280  |
+| C-LDSP-01                          |     7,944 |       7,726  |         2,208  |               2,278  |
+| C-SLLI-01                          |     6,664 |       4,912  |         2,208  |               1,519  |
+| C-SRAI-01                          |     6,664 |       4,976  |         2,208  |               1,519  |
+| C-SRLI-01                          |     6,664 |       4,976  |         2,208  |               1,519  |
+| C-SW-01                            |     6,664 |       8,050  |         2,208  |               2,474  |
+| C-SD-01                            |     6,664 |       8,058  |         2,208  |               2,476  |
+| C-SWSP-01                          |     6,664 |       8,048  |         2,208  |               2,474  |
+| C-SDSP-01                          |     6,664 |       8,056  |         2,208  |               2,476  |
+| I-C-EBREAK-01                      |     4,616 |       1,148  |            16  |                 271  |
+| I-C-NOP-01                         |     4,616 |       1,338  |           128  |                 330  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

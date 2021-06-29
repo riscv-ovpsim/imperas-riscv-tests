@@ -188,6 +188,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (vstval),       // 0x243
     CSR_ID      (vsip),         // 0x244
     CSR_ID      (vsatp),        // 0x280
+    CSR_ID      (sentropy),     // 0xDBF
 
     CSR_ID      (mvendorid),    // 0xF11
     CSR_ID      (marchid),      // 0xF12
@@ -217,6 +218,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mtinst),       // 0x34A
     CSR_ID      (mclicbase),    // 0x34B
     CSR_ID      (mtval2),       // 0x34B
+    CSR_ID      (mseccfg),      // 0x390
     CSR_ID_0_15 (pmpcfg),       // 0x3A0-0x3AF
     CSR_ID_0_63 (pmpaddr),      // 0x3B0-0x3EF
     CSR_ID      (mcycle),       // 0xB00
@@ -266,6 +268,11 @@ typedef enum riscvCSRIdE {
 // Initialize CSR state
 //
 void riscvCSRInit(riscvP riscv, Uns32 index);
+
+//
+// Add CSR commands
+//
+void riscvAddCSRCommands(riscvP riscv);
 
 //
 // Free CSR state
@@ -389,14 +396,14 @@ typedef struct riscvCSRDetailsS {
 } riscvCSRDetails, *riscvCSRDetailsP;
 
 //
-// Iterator filling 'details' with the next CSR register details -
-// 'details.name' should be initialized to NULL prior to the first call
+// Iterator filling 'details' with the next CSR register details. The value
+// pointed to by 'csrNumP' should be initialized to zero prior to the first call
+// and is used by this function to manage the iteration.
 //
 Bool riscvGetCSRDetails(
     riscvP           riscv,
     riscvCSRDetailsP details,
-    Uns32           *csrNumP,
-    Bool             normal
+    Uns32           *csrNumP
 );
 
 //
@@ -1120,6 +1127,24 @@ typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mip);
 #define WM32_mip  0x00000337
 
 // -----------------------------------------------------------------------------
+// mseccfg      (id 0x390)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 _u1   :  8;
+    Uns32 SKES  :  1;
+    Uns32 _u2   : 23;
+} CSR_REG_TYPE_32(mseccfg);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(mseccfg);
+
+// define write masks
+#define WM32_mseccfg 0x00000100
+#define WM64_mseccfg 0x00000100
+
+// -----------------------------------------------------------------------------
 // hgeip (id 0xE12)
 // hgeie (id 0x607)
 // -----------------------------------------------------------------------------
@@ -1810,20 +1835,22 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tdata2);
 
 // 32-bit view
 typedef struct {
-    Uns32 sselect  :  2;
-    Uns32 svalue   : 16;
-    Uns32 _u1      :  5;
-    Uns32 mhselect :  3;
-    Uns32 mhvalue  :  6;
+    Uns32 sselect   :  2;
+    Uns32 svalue    : 16;
+    Uns32 sbytemask :  2;
+    Uns32 _u1       :  3;
+    Uns32 mhselect  :  3;
+    Uns32 mhvalue   :  6;
 } CSR_REG_TYPE_32(tdata3);
 
 // 64-bit view
 typedef struct {
-    Uns64 sselect  :  2;
-    Uns64 svalue   : 34;
-    Uns64 _u1      : 12;
-    Uns64 mhselect :  3;
-    Uns64 mhvalue  : 13;
+    Uns64 sselect   :  2;
+    Uns64 svalue    : 34;
+    Uns64 sbytemask :  5;
+    Uns64 _u1       :  7;
+    Uns64 mhselect  :  3;
+    Uns64 mhvalue   : 13;
 } CSR_REG_TYPE_64(tdata3);
 
 // define 32/64 bit type
@@ -1898,7 +1925,12 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(scontext);
 // Use this to define a register entry in riscvCSRs below with normal and
 // virtual aliases
 //
-#define CSR_REG_DECL_V(_N) CSR_REG_TYPE(_N) _N, v##_N
+#define CSR_REG_DECL_V(_N)  CSR_REG_TYPE(_N) _N, v##_N
+
+//
+// Use this to define a register read-only mask in riscvCSRs below
+//
+#define CSR_RO_DECL(_N)     CSR_REG_TYPE(_N) _N##_RO
 
 //
 // This type defines the CSRs implemented as true registers in the processor
@@ -1975,6 +2007,7 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (mtinst);         // 0x34A
     CSR_REG_DECL  (mclicbase);      // 0x34B
     CSR_REG_DECL  (mtval2);         // 0x34B
+    CSR_REG_DECL  (mseccfg);        // 0x390
 
     // TRIGGER CSRS
     CSR_REG_DECL  (tselect);        // 0x7A0
@@ -2054,6 +2087,7 @@ typedef struct riscvCSRMasksS {
 
     // DEBUG MODE CSRS
     CSR_REG_DECL  (dcsr);           // 0x7B0
+    CSR_RO_DECL   (dcsr);           // 0x7B0 (read-only mask)
 
 } riscvCSRMasks;
 
@@ -2104,6 +2138,9 @@ typedef struct riscvCSRMasksS {
 // bitwise-and raw value using common view
 #define AND_RAWC(_R, _VALUE) AND_RAW32(_R, _VALUE)
 
+// bitwise-or raw value using common view
+#define OR_RAWC(_R, _VALUE) OR_RAW32(_R, _VALUE)
+
 // set CSR value using XLEN=32 view
 #define WR_CSR32(_CPU, _RNAME, _VALUE) WR_RAW32((_CPU)->csr._RNAME, _VALUE)
 
@@ -2131,6 +2168,15 @@ typedef struct riscvCSRMasksS {
 // set raw field using common view
 #define WR_RAW_FIELDC(_R, _FIELD, _VALUE) WR_RAW_FIELD32(_R, _FIELD, _VALUE)
 
+// bitwise-or raw field using XLEN=32 view
+#define OR_RAW_FIELD32(_R, _FIELD, _VALUE) (_R).u32.fields._FIELD |= _VALUE
+
+// bitwise-or raw field using XLEN=64 view
+#define OR_RAW_FIELD64(_R, _FIELD, _VALUE) (_R).u64.fields._FIELD |= _VALUE
+
+// bitwise-or raw field using common view
+#define OR_RAW_FIELDC(_R, _FIELD, _VALUE) OR_RAW_FIELD32(_R, _FIELD, _VALUE)
+
 // get CSR field in XLEN=32 view
 #define RD_CSR_FIELD32(_CPU, _RNAME, _FIELD) \
     RD_RAW_FIELD32((_CPU)->csr._RNAME, _FIELD)
@@ -2155,6 +2201,18 @@ typedef struct riscvCSRMasksS {
 #define WR_CSR_FIELDC(_CPU, _RNAME, _FIELD, _VALUE) \
     WR_CSR_FIELD32(_CPU, _RNAME, _FIELD, _VALUE)
 
+// bitwise-or CSR field in XLEN=32 view
+#define OR_CSR_FIELD32(_CPU, _RNAME, _FIELD, _VALUE) \
+    OR_RAW_FIELD32((_CPU)->csr._RNAME, _FIELD, _VALUE)
+
+// bitwise-or CSR field in XLEN=64 view
+#define OR_CSR_FIELD64(_CPU, _RNAME, _FIELD, _VALUE) \
+    OR_RAW_FIELD64((_CPU)->csr._RNAME, _FIELD, _VALUE)
+
+// bitwise-or CSR field using common view
+#define OR_CSR_FIELDC(_CPU, _RNAME, _FIELD, _VALUE) \
+    OR_CSR_FIELD32(_CPU, _RNAME, _FIELD, _VALUE)
+
 // get CSR mask using XLEN=32 view
 #define RD_CSR_MASK32(_CPU, _RNAME) (_CPU)->csrMask._RNAME.u32.bits
 
@@ -2163,6 +2221,12 @@ typedef struct riscvCSRMasksS {
 
 // get CSR mask using common view
 #define RD_CSR_MASKC(_CPU, _RNAME) RD_CSR_MASK32(_CPU, _RNAME)
+
+// get CSR read-only mask using XLEN=32 view
+#define RO_CSR_MASK32(_CPU, _RNAME) (_CPU)->csrMask._RNAME##_RO.u32.bits
+
+// get CSR read-only mask using common view
+#define RO_CSR_MASKC(_CPU, _RNAME) RO_CSR_MASK32(_CPU, _RNAME)
 
 // get CSR mask field in XLEN=32 view
 #define RD_CSR_MASK_FIELD32(_CPU, _RNAME, _FIELD) \
@@ -2203,6 +2267,18 @@ typedef struct riscvCSRMasksS {
 // set field mask to all 1's in common view
 #define WR_CSR_MASK_FIELDC_1(_CPU, _RNAME, _FIELD) \
     WR_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, -1)
+
+// set read-only field mask to the given value in 64-bit view
+#define RO_CSR_MASK_FIELD64(_CPU, _RNAME, _FIELD, _VALUE) \
+    (_CPU)->csrMask._RNAME##_RO.u64.fields._FIELD = _VALUE
+
+// set read-only field mask to the given value in common view
+#define RO_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, _VALUE) \
+    RO_CSR_MASK_FIELD64(_CPU, _RNAME, _FIELD, _VALUE)
+
+// set read-only field mask to all 1's in common view
+#define RO_CSR_MASK_FIELDC_1(_CPU, _RNAME, _FIELD) \
+    RO_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, -1)
 
 
 ////////////////////////////////////////////////////////////////////////////////

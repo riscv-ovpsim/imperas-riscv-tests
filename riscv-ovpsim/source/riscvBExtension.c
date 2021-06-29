@@ -31,6 +31,7 @@
 #include "riscvBExtension.h"
 #include "riscvExceptions.h"
 #include "riscvMessage.h"
+#include "riscvMorph.h"
 #include "riscvStructure.h"
 
 
@@ -601,7 +602,7 @@ static Uns64 doXPERM64(Uns64 rs1, Uns32 sz, Uns64 rs2) {
     Uns32 i;
 
     for (i=0; i < XLEN; i += sz) {
-        Uns32 pos = ((rs2 >> i) & mask) * sz;
+        Uns64 pos = ((rs2 >> i) & mask) * sz;
         if(pos < XLEN) {
             r |= ((rs1 >> pos) & mask) << i;
         }
@@ -659,6 +660,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S(_S),              \
     [RVBV_0_93_DRAFT] = OPENTRY_S(_S),              \
     [RVBV_0_93]       = OPENTRY_S(_S),              \
+    [RVBV_0_94]       = OPENTRY_S(_S),              \
+    [RVBV_1_0_0]      = OPENTRY_S(_S),              \
     [RVBV_MASTER]     = OPENTRY_S(_S),              \
 }
 
@@ -671,6 +674,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S_CB(_S, _CB),      \
     [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S, _CB),      \
     [RVBV_0_93]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_0_94]       = OPENTRY_S_CB(_S, _CB),      \
+    [RVBV_1_0_0]      = OPENTRY_S_CB(_S, _CB),      \
     [RVBV_MASTER]     = OPENTRY_S_CB(_S, _CB),      \
 }
 
@@ -683,6 +688,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S_CB(_S, _CB92),    \
     [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S, _CB93),    \
     [RVBV_0_93]       = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_0_94]       = OPENTRY_S_CB(_S, _CB93),    \
+    [RVBV_1_0_0]      = OPENTRY_S_CB(_S, _CB93),    \
     [RVBV_MASTER]     = OPENTRY_S_CB(_S, _CB93),    \
 }
 
@@ -695,6 +702,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S(_S92),            \
     [RVBV_0_93_DRAFT] = OPENTRY_S(_S93D),           \
     [RVBV_0_93]       = OPENTRY_S(_S93),            \
+    [RVBV_0_94]       = OPENTRY_S(_S93),            \
+    [RVBV_1_0_0]      = OPENTRY_S(_S93),            \
     [RVBV_MASTER]     = OPENTRY_S(_S93),            \
 }
 
@@ -707,6 +716,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S_CB(_S92,  _CB),   \
     [RVBV_0_93_DRAFT] = OPENTRY_S_CB(_S93D, _CB),   \
     [RVBV_0_93]       = OPENTRY_S_CB(_S93,  _CB),   \
+    [RVBV_0_94]       = OPENTRY_S_CB(_S93,  _CB),   \
+    [RVBV_1_0_0]      = OPENTRY_S_CB(_S93,  _CB),   \
     [RVBV_MASTER]     = OPENTRY_S_CB(_S93,  _CB),   \
 }
 
@@ -719,6 +730,8 @@ typedef struct opDescS {
     [RVBV_0_92]       = OPENTRY_S_CB64(_S, _CB64),  \
     [RVBV_0_93_DRAFT] = OPENTRY_S_CB64(_S, _CB64),  \
     [RVBV_0_93]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_0_94]       = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVBV_1_0_0]      = OPENTRY_S_CB64(_S, _CB64),  \
     [RVBV_MASTER]     = OPENTRY_S_CB64(_S, _CB64),  \
 }
 
@@ -743,10 +756,10 @@ static const opDesc opInfo[RVBOP_LAST][RVBV_LAST] = {
     OPENTRYxV_S      (Zbefp,    efp                                               ),
 
     OPENTRYxV_S_CB   (GORC,     p,                  GORC                          ),
-    OPENTRYxV_SxV_CB (ORCB,     bp, bp, bp, bp, b,  GORC                          ),
+    OPENTRYxV_S_CB   (ORCB,     bp,                 GORC                          ),
     OPENTRYxV_SxV_CB (ORC16,    p,  p,  p,  bp, p,  GORC                          ),
     OPENTRYxV_S_CB   (GREV,     p,                  GREV                          ),
-    OPENTRYxV_SxV_CB (REV8,     bp, bp, bp, bp, b,  GREV                          ),
+    OPENTRYxV_S_CB   (REV8,     bp,                 GREV                          ),
     OPENTRYxV_SxV_CB (REV,      bp, bp, bp, bp, p,  GREV                          ),
     OPENTRYxV_S_CB   (CRC32,    r,                  CRC32_                        ),
     OPENTRYxV_S_CB   (SHFL,     p,                  SHFL                          ),
@@ -870,7 +883,7 @@ static void emitIllegalInstructionAbsentSubset(riscvBitManipSet requiredSet) {
 //
 Bool riscvValidateBExtSubset(riscvP riscv, riscvBExtOp op) {
 
-    if((op!=RVBOP_NONE) && bitmanipEnabled(riscv)) {
+    if(op && bitmanipEnabled(riscv)) {
 
         opDescCP         desc        = getOpDesc(riscv, op);
         riscvBitManipSet requiredSet = desc->subset;

@@ -1,0 +1,80 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64F RV64F Single-Precision Floating-Point:
+    183 test source files
+    5 different instruction categories
+    48 different instructions
+    123,430 total instructions
+
+Instruction category: OPF_SCI Single-Precision Floating-Point Computational
+  fadd.s : 310
+  fdiv.s : 310
+  fmadd.s : 310
+  fmax.s : 31
+  fmin.s : 31
+  fmsub.s : 310
+  fmul.s : 310
+  fnmadd.s : 310
+  fnmsub.s : 310
+  fsqrt.s : 310
+  fsub.s : 310
+Instruction category: OPF_SCL Single-Precision Floating-Point Classify
+  fclass.s : 31
+Instruction category: OPF_SCM Single-Precision Floating-Point Conversion and Move
+  fmv.s.x : 8,370
+  fmv.x.s : 4,278
+  fcvt.l.s : 310
+  fcvt.lu.s : 310
+  fcvt.s.l : 310
+  fcvt.s.lu : 310
+  fcvt.s.w : 310
+  fcvt.s.wu : 310
+  fcvt.w.s : 310
+  fcvt.wu.s : 310
+  fsgnj.s : 31
+  fsgnjn.s : 31
+  fsgnjx.s : 31
+Instruction category: OPF_SCP Single-Precision Floating-Point Compare
+  feq.s : 31
+  fle.s : 31
+  flt.s : 31
+Instruction category: OPF_SLS Single-Precision Floating-Point Load and Store
+  fsw : 4,278
+  flw : 31
+
+Other instructions (those not the focus of this suite)
+  jal : 183
+  lui : 13,038
+  addiw : 16,921
+  csrrs : 732
+  auipc : 2,227
+  addi : 26,151
+  csrrw : 549
+  mret : 183
+  slli : 22,975
+  csrrci : 5,642
+  sw : 7,037
+  and : 4,247
+  fence : 183
+  ecall : 183
+  beq : 549
+  add : 62
+  sd : 31
+  ld : 31
+

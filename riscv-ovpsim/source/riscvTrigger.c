@@ -40,6 +40,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Return current PC
+//
+inline static Uns64 getPC(riscvP riscv) {
+    return vmirtGetPC((vmiProcessorP)riscv);
+}
+
+//
 // Return cycle count
 //
 inline static Uns64 getCycleCount(riscvP riscv) {
@@ -198,10 +205,15 @@ inline static Uns32 getTriggerAction(riscvTriggerP trigger) {
 }
 
 //
-// Set the hit bit in a trigger
+// Mark the trigger as hit
 //
-inline static void setTriggerHit(riscvP riscv, riscvTriggerP trigger) {
-    trigger->tdata1UP.hit = 1;
+static void setTriggerHit(riscvP riscv, riscvTriggerP trigger) {
+
+    trigger->triggered = True;
+
+    if(!riscv->configInfo.no_hit) {
+        trigger->tdata1UP.hit = 1;
+    }
 }
 
 
@@ -304,8 +316,22 @@ static Bool matchTriggerSSelect(
     } else if(sselect==1) {
 
         // match if the low bits of scontext equal svalue
-        Uns64 scontext  = RD_REG_TRIGGER(trigger, scontext);
-        Uns64 scontextM = getMasked(scontext, TRIGGER_IS_32M(riscv) ? 16 : 34);
+        Uns64 scontext   = RD_REG_TRIGGER(trigger, scontext);
+        Uns64 scontextM  = getMasked(scontext, TRIGGER_IS_32M(riscv) ? 16 : 34);
+        Uns32 sbytemask  = trigger->tdata3UP.sbytemask;
+        Uns64 maskResult = 0;
+        Uns64 maskField;
+
+        // construct per-field mask
+        for(maskField=0xff; sbytemask; sbytemask>>=1, maskField<<=8) {
+            if(sbytemask&1) {
+                maskResult |= maskField;
+            }
+        }
+
+        // apply byte mask
+        svalue    &= ~maskResult;
+        scontextM &= ~maskResult;
 
         match = (svalue==scontextM);
 
@@ -399,6 +425,11 @@ static Bool matchTriggerADMATCHValue(
         match = !match;
     }
 
+    if(match) {
+        trigger->tvalValid = True;
+        trigger->tval      = value;
+    }
+
     return match;
 }
 
@@ -458,7 +489,7 @@ static riscvTriggerP matchChain(riscvP riscv, riscvTriggerP this, Uns64 iCount) 
 }
 
 //
-// This enumates actions required when a trigger fires
+// This enumerates actions required when a trigger fires
 //
 typedef enum triggerActionE {
     TA_NONE         = 0x0,    // no pending action
@@ -475,7 +506,7 @@ typedef enum triggerActionE {
 //
 // Return any active trigger action
 //
-static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
+static triggerAction getActiveAction(riscvP riscv, Uns32 delta, Bool complete) {
 
     Uns64         iCount = getCycleCount(riscv) - delta;
     triggerAction result = TA_NONE;
@@ -498,6 +529,9 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
         Bool          after = getTriggerAfter(this);
         Uns32         action;
 
+        // indicate not triggered initially
+        this->triggered = False;
+
         // assume this is not a matching instruction count trigger
         this->tdata1UP.icmatch = False;
 
@@ -517,7 +551,7 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
         if(last) {
 
             // mark all triggers in the chain as hit if required
-            if(!riscv->configInfo.no_hit) {
+            if(complete) {
                 do {
                     setTriggerHit(riscv, this);
                 } while(this++!=last);
@@ -539,26 +573,41 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta) {
 //
 static void doTriggerAction(riscvP riscv, triggerAction action) {
 
+    Uns64 tval = getPC(riscv);
     Uns32 i;
 
-    // reset any matching ICOUNT triggers
     for(i=0; i<numTriggers(riscv); i++) {
 
         riscvTriggerP this = &riscv->triggers[i];
 
-        // reset trigger by clearing modes and pending bit
+        // reset ICOUNT trigger by clearing modes and pending bit
         if(this->tdata1UP.icmatch) {
             this->tdata1UP.modes   = 0;
             this->tdata1UP.pending = False;
             this->tdata1UP.icmatch = False;
         }
+
+        // use any tval associated with the trigger
+        if(this->triggered && this->tvalValid) {
+            this->triggered = False;
+            tval            = this->tval;
+        }
+    }
+
+    // adjust base instruction count to allow for instruction retirement
+    if(riscvInhibitInstret(riscv)) {
+        // no action
+    } else if(action==TA_DEBUG_BEFORE) {
+        riscv->baseInstructions++;
+    } else if(action==TA_BKPT_AFTER) {
+        riscv->baseInstructions--;
     }
 
     // either enter Debug mode or take M-mode exception
     if(action & TA_DEBUG) {
         riscvSetDM(riscv, True);
     } else {
-        riscvBreakpointException(riscv);
+        riscvTakeException(riscv, riscv_E_Breakpoint, tval);
     }
 }
 
@@ -574,13 +623,11 @@ inline static void scheduleTriggerAfter(riscvP riscv) {
 // Take action for a trigger *before* the current instruction if required
 // (or schedule action after the instruction completes)
 //
-static Bool doTriggerBefore(riscvP riscv, Bool complete) {
+static Bool doTriggerBefore(riscvP riscv) {
 
-    triggerAction action = getActiveAction(riscv, 0);
+    triggerAction action = getActiveAction(riscv, 0, True);
 
     if(!action) {
-        // no action
-    } else if(!complete) {
         // no action
     } else if(!(action & TA_BEFORE)) {
         scheduleTriggerAfter(riscv);
@@ -597,7 +644,7 @@ static Bool doTriggerBefore(riscvP riscv, Bool complete) {
 //
 static Bool doTriggerAfter(riscvP riscv, Bool complete) {
 
-    triggerAction action = getActiveAction(riscv, complete) & TA_AFTER;
+    triggerAction action = getActiveAction(riscv, complete, complete) & TA_AFTER;
 
     if(!action) {
         // state change disabling previously-scheduled trigger
@@ -655,7 +702,6 @@ static Bool doTriggerADMATCH(
     Uns32   bytes,
     memPriv priv,
     Bool    valueValid,
-    Bool    complete,
     Bool    onlyBefore
 ) {
     riscvMode mode      = getCurrentMode5(riscv);
@@ -702,7 +748,7 @@ static Bool doTriggerADMATCH(
     // if some trigger has matched, scan again to see whether action is
     // required
     if(someMatch) {
-        except = doTriggerBefore(riscv, complete);
+        except = doTriggerBefore(riscv);
     }
 
     return except;
@@ -746,7 +792,7 @@ static void triggerTrap(
     }
 
     // if some trigger has matched, schedule action before the next instruction
-    if(someMatch && (getActiveAction(riscv, 0) & TA_AFTER)) {
+    if(someMatch && (getActiveAction(riscv, 0, True) & TA_AFTER)) {
         scheduleTriggerAfter(riscv);
     }
 }
@@ -772,7 +818,7 @@ static void triggerNMI(riscvP riscv) {
     }
 
     // if some trigger has matched, schedule action before the next instruction
-    if(someMatch && (getActiveAction(riscv, 0) & TA_AFTER)) {
+    if(someMatch && (getActiveAction(riscv, 0, True) & TA_AFTER)) {
         scheduleTriggerAfter(riscv);
     }
 }
@@ -780,22 +826,22 @@ static void triggerNMI(riscvP riscv) {
 //
 // Handle possible execute trigger for faulting address
 //
-Bool riscvTriggerX0(riscvP riscv, Addr VA, Bool complete) {
-    return doTriggerADMATCH(riscv, VA, 0, 0, MEM_PRIV_X, False, complete, True);
+Bool riscvTriggerX0(riscvP riscv, Addr VA) {
+    return doTriggerADMATCH(riscv, VA, 0, 0, MEM_PRIV_X, False, True);
 }
 
 //
 // Handle possible execute trigger for 2-byte instruction
 //
 void riscvTriggerX2(riscvP riscv, Addr VA, Uns32 value) {
-    doTriggerADMATCH(riscv, VA, value, 2, MEM_PRIV_X, True, True, False);
+    doTriggerADMATCH(riscv, VA, value, 2, MEM_PRIV_X, True, False);
 }
 
 //
 // Handle possible execute trigger for 4-byte instruction
 //
 void riscvTriggerX4(riscvP riscv, Addr VA, Uns32 value) {
-    doTriggerADMATCH(riscv, VA, value, 4, MEM_PRIV_X, True, True, False);
+    doTriggerADMATCH(riscv, VA, value, 4, MEM_PRIV_X, True, False);
 }
 
 //
@@ -803,7 +849,7 @@ void riscvTriggerX4(riscvP riscv, Addr VA, Uns32 value) {
 //
 void riscvTriggerLA(riscvP riscv, Uns32 bytes) {
     doTriggerADMATCH(
-        riscv, riscv->triggerVA, 0, bytes, MEM_PRIV_R, False, True, False
+        riscv, riscv->triggerVA, 0, bytes, MEM_PRIV_R, False, False
     );
 }
 
@@ -813,7 +859,7 @@ void riscvTriggerLA(riscvP riscv, Uns32 bytes) {
 void riscvTriggerLV(riscvP riscv, Uns32 bytes) {
     doTriggerADMATCH(
         riscv, riscv->triggerVA, riscv->triggerLV, bytes, MEM_PRIV_R, True,
-        True, False
+        False
     );
 }
 
@@ -822,7 +868,7 @@ void riscvTriggerLV(riscvP riscv, Uns32 bytes) {
 //
 void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes) {
     doTriggerADMATCH(
-        riscv, riscv->triggerVA, value, bytes, MEM_PRIV_W, True, True, False
+        riscv, riscv->triggerVA, value, bytes, MEM_PRIV_W, True, False
     );
 }
 
@@ -859,6 +905,9 @@ void riscvTriggerException(riscvP riscv, riscvMode modeY, Uns32 ecode) {
 // SAVE/RESTORE SUPPORT
 ////////////////////////////////////////////////////////////////////////////////
 
+#define TRIGGER_VA  "TRIGGER_VA"
+#define TRIGGER_LV  "TRIGGER_LV"
+
 //
 // Fill trigger register name
 //
@@ -888,6 +937,10 @@ void riscvTriggerSave(
                 fillTriggerName(name, i);
                 VMIRT_SAVE_REG(cxt, name, trigger);
             }
+
+            // save trigger VA and load value
+            VMIRT_SAVE_REG(cxt, TRIGGER_VA, &riscv->triggerVA);
+            VMIRT_SAVE_REG(cxt, TRIGGER_LV, &riscv->triggerLV);
         }
     }
 }
@@ -914,6 +967,10 @@ void riscvTriggerRestore(
                 fillTriggerName(name, i);
                 VMIRT_RESTORE_REG(cxt, name, trigger);
             }
+
+            // restore trigger VA and load value
+            VMIRT_RESTORE_REG(cxt, TRIGGER_VA, &riscv->triggerVA);
+            VMIRT_RESTORE_REG(cxt, TRIGGER_LV, &riscv->triggerLV);
 
             riscvSetCurrentArch(riscv);
         }

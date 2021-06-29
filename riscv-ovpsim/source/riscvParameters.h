@@ -41,10 +41,12 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(hypervisor_version);
     VMI_ENUM_PARAM(crypto_version);
     VMI_ENUM_PARAM(debug_version);
+    VMI_ENUM_PARAM(CLIC_version);
     VMI_ENUM_PARAM(fp16_version);
     VMI_ENUM_PARAM(mstatus_fs_mode);
     VMI_BOOL_PARAM(ABI_d);
     VMI_BOOL_PARAM(verbose);
+    VMI_BOOL_PARAM(traceVolatile);
     VMI_UNS32_PARAM(numHarts);
     VMI_ENUM_PARAM(debug_mode);
     VMI_UNS64_PARAM(debug_address);
@@ -66,6 +68,12 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(mtvt_mask);
     VMI_UNS64_PARAM(stvt_mask);
     VMI_UNS64_PARAM(utvt_mask);
+    VMI_BOOL_PARAM(mtvec_sext);
+    VMI_BOOL_PARAM(stvec_sext);
+    VMI_BOOL_PARAM(utvec_sext);
+    VMI_BOOL_PARAM(mtvt_sext);
+    VMI_BOOL_PARAM(stvt_sext);
+    VMI_BOOL_PARAM(utvt_sext);
     VMI_UNS64_PARAM(ecode_mask);
     VMI_UNS64_PARAM(ecode_nmi);
     VMI_BOOL_PARAM(tval_zero);
@@ -86,6 +94,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(enable_CSR_bus);
     VMI_STRING_PARAM(CSR_remap);
     VMI_BOOL_PARAM(d_requires_f);
+    VMI_BOOL_PARAM(enable_fflags_i);
     VMI_BOOL_PARAM(xret_preserves_lr);
     VMI_BOOL_PARAM(require_vstart0);
     VMI_BOOL_PARAM(align_whole);
@@ -103,6 +112,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(PMP_grain);
     VMI_UNS32_PARAM(PMP_registers);
     VMI_UNS32_PARAM(PMP_max_page);
+    VMI_BOOL_PARAM(PMP_decompose);
     VMI_UNS32_PARAM(Sv_modes);
     VMI_UNS32_PARAM(lr_sc_grain);
     VMI_UNS64_PARAM(reset_address);
@@ -123,8 +133,10 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(misa_MXL);
     VMI_UNS32_PARAM(misa_Extensions);
     VMI_STRING_PARAM(add_Extensions);
+    VMI_STRING_PARAM(sub_Extensions);
     VMI_UNS32_PARAM(misa_Extensions_mask);
     VMI_STRING_PARAM(add_Extensions_mask);
+    VMI_STRING_PARAM(sub_Extensions_mask);
     VMI_UNS64_PARAM(mvendorid);
     VMI_UNS64_PARAM(marchid);
     VMI_UNS64_PARAM(mimpid);
@@ -136,7 +148,9 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(ELEN);
     VMI_UNS32_PARAM(SLEN);
     VMI_UNS32_PARAM(VLEN);
+    VMI_UNS32_PARAM(EEW_index);
     VMI_UNS32_PARAM(SEW_min);
+    VMI_BOOL_PARAM(agnostic_ones);
     VMI_BOOL_PARAM(MXL_writable);
     VMI_BOOL_PARAM(SXL_writable);
     VMI_BOOL_PARAM(UXL_writable);
@@ -145,6 +159,11 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zvamo);
     VMI_BOOL_PARAM(Zvediv);
     VMI_BOOL_PARAM(Zvqmac);
+    VMI_BOOL_PARAM(Zve32x);
+    VMI_BOOL_PARAM(Zve32f);
+    VMI_BOOL_PARAM(Zve64x);
+    VMI_BOOL_PARAM(Zve64f);
+    VMI_BOOL_PARAM(Zve64d);
     VMI_BOOL_PARAM(Zba);
     VMI_BOOL_PARAM(Zbb);
     VMI_BOOL_PARAM(Zbc);
@@ -155,14 +174,19 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zbr);
     VMI_BOOL_PARAM(Zbs);
     VMI_BOOL_PARAM(Zbt);
-    VMI_BOOL_PARAM(Zkb);
-    VMI_BOOL_PARAM(Zkg);
+    VMI_BOOL_PARAM(Zbkb);
+    VMI_BOOL_PARAM(Zbkc);
+    VMI_BOOL_PARAM(Zbkx);
+    VMI_BOOL_PARAM(Zicsr);
+    VMI_BOOL_PARAM(Zifencei);
     VMI_BOOL_PARAM(Zkr);
     VMI_BOOL_PARAM(Zknd);
     VMI_BOOL_PARAM(Zkne);
     VMI_BOOL_PARAM(Zknh);
     VMI_BOOL_PARAM(Zksed);
     VMI_BOOL_PARAM(Zksh);
+    VMI_BOOL_PARAM(Zkb);
+    VMI_BOOL_PARAM(Zkg);
     VMI_BOOL_PARAM(Zfh);
     VMI_ENUM_PARAM(Zfinx_version);
 
@@ -232,6 +256,11 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 // Return Debug Architecture description
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv);
+
+//
+// Return CLIC description
+//
+const char *riscvGetCLICVersionDesc(riscvP riscv);
 
 //
 // Return Zfinx version description

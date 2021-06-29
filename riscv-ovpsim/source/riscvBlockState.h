@@ -76,7 +76,9 @@ typedef enum riscvTZE {
 // and transaction mode
 //
 typedef enum riscvPMKE {
-    PMK_VECTOR      = 0x03ff,
+    PMK_VECTOR_VTA1 = 0x0400,
+    PMK_VECTOR_VMA1 = 0x0800,
+    PMK_VECTOR      = 0x0fff,
     PMK_TRANSACTION = 0x8000,
 } riscvPMK;
 
@@ -92,8 +94,9 @@ typedef struct riscvBlockStateS {
     riscvSEWMt       SEWMt;         // known active vector SEW
     riscvVLMULx8Mt   VLMULx8Mt;     // known active vector VLMULx8
     riscvVLClassMt   VLClassMt;     // known active vector VL zero/non-zero/max
-    Uns32            VZeroTopMt[2]; // known vector registers with zero top
+    Uns32            VSetTopMt[2];  // known vector registers with top set
     Bool             VStartZeroMt;  // vstart known to be zero?
+    Bool             updateFFlags;  // whether to update fflags from fflags_i
 
 } riscvBlockState;
 

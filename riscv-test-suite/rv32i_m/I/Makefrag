@@ -1,0 +1,76 @@
+# RISC-V Compliance Test I Makefrag
+#
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+#
+# Description: Makefrag for I compliance tests
+
+i_sc_tests = \
+	ADDI-01 \
+	ORI-01 \
+	ANDI-01 \
+	LUI-01 \
+	AUIPC-01 \
+	JAL-01 \
+	JALR-01 \
+	BEQ-01 \
+	BNE-01 \
+	BLT-01 \
+	BGE-01 \
+	BLTU-01 \
+	BGEU-01 \
+	LB-01 \
+	LH-01 \
+	LW-01 \
+	LBU-01 \
+	LHU-01 \
+	SB-01 \
+	SH-01 \
+	SW-01 \
+	SLTI-01 \
+	SLTIU-01 \
+	XORI-01 \
+	SLLI-01 \
+	SRLI-01 \
+	SRAI-01 \
+	ADD-01 \
+	SUB-01 \
+	SLL-01 \
+	SLT-01 \
+	SLTU-01 \
+	XOR-01 \
+	SRL-01 \
+	SRA-01 \
+	OR-01 \
+	AND-01 \
+	I-DELAY_SLOTS-01 \
+	I-EBREAK-01 \
+	I-ECALL-01 \
+	I-ENDIANESS-01 \
+	I-IO-01 \
+	I-MISALIGN_JMP-01 \
+	I-MISALIGN_LDST-01 \
+	I-NOP-01 \
+	I-RF_size-01 \
+	I-RF_width-01 \
+	I-RF_x0-01 \
+
+i_tests = $(addsuffix .elf, $(i_sc_tests))
+
+target_tests += $(i_tests)
+
