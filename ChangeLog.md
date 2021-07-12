@@ -8,7 +8,7 @@ See the ChangeLog.md files in the simulator directories for their changes.
 ---
 Date 2021-July-12
 Release 20210709.0
-First release of P-SIMD/DSP (v0.5.2) architectural tests
+First release of P-SIMD/DSP architectural tests
 
 Date 2021-June-29
 Release 20210628.0
