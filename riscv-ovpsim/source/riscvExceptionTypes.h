@@ -149,10 +149,14 @@ typedef enum riscvAccessFaultS {
 // Specify enabled interrupt mode
 //
 typedef enum riscvICModeE {
-    riscv_int_Direct   = 0, // direct interrupt mode
-    riscv_int_Vectored = 1, // vectored interrupt mode
-    riscv_int_Reserved = 2, // (reserved interrupt mode)
-    riscv_int_CLIC     = 3, // CLIC interrupt mode
+
+    riscv_int_Direct        = 0x0,  // direct interrupt mode
+    riscv_int_Vectored      = 0x1,  // vectored interrupt mode
+    riscv_int_CLIC          = 0x2,  // CLIC interrupt mode
+
+    riscv_int_CLIC_Direct   = (riscv_int_CLIC|riscv_int_Direct),
+    riscv_int_CLIC_Vectored = (riscv_int_CLIC|riscv_int_Vectored),
+
 } riscvICMode;
 
 //

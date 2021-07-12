@@ -87,6 +87,7 @@ typedef enum riscvITypeE {
     RV_IT_ECALL_I,
     RV_IT_FENCEI_I,
     RV_IT_MRET_I,
+    RV_IT_MNRET_I,
     RV_IT_SRET_I,
     RV_IT_URET_I,
     RV_IT_DRET_I,

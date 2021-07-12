@@ -444,6 +444,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->priv_version        = params->priv_version;
     cfg->hyp_version         = params->hypervisor_version;
     cfg->dbg_version         = params->debug_version;
+    cfg->rnmi_version        = params->rnmi_version;
     cfg->CLIC_version        = params->CLIC_version;
     cfg->Zfinx_version       = params->Zfinx_version;
     cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
@@ -454,6 +455,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->VSXL_writable       = params->VSXL_writable;
     cfg->reset_address       = params->reset_address;
     cfg->nmi_address         = params->nmi_address;
+    cfg->nmiexc_address      = params->nmiexc_address;
     cfg->ASID_cache_size     = params->ASID_cache_size;
     cfg->ASID_bits           = params->ASID_bits;
     cfg->VMID_bits           = params->VMID_bits;
@@ -473,6 +475,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->local_int_num       = params->local_int_num;
     cfg->unimp_int_mask      = params->unimp_int_mask;
     cfg->ecode_mask          = params->ecode_mask;
+    cfg->ecode_nmi_mask      = params->ecode_nmi_mask;
     cfg->ecode_nmi           = params->ecode_nmi;
     cfg->external_int_id     = params->external_int_id;
     cfg->force_mideleg       = params->force_mideleg;
@@ -536,6 +539,10 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->tvt_undefined       = params->tvt_undefined;
     cfg->intthresh_undefined = params->intthresh_undefined;
     cfg->mclicbase_undefined = params->mclicbase_undefined;
+    cfg->posedge_0_63        = params->posedge_0_63;
+    cfg->poslevel_0_63       = params->poslevel_0_63;
+    cfg->posedge_other       = params->posedge_other;
+    cfg->poslevel_other      = params->poslevel_other;
     cfg->GEILEN              = params->GEILEN;
     cfg->xtinst_basic        = params->xtinst_basic;
     cfg->noZicsr             = !params->Zicsr;
@@ -773,6 +780,11 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     ADD_BM_SET(riscv, cfg, params, Zbr);
     ADD_BM_SET(riscv, cfg, params, Zbs);
     ADD_BM_SET(riscv, cfg, params, Zbt);
+
+    // for version 1.0.0, only Zba, Zbb, Zbc and Zbs may be configured
+    if(cfg->bitmanip_version==RVBV_1_0_0) {
+        cfg->bitmanip_absent |= ~(RVBS_Zba|RVBS_Zbb|RVBS_Zbc|RVBS_Zbs);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // CRYPTOGRAPHIC EXTENSION CONFIGURATION

@@ -28,14 +28,14 @@ Instruction category: arithmetic
   c-li : 3,367
   c-addi : 2,031
   c-addiw : 1,148
-  c-addw : 274
   c-mv : 274
+  c-addw : 274
   c-sub : 275
   c-subw : 274
 Instruction category: logical 
-  c-and : 274
   c-or : 274
   c-xor : 274
+  c-and : 274
   c-andi : 274
 Instruction category: branch 
   c-beqz : 274

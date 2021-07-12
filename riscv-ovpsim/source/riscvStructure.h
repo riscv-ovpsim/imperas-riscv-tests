@@ -76,7 +76,6 @@ typedef struct riscvNetValueS {
     Bool resethaltreqS : 1; // resethaltreq (Debug mode, sampled at reset)
     Bool deferint      : 1; // defer taking interrupts (artifact)
     Bool enableCLIC    : 1; // is CLIC enabled?
-    Bool irq_ack       : 1; // IRQ acknowledge (output)
 } riscvNetValue;
 
 //
@@ -318,7 +317,7 @@ typedef struct riscvS {
     riscvBusPortP      busPorts;        // bus ports
     riscvNetPortP      netPorts;        // net ports
     riscvNetValue      netValue;        // special net port values
-    Uns32              ipDWords;        // size of ip in words
+    Uns32              ipDWords;        // size of ip in double words
     Uns64             *ip;              // interrupt port values
     Uns32              DMPortHandle;    // DM port handle (debug mode)
     Uns32              LRAddressHandle; // LR address port handle (locking)
@@ -331,6 +330,7 @@ typedef struct riscvS {
     // Timers
     Uns32              stepICount;      // Instructions when single-step set
     vmiModelTimerP     stepTimer;       // Debug mode single-step timer
+    vmiModelTimerP     ackTimer;        // Interrupt acknowledge timer
 
     // CSR support
     vmiRangeTableP     csrTable;        // per-CSR lookup table
@@ -511,21 +511,21 @@ inline static Bool basicICPresent(riscvP riscv) {
 // Should CLIC be used for M-mode interrupts?
 //
 inline static Bool useCLICM(riscvP riscv) {
-    return RD_CSR_FIELD_M(riscv, mtvec, MODE)==riscv_int_CLIC;
+    return RD_CSR_FIELD_M(riscv, mtvec, MODE)&riscv_int_CLIC;
 }
 
 //
 // Should CLIC be used for S-mode interrupts?
 //
 inline static Bool useCLICS(riscvP riscv) {
-    return RD_CSR_FIELD_S(riscv, stvec, MODE)==riscv_int_CLIC;
+    return RD_CSR_FIELD_S(riscv, stvec, MODE)&riscv_int_CLIC;
 }
 
 //
 // Should CLIC be used for U-mode interrupts?
 //
 inline static Bool useCLICU(riscvP riscv) {
-    return RD_CSR_FIELD_U(riscv, utvec, MODE)==riscv_int_CLIC;
+    return RD_CSR_FIELD_U(riscv, utvec, MODE)&riscv_int_CLIC;
 }
 
 //

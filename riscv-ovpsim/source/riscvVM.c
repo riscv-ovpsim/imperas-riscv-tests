@@ -2703,7 +2703,7 @@ static memDomainP createCLICDomain(riscvP riscv, memDomainP dataDomain) {
         vmirtAliasMemory(dataDomain, CLICDomain, 0, mask, 0, 0);
 
         // create CLIC memory-mapped block
-        riscvMapCLICDomain(root, CLICDomain);
+        riscvMapCLICDomain(riscv, CLICDomain);
 
         // save CLIC domain on cluster root
         root->CLICDomain = CLICDomain;
@@ -3346,9 +3346,8 @@ static void handleInvalidAccess(
         }
 
         // take exception, indicating guest virtual address if required
-        riscv->GVA = activeTLBIsVirtual(riscv);
-        riscvTakeMemoryException(riscv, exception, VA);
-        riscv->GVA = False;
+        Bool GVA = activeTLBIsVirtual(riscv);
+        riscvTakeMemoryException(riscv, exception, VA, GVA);
 
         // clear down pending exception GPA and tinst
         riscv->GPA   = 0;
@@ -4688,29 +4687,66 @@ typedef enum domainTypeE {
 } domainType;
 
 //
-// If the domain is one for the given mode and code/data type, return its class
+// Return the class, mode and code/data indication for the given domain, or
+// class DT_NONE if the domain is not a known processor domain
 //
 static domainType getDomainType(
     riscvP     riscv,
     memDomainP domain,
-    riscvMode  mode,
-    Bool       isCode
+    riscvMode *modeP,
+    Bool      *isCodeP
 ) {
     domainType dt = DT_NONE;
+    Int32      mode;
+    Uns32      isCode;
 
-    if(modeIsVirtual(mode) && !hypervisorPresent(riscv)) {
-        // virtualized mode and hypervisor absent
-    } else if(domain==getPhysDomainCorD(riscv, mode, isCode)) {
-        dt = DT_PHYS;
-    } else if(domain==getVirtDomainCorD(riscv, mode, isCode)) {
-        dt = DT_VIRT;
-    } else if(domain==getPMPDomainCorD(riscv, mode, isCode)) {
-        dt = DT_PMP;
-    } else if(!isCode && (domain==riscv->guestPTWDomain)) {
-        dt = DT_GPTW;
+    for(isCode=0; !dt && (isCode<2); isCode++) {
+
+        for(mode=RISCV_MODE_LAST-1; !dt && (mode>=0); mode--) {
+
+            if(modeIsVirtual(mode) && !hypervisorPresent(riscv)) {
+                // virtualized mode and hypervisor absent
+            } else if(domain==getPhysDomainCorD(riscv, mode, isCode)) {
+                dt = DT_PHYS;
+            } else if(domain==getVirtDomainCorD(riscv, mode, isCode)) {
+                dt = DT_VIRT;
+            } else if(domain==getPMPDomainCorD(riscv, mode, isCode)) {
+                dt = DT_PMP;
+            } else if(!isCode && (domain==riscv->guestPTWDomain)) {
+                dt = DT_GPTW;
+            }
+
+            // return by-ref results
+            if(dt) {
+                *modeP   = mode;
+                *isCodeP = isCode;
+            }
+        }
     }
 
     return dt;
+}
+
+//
+// Indicate whether a failing access to the given domain should be reported
+// by setting xstatus.GVA=1
+//
+Bool riscvVMGetGVA(riscvP riscv, memDomainP domain) {
+
+    Bool GVA = False;
+
+    if(domain && hypervisorPresent(riscv)) {
+
+        riscvMode  mode   = 0;
+        Bool       isCode = False;
+        domainType dt     = getDomainType(riscv, domain, &mode, &isCode);
+
+        if(dt==DT_VIRT) {
+            GVA = modeIsVirtual(mode);
+        }
+    }
+
+    return GVA;
 }
 
 //
@@ -4725,12 +4761,11 @@ Bool riscvVMMiss(
     Uns32          bytes,
     memAccessAttrs attrs
 ) {
-    Bool       oldHVLX = riscv->hlvxActive;
-    Bool       oldSE   = riscv->suppressExcept;
-    Bool       miss    = False;
-    domainType dt      = DT_NONE;
-    Int32      mode;
-    Uns32      isCode;
+    Bool      oldHVLX = riscv->hlvxActive;
+    Bool      oldSE   = riscv->suppressExcept;
+    Bool      miss    = False;
+    riscvMode mode    = 0;
+    Bool      isCode  = False;
 
     // artifact accesses should cause no exceptions
     if(MEM_AA_IS_ARTIFACT_ACCESS(attrs)) {
@@ -4748,59 +4783,53 @@ Bool riscvVMMiss(
     riscv->AFErrorIn = riscv_AFault_Bus;
 
     // identify access to a mapped domain
-    for(isCode=0; !dt && (isCode<2); isCode++) {
+    domainType dt = getDomainType(riscv, domain, &mode, &isCode);
 
-        for(mode=RISCV_MODE_LAST-1; !dt && (mode>=0); mode--) {
+    if(dt==DT_VIRT) {
 
-            dt = getDomainType(riscv, domain, mode, isCode);
+        // access to virtually-mapped domain
+        Uns64      lastVA = address+bytes-1;
+        tlbMapInfo mi     = {highVA:address-1};
 
-            if(dt==DT_VIRT) {
+        // iterate while unprocessed regions remain
+        do {
 
-                // access to virtually-mapped domain
-                Uns64      lastVA = address+bytes-1;
-                tlbMapInfo mi     = {highVA:address-1};
+            mi.lowVA  = mi.highVA+1;
+            mi.highVA = lastVA;
+            mi.priv   = requiredPriv;
 
-                // iterate while unprocessed regions remain
-                do {
+            miss = tlbMiss(riscv, domain, mode, &mi);
 
-                    mi.lowVA  = mi.highVA+1;
-                    mi.highVA = lastVA;
-                    mi.priv   = requiredPriv;
+        } while(!miss && ((lastVA<mi.lowVA) || (lastVA>mi.highVA)));
 
-                    miss = tlbMiss(riscv, domain, mode, &mi);
+    } else if(dt==DT_GPTW) {
 
-                } while(!miss && ((lastVA<mi.lowVA) || (lastVA>mi.highVA)));
+        // access to guest page table walk domain
+        Uns64      lastVA = address+bytes-1;
+        tlbMapInfo mi     = {highVA:address-1};
 
-            } else if(dt==DT_GPTW) {
+        // iterate while unprocessed regions remain
+        do {
 
-                // access to guest page table walk domain
-                Uns64      lastVA = address+bytes-1;
-                tlbMapInfo mi     = {highVA:address-1};
+            mi.lowVA  = mi.highVA+1;
+            mi.highVA = lastVA;
+            mi.priv   = requiredPriv;
 
-                // iterate while unprocessed regions remain
-                do {
+            miss = tlbMissGPTW(riscv, domain, &mi);
 
-                    mi.lowVA  = mi.highVA+1;
-                    mi.highVA = lastVA;
-                    mi.priv   = requiredPriv;
+        } while(!miss && ((lastVA<mi.lowVA) || (lastVA>mi.highVA)));
 
-                    miss = tlbMissGPTW(riscv, domain, &mi);
+    } else if(dt) {
 
-                } while(!miss && ((lastVA<mi.lowVA) || (lastVA>mi.highVA)));
+        Uns64 lowPA  = address;
+        Uns64 highPA = address+bytes-1;
 
-            } else if(dt) {
+        // update PMP mapping if required (either a physical access or
+        // a page table walk using the PMP domain directly)
+        mapPMP(riscv, mode, requiredPriv, lowPA, highPA);
 
-                Uns64 lowPA  = address;
-                Uns64 highPA = address+bytes-1;
-
-                // update PMP mapping if required (either a physical access or
-                // a page table walk using the PMP domain directly)
-                mapPMP(riscv, mode, requiredPriv, lowPA, highPA);
-
-                // update PMA mapping if required
-                mapPMA(riscv, mode, requiredPriv, lowPA, highPA);
-            }
-        }
+        // update PMA mapping if required
+        mapPMA(riscv, mode, requiredPriv, lowPA, highPA);
     }
 
     // restore hlvxActive and suppressExcept

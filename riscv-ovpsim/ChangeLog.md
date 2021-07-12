@@ -11,6 +11,27 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- The default value of parameter tval_zero_ebreak has been changed to False,
+  conforming to Privileged Architecture specification clarifications of
+  13 October 2020 (see https://github.com/riscv/riscv-isa-manual/pull/601)
+- CLIC behavior has been enhanced:
+  - Version 20180831 has been added (a legacy configuration required by some
+    SiFive cores).
+  - New parameters posedge_0_63, poslevel_0_63, posedge_other and poslevel_other
+    enable some interrupts to be specified as fixed positive edge and fixed
+    positive level triggered if required.
+  - The riscv.ovpworld.org RISC-V model now implements software interrupts (0-3
+    and 12) as fixed positive edge triggered by default. This choice can be
+    changed using the parameters described above.
+- NMI implementation has been enhanced:
+  - New port nmi_cause allows cause of NMI exception to be applied externally;
+  - Resumable NMI extension version 0.2.1 is now implemented if parameter
+    rnmi_version is set to "0.2.1".
+
+Date 2021-June-29
+Release 20210628.0
+===
+
 - When connected to a client gdb, floating point register values are now
   available using 'p' packet transactions instead of being passed in the 'p'
   packet (which does not work reliably on some versions of gdb).

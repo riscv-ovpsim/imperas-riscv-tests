@@ -19,27 +19,27 @@
 
 
 Architectural Test Suite Data for RV64ZKN K Crypto/Scalar:
-    49 test source files
-    11 different instruction categories
-    57 different instructions
-    108,573 total instructions
+    43 test source files
+    10 different instruction categories
+    53 different instructions
+    95,089 total instructions
 
 Instruction category: OPK_Zknd NIST AES Decryption Instructions
-  aes64ds : 530
   aes64dsm : 530
   aes64im : 530
+  aes64ds : 530
 Instruction category: OPK_Zkne NIST AES Encryption Instructions
-  aes64es : 530
   aes64esm : 530
-  aes64ks1i : 530
   aes64ks2 : 530
+  aes64es : 530
+  aes64ks1i : 530
 Instruction category: OPB_LWNE Logic With Negate
   andn : 274
   orn : 274
   xnor : 274
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 274
   clmulh : 274
+  clmul : 274
 Instruction category: OPB_GORC Generalised Or-Combine
 Instruction category: OPB_PACK Packing
   pack : 274
@@ -47,13 +47,14 @@ Instruction category: OPB_PACK Packing
   packu : 274
   packuw : 274
   packw : 274
+Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
   rol : 274
   ror : 274
-  rori : 274
-  rolw : 274
   roriw : 274
+  rori : 274
   rorw : 274
+  rolw : 274
 Instruction category: OPK_Zknh NIST SHA2 Hash function instructions
   sha256sig0 : 274
   sha256sig1 : 274
@@ -63,35 +64,29 @@ Instruction category: OPK_Zknh NIST SHA2 Hash function instructions
   sha512sig1 : 274
   sha512sum0 : 274
   sha512sum1 : 274
-Instruction category: OPK_Zksh SM3 Hash function instructions
-  sm3p0 : 274
-  sm3p1 : 274
-Instruction category: OPK_Zkse SM4 Encryption Instructions
-  sm4ed : 530
-  sm4ks : 530
 Instruction category: OPB_XBAR Crossbar Permutation
   xperm.n : 274
   xperm.b : 274
 
 Other instructions (those not the focus of this suite)
-  c-j : 49
-  c-lui : 409
-  addiw : 14,529
-  csrrs : 147
-  auipc : 2,913
-  addi : 27,773
-  csrrw : 98
-  mret : 49
-  lui : 9,939
-  slli : 20,823
-  sd : 12,774
-  c-sdsp : 490
-  fence : 49
-  ecall : 49
-  c-li : 485
-  beq : 147
-  c-slli : 3,128
-  c-addiw : 532
-  c-addi : 926
+  c-j : 43
+  c-lui : 355
+  addiw : 12,771
+  csrrs : 129
+  auipc : 2,559
+  addi : 24,407
+  csrrw : 86
+  mret : 43
+  lui : 8,501
+  slli : 18,211
+  sd : 11,226
+  c-sdsp : 430
+  fence : 43
+  ecall : 43
+  c-li : 419
+  beq : 129
+  c-slli : 2,788
+  c-addiw : 456
+  c-addi : 794
   grevi : 822
 

@@ -63,7 +63,8 @@ void riscvTakeAsynchonousException(
 void riscvTakeMemoryException(
     riscvP         riscv,
     riscvException exception,
-    Uns64          tval
+    Uns64          tval,
+    Bool           GVA
 );
 
 //
@@ -105,6 +106,11 @@ void riscvECALL(riscvP riscv);
 // Execute EBREAK instruction
 //
 void riscvEBREAK(riscvP riscv);
+
+//
+// Return from M-mode resumable NMI exception
+//
+void riscvMNRET(riscvP riscv);
 
 //
 // Return from M-mode exception

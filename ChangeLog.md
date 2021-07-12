@@ -6,11 +6,13 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
+Date 2021-July-12
+Release 20210709.0
+First release of P-SIMD/DSP (v0.5.2) architectural tests
 
-Date 2021-June-22
-Release 20210221.0
+Date 2021-June-29
+Release 20210628.0
 Change to support structure v0.2 of the RISC-V Compliance framework
-First release of P-dsp architectural tests
 
 Date 2021-February-19
 Release 20210218.0

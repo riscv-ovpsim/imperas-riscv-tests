@@ -37,6 +37,7 @@
     .hyp_version      = RVHV_DEFAULT,                       \
     .vect_version     = RVVV_DEFAULT,                       \
     .dbg_version      = RVDBG_DEFAULT,                      \
+    .CLIC_version     = RVCLC_DEFAULT,                      \
     .Zvlsseg          = 1,                                  \
     .Zvamo            = 1,                                  \
     .Zvediv           = 0,                                  \
@@ -54,6 +55,7 @@
     .mvalue_bits      = ((_ARCH)&RV64) ? 13 : 6,            \
     .svalue_bits      = ((_ARCH)&RV64) ? 34 : 16,           \
     .mcontrol_maskmax = 63,                                 \
+    .posedge_0_63     = 0x100f,                             \
 }
 
 //

@@ -16,10 +16,10 @@ empty:=
 comma:= ,
 space:= $(empty) $(empty)
 
-RISCV_ISA_ALL = $(shell ls $(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)i_m)
-RISCV_ISA_OPT = $(subst $(space),$(pipe),$(RISCV_ISA_ALL))
+RISCV_DEVICE_ALL = $(shell ls $(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)i_m)
+RISCV_DEVICE_OPT = $(subst $(space),$(pipe),$(RISCV_DEVICE_ALL))
 
-RISCV_ISA_ALL := $(filter-out Makefile.include,$(RISCV_ISA_ALL))
+RISCV_DEVICE_ALL := $(filter-out Makefile.include,$(RISCV_DEVICE_ALL))
 
 ifeq ($(RISCV_DEVICE),)
     DEFAULT_TARGET=all_variant
@@ -100,8 +100,8 @@ default: $(DEFAULT_TARGET)
 variant: simulate verify
 
 all_variant:
-	for isa in $(RISCV_ISA_ALL); do \
-		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_TARGET_FLAGS="$(RISCV_TARGET_FLAGS)" RISCV_DEVICE=$$isa RISCV_ISA=$$isa variant; \
+	for isa in $(RISCV_DEVICE_ALL); do \
+		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_TARGET_FLAGS="$(RISCV_TARGET_FLAGS)" RISCV_DEVICE=$$isa variant; \
 			rc=$$?; \
 			if [ $$rc -ne 0 ]; then \
 				exit $$rc; \
@@ -151,8 +151,8 @@ else
 endif
 
 all_clean:
-	for isa in $(RISCV_ISA_ALL); do \
-		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_DEVICE=$$isa RISCV_ISA=$$isa clean; \
+	for isa in $(RISCV_DEVICE_ALL); do \
+		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_DEVICE=$$isa clean; \
 			rc=$$?; \
 			if [ $$rc -ne 0 ]; then \
 				exit $$rc; \
@@ -178,7 +178,7 @@ help:
 	@echo "     -- XLEN='<make supported xlen>'"
 	@echo "     -- RISCV_TARGET='<name of target>'"
 	@echo "     -- RISCV_TARGET_FLAGS='<any flags to be passed to target>'"
-	@echo "     -- RISCV_DEVICE='$(RISCV_ISA_OPT)' [ leave empty to run all devices ]"
+	@echo "     -- RISCV_DEVICE='$(RISCV_DEVICE_OPT)' [ leave empty to run all devices ]"
 	@echo "     -- RISCV_TEST='<name of the test. eg. I-ADD-01'"
 	@echo "    "
 	@echo "  Makefile targets available"

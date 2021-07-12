@@ -27,8 +27,8 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 146
   xnor : 146
 Instruction category: OPB_EXDE Bit Extract/Deposit
-  bdep : 146
   bext : 146
+  bdep : 146
 Instruction category: OPB_BFPL Bit-Field Place
   bfp : 146
 Instruction category: OPB_CLML Carry-less Multiply
@@ -44,14 +44,14 @@ Instruction category: OPB_COND Conditional
 Instruction category: OPB_CRCI CRC
   crc32.b : 146
   crc32.h : 146
-  crc32.w : 146
   crc32c.b : 146
+  crc32.w : 146
   crc32c.h : 146
   crc32c.w : 146
 Instruction category: OPB_FNSH Funnel Shift
-  fsl : 146
-  fsr : 146
   fsri : 146
+  fsr : 146
+  fsl : 146
 Instruction category: OPB_GORC Generalised Or-Combine
   gorc : 146
   gorci : 146
@@ -59,29 +59,29 @@ Instruction category: OPB_GREV Generalised Reverse
   grev : 146
   grevi : 146
 Instruction category: OPB_MNMX Min/Max
-  max : 146
-  maxu : 146
-  min : 146
   minu : 146
+  min : 146
+  maxu : 146
+  max : 146
 Instruction category: OPB_PACK Packing
-  pack : 146
   packh : 146
   packu : 146
+  pack : 146
 Instruction category: OPB_CNTB Count Bits
   pcnt : 146
 Instruction category: OPB_ROTS Rotations
-  rol : 146
   ror : 146
+  rol : 146
   rori : 146
 Instruction category: OPB_SBIT Single-Bit
   sbclr : 146
   sbclri : 146
-  sbext : 146
   sbexti : 146
   sbinv : 146
+  sbseti : 146
+  sbext : 146
   sbinvi : 146
   sbset : 146
-  sbseti : 146
 Instruction category: OPB_SEXT Sign Extend
   sext.b : 146
   sext.h : 146
@@ -94,8 +94,8 @@ Instruction category: OPB_SHFL Generalised Shuffle
 Instruction category: OPB_SFT1 Shift Ones
   slo : 146
   sloi : 146
-  sro : 146
   sroi : 146
+  sro : 146
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

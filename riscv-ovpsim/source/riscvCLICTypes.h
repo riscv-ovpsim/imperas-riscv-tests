@@ -122,6 +122,7 @@ typedef struct riscvCLICS {
     riscvPP            harts;       // member harts
     riscvCLICIntStateP intState;    // state for each interrupt
     Uns64             *ipe;         // mask of pending-and-enabled interrupts
+    Uns64             *trigFixed;   // mask of interrupts with fixed trig
 } riscvCLIC;
 
 

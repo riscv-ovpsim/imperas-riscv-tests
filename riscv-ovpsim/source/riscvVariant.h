@@ -296,7 +296,7 @@ typedef enum riscvBitManipVerE {
     RVBV_1_0_0,                         // version 1.0.0
     RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
-    RVBV_DEFAULT = RVBV_1_0_0,          // default version
+    RVBV_DEFAULT = RVBV_0_94,           // default version
 } riscvBitManipVer;
 
 //
@@ -386,6 +386,7 @@ typedef enum riscvDebugVerE {
 // Supported CLIC version
 //
 typedef enum riscvCLICVerE {
+    RVCLC_20180831,                     // 20180831
     RVCLC_0_9_20191208,                 // 0.9-draft-20191208
     RVCLC_MASTER,                       // master branch
     RVCLC_DEFAULT = RVCLC_0_9_20191208, // default version
@@ -446,6 +447,14 @@ typedef enum riscvDERETModeE {
     RVDRM_TRAP,                         // trap to dexc_address
 } riscvDERETMode;
 
+//
+// Supported RNMI versions
+//
+typedef enum riscvRNMIVerE {
+    RNMI_NONE,                          // RNMI not implemented
+    RNMI_0_2_1,                         // RNMI version 0.2.1
+} riscvRNMIVer;
+
 // macro returning User Architecture version
 #define RISCV_USER_VERSION(_P)      ((_P)->configInfo.user_version)
 
@@ -466,6 +475,9 @@ typedef enum riscvDERETModeE {
 
 // macro returning Debug Architecture version
 #define RISCV_DBG_VERSION(_P)       ((_P)->configInfo.dbg_version)
+
+// macro returning RNMI Architecture version
+#define RISCV_RNMI_VERSION(_P)      ((_P)->configInfo.rnmi_version)
 
 // macro returning CLIC version
 #define RISCV_CLIC_VERSION(_P)      ((_P)->configInfo.CLIC_version)

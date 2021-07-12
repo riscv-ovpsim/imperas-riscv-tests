@@ -127,7 +127,7 @@ inline static Uns32 getCLICWordByte(Uns32 offset) {
 }
 
 //
-// Return type of an interrupt field accesed at the given offset
+// Return type of an interrupt field accessed at the given offset
 //
 inline static CLICIntFieldType getCLICIntFieldType(Uns32 offset) {
     return getCLICWordByte(offset);
@@ -208,8 +208,12 @@ static riscvP getCLICHart(riscvP root, Uns32 offset) {
 //
 // Emit debug for CLIC region access
 //
-static void debugCLICAccess(riscvP root, Uns32 offset, const char *access) {
-
+static void debugCLICAccess(
+    riscvP      root,
+    Uns32       raw,
+    Uns32       offset,
+    const char *access
+) {
     CLICPageType type = getCLICPageType(root, offset);
     Int32        hart = getCLICHartIndex(root, offset);
     const char  *name = mapCLICPageTypeName(type);
@@ -219,7 +223,7 @@ static void debugCLICAccess(riscvP root, Uns32 offset, const char *access) {
         // control page access
         vmiPrintf(
             "CLIC %s offset=0x%x %s\n",
-            access, offset, name
+            access, raw, name
         );
 
     } else {
@@ -227,7 +231,7 @@ static void debugCLICAccess(riscvP root, Uns32 offset, const char *access) {
         // interrupt page access
         vmiPrintf(
             "CLIC %s offset=0x%x %s (hart %d)\n",
-            access, offset, name, hart
+            access, raw, name, hart
         );
     }
 }
@@ -299,10 +303,8 @@ static void updateCLICInterruptField(
 //
 // Return clicintattr for the indexed interrupt
 //
-inline static CLIC_REG_TYPE(clicintattr) getCLICInterruptAttr(
-    riscvP hart,
-    Uns32  intIndex
-) {
+static CLIC_REG_TYPE(clicintattr) getCLICInterruptAttr(riscvP hart, Uns32 intIndex) {
+
     CLIC_REG_DECL(clicintattr) = {
         bits:getCLICInterruptField(hart, intIndex, CIT_clicintattr)
     };
@@ -385,14 +387,20 @@ inline static void setCLICInterruptEnable(
 }
 
 //
+// Extrect double word index and mask for interrupt
+//
+#define INT_TO_INDEX_MASK(_INT, _WORD, _MASK) \
+    Uns32 _WORD = (_INT)/64;            \
+    Uns64 _MASK = (1ULL<<((_INT)%64))
+
+//
 // Return CLIC pending+enabled state for the given interrupt
 //
 static Bool getCLICPendingEnable(riscvP hart, Uns32 intIndex) {
 
-    Uns32 wordIndex = intIndex/64;
-    Uns64 mask      = (1ULL<<(intIndex%64));
+    INT_TO_INDEX_MASK(intIndex, word, mask);
 
-    return hart->clic.ipe[wordIndex] & mask;
+    return hart->clic.ipe[word] & mask;
 }
 
 //
@@ -400,13 +408,12 @@ static Bool getCLICPendingEnable(riscvP hart, Uns32 intIndex) {
 //
 static void updateCLICPendingEnable(riscvP hart, Uns32 intIndex, Bool newIPE) {
 
-    Uns32 wordIndex = intIndex/64;
-    Uns64 mask      = (1ULL<<(intIndex%64));
+    INT_TO_INDEX_MASK(intIndex, word, mask);
 
     if(newIPE) {
-        hart->clic.ipe[wordIndex] |= mask;
+        hart->clic.ipe[word] |= mask;
     } else {
-        hart->clic.ipe[wordIndex] &= ~mask;
+        hart->clic.ipe[word] &= ~mask;
     }
 
     riscvTestInterrupt(hart);
@@ -473,6 +480,12 @@ static void writeCLICInterruptAttr(
 
     // clear WPRI field
     clicintattr.fields._u1 = 0;
+
+    // preserve current value of trig field if required
+    INT_TO_INDEX_MASK(intIndex, word, mask);
+    if(hart->clic.trigFixed[word] & mask) {
+        clicintattr.fields.trig = getCLICInterruptAttr(hart, intIndex).fields.trig;
+    }
 
     // clear shv field if Selective Hardware Vectoring is not implemented
     if(!root->clic.cliccfg.fields.nvbits) {
@@ -752,11 +765,8 @@ static void refreshCLICIPE(riscvP hart) {
             getCLICInterruptPending(hart, i) &&
             getCLICInterruptEnable(hart, i)
         ) {
-            Uns32 wordIndex = i/64;
-            Uns32 bitIndex  = i%64;
-            Uns64 mask      = (1ULL<<bitIndex);
-
-            hart->clic.ipe[wordIndex] |= mask;
+            INT_TO_INDEX_MASK(i, word, mask);
+            hart->clic.ipe[word] |= mask;
         }
     }
 }
@@ -845,7 +855,7 @@ static void cliccfgW(riscvP root, Uns8 newValue) {
 //
 // Read one byte from the CLIC
 //
-static Uns8 readCLICInt(riscvP root, Uns32 offset) {
+static Uns8 readCLICInt(riscvP root, Uns32 raw, Uns32 offset) {
 
     Uns32 result = 0;
     Uns32 word   = getCLICPageWord(offset);
@@ -853,7 +863,7 @@ static Uns8 readCLICInt(riscvP root, Uns32 offset) {
 
     // debug access if required
     if(RISCV_DEBUG_EXCEPT(root)) {
-        debugCLICAccess(root, offset, "READ");
+        debugCLICAccess(root, raw, offset, "READ");
     }
 
     // direct access either to interrupt or control page
@@ -872,11 +882,11 @@ static Uns8 readCLICInt(riscvP root, Uns32 offset) {
 //
 // Write one byte to the CLIC
 //
-static void writeCLICInt(riscvP root, Uns32 offset, Uns8 newValue) {
+static void writeCLICInt(riscvP root, Uns32 raw, Uns32 offset, Uns8 newValue) {
 
     // debug access if required
     if(RISCV_DEBUG_EXCEPT(root)) {
-        debugCLICAccess(root, offset, "WRITE");
+        debugCLICAccess(root, raw, offset, "WRITE");
     }
 
     // direct access either to interrupt or control page
@@ -887,10 +897,252 @@ static void writeCLICInt(riscvP root, Uns32 offset, Uns8 newValue) {
     }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// MEMORY-MAPPED CALLBACKS, CLIC LEGACY VERSION BEFORE 0.9
+////////////////////////////////////////////////////////////////////////////////
+
+#define CLIC_OLD_SIZE       0x800000
+#define CLIC_OLD_MODE_MASK  0x1fffff
+#define CLIC_OLD_AP_SIZE    0x001000
+#define CLIC_OLD_INDEX_MASK 0x0003ff
+
 //
-// Read CLIC register
+// Return offset of CLIC access within memory-mapped block
 //
-static VMI_MEM_READ_FN(readCLIC) {
+inline static Uns32 getCLICOldOffset(riscvP root, Uns64 addr) {
+    return addr-getCLICLow(root);
+}
+
+//
+// Return hart index implied by memory-mapped CLIC access
+//
+inline static Uns32 getCLICOldHart(Uns32 offset) {
+    return (offset & CLIC_OLD_MODE_MASK) / CLIC_OLD_AP_SIZE;
+}
+
+//
+// Return interrupt index implied by memory-mapped CLIC access
+//
+inline static Uns32 getCLICOldIntId(Uns32 offset) {
+    return offset & CLIC_OLD_INDEX_MASK;
+}
+
+//
+// Map from address of CLIC access to the presumed aperture mode
+//
+static riscvMode getCLICOldMode(Uns32 offset) {
+
+   switch(offset/(CLIC_OLD_SIZE/4)) {
+       case 0:
+           return RISCV_MODE_M;
+       case 1:
+           return RISCV_MODE_S;
+       case 2:
+           return RISCV_MODE_S;
+       default:
+           return RISCV_MODE_U;
+   }
+}
+
+//
+// Map from address of CLIC access to the operation type
+//
+static CLICIntFieldType getCLICOldType(Uns32 offset) {
+
+    switch((offset & (CLIC_OLD_AP_SIZE-1))/(CLIC_OLD_AP_SIZE/4)) {
+        case 0:
+            return CIT_clicintip;
+        case 1:
+            return CIT_clicintie;
+        case 2:
+            return CIT_clicintctl;
+        default:
+            return CIT_clicintattr;
+    }
+}
+
+//
+// Given an old CLIC address, return the equivalent byte address using 0.9
+// mappings.
+//
+static Uns32 mapCLICOldOffset(riscvP root, Uns32 offset) {
+
+    Uns32            numHarts = getNumHarts(root);
+    Uns32            hartId   = getCLICOldHart(offset);
+    riscvMode        mode     = getCLICOldMode(offset);
+    CLICIntFieldType type     = getCLICOldType(offset);
+    Uns32            id       = getCLICOldIntId(offset);
+    Uns32            newIndex = -1;
+
+    if(type==CIT_clicintattr) {
+
+        if(mode!=RISCV_MODE_M) {
+            // only M-mode can access cliccfg region
+        } else if(id) {
+            // only cliccfg is present
+        } else {
+            newIndex = 0;
+        }
+
+    } else {
+
+        // get number of 4k pages for M/S/U blocks (4x4k pages per hart)
+        Uns32 msuPages = numHarts*4;
+
+        // get hart offset within M/S/U block (4x4k pages per hart, skip initial
+        // 4k configuration page)
+        Uns32 pageOffset = (hartId*4) + 1;
+
+        // add page offset of correct M/S/U block
+        if(mode==RISCV_MODE_S) {
+            pageOffset += msuPages;
+        } else if(mode==RISCV_MODE_U) {
+            pageOffset += msuPages*2;
+        }
+
+        // get offset to indexed interrupt
+        newIndex = (pageOffset*4096) + (id*4);
+
+        // include clicintip/clicintie/clicintctl offset
+        newIndex += type;
+    }
+
+    return newIndex;
+}
+
+//
+// Mask clicintctl by region type
+//
+static Uns8 maskCLICOldIntCfg(riscvP root, Uns32 offset, Uns8 clicintctl) {
+
+    riscvMode mode = getCLICOldMode(offset);
+
+    if(mode!=RISCV_MODE_M) {
+
+        Uns32  hartId = getCLICOldHart(offset);
+        riscvP riscv  = root->clic.harts[hartId];
+
+        if((mode==RISCV_MODE_S) || !supervisorPresent(riscv)) {
+            clicintctl &= 0x7f;
+        } else {
+            clicintctl &= 0x3f;
+        }
+    }
+
+    return clicintctl;
+}
+
+//
+// Write inferred value of clicintattr when clicintctl is written
+//
+static void writeCLICOldIntAttr(
+    riscvP root,
+    Uns32  offsetOld,
+    Uns32  offsetNew,
+    Uns8   clicintctl
+) {
+    Uns32 CLICINTCTLBITS = root->clic.clicinfo.fields.CLICINTCTLBITS;
+
+    CLIC_REG_DECL(clicintattr) = {0};
+
+    // shv is the least-significant writable bit of clicintctl
+    clicintattr.fields.shv = (clicintctl & (1<<(8-CLICINTCTLBITS))) && True;
+
+    // mode is the most-significant two bits of clicintctl
+    clicintattr.fields.mode = clicintctl>>6;
+
+    // update implied clicintattr
+    writeCLICInt(root, offsetOld, offsetNew-1, clicintattr.bits);
+}
+
+//
+// Read CLIC register (pre-0.9)
+//
+static VMI_MEM_READ_FN(readCLICOld) {
+
+    riscvP root     = userData;
+    Uns32  numHarts = getNumHarts(root);
+    Uns8  *value8   = value;
+    Uns32  i;
+
+    for(i=0; i<bytes; i++) {
+
+        Uns32 offsetOld = getCLICOldOffset(root, address+i);
+
+        if(getCLICOldHart(offsetOld)<numHarts) {
+
+            Uns32 offsetNew = mapCLICOldOffset(root, offsetOld);
+
+            if(offsetNew != -1) {
+                value8[i] = readCLICInt(root, offsetOld, offsetNew);
+            } else {
+                value8[i] = 0;
+            }
+        }
+    }
+}
+
+//
+// Write CLIC register (pre-0.9)
+//
+static VMI_MEM_WRITE_FN(writeCLICOld) {
+
+    riscvP      root     = userData;
+    Uns32       numHarts = getNumHarts(root);
+    const Uns8 *value8   = value;
+    Uns32       i;
+
+    for(i=0; i<bytes; i++) {
+
+        Uns32 offsetOld = getCLICOldOffset(root, address+i);
+
+        if(getCLICOldHart(offsetOld)<numHarts) {
+
+            Uns32 offsetNew = mapCLICOldOffset(root, offsetOld);
+
+            if(offsetNew != -1) {
+
+                Uns8 value = value8[i];
+
+                if(getCLICOldType(offsetOld)==CIT_clicintctl) {
+
+                    // pre-0.9 clicintctl is masked by region type
+                    value = maskCLICOldIntCfg(root, offsetOld, value);
+
+                    // pre-0.9 clicintattr must be inferred from clicintctl
+                    writeCLICOldIntAttr(root, offsetOld, offsetNew, value);
+                }
+
+                writeCLICInt(root, offsetOld, offsetNew, value);
+            }
+        }
+    }
+}
+
+//
+// Create CLIC memory-mapped block and data structures (pre-0.9)
+//
+static void mapCLICDomainOld(riscvP root, memDomainP CLICDomain) {
+
+    Uns64 lowAddr  = getCLICLow(root);
+    Uns64 highAddr = lowAddr+CLIC_OLD_SIZE-1;
+
+    // install callbacks to implement the CLIC
+    vmirtMapCallbacks(
+        CLICDomain, lowAddr, highAddr, readCLICOld, writeCLICOld, root
+    );
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MEMORY-MAPPED CALLBACKS, CLIC VERSION 0.9 OR LATER
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Read CLIC register (version 0.9 or later)
+//
+static VMI_MEM_READ_FN(readCLIC_0_9) {
 
     riscvP root    = userData;
     Uns8  *value8  = value;
@@ -898,14 +1150,15 @@ static VMI_MEM_READ_FN(readCLIC) {
     Uns32  i;
 
     for(i=0; i<bytes; i++) {
-        value8[i] = readCLICInt(root, address+i-lowAddr);
+        Uns32 offset = address+i-lowAddr;
+        value8[i] = readCLICInt(root, offset, offset);
     }
 }
 
 //
-// Write CLIC register
+// Write CLIC register (version 0.9 or later)
 //
-static VMI_MEM_WRITE_FN(writeCLIC) {
+static VMI_MEM_WRITE_FN(writeCLIC_0_9) {
 
     riscvP      root    = userData;
     const Uns8 *value8  = value;
@@ -913,14 +1166,15 @@ static VMI_MEM_WRITE_FN(writeCLIC) {
     Uns32       i;
 
     for(i=0; i<bytes; i++) {
-        writeCLICInt(root, address+i-lowAddr, value8[i]);
+        Uns32 offset = address+i-lowAddr;
+        writeCLICInt(root, offset, offset, value8[i]);
     }
 }
 
 //
-// Create CLIC memory-mapped block and data structures
+// Create CLIC memory-mapped block and data structures (version 0.9 or later)
 //
-void riscvMapCLICDomain(riscvP root, memDomainP CLICDomain) {
+static void mapCLICDomain_0_9(riscvP root, memDomainP CLICDomain) {
 
     Uns32 numHarts = getNumHarts(root);
     Uns32 numPages = 1 + (numHarts*3)*4;
@@ -930,8 +1184,27 @@ void riscvMapCLICDomain(riscvP root, memDomainP CLICDomain) {
 
     // install callbacks to implement the CLIC
     vmirtMapCallbacks(
-        CLICDomain, lowAddr, highAddr, readCLIC, writeCLIC, root
+        CLICDomain, lowAddr, highAddr, readCLIC_0_9, writeCLIC_0_9, root
     );
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Create CLIC memory-mapped block and data structures
+//
+void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain) {
+
+    riscvP root = riscv->smpRoot;
+
+    if(riscv->configInfo.CLIC_version>=RVCLC_0_9_20191208) {
+        mapCLICDomain_0_9(root, CLICDomain);
+    } else {
+        mapCLICDomainOld(root, CLICDomain);
+    }
 }
 
 //
@@ -949,12 +1222,12 @@ void riscvNewCLIC(riscvP riscv, Uns32 index) {
     if(!table) {
 
         // initialise read-only fields in cliccfg using configuration options
-        root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
+        root->clic.cliccfg.fields.nvbits = riscv->configInfo.CLICSELHVEC;
 
         // initialise read-only fields in clicinfo using configuration options
         root->clic.clicinfo.fields.num_interrupt  = intNum;
-        root->clic.clicinfo.fields.version        = root->configInfo.CLICVERSION;
-        root->clic.clicinfo.fields.CLICINTCTLBITS = root->configInfo.CLICINTCTLBITS;
+        root->clic.clicinfo.fields.version        = riscv->configInfo.CLICVERSION;
+        root->clic.clicinfo.fields.CLICINTCTLBITS = riscv->configInfo.CLICINTCTLBITS;
 
         // allocate hart table
         table = root->clic.harts = STYPE_CALLOC_N(riscvP, numHarts);
@@ -979,15 +1252,36 @@ void riscvNewCLIC(riscvP riscv, Uns32 index) {
     riscv->netValue.enableCLIC = True;
 
     // allocate control state for interrupts
-    riscv->clic.intState = STYPE_CALLOC_N(riscvCLICIntState, intNum);
-    riscv->clic.ipe      = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
+    riscv->clic.intState  = STYPE_CALLOC_N(riscvCLICIntState, intNum);
+    riscv->clic.ipe       = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
+    riscv->clic.trigFixed = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
 
-    // define default values for interrupt control state
-    CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_MACHINE}};
-    Uns32         clicintctl   = getCLICIntCtl1Bits(riscv);
+    // define default value for interrupt control state
+    Uns32 clicintctl = getCLICIntCtl1Bits(riscv);
+
+    // get definitions of fixed trigger CLIC interrupts
+    Uns64 posedge_0_63   = riscv->configInfo.posedge_0_63;
+    Uns64 poslevel_0_63  = riscv->configInfo.poslevel_0_63;
+    Bool  posedge_other  = riscv->configInfo.posedge_other;
+    Bool  poslevel_other = riscv->configInfo.poslevel_other;
 
     // initialise control state for interrupts
     for(i=0; i<intNum; i++) {
+
+        INT_TO_INDEX_MASK(i, word, mask);
+
+        // get default value for clicintattr
+        CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_MACHINE}};
+
+        // handle fixed positive edge/level triggered interrupts
+        if(word ? posedge_other : (mask&posedge_0_63)) {
+            riscv->clic.trigFixed[word] |= mask;
+            clicintattr.fields.trig = 1;
+        } else if(word ? poslevel_other : (mask&poslevel_0_63)) {
+            riscv->clic.trigFixed[word] |= mask;
+        }
+
+        // set initial clicintattr and clicintctl for this interruipt
         setCLICInterruptField(riscv, i, CIT_clicintattr, clicintattr.bits);
         setCLICInterruptField(riscv, i, CIT_clicintctl, clicintctl);
     }
@@ -1008,6 +1302,7 @@ void riscvFreeCLIC(riscvP riscv) {
     CLIC_FREE(riscv, harts);
     CLIC_FREE(riscv, intState);
     CLIC_FREE(riscv, ipe);
+    CLIC_FREE(riscv, trigFixed);
 }
 
 //

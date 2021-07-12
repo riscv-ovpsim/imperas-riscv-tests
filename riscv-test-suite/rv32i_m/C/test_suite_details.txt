@@ -24,16 +24,16 @@ Architectural Test Suite Data for RV32C C Compressed Integer Instructions:
 
 Instruction category: arithmetic 
   c-lui : 1,503
-  c-add : 730
-  c-li : 1,049
   c-addi : 964
+  c-li : 1,049
   c-mv : 146
+  c-add : 730
   c-sub : 147
 Instruction category: logical 
-  c-and : 146
-  c-or : 146
   c-xor : 146
   c-andi : 146
+  c-or : 146
+  c-and : 146
 Instruction category: branch 
   c-beqz : 146
   c-bnez : 146
@@ -49,8 +49,8 @@ Instruction category: store
   c-swsp : 282
 Instruction category: shift 
   c-slli : 146
-  c-srai : 146
   c-srli : 146
+  c-srai : 146
 
 Other instructions (those not the focus of this suite)
   addi : 5,035

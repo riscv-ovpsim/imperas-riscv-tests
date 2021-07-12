@@ -16,7 +16,7 @@
     
 
 
-Architectural Test Suite Data for RV64M C Compressed Integer Instructions:
+Architectural Test Suite Data for RV64M M Integer Multiplication and Division:
     13 test source files
     1 different instruction categories
     26 different instructions
@@ -24,17 +24,17 @@ Architectural Test Suite Data for RV64M C Compressed Integer Instructions:
 
 Instruction category: arithmetic 
   mul : 274
-  mulh : 274
-  mulhsu : 274
-  mulhu : 274
-  div : 274
-  divu : 274
   rem : 274
+  mulh : 274
+  mulhu : 274
+  mulhsu : 274
+  div : 274
+  divw : 274
+  divu : 274
   remu : 274
   mulw : 274
-  divw : 274
-  divuw : 274
   remw : 274
+  divuw : 274
   remuw : 274
 
 Other instructions (those not the focus of this suite)

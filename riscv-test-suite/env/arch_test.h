@@ -750,6 +750,13 @@ RVTEST_SIGUPD(swreg,destreg,offset)
     RVTEST_SIGUPD(swreg,destreg,offset); \
     RVMODEL_IO_ASSERT_GPR_EQ(testreg, destreg, correctval)
 
+#define TEST_CASE64(testreg, destreg, destreg_p, correctval, swreg, offset, code... ) \
+    code; \
+    RVTEST_SIGUPD(swreg,destreg,offset); \
+    RVTEST_SIGUPD(swreg,destreg_p,offset+4); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, destreg, MASK_XLEN(correctval)); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, destreg_p, MASK_XLEN(correctval >> 32))
+
 #define TEST_AUIPC(inst, destreg, correctval, imm, swreg, offset, testreg) \
     TEST_CASE(testreg, destreg, correctval, swreg, offset, \
       LA testreg, 1f; \
@@ -788,6 +795,16 @@ RVTEST_SIGUPD(swreg,destreg,offset)
       LI(reg2, MASK_XLEN(val2)); \
       inst destreg, reg1, reg2; \
     )
+
+#define TEST_RR64_OP(inst, destreg, destreg_p, reg1, reg1_p, reg2, reg2_p, correctval, val1, val2, swreg, offset, testreg) \
+    TEST_CASE64(testreg, destreg, destreg_p, correctval, swreg, offset, \
+      LI(reg1, MASK_XLEN(val1)); \
+      LI(reg1_p, MASK_XLEN(val1 >> 32)); \
+      LI(reg2, MASK_XLEN(val2)); \
+      LI(reg2_p, MASK_XLEN(val2 >> 32)); \
+      inst destreg, reg1, reg2; \
+    )
+
 
 #define TEST_CNOP_OP( inst, testreg, imm_val, swreg, offset) \
     TEST_CASE(testreg, x0, 0, swreg, offset, \

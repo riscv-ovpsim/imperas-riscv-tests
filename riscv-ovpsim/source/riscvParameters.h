@@ -41,6 +41,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(hypervisor_version);
     VMI_ENUM_PARAM(crypto_version);
     VMI_ENUM_PARAM(debug_version);
+    VMI_ENUM_PARAM(rnmi_version);
     VMI_ENUM_PARAM(CLIC_version);
     VMI_ENUM_PARAM(fp16_version);
     VMI_ENUM_PARAM(mstatus_fs_mode);
@@ -76,6 +77,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(utvt_sext);
     VMI_UNS64_PARAM(ecode_mask);
     VMI_UNS64_PARAM(ecode_nmi);
+    VMI_UNS64_PARAM(ecode_nmi_mask);
     VMI_BOOL_PARAM(tval_zero);
     VMI_BOOL_PARAM(tval_zero_ebreak);
     VMI_BOOL_PARAM(tval_ii_code);
@@ -117,6 +119,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(lr_sc_grain);
     VMI_UNS64_PARAM(reset_address);
     VMI_UNS64_PARAM(nmi_address);
+    VMI_UNS64_PARAM(nmiexc_address);
     VMI_UNS32_PARAM(local_int_num);
     VMI_UNS64_PARAM(unimp_int_mask);
     VMI_UNS64_PARAM(force_mideleg);
@@ -205,6 +208,10 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(tvt_undefined);
     VMI_BOOL_PARAM(intthresh_undefined);
     VMI_BOOL_PARAM(mclicbase_undefined);
+    VMI_UNS64_PARAM(posedge_0_63);
+    VMI_UNS64_PARAM(poslevel_0_63);
+    VMI_BOOL_PARAM(posedge_other);
+    VMI_BOOL_PARAM(poslevel_other);
 
     // Hypervisor configuration
     VMI_UNS32_PARAM(GEILEN);
@@ -256,6 +263,11 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 // Return Debug Architecture description
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv);
+
+//
+// Return RNMI Architecture name
+//
+const char *riscvGetRNMIVersionName(riscvP riscv);
 
 //
 // Return CLIC description

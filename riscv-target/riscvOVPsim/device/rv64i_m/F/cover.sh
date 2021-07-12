@@ -17,8 +17,8 @@ if [[ ${TARGET_SIM} == "" ]]; then
 fi
 
 echo "Running ${XLEN} ${RISCV_DEVICE}"
-RISCV_ISA=rv${XLEN}i_m/${RISCV_DEVICE}
-RISCV_CVG=${RISCV_DEVICE}
+
+WORK_DIR=work/rv${XLEN}i_m/${RISCV_DEVICE}
 
 ${TARGET_SIM} \
     --variant RV64GC  \
@@ -26,9 +26,9 @@ ${TARGET_SIM} \
     --countthreshold 1 \
     --showuncovered \
     --nosimulation \
-    --extensions ${RISCV_CVG} \
-    --inputfiles work/${RISCV_ISA} \
-    --outputfile work/${RISCV_ISA}/${COVERTYPE}.coverage.yaml \
-    --reportfile work/${RISCV_ISA}/${COVERTYPE}.coverage.txt \
-    --logfile work/${RISCV_ISA}/${COVERTYPE}.coverage.run.log
+    --extensions ${RISCV_DEVICE} \
+    --inputfiles ${WORK_DIR} \
+    --outputfile ${WORK_DIR}/${COVERTYPE}.coverage.yaml \
+    --reportfile ${WORK_DIR}/${COVERTYPE}.coverage.txt \
+    --logfile ${WORK_DIR}/${COVERTYPE}.coverage.run.log
 

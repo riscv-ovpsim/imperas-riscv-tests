@@ -1036,6 +1036,77 @@ static RISCV_CSR_READFN(uepcR) {
     return epcR(riscv, RD_CSR_U(riscv, uepc));
 }
 
+//
+// Read mnepc
+//
+static RISCV_CSR_READFN(mnepcR) {
+    return epcR(riscv, RD_CSR_M(riscv, mnepc));
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// RESUMABLE NMI CONTROL REGISTERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Are RNMI registers present?
+//
+inline static RISCV_CSR_PRESENTFN(rnmiP) {
+    return RISCV_RNMI_VERSION(riscv);
+}
+
+//
+// return interrupt bit mask in mncause
+//
+inline static Uns64 mncauseInterrupt(riscvP riscv) {
+    return 1ULL << (RISCV_XLEN_IS_64M(riscv, RISCV_MODE_M) ? 63 : 31);
+}
+
+//
+// Write mncause
+//
+static RISCV_CSR_WRITEFN(mncauseW) {
+
+    Uns64 mask = mncauseInterrupt(riscv) | riscv->configInfo.ecode_nmi_mask;
+
+    WR_CSR(riscv, mncause, newValue & mask);
+
+    return RD_CSR(riscv, mncause);
+}
+
+//
+// Write mnstatus
+//
+static RISCV_CSR_WRITEFN(mnstatusW) {
+
+    // select only implemented MPP/MPV fields from new value
+    newValue &= RD_CSR_MASK64(riscv, mnstatus);
+
+    // update the CSR
+    Uns8 oldMPP = RD_CSR_FIELDC(riscv, mnstatus, MPP);
+    Bool oldMIE = RD_CSR_FIELDC(riscv, mnstatus, MIE);
+    WR_CSR(riscv, mnstatus, newValue);
+    Uns8 newMPP = RD_CSR_FIELDC(riscv, mnstatus, MPP);
+    Bool newMIE = RD_CSR_FIELDC(riscv, mnstatus, MIE);
+
+    // revert mnstatus.MPP if target mode is not implemented
+    if(!riscvHasMode(riscv, newMPP)) {
+        WR_CSR_FIELDC(riscv, mnstatus, MPP, oldMPP);
+    }
+
+    // mnstatus.MIE may only be set by software (not cleared)
+    if(oldMIE && !newMIE && !riscv->artifactAccess) {
+        WR_CSR_FIELDC(riscv, mnstatus, MIE, oldMIE);
+    }
+
+    // handle interrupts that may have been blocked
+    if(!oldMIE && newMIE) {
+        riscvTestInterrupt(riscv);
+    }
+
+    return RD_CSR(riscv, mnstatus);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // INTERRUPT CONTROL REGISTERS
@@ -2069,14 +2140,16 @@ static Uns64 tvecW(
     newValue = (newValue<<sext) >> sext;
 
     // constrain newMode to legal value
-    if(!basicICPresent(riscv)) {
-        newMode = riscv_int_CLIC;
-    } else if(newMode==riscv_int_Reserved) {
+    if(!basicICPresent(riscv) && !(newMode&riscv_int_CLIC)) {
+        newMode = oldMode;
+    } else if(newMode!=riscv_int_CLIC_Direct) {
+        // no action
+    } else if(riscv->configInfo.CLIC_version>=RVCLC_0_9_20191208) {
         newMode = oldMode;
     }
 
     // apply fixed alignment constraint in CLIC mode
-    if(newMode==riscv_int_CLIC) {
+    if(newMode&riscv_int_CLIC) {
         newValue &= -0x40;
     }
 
@@ -2105,8 +2178,8 @@ static Uns64 tvecW(
     riscvICMode newMode = RD_CSR_FIELD_MODE(_P, _MODE, _x##tvec, MODE); \
                                                                         \
     /* get old and new CLIC mode */                                     \
-    Bool oldCLIC = (oldMode==riscv_int_CLIC);                           \
-    Bool newCLIC = (newMode==riscv_int_CLIC);                           \
+    Bool oldCLIC = (oldMode&riscv_int_CLIC);                            \
+    Bool newCLIC = (newMode&riscv_int_CLIC);                            \
                                                                         \
     /* handle possible CLIC mode change */                              \
     if(oldCLIC!=newCLIC) {                                              \
@@ -2367,7 +2440,7 @@ inline static Uns64 setUpper(Uns32 newValue, Uns64 oldValue) {
 }
 
 //
-// Return value maksed to XLEN of the mode for the CSR
+// Return value masked to XLEN of the mode for the CSR
 //
 inline static Uns64 getXLENValue(
     riscvCSRAttrsCP attrs,
@@ -4644,7 +4717,11 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TV_     (mtinst,       0x34A, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Trap Instruction",                              0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mclicbase,    0x34B, 0,           0,          1_10,   0,0,0,0,0,0, "Machine CLIC Base Address",                             clicMCBP,    0,           0,            0,        mclicbaseW    ),
     CSR_ATTR_T__     (mtval2,       0x34B, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Machine Second Trap Value",                             0,           0,           0,            0,        0             ),
-    CSR_ATTR_TC_     (mseccfg,      0x390, ISA_K,       0,          1_10,   0,0,0,0,0,0, "Machine Secure Configuration",                          sentropyP,   0,           0,            0,        0             ),
+    CSR_ATTR_T__     (mnscratch,    0x350, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Scratch",                                  rnmiP,       0,           0,            0,        0             ),
+    CSR_ATTR_TV_     (mnepc,        0x351, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Program Counter",                          rnmiP,       0,           mnepcR,       0,        0             ),
+    CSR_ATTR_T__     (mncause,      0x352, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Cause",                                    rnmiP,       0,           0,            0,        mncauseW      ),
+    CSR_ATTR_T__     (mnstatus,     0x353, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Status",                                   rnmiP,       0,           0,            0,        mnstatusW     ),
+    CSR_ATTR_TC_     (mseccfg,      0x747, ISA_K,       0,          1_10,   0,0,0,0,0,0, "Machine Secure Configuration",                          sentropyP,   0,           0,            0,        0             ),
     CSR_ATTR_TC_     (mnoise,       0x7A9, ISA_K,       0,          1_10,   0,0,0,0,0,0, "GetNoise Test Interface",                               cryptoP,     0,           0,            0,        0             ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
@@ -5629,6 +5706,23 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     }
 
     //--------------------------------------------------------------------------
+    // mnstatus mask
+    //--------------------------------------------------------------------------
+
+    // initialize mnstatus write mask (Machine mode)
+    WR_CSR_MASK_FIELDC_1(riscv, mnstatus, MIE);
+
+    // mnstatus.MPP is only writable if there is some lower-level mode
+    if(arch&(ISA_U|ISA_S)) {
+        WR_CSR_MASK_FIELDC_1(riscv, mnstatus, MPP);
+    }
+
+    // initialize H-mode write masks in mnstatus
+    if(arch&ISA_H) {
+        WR_CSR_MASK_FIELD64_1(riscv, mnstatus, MPV);
+    }
+
+    //--------------------------------------------------------------------------
     // hstatus mask
     //--------------------------------------------------------------------------
 
@@ -5682,6 +5776,7 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     WR_CSR_MASK_S (riscv, sepc,  maskEPC);
     WR_CSR_MASK_VS(riscv, vsepc, maskEPC);
     WR_CSR_MASK_M (riscv, mepc,  maskEPC);
+    WR_CSR_MASK_M (riscv, mnepc, maskEPC);
 
     //--------------------------------------------------------------------------
     // exception and interrupt masks
@@ -5831,9 +5926,9 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
 
     // force exception mode if only CLIC is present
     if(!haveBasicIC) {
-        WR_CSR_FIELD_M(riscv, mtvec, MODE, riscv_int_CLIC);
-        WR_CSR_FIELD_S(riscv, stvec, MODE, riscv_int_CLIC);
-        WR_CSR_FIELD_U(riscv, utvec, MODE, riscv_int_CLIC);
+        WR_CSR_FIELD_M(riscv, mtvec, MODE, riscv_int_CLIC_Vectored);
+        WR_CSR_FIELD_S(riscv, stvec, MODE, riscv_int_CLIC_Vectored);
+        WR_CSR_FIELD_U(riscv, utvec, MODE, riscv_int_CLIC_Vectored);
     }
 
     //--------------------------------------------------------------------------

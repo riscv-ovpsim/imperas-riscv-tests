@@ -76,6 +76,7 @@ typedef struct riscvConfigS {
     riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
     riscvHypVer       hyp_version;      // hypervisor architecture version
     riscvDebugVer     dbg_version;      // debugger architecture version
+    riscvRNMIVer      rnmi_version;     // rnmi version
     riscvCLICVer      CLIC_version;     // CLIC version
     riscvZfinxVer     Zfinx_version;    // Zfinx version
     riscvFP16Ver      fp16_version;     // 16-bit floating point version
@@ -87,6 +88,7 @@ typedef struct riscvConfigS {
     // configuration not visible in CSR state
     Uns64             reset_address;    // reset vector address
     Uns64             nmi_address;      // NMI address
+    Uns64             nmiexc_address;   // RNMI exception address
     Uns64             debug_address;    // debug vector address
     Uns64             dexc_address;     // debug exception address
     Uns64             unimp_int_mask;   // mask of unimplemented interrupts
@@ -96,6 +98,7 @@ typedef struct riscvConfigS {
     Uns64             no_edeleg;        // non-delegated exceptions
     Uns64             ecode_mask;       // implemented bits in xcause.ecode
     Uns64             ecode_nmi;        // exception code for NMI
+    Uns64             ecode_nmi_mask;   // implemented bits in mncause.ecode
     Uns32             counteren_mask;   // counter-enable implemented mask
     Uns32             noinhibit_mask;	// counter no-inhibit mask
     Uns32             local_int_num;    // number of local interrupts
@@ -180,6 +183,8 @@ typedef struct riscvConfigS {
                                         // illegal instruction exception?
 
     // CLIC configuration
+    Uns64             posedge_0_63;     // fixed int[63:0] positive edge
+    Uns64             poslevel_0_63;    // fixed int[63:0] positive level
     Uns32             CLICLEVELS;       // number of CLIC interrupt levels
     Bool              externalCLIC;     // is CLIC externally implemented?
     Bool              CLICANDBASIC;     // whether implements basic mode also
@@ -193,6 +198,8 @@ typedef struct riscvConfigS {
     Bool              tvt_undefined;    // whether *tvt CSRs are undefined
     Bool              intthresh_undefined;// whether *intthresh CSRs undefined
     Bool              mclicbase_undefined;// whether mclicbase CSR is undefined
+    Bool              posedge_other;    // fixed int[64:N] positive edge
+    Bool              poslevel_other;   // fixed int[64:N] positive level
 
     // Hypervisor configuration
     Uns8              GEILEN;           // number of guest external interrupts

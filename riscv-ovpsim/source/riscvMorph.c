@@ -3194,6 +3194,27 @@ static RISCV_MORPH_FN(emitMRET) {
 }
 
 //
+// Implement MNRET instruction
+//
+static RISCV_MORPH_FN(emitMNRET) {
+
+    riscvP riscv = state->riscv;
+
+    if(!RISCV_RNMI_VERSION(riscv)) {
+
+        // illegal unless RNMI is configured
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IRNMI", "RNMI not present");
+
+    } else {
+
+        // this instruction must be executed in Machine mode
+        requireModeMT(riscv, RISCV_MODE_M);
+
+        emitException(riscvMNRET);
+    }
+}
+
+//
 // Implement DRET instruction
 //
 static RISCV_MORPH_FN(emitDRET) {
@@ -11004,6 +11025,7 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_ECALL_I]          = {morph:emitECALL,  iClass:OCL_IC_SYSTEM  },
     [RV_IT_FENCEI_I]         = {morph:emitFENCEI, iClass:OCL_IC_IBARRIER},
     [RV_IT_MRET_I]           = {morph:emitMRET,   iClass:OCL_IC_SYSTEM  },
+    [RV_IT_MNRET_I]          = {morph:emitMNRET,  iClass:OCL_IC_SYSTEM  },
     [RV_IT_SRET_I]           = {morph:emitSRET,   iClass:OCL_IC_SYSTEM  },
     [RV_IT_URET_I]           = {morph:emitURET,   iClass:OCL_IC_SYSTEM  },
     [RV_IT_DRET_I]           = {morph:emitDRET,   iClass:OCL_IC_SYSTEM  },

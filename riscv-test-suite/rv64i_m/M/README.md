@@ -1,5 +1,5 @@
 # Imperas RISC-V Architecture Tests for M
-C Standard Extension for Compressed Integer Instructions 
+M Standard Extension for Integer Multiplication and Division Version 2.0 
 
 This directory contains an Imperas test suite.
 The focus of these tests is to check the device under test complies with the RISC-V specifications.

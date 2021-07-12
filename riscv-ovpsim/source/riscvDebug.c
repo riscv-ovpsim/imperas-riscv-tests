@@ -220,7 +220,7 @@ static VMI_REG_READ_FN(readPTWLevel) {
 }
 
 //
-// Read fflags_i (indicafes floating point flags written by current instruction)
+// Read fflags_i (indicates floating point flags written by current instruction)
 //
 static VMI_REG_READ_FN(readFFlagsI) {
 

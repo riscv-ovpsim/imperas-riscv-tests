@@ -17,26 +17,16 @@
 
 
 Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
-    5,386 test source files
-    45 different instruction categories
-    334 different instructions
-    3,514,876 total instructions
+    2,520 test source files
+    13 different instruction categories
+    147 different instructions
+    1,577,940 total instructions
 
-Instruction category: OPV_SAVS single-width averaging add subtract
-  vaadd.vv : 639
-  vaadd.vx : 639
-  vasub.vv : 639
-  vasub.vx : 639
-Instruction category: OPV_SWI single-width average add, subtract unsigned
-  vaaddu.vv : 639
-  vaaddu.vx : 639
-  vasubu.vv : 639
-  vasubu.vx : 639
 Instruction category: OPV_IA integer arithmetic
-  vadd.vi : 1,311
   vadc.vim : 303
   vadc.vvm : 303
   vadc.vxm : 303
+  vadd.vi : 639
   vadd.vv : 639
   vadd.vx : 639
   vand.vi : 639
@@ -73,12 +63,6 @@ Instruction category: OPV_IA integer arithmetic
   vxor.vi : 639
   vxor.vv : 639
   vxor.vx : 639
-Instruction category: OPV_AMO Zvamo AMO operations
-Instruction category: OPV_GACO gather
-  vcompress.vm : 336
-  vrgather.vi : 639
-  vrgather.vv : 639
-  vrgather.vx : 639
 Instruction category: OPV_ID integer divide
   vdiv.vv : 639
   vdiv.vx : 639
@@ -88,151 +72,6 @@ Instruction category: OPV_ID integer divide
   vrem.vx : 639
   vremu.vv : 639
   vremu.vx : 639
-Instruction category: OPV_SFAS single-width floating-point add/subtract
-  vfadd.vf : 426
-  vfadd.vv : 426
-  vfrsub.vf : 426
-  vfsub.vf : 426
-  vfsub.vv : 426
-Instruction category: OPV_FPC floating-point classify
-  vfclass.v : 426
-Instruction category: OPV_SFITC single-width floating-point/integer type-convert
-  vfcvt.f.x.v : 426
-  vfcvt.f.xu.v : 426
-  vfcvt.x.f.v : 426
-  vfcvt.xu.f.v : 426
-Instruction category: OPV_CONFIG config
-  vsetvli : 492,160
-  vl1r.v : 32
-  vs1r.v : 32
-  vsetvl : 336
-Instruction category: OPV_SMDFAS single-width floating-point multiply/divide widening floating-point add/subtract
-  vfdiv.vf : 426
-  vfdiv.vv : 426
-  vfmul.vf : 426
-  vfmul.vv : 426
-  vfrdiv.vf : 426
-Instruction category: OPV_MASK mask
-  vfirst.m : 639
-  viota.m : 639
-  vmand.mm : 336
-  vmandnot.mm : 336
-  vmnand.mm : 336
-  vmnor.mm : 336
-  vmor.mm : 336
-  vmornot.mm : 336
-  vmxnor.mm : 336
-  vmxor.mm : 336
-  vmsbf.m : 639
-  vmsif.m : 639
-  vmsof.m : 639
-  vpopc.m : 639
-Instruction category: OPV_SFFMA single-width floating-point fused multiply-add
-  vfmacc.vf : 426
-  vfmacc.vv : 426
-  vfmadd.vf : 426
-  vfmadd.vv : 426
-  vfmsac.vf : 426
-  vfmsac.vv : 426
-  vfmsub.vf : 426
-  vfmsub.vv : 426
-  vfnmacc.vf : 426
-  vfnmacc.vv : 426
-  vfnmadd.vf : 426
-  vfnmadd.vv : 426
-  vfnmsac.vf : 426
-  vfnmsac.vv : 426
-  vfnmsub.vf : 426
-  vfnmsub.vv : 426
-Instruction category: OPV_FMM floating-point min/max
-  vfmax.vf : 426
-  vfmax.vv : 426
-  vfmin.vf : 426
-  vfmin.vv : 426
-Instruction category: OPV_FPME floating-point merge
-  vfmerge.vfm : 202
-Instruction category: OPV_PERMU permutation
-  vfmv.f.s : 224
-  vfmv.s.f : 224
-  vmv.s.x : 96
-  vmv.x.s : 96
-Instruction category: OPV_FPMO floating-point move
-  vfmv.v.f : 224
-Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
-  vfncvt.f.f.w : 150
-  vfncvt.rod.f.f.w : 150
-  vfncvt.f.x.w : 150
-  vfncvt.f.xu.w : 150
-  vfncvt.x.f.w : 150
-  vfncvt.xu.f.w : 150
-Instruction category: OPV_IRED integer reduction arithmetic
-  vfredmax.vs : 426
-  vfredmin.vs : 426
-  vfredosum.vs : 426
-  vfredsum.vs : 426
-  vredand.vs : 639
-  vredmax.vs : 639
-  vredmaxu.vs : 639
-  vredmin.vs : 639
-  vredminu.vs : 639
-  vredor.vs : 639
-  vredsum.vs : 639
-  vredxor.vs : 639
-Instruction category: OPV_FSI floating-point sign-injection
-  vfsgnj.vf : 426
-  vfsgnj.vv : 426
-  vfsgnjn.vf : 426
-  vfsgnjn.vv : 426
-  vfsgnjx.vf : 426
-  vfsgnjx.vv : 426
-Instruction category: OPV_SQRT floating-point square-root
-  vfsqrt.v : 426
-Instruction category: OPV_WFAS widening floating-point add/subtract
-  vfwadd.vf : 150
-  vfwadd.vv : 150
-  vfwadd.wf : 150
-  vfwadd.wv : 150
-  vfwsub.vf : 150
-  vfwsub.vv : 150
-  vfwsub.wf : 150
-  vfwsub.wv : 150
-Instruction category: OPV_WFITC widening floating-point/integer type-convert
-  vfwcvt.f.f.v : 150
-  vfwcvt.f.x.v : 150
-  vfwcvt.f.xu.v : 150
-  vfwcvt.x.f.v : 150
-  vfwcvt.xu.f.v : 150
-Instruction category: OPV_WFFMA widening floating-point fused multiply-add
-  vfwmacc.vf : 150
-  vfwmacc.vv : 150
-  vfwmsac.vf : 150
-  vfwmsac.vv : 150
-  vfwnmacc.vf : 150
-  vfwnmacc.vv : 150
-  vfwnmsac.vf : 150
-  vfwnmsac.vv : 150
-Instruction category: OPV_WFM widening floating-point multiply
-  vfwmul.vf : 150
-  vfwmul.vv : 150
-Instruction category: OPV_IWRED integer widening reduction arithmetic
-  vfwredosum.vs : 150
-  vfwredsum.vs : 150
-  vwredsum.vs : 300
-  vwredsumu.vs : 300
-Instruction category: OPV_INDXEX index
-  vid.v : 639
-Instruction category: OPV_STRI unit-strided load store
-  vle.v : 398,046
-  vlb.v : 639
-  vse.v : 141,472
-  vlbu.v : 639
-  vlh.v : 426
-  vlhu.v : 426
-  vlw.v : 213
-  vlwu.v : 213
-  vsb.v : 639
-  vsh.v : 426
-  vsw.v : 213
 Instruction category: OPV_IMA single-width integer multiply-add
   vmacc.vv : 639
   vmacc.vx : 639
@@ -255,17 +94,6 @@ Instruction category: OPV_IME integer merge
   vmerge.vim : 303
   vmerge.vvm : 303
   vmerge.vxm : 303
-Instruction category: OPV_FC floating-point compare
-  vmfeq.vf : 426
-  vmfeq.vv : 426
-  vmfge.vf : 426
-  vmfgt.vf : 426
-  vmfle.vf : 426
-  vmfle.vv : 426
-  vmflt.vf : 426
-  vmflt.vv : 426
-  vmfne.vf : 426
-  vmfne.vv : 426
 Instruction category: OPV_IC integer comparison
   vmseq.vi : 639
   vmseq.vv : 639
@@ -300,18 +128,6 @@ Instruction category: OPV_IMO integer move
   vmv.v.i : 336
   vmv.v.v : 336
   vmv.v.x : 336
-Instruction category: OPV_VMV whole vector register move
-  vmv2r.v : 32
-  vmv4r.v : 32
-  vmv8r.v : 16
-  vmv1r.v : 32
-Instruction category: OPV_NFPC narrowing fixed-point clip
-  vnclip.wi : 300
-  vnclip.wv : 300
-  vnclip.wx : 300
-  vnclipu.wi : 300
-  vnclipu.wv : 300
-  vnclipu.wx : 300
 Instruction category: OPV_IAN narrowing integer arithmetic
   vnsra.wi : 300
   vnsra.wv : 300
@@ -319,34 +135,7 @@ Instruction category: OPV_IAN narrowing integer arithmetic
   vnsrl.wi : 300
   vnsrl.wv : 300
   vnsrl.wx : 300
-Instruction category: OPV_SAS single-width saturating add substract
-  vsadd.vi : 639
-  vsadd.vv : 639
-  vsadd.vx : 639
-  vsaddu.vi : 639
-  vsaddu.vv : 639
-  vsaddu.vx : 639
-  vssub.vv : 639
-  vssub.vx : 639
-  vssubu.vv : 639
-  vssubu.vx : 639
-Instruction category: OPV_SLIDE slide
-  vslide1down.vx : 639
-  vslide1up.vx : 639
-  vslidedown.vi : 639
-  vslidedown.vx : 639
-  vslideup.vi : 639
-  vslideup.vx : 639
-Instruction category: OPV_FMRS single-width fractional multiply with rounding and saturation
-  vsmul.vv : 639
-  vsmul.vx : 639
-Instruction category: OPV_SWSS single-width scaling shift
-  vssra.vi : 639
-  vssra.vv : 639
-  vssra.vx : 639
-  vssrl.vi : 639
-  vssrl.vv : 639
-  vssrl.vx : 639
+Instruction category: OPV_CONFIG config
 Instruction category: OPV_IAW widening integer arithmetic
   vwadd.vv : 300
   vwadd.vx : 300
@@ -381,19 +170,18 @@ Instruction category: OPV_IWMU widening integer multiply
   vwmulu.vx : 300
 
 Other instructions (those not the focus of this suite)
-  jal : 5,386
-  lui : 195,103
-  addi : 1,259,424
-  csrrs : 21,544
-  auipc : 165,185
-  csrrw : 16,158
-  mret : 5,386
-  add : 563,489
-  fence : 5,386
-  ecall : 5,386
-  beq : 16,158
-  lw : 68,632
-  fmv.s.x : 12,650
-  sw : 1,598
-  fmv.x.s : 224
+  jal : 2,520
+  lui : 89,484
+  addi : 555,311
+  csrrs : 10,080
+  auipc : 78,410
+  csrrw : 7,560
+  mret : 2,520
+  vsetvli : 231,160
+  vle.v : 190,315
+  add : 265,320
+  vse.v : 66,330
+  fence : 2,520
+  ecall : 2,520
+  beq : 7,560
 

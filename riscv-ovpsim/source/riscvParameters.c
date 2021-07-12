@@ -68,6 +68,7 @@ typedef enum riscvParamVariantE {
     RVPV_DEBUG   = (1<<17),     // present if debug mode implemented
     RVPV_TRIG    = (1<<18),     // present if triggers implemented
     RVPV_DBGT    = (1<<19),     // present if debug mode or triggers implemented
+    RVPV_RNMI    = (1<<20),     // present if RNMI implemented
 
                                 // COMPOSITE PARAMETER IDENTIFIERS
     RVPV_INT_CFG = RVPV_PRE,
@@ -314,9 +315,32 @@ static vmiEnumParameter debugVariants[] = {
 };
 
 //
+// Supported RNMI variants
+//
+static vmiEnumParameter rnmiVariants[] = {
+    [RNMI_NONE] = {
+        .name        = "none",
+        .value       = RNMI_NONE,
+        .description = "RNMI not implemented",
+    },
+    [RNMI_0_2_1] = {
+        .name        = "0.2.1",
+        .value       = RNMI_0_2_1,
+        .description = "RNMI version 0.2.1",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
 // Supported CLIC variants
 //
 static vmiEnumParameter CLICVariants[] = {
+    [RVCLC_20180831] = {
+        .name        = "20180831",
+        .value       = RVCLC_20180831,
+        .description = "CLIC Version 20180831",
+    },
     [RVCLC_0_9_20191208] = {
         .name        = "0.9-draft-20191208",
         .value       = RVCLC_0_9_20191208,
@@ -460,6 +484,23 @@ static Uns32 getCLICCFGMBITSMax(riscvConfigCP cfg) {
 }
 
 //
+// Return the maximum number of bits that can be specified for CLICCFGLBITS,
+// ceil(lg2(CLICLEVELS))
+//
+static Uns32 getCLICCFGLBITSMax(riscvConfigCP cfg) {
+
+    Uns32 max = 0;
+    Uns32 try = 1;
+
+    while(try<cfg->CLICLEVELS) {
+        try *= 2;
+        max++;
+    }
+
+    return max;
+}
+
+//
 // This function type is used to specify the default value for a parameter
 //
 #define RISCV_PDEFAULT_FN(_NAME) void _NAME(riscvConfigCP cfg, vmiParameterP param)
@@ -573,6 +614,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(bitmanip_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(hyp_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(crypto_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(dbg_version);
+static RISCV_ENUM_PDEFAULT_CFG_FN(rnmi_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(CLIC_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(Zfinx_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(fp16_version);
@@ -627,6 +669,9 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(UXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_decompose);
+static RISCV_BOOL_PDEFAULT_CFG_FN(posedge_other);
+static RISCV_BOOL_PDEFAULT_CFG_FN(poslevel_other);
+static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero_ebreak);
 
 //
 // Set default value of raw negated Bool parameters
@@ -647,13 +692,13 @@ static RISCV_UNS32_PDEFAULT_CFG_FN(noinhibit_mask);
 static RISCV_UNS32_PDEFAULT_CFG_FN(PMP_grain)
 static RISCV_UNS32_PDEFAULT_CFG_FN(PMP_max_page)
 static RISCV_UNS32_PDEFAULT_CFG_FN(CLICLEVELS);
-static RISCV_UNS32_PDEFAULT_CFG_FN(CLICCFGLBITS);
 
 //
 // Set default value of raw Uns64 parameters
 //
 static RISCV_UNS64_PDEFAULT_CFG_FN(reset_address)
 static RISCV_UNS64_PDEFAULT_CFG_FN(nmi_address)
+static RISCV_UNS64_PDEFAULT_CFG_FN(nmiexc_address)
 static RISCV_UNS64_PDEFAULT_CFG_FN(debug_address)
 static RISCV_UNS64_PDEFAULT_CFG_FN(dexc_address)
 static RISCV_UNS64_PDEFAULT_CFG_FN(unimp_int_mask)
@@ -661,6 +706,8 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(force_mideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(force_sideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_ideleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(no_edeleg)
+static RISCV_UNS64_PDEFAULT_CFG_FN(posedge_0_63)
+static RISCV_UNS64_PDEFAULT_CFG_FN(poslevel_0_63)
 
 
 //
@@ -675,16 +722,6 @@ static RISCV_PDEFAULT_FN(default_Zfh) {
 //
 static RISCV_PDEFAULT_FN(default_ABI_d) {
     setBoolParamDefault(param, cfg->arch & ISA_D);
-}
-
-//
-// Specify whether tval register is set to zero by ebreak
-//
-static RISCV_PDEFAULT_FN(default_tval_zero_ebreak) {
-
-    setBoolParamDefault(
-        param, cfg->tval_zero_ebreak || (cfg->priv_version>=RVPV_1_12)
-    );
 }
 
 //
@@ -777,6 +814,13 @@ static RISCV_PDEFAULT_FN(default_local_int_num) {
 }
 
 //
+// Return XLEN all-ones right shifted by one
+//
+static Uns64 getXLMaskShr1(riscvConfigCP cfg) {
+    return ((cfg->arch & ISA_XLEN_64) ? -1ULL : (Uns32)-1) >> 1;
+}
+
+//
 // Set default value of ecode_mask
 //
 static RISCV_PDEFAULT_FN(default_ecode_mask) {
@@ -787,10 +831,8 @@ static RISCV_PDEFAULT_FN(default_ecode_mask) {
         // use specified mask
     } else if(cfg->CLICLEVELS) {
         ecode_mask = 0xfff;
-    } else if(cfg->arch & ISA_XLEN_64) {
-        ecode_mask = (1ULL<<63)-1;
     } else {
-        ecode_mask = (1ULL<<31)-1;
+        ecode_mask = getXLMaskShr1(cfg);
     }
 
     setUns64ParamDefault(param, ecode_mask);
@@ -810,6 +852,14 @@ static RISCV_PDEFAULT_FN(default_ecode_nmi) {
     }
 
     setUns64ParamDefault(param, ecode_nmi);
+}
+
+//
+// Set default value of ecode_nmi_mask
+//
+static RISCV_PDEFAULT_FN(default_ecode_nmi_mask) {
+
+    setUns64ParamDefault(param, cfg->ecode_nmi_mask ? : getXLMaskShr1(cfg));
 }
 
 //
@@ -887,8 +937,23 @@ static RISCV_PDEFAULT_FN(default_CLICVERSION) {
 //
 static RISCV_PDEFAULT_FN(default_CLICCFGMBITS) {
 
-    setUns32ParamDefault(param, cfg->CLICCFGMBITS);
-    setUns32ParamMax(param, getCLICCFGMBITSMax(cfg));
+    Uns32 max   = getCLICCFGMBITSMax(cfg);
+    Uns32 value = cfg->CLICCFGMBITS;
+
+    setUns32ParamDefault(param, value<=max ? value : max);
+    setUns32ParamMax(param, max);
+}
+
+//
+// Set default and maximum value of CLICCFGLBITS
+//
+static RISCV_PDEFAULT_FN(default_CLICCFGLBITS){
+
+    Uns32 max   = getCLICCFGLBITSMax(cfg);
+    Uns32 value = cfg->CLICCFGLBITS;
+
+    setUns32ParamDefault(param, value<=max ? value : max);
+    setUns32ParamMax(param, max);
 }
 
 //
@@ -1141,6 +1206,7 @@ static riscvParameter parameters[] = {
     {  RVPV_H,       default_hyp_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, hypervisor_version,   hypervisorVariants,        RV_GROUP(H),     "Specify required Hypervisor Architecture version")},
     {  RVPV_K,       default_crypto_version,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, crypto_version,       cryptoVariants,            RV_GROUP(K),     "Specify required Cryptographic Architecture version")},
     {  RVPV_DBGT,    default_dbg_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_version,        debugVariants,             RV_GROUP(DBG),   "Specify required Debug Architecture version")},
+    {  RVPV_PRE,     default_rnmi_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, rnmi_version,         rnmiVariants,              RV_GROUP(INTXC), "Specify required RNMI Architecture version")},
     {  RVPV_CLIC,    default_CLIC_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, CLIC_version,         CLICVariants,              RV_GROUP(CLIC),  "Specify required CLIC version")},
     {  RVPV_FPV,     default_fp16_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, fp16_version,         fp16Variants,              RV_GROUP(V),     "Specify required 16-bit floating point format")},
     {  RVPV_FP,      default_mstatus_fs_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, mstatus_fs_mode,      FSModes,                   RV_GROUP(FP),    "Specify conditions causing update of mstatus.FS to dirty")},
@@ -1176,6 +1242,7 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC_N,  default_utvt_sext,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, utvt_sext,            False,                     RV_GROUP(CSRMK), "Specify whether utvt is sign-extended from most-significant bit")},
     {  RVPV_ALL,     default_ecode_mask,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_mask,           0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in xcause.ExceptionCode")},
     {  RVPV_ALL,     default_ecode_nmi,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi,            0, 0,          -1,         RV_GROUP(INTXC), "Specify xcause.ExceptionCode for NMI")},
+    {  RVPV_RNMI,    default_ecode_nmi_mask,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi_mask,       0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in mncause.ExceptionCode")},
     {  RVPV_ALL,     default_tval_zero,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero,            False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are hard wired to zero")},
     {  RVPV_ALL,     default_tval_zero_ebreak,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero_ebreak,     False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are set to zero by an ebreak")},
     {  RVPV_ALL,     default_tval_ii_code,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_ii_code,         False,                     RV_GROUP(INTXC), "Specify whether mtval/stval contain faulting instruction bits on illegal instruction exception")},
@@ -1212,6 +1279,7 @@ static riscvParameter parameters[] = {
     {  RVPV_A,       default_lr_sc_grain,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, lr_sc_grain,          1, 1,          (1<<16),    RV_GROUP(MEM),   "Specify byte granularity of ll/sc lock region (constrained to a power of two)")},
     {  RVPV_ALL,     default_reset_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, reset_address,        0, 0,          -1,         RV_GROUP(INTXC), "Override reset vector address")},
     {  RVPV_ALL,     default_nmi_address,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmi_address,          0, 0,          -1,         RV_GROUP(INTXC), "Override NMI vector address")},
+    {  RVPV_RNMI,    default_nmiexc_address,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmiexc_address,       0, 0,          -1,         RV_GROUP(INTXC), "Override RNMI exception vector address")},
     {  RVPV_ALL,     default_PMP_grain,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_grain,            0, 0,          29,         RV_GROUP(MEM),   "Specify PMP region granularity, G (0 => 4 bytes, 1 => 8 bytes, etc)")},
     {  RVPV_ALL,     default_PMP_registers,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_registers,        0, 0,          0,          RV_GROUP(MEM),   "Specify the number of implemented PMP address registers")},
     {  RVPV_ALL,     default_PMP_max_page,         VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_max_page,         0, 0,          -1,         RV_GROUP(MEM),   "Specify the maximum size of PMP region to map if non-zero (may improve performance; constrained to a power of two)")},
@@ -1305,6 +1373,10 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC,    default_tvt_undefined,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tvt_undefined,        False,                     RV_GROUP(CLIC),  "Specify that mtvt, stvt and utvt CSRs are undefined")},
     {  RVPV_CLIC,    default_intthresh_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, intthresh_undefined,  False,                     RV_GROUP(CLIC),  "Specify that mintthreash, sintthresh and uintthresh CSRs are undefined")},
     {  RVPV_CLIC,    default_mclicbase_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mclicbase_undefined,  False,                     RV_GROUP(CLIC),  "Specify that mclicbase CSR is undefined")},
+    {  RVPV_CLIC,    default_posedge_0_63,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, posedge_0_63,         0, 0,          0,          RV_GROUP(CLIC),  "Mask of interrupts 0 to 63 that are fixed positive edge triggered")},
+    {  RVPV_CLIC,    default_poslevel_0_63,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, poslevel_0_63,        0, 0,          0,          RV_GROUP(CLIC),  "Mask of interrupts 0 to 63 that are fixed positive level triggered")},
+    {  RVPV_CLIC,    default_posedge_other,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, posedge_other,        False,                     RV_GROUP(CLIC),  "Whether interrupts 64 and above are fixed positive edge triggered")},
+    {  RVPV_CLIC,    default_poslevel_other,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, poslevel_other,       False,                     RV_GROUP(CLIC),  "Whether interrupts 64 and above are fixed positive level triggered")},
 
     // Hypervisor configuration
     {  RVPV_H,       default_GEILEN,               VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, GEILEN,               0, 0,          0,          RV_GROUP(H),     "Specify number of guest external interrupts")},
@@ -1472,6 +1544,12 @@ static Bool selectParameter(
                 return False;
             }
         }
+
+        // include parameters that are only required when RNMI is implemented
+        if((param->variant & RVPV_RNMI) && !cfg->rnmi_version) {
+            return False;
+        }
+
     }
 
     return True;
@@ -1740,6 +1818,17 @@ static void appendExtensions(char *name, riscvArchitecture arch, char op) {
         *tail++ = 0;
     }
 }
+
+//
+// Apply pre-parameter value if it has been set (if not, leave as per-variant
+// default)
+//
+#define APPLY_PREPARAM_IF_SET(_PROC, _PARAMS, _NAME) { \
+    if(_PARAMS->SETBIT(_NAME)) {                    \
+        _PROC->configInfo._NAME = params->_NAME;    \
+    }                                               \
+}
+
 //
 // Function to apply pre-parameter values
 //
@@ -1768,8 +1857,8 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
         riscv->configInfo = *getSelectedConfig(cfgList, variant);
 
         // override architecture versions if required
-        riscv->configInfo.user_version = params->user_version;
-        riscv->configInfo.priv_version = params->priv_version;
+        APPLY_PREPARAM_IF_SET(riscv, params, user_version);
+        APPLY_PREPARAM_IF_SET(riscv, params, priv_version);
 
         // old and new architecture
         riscvArchitecture oldArch = riscv->configInfo.arch;
@@ -1815,15 +1904,22 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
             riscv->configInfo.priv_version = RVPV_1_12;
         }
 
+        // force CLICLEVELS to valid value
+        if(params->CLICLEVELS==1) {
+            params->CLICLEVELS = 2;
+        }
+
         // apply CLICLEVELS override if required
-        Uns32 CLICLEVELS = params->CLICLEVELS;
-        riscv->configInfo.CLICLEVELS = (CLICLEVELS==1) ? 2 : CLICLEVELS;
+        APPLY_PREPARAM_IF_SET(riscv, params, CLICLEVELS);
 
         // apply debug_mode override if required
-        riscv->configInfo.debug_mode = params->debug_mode;
+        APPLY_PREPARAM_IF_SET(riscv, params, debug_mode);
 
         // apply trigger_num override if required
-        riscv->configInfo.trigger_num = params->trigger_num;
+        APPLY_PREPARAM_IF_SET(riscv, params, trigger_num);
+
+        // apply rnmi_version override if required
+        APPLY_PREPARAM_IF_SET(riscv, params, rnmi_version);
 
         // create full parameter list
         riscv->parameters = createParameterList(riscv, &riscv->configInfo);
@@ -1917,6 +2013,13 @@ const char *riscvGetCryptographicVersionDesc(riscvP riscv) {
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv) {
     return debugVariants[RISCV_DBG_VERSION(riscv)].description;
+}
+
+//
+// Return RNMI Architecture name
+//
+const char *riscvGetRNMIVersionName(riscvP riscv) {
+    return rnmiVariants[RISCV_RNMI_VERSION(riscv)].name;
 }
 
 //
