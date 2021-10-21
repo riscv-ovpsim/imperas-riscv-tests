@@ -31,6 +31,7 @@
 
 // model header files
 #include "riscvCLIC.h"
+#include "riscvCLINT.h"
 #include "riscvCSR.h"
 #include "riscvDecode.h"
 #include "riscvExceptions.h"
@@ -123,6 +124,26 @@ static const riscvExceptionDesc exceptions[] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Is the fault a load/store/AMO fault?
+//
+Bool riscvIsLoadStoreAMOFault(riscvException exception) {
+
+    switch(exception) {
+        case riscv_E_LoadAddressMisaligned:
+        case riscv_E_LoadAccessFault:
+        case riscv_E_StoreAMOAddressMisaligned:
+        case riscv_E_StoreAMOAccessFault:
+        case riscv_E_LoadPageFault:
+        case riscv_E_StoreAMOPageFault:
+        case riscv_E_LoadGuestPageFault:
+        case riscv_E_StoreAMOGuestPageFault:
+            return True;
+        default:
+            return False;
+    }
+}
+
+//
 // Indicate whether the currently-active inhv affects the EPC behavior in an
 // exception
 //
@@ -135,13 +156,6 @@ inline static Bool inhvAffectsEPC(riscvP riscv, Bool inhv) {
 //
 inline static Uns64 getPC(riscvP riscv) {
     return vmirtGetPC((vmiProcessorP)riscv);
-}
-
-//
-// Return current code domain
-//
-inline static memDomainP getCodeDomain(riscvP riscv) {
-    return vmirtGetProcessorCodeDomain((vmiProcessorP)riscv);
 }
 
 //
@@ -791,6 +805,21 @@ static void startIntAcknowledge(riscvP riscv, trapCxtP cxt) {
 }
 
 //
+// Clear HLV/HLVX/HSV indication and atomic state
+//
+static void clearVirtualAtomic(riscvP riscv) {
+
+    // clear active HLV/HLVX/HSV indication
+    riscv->HLVHSV = False;
+
+    // clear active AMO indication
+    if(riscv->atomic) {
+        riscv->atomic = ACODE_NONE;
+        writeNet(riscv, riscv->AMOActiveHandle, ACODE_NONE);
+    }
+}
+
+//
 // Take processor exception
 //
 void riscvTakeException(
@@ -801,11 +830,8 @@ void riscvTakeException(
     // indicate the taken exception
     riscv->exception = exception;
 
-    // clear active AMO indication
-    if(riscv->atomic) {
-        riscv->atomic = ACODE_NONE;
-        writeNet(riscv, riscv->AMOActiveHandle, ACODE_NONE);
-    }
+    // clear active HLV/HLVX/HSV indication and atomic state
+    clearVirtualAtomic(riscv);
 
     // adjust baseInstructions based on the exception code to take into account
     // whether the previous instruction has retired, unless inhibited by
@@ -814,6 +840,14 @@ void riscvTakeException(
         riscv->baseInstructions++;
     }
 
+    // unless step mode bug workaround is enabled, anything causing entry to
+    // exception handler counts as a successful step for debug purposes, so
+    // decrement stepICount so that a debug step exception will definitely occur
+    // on the next instruction if required
+    if(!riscv->configInfo.defer_step_bug) {
+        riscv->stepICount--;
+    }
+    
     if(inDebugMode(riscv)) {
 
         // terminate execution of program buffer
@@ -1065,39 +1099,11 @@ static Bool suppressMemExcept(riscvP riscv, riscvException exception) {
 }
 
 //
-// For an instruction access or alignment exception, return the value that GVA
-// should be set in xstatus.GVA
-//
-static Bool getInstructionGVA(riscvP riscv) {
-
-    Bool GVA = False;
-
-    if(inVMode(riscv)) {
-        GVA = riscvVMGetGVA(riscv, getCodeDomain(riscv));
-    }
-
-    return GVA;
-}
-
-//
-// Take exception, possibly setting xstatus.GVA
-//
-inline static void takeExceptionGVA(
-    riscvP         riscv,
-    riscvException exception,
-    Uns64          tval,
-    Bool           GVA
-) {
-    riscv->GVA = GVA;
-    riscvTakeException(riscv, exception, tval);
-    riscv->GVA = False;
-}
-
-//
 // Take processor exception because of memory access error which could be
-// suppressed for a fault-only-first instruction or other custom reason
+// suppressed for a fault-only-first instruction or other custom reason using
+// the given GVA value
 //
-void riscvTakeMemoryException(
+void riscvTakeMemoryExceptionGVA(
     riscvP         riscv,
     riscvException exception,
     Uns64          tval,
@@ -1109,9 +1115,34 @@ void riscvTakeMemoryException(
     // take exception unless fault-only-first mode or a custom extension
     // overrides it
     if(!suppressMemExcept(riscv, exception)) {
+
         reportMemoryException(riscv, exception, tval);
-        takeExceptionGVA(riscv, exception, tval, GVA);
+
+        riscv->GVA = GVA;
+        riscvTakeException(riscv, exception, tval);
+        riscv->GVA = False;
     }
+}
+
+//
+// Take processor exception because of memory access error which could be
+// suppressed for a fault-only-first instruction or other custom reason
+//
+void riscvTakeMemoryException(
+    riscvP         riscv,
+    riscvException exception,
+    Uns64          tval
+) {
+    Bool GVA = (
+        // GVA is set if executing in VU/VS mode
+        inVMode(riscv) ||
+        // GVA is set if exception caused by HLV/HLVX/HSV access
+        riscv->HLVHSV  ||
+        // GVA is set if data mode is virtual and load/store/AMO fault
+        (modeIsVirtual(riscv->dataMode) && riscvIsLoadStoreAMOFault(exception))
+    );
+
+    riscvTakeMemoryExceptionGVA(riscv, exception, tval, GVA);
 }
 
 //
@@ -1127,7 +1158,6 @@ static void takeInstructionException(riscvP riscv, riscvException exception) {
     }
 
     riscvTakeException(riscv, exception, tval);
-
 }
 
 //
@@ -1146,6 +1176,23 @@ static void illegalVerbose(riscvP riscv, const char *reason) {
             SRCREF_ARGS(riscv, getPC(riscv))
         );
     }
+}
+
+//
+// Take custom Illegal Instruction exception for the given reason
+//
+void riscvIllegalCustom(
+    riscvP         riscv,
+    riscvException exception,
+    const char    *reason
+) {
+    // emit verbose message if required
+    if(riscv->verbose) {
+        illegalVerbose(riscv, reason);
+    }
+
+    // take Illegal Instruction exception
+    takeInstructionException(riscv, exception);
 }
 
 //
@@ -1191,21 +1238,10 @@ void riscvVirtualInstructionMessage(riscvP riscv, const char *reason) {
 }
 
 //
-// Take Instruction address misaligned or access exception
-//
-static void instructionException(
-    riscvP         riscv,
-    riscvException exception,
-    Uns64          tval
-) {
-    riscvTakeMemoryException(riscv, exception, tval, getInstructionGVA(riscv));
-}
-
-//
 // Take Instruction Address Misaligned exception
 //
 void riscvInstructionAddressMisaligned(riscvP riscv, Uns64 tval) {
-    instructionException(riscv, riscv_E_InstructionAddressMisaligned, tval&-2);
+    riscvTakeMemoryException(riscv, riscv_E_InstructionAddressMisaligned, tval&-2);
 }
 
 //
@@ -1592,9 +1628,13 @@ static void enterDM(riscvP riscv, dmCause cause) {
 
     Bool DM = inDebugMode(riscv);
 
+    // indicate taken exception if a breakpoint
     if(cause!=DMC_NONE) {
         riscv->exception = riscv_E_Breakpoint;
     }
+
+    // clear active HLV/HLVX/HSV indication and atomic state
+    clearVirtualAtomic(riscv);
 
     if(!DM) {
 
@@ -1799,19 +1839,15 @@ void riscvEBREAK(riscvP riscv) {
         // handle EBREAK as Debug module action
         enterDM(riscv, DMC_EBREAK);
 
+    } else if(riscv->configInfo.tval_zero_ebreak) {
+
+        // EBREAK sets mtval (and xstatus.GVA) to 0
+        riscvTakeMemoryExceptionGVA(riscv, riscv_E_Breakpoint, 0, 0);
+
     } else {
 
-        Uns64 tval = 0;
-        Bool  GVA  = False;
-
-        // whether EBREAK sets xtval to the PC is configurable
-        if(!riscv->configInfo.tval_zero_ebreak) {
-            tval = getPC(riscv);
-            GVA  = getInstructionGVA(riscv);
-        }
-
-        // handle EBREAK as normal exception
-        takeExceptionGVA(riscv, riscv_E_Breakpoint, tval, GVA);
+        // EBREAK sets mtval to epc
+        riscvTakeMemoryException(riscv, riscv_E_Breakpoint, getPC(riscv));
     }
 }
 
@@ -1942,21 +1978,6 @@ VMI_WR_PRIV_EXCEPT_FN(riscvWrPrivExcept) {
 }
 
 //
-// Take exception caused by illegal access to the given domain, indicating GVA
-// if required
-//
-inline static void takeDomainException(
-    riscvP         riscv,
-    memDomainP     domain,
-    riscvException exception,
-    Addr           address
-) {
-    Bool GVA = riscvVMGetGVA(riscv, domain);
-
-    riscvTakeMemoryException(riscv, exception, address, GVA);
-}
-
-//
 // Read alignment exception handler
 //
 VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
@@ -1981,7 +2002,7 @@ VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
         exception = riscv_E_LoadAccessFault;
     }
 
-    takeDomainException(riscv, domain, exception, address);
+    riscvTakeMemoryException(riscv, exception, address);
 
     return 0;
 }
@@ -2011,7 +2032,7 @@ VMI_WR_ALIGN_EXCEPT_FN(riscvWrAlignExcept) {
         exception = riscv_E_StoreAMOAccessFault;
     }
 
-    takeDomainException(riscv, domain, exception, address);
+    riscvTakeMemoryException(riscv, exception, address);
 
     return 0;
 }
@@ -2025,8 +2046,10 @@ VMI_RD_ABORT_EXCEPT_FN(riscvRdAbortExcept) {
 
     if(riscv->PTWActive) {
         riscv->PTWBadAddr = True;
+    } else if(isFetch) {
+        riscvTakeMemoryException(riscv, riscv_E_InstructionAccessFault, address);
     } else {
-        takeDomainException(riscv, 0, riscv_E_LoadAccessFault, address);
+        riscvTakeMemoryException(riscv, riscv_E_LoadAccessFault, address);
     }
 }
 
@@ -2040,7 +2063,7 @@ VMI_WR_ABORT_EXCEPT_FN(riscvWrAbortExcept) {
     if(riscv->PTWActive) {
         riscv->PTWBadAddr = True;
     } else {
-        takeDomainException(riscv, 0, riscv_E_StoreAMOAccessFault, address);
+        riscvTakeMemoryException(riscv, riscv_E_StoreAMOAccessFault, address);
     }
 }
 
@@ -2052,7 +2075,7 @@ VMI_RD_DEVICE_EXCEPT_FN(riscvRdDeviceExcept) {
     riscvP riscv = (riscvP)processor;
 
     riscv->AFErrorIn = riscv_AFault_Device;
-    takeDomainException(riscv, domain, riscv_E_LoadAccessFault, address);
+    riscvTakeMemoryException(riscv, riscv_E_LoadAccessFault, address);
 
     return 0;
 }
@@ -2065,7 +2088,7 @@ VMI_WR_DEVICE_EXCEPT_FN(riscvWrDeviceExcept) {
     riscvP riscv = (riscvP)processor;
 
     riscv->AFErrorIn = riscv_AFault_Device;
-    takeDomainException(riscv, domain, riscv_E_StoreAMOAccessFault, address);
+    riscvTakeMemoryException(riscv, riscv_E_StoreAMOAccessFault, address);
 
     return 0;
 }
@@ -2143,7 +2166,7 @@ static Bool validateFetchAddressInt(
 
         // bus error if address is not executable
         if(complete) {
-            instructionException(riscv, riscv_E_InstructionAccessFault, thisPC);
+            riscvTakeMemoryException(riscv, riscv_E_InstructionAccessFault, thisPC);
         }
 
         return False;
@@ -2211,29 +2234,34 @@ static Bool getIE(riscvP riscv, Bool IE, riscvMode modeIE, Bool useCLIC) {
 }
 
 //
-// Return mask of pending basic mode interrupts that would cause resumption from
-// WFI (note that these could however be masked by global interrupt bits or
-// delegation bits - see the Privileged Architecture specification)
+// Return mask of pending and locally enabled basic mode interrupts that would
+// cause resumption from WFI (note that these could however be masked by global
+// interrupt enable or delegation bits - see the Privileged Architecture
+// specification)
 //
-inline static Uns64 getPendingBasic(riscvP riscv) {
+inline static Uns64 getPendingLocallyEnabledBasic(riscvP riscv) {
     return RD_CSR64(riscv, mie) & RD_CSR64(riscv, mip) & ~riscv->disableMask;
 }
 
 //
-// Return an indication of whether any CLIC mode interrupt is pending that would
-// cause resumption from WFI (note that these could however be masked by global
-// interrupt bits - see the Privileged Architecture specification)
+// Return an indication of whether any CLIC mode interrupt is pending and
+// locally enabled and would cause resumption from WFI (note that these could
+// however be masked by global interrupt enable or delegation bits - see the
+// Privileged Architecture specification)
 //
-inline static Bool getPendingCLIC(riscvP riscv) {
+inline static Bool getPendingLocallyEnabledCLIC(riscvP riscv) {
     return riscv->netValue.enableCLIC && (riscv->clic.sel.id!=RV_NO_INT);
 }
 
 //
-// Return indication if whether any interrupt is pending (either basic mode or
-// CLIC mode)
+// Return indication if whether any interrupt is pending and locally enabled
+// (either basic mode or CLIC mode)
 //
-inline static Bool getPending(riscvP riscv) {
-    return getPendingBasic(riscv) || getPendingCLIC(riscv);
+inline static Bool getPendingLocallyEnabled(riscvP riscv) {
+    return (
+        getPendingLocallyEnabledBasic(riscv) ||
+        getPendingLocallyEnabledCLIC(riscv)
+    );
 }
 
 //
@@ -2291,7 +2319,7 @@ static Uns32 getIntPri(riscvP riscv, Uns32 intNum) {
 //
 static void refreshPendingAndEnabledBasic(riscvP riscv) {
 
-    Uns64 pendingEnabled = getPendingBasic(riscv);
+    Uns64 pendingEnabled = getPendingLocallyEnabledBasic(riscv);
 
     // apply interrupt masks
     if(pendingEnabled) {
@@ -2434,8 +2462,8 @@ static void refreshPendingAndEnabledCLIC(riscvP hart) {
         riscvRefreshPendingAndEnabledInternalCLIC(hart);
     }
 
-    // handle highest-priority enabled interrupt
-    if(getPendingCLIC(hart)) {
+    // handle highest-priority locally enabled interrupt
+    if(getPendingLocallyEnabledCLIC(hart)) {
 
         Int32     id     = hart->clic.sel.id;
         riscvMode priv   = hart->clic.sel.priv;
@@ -2525,8 +2553,7 @@ static Bool getPendingAndEnabledNMI(riscvP riscv) {
     return (
         RD_CSR_FIELDC(riscv, dcsr, nmip) &&
         !inDebugMode(riscv) &&
-        RD_CSR_FIELDC(riscv, mnstatus, MIE) &&
-        !riscv->netValue.deferint
+        RD_CSR_FIELDC(riscv, mnstatus, MIE)
     );
 }
 
@@ -2644,11 +2671,21 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     }
 
     if(fetchOK) {
+
         return VMI_FETCH_NONE;
+
     } else if(complete) {
-        riscvSetStepBreakpoint(riscv);
+
+        // handle deferring step breakpoint for one instruction when an
+        // interrupt is triggered if required (debug module hardware bug)
+        if(riscv->configInfo.defer_step_bug) {
+            riscvSetStepBreakpoint(riscv);
+        }
+
         return VMI_FETCH_EXCEPTION_COMPLETE;
+
     } else {
+
         return VMI_FETCH_EXCEPTION_PENDING;
     }
 }
@@ -2978,11 +3015,21 @@ inline static Bool negedge(Uns32 old, Uns32 new) {
 }
 
 //
+// Is resume from WFI required?
+//
+inline static Bool resumeFromWFI(riscvP riscv) {
+    return (
+        getPendingLocallyEnabled(riscv) ||
+        inDebugMode(riscv) ||
+        RD_CSR_FIELDC(riscv, dcsr, step)
+    );
+}
+
+//
 // Halt the processor in WFI state if required
 //
 void riscvWFI(riscvP riscv) {
-
-    if(!(inDebugMode(riscv) || getPending(riscv) || RD_CSR_FIELDC(riscv, dcsr, step))) {
+    if(!resumeFromWFI(riscv)) {
         riscvHalt(riscv, RVD_WFI);
     }
 }
@@ -3005,9 +3052,9 @@ void riscvTestInterrupt(riscvP riscv) {
     // refresh pending and pending-and-enabled interrupt state
     riscvRefreshPendingAndEnabled(riscv);
 
-    // restart processor if it is halted in WFI state and local interrupts are
-    // pending (even if masked)
-    if(getPending(riscv)) {
+    // restart processor if it is halted in WFI state and interrupts are
+    // locally pending and enabled (even if globally masked or delegated)
+    if(resumeFromWFI(riscv)) {
         riscvRestart(riscv, RVD_RESTART_WFI);
     }
 
@@ -3035,6 +3082,9 @@ void riscvReset(riscvP riscv) {
 
     // reset CSR state
     riscvCSRReset(riscv);
+
+    // reset CLINT state
+    riscvResetCLINT(riscv);
 
     // reset CLIC state
     riscvResetCLIC(riscv);
@@ -3114,7 +3164,7 @@ static void doNMI(riscvP riscv) {
     }
 
     // indicate the taken exception
-    riscv->exception = 0;
+    riscv->exception = intToException(riscv->configInfo.ecode_nmi);
 
     // set address at which to execute
     setPCException(riscv, riscv->configInfo.nmi_address);
@@ -3133,7 +3183,7 @@ static void doNMI(riscvP riscv) {
 //
 inline static void testCLICInterrupt(riscvP riscv) {
 
-    if(getPendingCLIC(riscv)) {
+    if(getPendingLocallyEnabledCLIC(riscv)) {
         riscvTestInterrupt(riscv);
     }
 }
@@ -3224,19 +3274,25 @@ static Uns32 getGuestEIP(riscvP riscv) {
 }
 
 //
+// Compose mip value from discrete sources
+//
+inline static void composeMIP(riscvP riscv) {
+    WR_CSR64(riscv, mip, riscv->ip[0] | riscv->swip | getGuestEIP(riscv));
+}
+
+//
 // Update interrupt state because of some pending state change (either from
 // external interrupt source or software pending register)
 //
 void riscvUpdatePending(riscvP riscv) {
 
+    // compose mip value
     Uns64 oldValue = RD_CSR64(riscv, mip);
-
-    // compose new value from discrete sources
-    Uns64 newValue = (riscv->ip[0] | riscv->swip | getGuestEIP(riscv));
+    composeMIP(riscv);
+    Uns64 newValue = RD_CSR64(riscv, mip);
 
     // update register value and exception state on a change
     if(oldValue != newValue) {
-        WR_CSR64(riscv, mip, newValue);
         riscvTestInterrupt(riscv);
     }
 }
@@ -3995,9 +4051,14 @@ void riscvNetSave(
             VMIRT_SAVE_FIELD(cxt, riscv, intState);
         }
 
+        // save CLINT-mode interrupt state
+        if(CLINTInternal(riscv)) {
+            riscvSaveCLINT(riscv, cxt);
+        }
+
         // save CLIC-mode interrupt state
         if(CLICInternal(riscv)) {
-            riscvSaveCLIC(riscv, cxt, phase);
+            riscvSaveCLIC(riscv, cxt);
         }
 
         // save guest external interrupt state
@@ -4028,9 +4089,14 @@ void riscvNetRestore(
             VMIRT_RESTORE_FIELD(cxt, riscv, intState);
         }
 
+        // restore CLINT-mode interrupt state
+        if(CLINTInternal(riscv)) {
+            riscvRestoreCLINT(riscv, cxt);
+        }
+
         // restore CLIC-mode interrupt state
         if(CLICInternal(riscv)) {
-            riscvRestoreCLIC(riscv, cxt, phase);
+            riscvRestoreCLIC(riscv, cxt);
         }
 
         // restore guest external interrupt state
@@ -4038,7 +4104,10 @@ void riscvNetRestore(
             VMIRT_RESTORE_FIELD(cxt, riscv, csr.hgeip);
         }
 
-        // refresh core state
+        // refresh derived mip
+        composeMIP(riscv);
+
+        // check for pending interrupts
         riscvTestInterrupt(riscv);
     }
 }

@@ -647,7 +647,7 @@ static Uns32 doSSHA256_SIG132(Uns32 a) {
 }
 
 //
-// Do SSHA256_SIG0 (64-bit registers)
+// Do SSHA256_SIG1 (64-bit registers)
 //
 static Uns64 doSSHA256_SIG164(Uns64 a) {
     return doSSHA256_SIG132(a);
@@ -764,6 +764,13 @@ static Uns64 doSSHA512_SUM1(Uns64 a) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Get cryptographic extension version
+//
+inline static riscvCryptoVer getCryptoVersion(riscvP riscv) {
+    return riscv->configInfo.crypto_version;
+}
+
+//
 // Do PollEntropy (NOTE: unlike hardware, this is designed to produce a
 // deterministic, not-particularly-random sequence, always returning ES16
 // status)
@@ -787,7 +794,10 @@ Uns32 riscvPollEntropy(riscvP riscv) {
 
         riscv->entropyLFSR = lfsr;
 
-        result = (lfsr&0xffff) | (1<<30);
+        // ES16 code is 1 prior to 1,0,0-rc1, 2 thereafter
+        Uns32 ES16 = ((getCryptoVersion(riscv)>=RVKV_1_0_0_RC1) ? 2 : 1) << 30;
+
+        result = (lfsr&0xffff) | ES16;
     }
 
     return result;
@@ -845,50 +855,44 @@ typedef struct opDescS {
 // Entries with subset only, version-invariant
 //
 #define OPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2] = OPENTRY_S(_S),               \
-    [RVKV_0_8_1] = OPENTRY_S(_S),               \
-    [RVKV_0_9_0] = OPENTRY_S(_S),               \
-    [RVKV_0_9_2] = OPENTRY_S(_S),               \
-}
-
-//
-// Entries with version-dependent subset
-//
-#define OPENTRYxV_SxV(_NAME, _S072, _S081, _S090, _S092) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2] = OPENTRY_S(_S072),            \
-    [RVKV_0_8_1] = OPENTRY_S(_S081),            \
-    [RVKV_0_9_0] = OPENTRY_S(_S090),            \
-    [RVKV_0_9_2] = OPENTRY_S(_S092),            \
+    [RVKV_0_7_2]     = OPENTRY_S(_S),               \
+    [RVKV_0_8_1]     = OPENTRY_S(_S),               \
+    [RVKV_0_9_0]     = OPENTRY_S(_S),               \
+    [RVKV_0_9_2]     = OPENTRY_S(_S),               \
+    [RVKV_1_0_0_RC1] = OPENTRY_S(_S),               \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2] = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_8_1] = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_9_0] = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_9_2] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_7_2]     = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_8_1]     = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_9_0]     = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_0_9_2]     = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
 // Entries with subset and 32 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2] = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_8_1] = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_9_0] = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_9_2] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_7_2]     = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_8_1]     = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_9_0]     = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_0_9_2]     = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
 // Entries with subset and 64 bit callback only, version-invariant
 //
 #define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2] = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_8_1] = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_9_0] = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_9_2] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_7_2]     = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_8_1]     = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_9_0]     = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_0_9_2]     = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //
@@ -896,21 +900,12 @@ typedef struct opDescS {
 //
 static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
 
-    OPENTRYxV_S      (Zbkb,          Zbkb                 ),
-    OPENTRYxV_S      (Zbkc,          Zbkc                 ),
-    OPENTRYxV_S      (Zbkx,          Zbkx                 ),
     OPENTRYxV_S      (Zkr,           Zkr                  ),
     OPENTRYxV_S      (Zknd,          Zknd                 ),
     OPENTRYxV_S      (Zkne,          Zkne                 ),
     OPENTRYxV_S      (Zknh,          Zknh                 ),
     OPENTRYxV_S      (Zksed,         Zksed                ),
     OPENTRYxV_S      (Zksh,          Zksh                 ),
-
-    OPENTRYxV_SxV    (GORCI,         Zkb, Zkb, Zk_, Zk_   ),
-    OPENTRYxV_SxV    (PACKU,         Zkb, Zkb, Zkb, Zk_   ),
-    OPENTRYxV_SxV    (PACKUW,        Zkb, Zkb, Zkb, Zk_   ),
-    OPENTRYxV_SxV    (REV8W,         Zkb, Zkb, Zkb, Zk_   ),
-    OPENTRYxV_SxV    (XPERM,         Zkb, Zkb, Zkb, Zbkx  ),
 
     OPENTRYxV_S_CB   (LUT4LO,        Zkb,   LUT4LO        ),
     OPENTRYxV_S_CB   (LUT4HI,        Zkb,   LUT4HI        ),
@@ -984,19 +979,17 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
     // and has no effect here)
     switch(requiredSet) {
 
-        // ALWAYS ABSENT
-        case RVKS_Zk_   : description = "always"; break;
+        // LEGACY B EXTENSION INSTRUCTIONS
+        case RVKS_Zbkb  : description = "Zbkb";   break;
 
         // INDIVIDUAL SETS
-        case RVKS_Zbkb  : description = "Zbkb";  break; // or Zkb
-        case RVKS_Zbkc  : description = "Zbkc";  break; // or Zkg
-        case RVKS_Zbkx  : description = "Zbkx";  break;
-        case RVKS_Zkr   : description = "Zkr";   break; // LCOV_EXCL_LINE
-        case RVKS_Zknd  : description = "Zknd";  break;
-        case RVKS_Zkne  : description = "Zkne";  break;
-        case RVKS_Zknh  : description = "Zknh";  break;
-        case RVKS_Zksed : description = "Zksed"; break;
-        case RVKS_Zksh  : description = "Zksh";  break;
+        case RVKS_Zkr   : description = "Zkr";    break; // LCOV_EXCL_LINE
+        case RVKS_Zknd  : description = "Zknd";   break;
+        case RVKS_Zkne  : description = "Zkne";   break;
+        case RVKS_Zknh  : description = "Zknh";   break;
+        case RVKS_Zksed : description = "Zksed";  break;
+        case RVKS_Zksh  : description = "Zksh";   break;
+        default         :                         break; // LCOV_EXCL_LINE
     }
 
     // sanity check known subset
@@ -1006,52 +999,19 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
 }
 
 //
-// Take Illegal Instruction exception when subset is absent
-//
-static void illegalInstructionAbsentSubset(
-    riscvP         riscv,
-    riscvCryptoSet requiredSet
-) {
-    char reason[64];
-
-    if(riscv->verbose) {
-        snprintf(
-            SNPRINTF_TGT(reason), "%s absent",
-            getSubsetDesc(requiredSet)
-        );
-    }
-
-    // take Illegal Instruction exception
-    riscvIllegalInstructionMessage(riscv, reason);
-}
-
-//
-// Emit code to take Illegal Instruction exception when a feature subset is
-// absent
-//
-static void emitIllegalInstructionAbsentSubset(riscvCryptoSet requiredSet) {
-    vmimtArgProcessor();
-    vmimtArgUns32(requiredSet);
-    vmimtCallAttrs((vmiCallFn)illegalInstructionAbsentSubset, VMCA_EXCEPTION);
-}
-
-//
 // Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not - note that instructions shared with the
-// bit manipulation extension are not handled here if that extension is enabled
+// Illegal Instruction exception if not
 //
-Bool riscvValidateKExtSubset(
-    riscvP            riscv,
-    riscvKExtOp       op,
-    riscvArchitecture requiredVariant
-) {
-    if(op && !((requiredVariant&ISA_B) && bitmanipEnabled(riscv))) {
+Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op) {
 
-        opDescCP         desc        = getOpDesc(riscv, op);
-        riscvBitManipSet requiredSet = desc->subset;
+    if(op) {
 
+        opDescCP       desc        = getOpDesc(riscv, op);
+        riscvCryptoSet requiredSet = desc->subset;
+
+        // detect absent subset
         if(!(requiredSet&~riscv->configInfo.crypto_absent)) {
-            emitIllegalInstructionAbsentSubset(requiredSet);
+            riscvEmitIllegalInstructionAbsentSubset(getSubsetDesc(requiredSet));
             return False;
         }
     }

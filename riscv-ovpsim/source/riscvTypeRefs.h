@@ -27,6 +27,7 @@ DEFINE_S (riscvBlockState);
 DEFINE_S (riscvBusPort);
 DEFINE_U (riscvCLICIntState);
 DEFINE_S (riscvCLICOutState);
+DEFINE_S (riscvCLINT);
 DEFINE_S (riscvCSRRemap);
 DEFINE_S (riscvConfig);
 DEFINE_CS(riscvConfig);

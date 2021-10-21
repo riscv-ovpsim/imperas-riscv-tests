@@ -64,6 +64,7 @@ typedef struct riscvConfigS {
 
     // fundamental variant configuration
     riscvArchitecture arch;             // variant architecture
+    riscvArchitecture archImplicit;     // implicit feature bits (not in misa)
     riscvArchitecture archMask;         // read/write bits in architecture
     riscvArchitecture archFixed;        // fixed bits in architecture
     riscvUserVer      user_version;     // user-level ISA version
@@ -74,11 +75,17 @@ typedef struct riscvConfigS {
     riscvBitManipSet  bitmanip_absent;  // bitmanip absent extensions
     riscvCryptoVer    crypto_version;   // cryptographic architecture version
     riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
+    riscvDSPVer       dsp_version;      // DSP architecture version
+    riscvDSPSet       dsp_absent;       // DSP absent extensions
+    riscvCompressSet  compress_present; // compressed present extensions
     riscvHypVer       hyp_version;      // hypervisor architecture version
     riscvDebugVer     dbg_version;      // debugger architecture version
     riscvRNMIVer      rnmi_version;     // rnmi version
     riscvCLICVer      CLIC_version;     // CLIC version
     riscvZfinxVer     Zfinx_version;    // Zfinx version
+    riscvZceaVer      Zcea_version;     // Zcea version
+    riscvZcebVer      Zceb_version;     // Zceb version
+    riscvZceeVer      Zcee_version;     // Zcee version
     riscvFP16Ver      fp16_version;     // 16-bit floating point version
     riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
     riscvDMMode       debug_mode;       // is Debug mode implemented?
@@ -91,6 +98,8 @@ typedef struct riscvConfigS {
     Uns64             nmiexc_address;   // RNMI exception address
     Uns64             debug_address;    // debug vector address
     Uns64             dexc_address;     // debug exception address
+    Uns64             CLINT_address;    // internally-implemented CLINT address
+    Flt64             mtime_Hz;         // clock frequency of CLINT mtime
     Uns64             unimp_int_mask;   // mask of unimplemented interrupts
     Uns64             force_mideleg;    // always-delegated M-mode interrupts
     Uns64             force_sideleg;    // always-delegated S-mode interrupts
@@ -131,6 +140,7 @@ typedef struct riscvConfigS {
     Uns8              mtvt_sext;        // mtvec sign-extended bit count
     Uns8              stvt_sext;        // stvec sign-extended bit count
     Uns8              utvt_sext;        // utvec sign-extended bit count
+    Bool              enable_expanded;  // enable expanded instructions
     Bool              isPSE;            // whether a PSE (internal use only)
     Bool              endianFixed;      // endianness is fixed (UBE/SBE/MBE r/o)
     Bool              ABI_d;            // ABI uses D registers for parameters
@@ -156,12 +166,14 @@ typedef struct riscvConfigS {
     Bool              cycle_undefined;  // whether cycle CSR is undefined
     Bool              time_undefined;   // whether time CSR is undefined
     Bool              instret_undefined;// whether instret CSR is undefined
+    Bool              hpmcounter_undefined;// whether hpmcounter* CSRs undefined
     Bool              tinfo_undefined;  // whether tinfo CSR is undefined
     Bool              tcontrol_undefined;// whether tcontrol CSR is undefined
     Bool              mcontext_undefined;// whether mcontext CSR is undefined
     Bool              scontext_undefined;// whether scontext CSR is undefined
     Bool              mscontext_undefined;// whether mscontext CSR is undefined
     Bool              hcontext_undefined;// whether hcontext CSR is undefined
+    Bool              mnoise_undefined; // whether mnoise CSR is undefined
     Bool              amo_trigger;      // whether triggers used with AMO
     Bool              no_hit;           // whether tdata1.hit is unimplemented
     Bool              no_sselect_2;     // whether textra.sselect=2 is illegal
@@ -181,7 +193,9 @@ typedef struct riscvConfigS {
     Bool              tval_zero_ebreak; // whether [smu]tval always zero on ebreak
     Bool              tval_ii_code;     // instruction bits in [smu]tval for
                                         // illegal instruction exception?
-
+    Bool              defer_step_bug;   // defer step breakpoint for one
+                                        // instruction when interrupt on return
+                                        // from debug mode (hardware bug)
     // CLIC configuration
     Uns64             posedge_0_63;     // fixed int[63:0] positive edge
     Uns64             poslevel_0_63;    // fixed int[63:0] positive level

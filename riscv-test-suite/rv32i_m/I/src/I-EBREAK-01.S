@@ -75,6 +75,8 @@ inst_0:
     jal x0, test_end
 
     # ---------------------------------------------------------------------------------------------
+    # force alignment
+    .balign 64
     # Exception handler
 _trap_handler:
     # increment return address

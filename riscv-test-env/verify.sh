@@ -14,8 +14,8 @@ do
         break
     fi
 
-    sig=${WORK}/rv${XLEN}i_m/${RISCV_DEVICE}/${stub}.signature.output
-    dif=${WORK}/rv${XLEN}i_m/${RISCV_DEVICE}/${stub}.diff
+    sig=${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/${stub}.signature.output
+    dif=${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/${stub}.diff
 
     RUN=$((${RUN} + 1))
     
@@ -40,7 +40,7 @@ do
 done
 
 # warn on missing reverse reference
-for sig in ${WORK}/rv${XLEN}i_m/${RISCV_DEVICE}/*.signature.output; 
+for sig in ${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/*.signature.output; 
 do
     base=$(basename ${sig})
     stub=${base//".signature.output"/}

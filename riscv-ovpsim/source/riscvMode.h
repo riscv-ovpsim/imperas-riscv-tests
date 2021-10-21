@@ -20,6 +20,16 @@
 #pragma once
 
 //
+// Use this to enable P extension
+//
+#define ENABLE_P_EXT 1
+
+//
+// Use this to enable memory trace attributes
+//
+#define ENABLE_MEM_TRACE_ATTRS 1
+
+//
 // Execution mode
 //
 typedef enum {

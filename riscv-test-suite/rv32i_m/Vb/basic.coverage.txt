@@ -1,84 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : Vb, instructions: 15
-    vl1r_v         
-        rs1            
-            gpr            
-                a0           1/1 : 100.00%
-                a1           1/1 : 100.00%
-                a2           1/1 : 100.00%
-                a3           1/1 : 100.00%
-                a4           1/1 : 100.00%
-                a5           1/1 : 100.00%
-                a6           1/1 : 100.00%
-                a7           1/1 : 100.00%
-                gp           1/1 : 100.00%
-                ra           1/1 : 100.00%
-                s0           1/1 : 100.00%
-                s1           1/1 : 100.00%
-                s10          1/1 : 100.00%
-                s11          1/1 : 100.00%
-                s2           1/1 : 100.00%
-                s3           1/1 : 100.00%
-                s4           1/1 : 100.00%
-                s5           1/1 : 100.00%
-                s6           1/1 : 100.00%
-                s7           1/1 : 100.00%
-                s8           1/1 : 100.00%
-                s9           1/1 : 100.00%
-                sp           1/1 : 100.00%
-                t0           1/1 : 100.00%
-                t1           1/1 : 100.00%
-                t2           1/1 : 100.00%
-                t3           1/1 : 100.00%
-                t4           1/1 : 100.00%
-                t5           1/1 : 100.00%
-                t6           2/1 : 100.00%
-                tp           1/1 : 100.00%
-                zero         0/1 :   0.00% ZERO
-            gpr 31/32 :  96.88%
-            sign           
-                neg         32/1 : 100.00%
-                pos          0/1 :   0.00% ZERO
-            sign 1/2 :  50.00%
-        rs1 32/34 :  94.12%
-        vd             
-            vpr            
-                v0           1/1 : 100.00%
-                v1           1/1 : 100.00%
-                v10          1/1 : 100.00%
-                v11          1/1 : 100.00%
-                v12          1/1 : 100.00%
-                v13          1/1 : 100.00%
-                v14          1/1 : 100.00%
-                v15          1/1 : 100.00%
-                v16          1/1 : 100.00%
-                v17          1/1 : 100.00%
-                v18          1/1 : 100.00%
-                v19          1/1 : 100.00%
-                v2           1/1 : 100.00%
-                v20          1/1 : 100.00%
-                v21          1/1 : 100.00%
-                v22          1/1 : 100.00%
-                v23          1/1 : 100.00%
-                v24          1/1 : 100.00%
-                v25          1/1 : 100.00%
-                v26          1/1 : 100.00%
-                v27          1/1 : 100.00%
-                v28          1/1 : 100.00%
-                v29          1/1 : 100.00%
-                v3           1/1 : 100.00%
-                v30          1/1 : 100.00%
-                v31          1/1 : 100.00%
-                v4           1/1 : 100.00%
-                v5           1/1 : 100.00%
-                v6           1/1 : 100.00%
-                v7           1/1 : 100.00%
-                v8           1/1 : 100.00%
-                v9           1/1 : 100.00%
-            vpr 32/32 : 100.00%
-        vd 32/32 : 100.00%
-    vl1r_v 64/66 :  96.97%
+Extension : Vb, instructions: 14
     vlb_v          
         rs1            
             gpr            
@@ -1220,8 +1142,6 @@ Extension : Vb, instructions: 15
         vs3 32/32 : 100.00%
     vsw_v 64/66 :  96.97%
 Coverage points missed:
-  vl1r_v/rs1/gpr/zero
-  vl1r_v/rs1/sign/pos
   vlb_v/rs1/gpr/zero
   vlb_v/rs1/sign/pos
   vlbu_v/rs1/gpr/zero
@@ -1281,10 +1201,10 @@ Coverage points missed:
   vsh_v/rs1/sign/pos
   vsw_v/rs1/gpr/zero
   vsw_v/rs1/sign/pos
-Coverage points missed: 61/1028
+Coverage points missed: 59/962
 
 Info TOTAL INSTRUCTION COVERAGE : Vb
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 15/15 : 100.00%
-Info   Coverage points hit   : 967/1028 :  94.07%
+Info   Unique instructions   : 14/14 : 100.00%
+Info   Coverage points hit   : 903/962 :  93.87%

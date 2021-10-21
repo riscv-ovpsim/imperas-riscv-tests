@@ -18,15 +18,13 @@
 
 Architectural Test Suite Data for RV32VB RISC-V "V" Vector Extension:
     338 test source files
-    2 different instruction categories
+    3 different instruction categories
     35 different instructions
     305,580 total instructions
 
 Instruction category: OPV_CONFIG config
-  vsetvli : 30,732
-  vl1r.v : 32
   vs1r.v : 32
-  vsetvl : 336
+  vl1r.v : 32
 Instruction category: OPV_STRI unit-strided load store
   vle.v : 16,914
   vlb.v : 639
@@ -39,6 +37,9 @@ Instruction category: OPV_STRI unit-strided load store
   vsb.v : 639
   vsh.v : 426
   vsw.v : 213
+Instruction category: OPV1_CONFIG configuration
+  vsetvli : 30,732
+  vsetvl : 336
 
 Other instructions (those not the focus of this suite)
   jal : 338

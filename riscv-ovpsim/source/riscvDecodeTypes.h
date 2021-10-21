@@ -175,6 +175,7 @@ typedef enum riscvITypeE {
     RV_IT_CLZ_R,
     RV_IT_CTZ_R,
     RV_IT_PCNT_R,
+    RV_IT_EXT_R,
     RV_IT_SEXT_R,
     RV_IT_CRC32_R,
     RV_IT_CRC32C_R,
@@ -544,6 +545,165 @@ typedef enum riscvITypeE {
     RV_IT_VZEXT_V,
     RV_IT_VSEXT_V,
 
+    // P-extension instructions (RV32 and RV64)
+    RV_IT_ADD_Sx,
+    RV_IT_AVE,
+    RV_IT_BITREV,
+    RV_IT_BITREVI,
+    RV_IT_BPICK,
+    RV_IT_CLRS_Sx,
+    RV_IT_CLO_Sx,
+    RV_IT_CLZ_Sx,
+    RV_IT_CMPEQ_Sx,
+    RV_IT_CR_Sx,
+    RV_IT_INSB,
+    RV_IT_KABS_Sx,
+    RV_IT_KABSW,
+    RV_IT_KADD_Sx,
+    RV_IT_KADD_Wx,
+    RV_IT_KCR_Sx,
+    RV_IT_KDM_Hx,
+    RV_IT_KDMA_Hx,
+    RV_IT_KHM_Sx,
+    RV_IT_KHM_Hx,
+    RV_IT_KHMX_Sx,
+    RV_IT_KMA_Hx,
+    RV_IT_KMADA,
+    RV_IT_KMAXDA,
+    RV_IT_KMADS,
+    RV_IT_KMAXDS,
+    RV_IT_KMADRS,
+    RV_IT_KMAR_Sx,
+    RV_IT_KMDA,
+    RV_IT_KMXDA,
+    RV_IT_KMMAC_Rx,
+    RV_IT_KMMAW_Hx_Dx_Rx,
+    RV_IT_KMMSB_Rx,
+    RV_IT_KMMW_Hx_Dx_Rx,
+    RV_IT_KMSDA,
+    RV_IT_KMSXDA,
+    RV_IT_KMSR_Sx,
+    RV_IT_KSLL_Sx,
+    RV_IT_KSLLI_Sx,
+    RV_IT_KSLLW,
+    RV_IT_KSLLIW,
+    RV_IT_KSLRA_Sx_Rx,
+    RV_IT_KST_Sx,
+    RV_IT_KSUB_Sx,
+    RV_IT_KSUB_Wx,
+    RV_IT_KWMMUL_Rx,
+    RV_IT_MADDR_Sx,
+    RV_IT_MAXW,
+    RV_IT_MINW,
+    RV_IT_MSUBR_Sx,
+    RV_IT_MULR_Sx,
+    RV_IT_MULSR_Sx,
+    RV_IT_PBSAD,
+    RV_IT_PBSADA,
+    RV_IT_PK_Hx_Sx,
+    RV_IT_RADD_Sx,
+    RV_IT_RADDW,
+    RV_IT_RCR_Sx,
+    RV_IT_RST_Sx,
+    RV_IT_RSUB_Sx,
+    RV_IT_RSUBW,
+    RV_IT_SCLIP_Sx,
+    RV_IT_SCMPLE_Sx,
+    RV_IT_SCMPLT_Sx,
+    RV_IT_SLL_Sx,
+    RV_IT_SLLI_Sx,
+    RV_IT_SMAL,
+    RV_IT_SMAL_Hx,
+    RV_IT_SMALDA,
+    RV_IT_SMALXDA,
+    RV_IT_SMALDS,
+    RV_IT_SMALDRS,
+    RV_IT_SMALXDS,
+    RV_IT_SMAR_Sx,
+    RV_IT_SMAQA,
+    RV_IT_SMAQA_SU,
+    RV_IT_SMAX_Sx,
+    RV_IT_SM_Hx_Sx,
+    RV_IT_SMDS,
+    RV_IT_SMDRS,
+    RV_IT_SMXDS,
+    RV_IT_SMIN_Sx,
+    RV_IT_SMMUL_Rx,
+    RV_IT_SMMW_Hx_Dx_Rx,
+    RV_IT_SMSLDA,
+    RV_IT_SMSLXDA,
+    RV_IT_SMSR_Sx,
+    RV_IT_SMUL_Sx,
+    RV_IT_SMULX_Sx,
+    RV_IT_SRA_Rx,
+    RV_IT_SRA_Sx_Rx,
+    RV_IT_SRAI_Rx,
+    RV_IT_SRAI_Sx_Rx,
+    RV_IT_SRL_Sx_Rx,
+    RV_IT_SRLI_Sx_Rx,
+    RV_IT_ST_Sx,
+    RV_IT_SUB_Sx,
+    RV_IT_SUNPKD_Sx_Px,
+    RV_IT_SWAP_Sx,
+    RV_IT_UCLIP_Sx,
+    RV_IT_UCMPLE_Sx,
+    RV_IT_UCMPLT_Sx,
+    RV_IT_UKADD_Sx,
+    RV_IT_UKADD_Wx,
+    RV_IT_UKCR_Sx,
+    RV_IT_UKMAR_Sx,
+    RV_IT_UKMSR_Sx,
+    RV_IT_UKST_Sx,
+    RV_IT_UKSUB_Sx,
+    RV_IT_UKSUB_Wx,
+    RV_IT_UMAR_Sx,
+    RV_IT_UMAQA,
+    RV_IT_UMAX_Sx,
+    RV_IT_UMIN_Sx,
+    RV_IT_UMSR_Sx,
+    RV_IT_UMUL_Sx,
+    RV_IT_UMULX_Sx,
+    RV_IT_URADD_Sx,
+    RV_IT_URADDW,
+    RV_IT_URCR_Sx,
+    RV_IT_URST_Sx,
+    RV_IT_URSUB_Sx,
+    RV_IT_URSUBW,
+    RV_IT_WEXT,
+    RV_IT_WEXTI,
+    RV_IT_ZUNPKD_Sx_Px,
+
+    // P-extension instructions (RV64 only)
+    RV_IT_KDM_Hx_Sx,
+    RV_IT_KDMA_Hx_Sx,
+    RV_IT_KHM_Hx_Sx,
+    RV_IT_KMA_Hx_Sx,
+    RV_IT_KMAXDA_Sx,
+    RV_IT_KMDA_Sx,
+    RV_IT_KMXDA_Sx,
+    RV_IT_KMADS_Sx,
+    RV_IT_KMADRS_Sx,
+    RV_IT_KMAXDS_Sx,
+    RV_IT_KMSDA_Sx,
+    RV_IT_KMSXDA_Sx,
+    RV_IT_SMDS_Sx,
+    RV_IT_SMDRS_Sx,
+    RV_IT_SMXDS_Sx,
+
+    // code size reduction instructions
+    RV_IT_NOT_R,
+    RV_IT_NEG_R,
+    RV_IT_MVP_R,
+    RV_IT_MULI_I,
+    RV_IT_BEQI_B,
+    RV_IT_BNEI_B,
+    RV_IT_TBLJ,
+    RV_IT_TBLJAL,
+    RV_IT_TBLJALM,
+    RV_IT_PUSH,
+    RV_IT_POP,
+    RV_IT_DECBNEZ,
+
     // KEEP LAST
     RV_IT_LAST
 
@@ -632,6 +792,95 @@ typedef enum riscvWholeDescE {
 } riscvWholeDesc;
 
 //
+// This is used to categorize cross operations
+//
+typedef enum riscvCrossOpDescE {
+
+    RV_CR_NA,       // not a cross operation
+    RV_CR_AS,       // add/subtract cross operation
+    RV_CR_SA,       // subtract/add cross operation
+
+} riscvCrossOpDesc;
+
+//
+// This is used to categorize bottom/top half operations
+//
+typedef enum riscvHalfDescE {
+
+    RV_HA_NA,       // not a half-operand operation
+    RV_HA_BB,       // bottom/bottom operation
+    RV_HA_BT,       // bottom/top operation
+    RV_HA_TT,       // top/top operation
+    RV_HA_TB,       // top/bottom operation
+    RV_HA_B,        // bottom operation
+    RV_HA_T,        // top operation
+
+} riscvHalfDesc;
+
+//
+// This is used to categorize packing operations
+//
+typedef enum riscvPackDescE {
+
+    RV_PD_NA,       // no packing
+    RV_PD_10,       // bytes 1 & 0
+    RV_PD_20,       // bytes 2 & 0
+    RV_PD_30,       // bytes 3 & 0
+    RV_PD_31,       // bytes 3 & 1
+    RV_PD_32,       // bytes 3 & 2
+
+} riscvPackDesc;
+
+//
+// This is used specify the register list for Zcea PUSH/POP
+//
+typedef enum riscvRListDescE {
+
+    RV_RL_x_RA,             // {ra}                 both
+    RV_RL_x_RA_S0,          // {ra,s0}              both
+    RV_RL_x_RA_S0_1,        // {ra,s0-s1}           both
+    RV_RL_U_RA_S0_2,        // {ra,s0-s2}           UABI
+    RV_RL_U_RA_S0_3,        // {ra,s0-s3}           UABI
+    RV_RL_U_RA_S0_4,        // {ra,s0-s4}           UABI
+    RV_RL_U_RA_S0_5,        // {ra,s0-s5}           UABI
+    RV_RL_U_RA_S0_6,        // {ra,s0-s6}           UABI
+    RV_RL_U_RA_S0_7,        // {ra,s0-s7}           UABI
+    RV_RL_U_RA_S0_8,        // {ra,s0-s8}           UABI
+    RV_RL_U_RA_S0_9,        // {ra,s0-s9}           UABI
+    RV_RL_U_RA_S0_10,       // {ra,s0-s10}          UABI
+    RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
+    RV_RL_E_RA_S0_2,        // {ra,s0-s2}           EABI
+    RV_RL_E_RA_S3_S0_2,     // {ra,s3,s0-s2}        EABI
+    RV_RL_E_RA_S3_4_S0_2,   // {ra,s3-s4,s0-s2}     EABI
+
+} riscvRListDesc;
+
+//
+// This is used specify the argument register list for Zcea PUSH
+//
+typedef enum riscvAListDescE {
+
+    RV_AL_NA,               // {}
+    RV_AL_A0,               // {a0}
+    RV_AL_A0_1,             // {a0-a1}
+    RV_AL_A0_2,             // {a0-a2}
+    RV_AL_A0_3,             // {a0-a3}
+
+} riscvAListDesc;
+
+//
+// This is used specify the argument register list for Zcea PUSH
+//
+typedef enum riscvRetValDescE {
+
+    RV_RV_NA,               // {}
+    RV_RV_0,                // {0}
+    RV_RV_P1,               // {1}
+    RV_RV_M1,               // {-1}
+
+} riscvRetValDesc;
+
+//
 // This defines the maximum number of argument registers
 //
 #define RV_MAX_AREGS 4
@@ -645,13 +894,15 @@ typedef struct riscvInstrInfoS {
     const char       *opcode;           // opcode name
     const char       *format;           // disassembly format string
     riscvAddr         thisPC;           // instruction address
-    Uns32             instruction;      // instruction word
+    Uns64             instruction;      // instruction word
     Uns8              bytes;            // instruction size in bytes (2 or 4)
     riscvIType        type;             // instruction type
     riscvArchitecture arch;             // architecture requirements
+    riscvCompressSet  Zc;               // compressed extension
     riscvVIType       VIType;           // vector instruction type
     Int32             memBits;          // load/store size
     Uns32             eew;              // explicit EEW encoding
+    Uns64             tgt;              // constant target address
     Uns64             c;                // constant value
     riscvRegDesc      r[RV_MAX_AREGS];  // argument registers
     riscvRegDesc      mask;             // mask register
@@ -662,16 +913,28 @@ typedef struct riscvInstrInfoS {
     riscvCSRUDesc     csrUpdate;        // CSR update semantics
     riscvWholeDesc    isWhole;          // is this a whole-register instruction?
     riscvVType        vtype;            // vector type information
+    riscvCrossOpDesc  crossOp;          // cross operation
+    riscvHalfDesc     half;             // top/bottom half operation
+    riscvPackDesc     pack;             // byte packing
+    riscvRListDesc    rlist;            // register list (Zcea push/pop)
+    riscvAListDesc    alist;            // argument register list (Zcea push)
+    riscvRetValDesc   retval;           // return value (Zcea pop)
     Uns32             csr;              // CSR index
     Uns8              nf;               // nf value
     Uns8              eewDiv;           // explicit EEW divisor
     Uns8              shN;              // shN prefix
+    Uns8              elemSize;         // element size
     Uns8              explicitType;     // whether types are explicit in opcode
     Bool              explicitW;        // whether 'w' explicit in opcode
     Bool              explicitRM;       // whether rounding explicit in opcode
+    Bool              explicitDot;      // whether explicit type has dot
+    Bool              doDouble;         // whether additional doubling step
+    Bool              round;            // whether additional rounding step
     Bool              unsExt;           // whether to extend unsigned
+    Bool              unsPfx;           // show unsigned as z/s prefix not u suffix
     Bool              csrInOp;          // whether to emit CSR as part of opcode
     Bool              isFF;             // is this a first-fault instruction?
+    Bool              doRet;            // do return (Zcea pop)
 
 } riscvInstrInfo;
 

@@ -108,6 +108,7 @@ typedef enum riscvArchitectureE {
     ISA_K      = RISCV_FEATURE_BIT('K'),    // cryptographic ISA
     ISA_M      = RISCV_FEATURE_BIT('M'),    // integer multiply/divide instructions
     ISA_N      = RISCV_FEATURE_BIT('N'),    // user-mode interrupts
+    ISA_P      = RISCV_FEATURE_BIT('P'),    // DSP instructions
     ISA_Q      = RISCV_FEATURE_BIT('Q'),    // quad-precision floating point
     ISA_S      = RISCV_FEATURE_BIT('S'),    // supervisor mode implemented
     ISA_U      = RISCV_FEATURE_BIT('U'),    // user mode implemented
@@ -123,6 +124,7 @@ typedef enum riscvArchitectureE {
     ISA_VU     = (ISA_U|ISA_H),             // virtual user mode
     ISA_VS     = (ISA_S|ISA_H),             // virtual supervisor mode
     ISA_BK     = (ISA_B|ISA_K),             // either B or K extension
+    ISA_VP     = (ISA_V|ISA_P),             // either V or P extension
 
     // FEATURES THAT VARY DYNAMICALLY (note that D, F and V features can be
     // enabled or disabled by mstatus.FS or mstatus.VS, so are included here
@@ -141,6 +143,7 @@ typedef enum riscvArchitectureE {
     RV32BK   = ISA_XLEN_32  |                                                                         ISA_B |         ISA_K,
     RV32H    = ISA_XLEN_32  |                                                                                 ISA_H,
     RV32K    = ISA_XLEN_32  |                                                                                         ISA_K,
+    RV32P    = ISA_XLEN_32  |                                                                                                 ISA_P,
     RV32IM   = ISA_XLEN_32  | ISA_I | ISA_M,
     RV32IMA  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A,
     RV32IMC  = ISA_XLEN_32  | ISA_I | ISA_M |         ISA_C,
@@ -151,6 +154,7 @@ typedef enum riscvArchitectureE {
     RV32GCH  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                         ISA_H,
     RV32GCK  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                 ISA_K,
     RV32GCN  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D | ISA_N,
+    RV32GCP  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                         ISA_P,
     RV32GCV  = ISA_XLEN_32  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |         ISA_V,
     RV32EC   = ISA_XLEN_32  |                         ISA_C | ISA_E,
 
@@ -168,6 +172,7 @@ typedef enum riscvArchitectureE {
     RV64BK   = ISA_XLEN_64  |                                                                         ISA_B |         ISA_K,
     RV64H    = ISA_XLEN_64  |                                                                                 ISA_H,
     RV64K    = ISA_XLEN_64  |                                                                                         ISA_K,
+    RV64P    = ISA_XLEN_64  |                                                                                                 ISA_P,
     RV64IM   = ISA_XLEN_64  | ISA_I | ISA_M,
     RV64IMA  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A,
     RV64IMC  = ISA_XLEN_64  | ISA_I | ISA_M |         ISA_C,
@@ -178,6 +183,7 @@ typedef enum riscvArchitectureE {
     RV64GCH  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                         ISA_H,
     RV64GCK  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                 ISA_K,
     RV64GCN  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D | ISA_N,
+    RV64GCP  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |                                         ISA_P,
     RV64GCV  = ISA_XLEN_64  | ISA_I | ISA_M | ISA_A | ISA_C |         ISA_F | ISA_D |         ISA_V,
 
     RVANY    = ISA_XLEN_ANY,
@@ -193,8 +199,11 @@ typedef enum riscvArchitectureE {
     RVANYB   = ISA_XLEN_ANY |                                                                         ISA_B,
     RVANYH   = ISA_XLEN_ANY |                                                                                 ISA_H,
     RVANYK   = ISA_XLEN_ANY |                                                                                         ISA_K,
+    RVANYP   = ISA_XLEN_ANY |                                                                                                 ISA_P,
 
     RVANYCD  = RVANYC|RVANYD|ISA_and,
+    RVANYCI  = RVANYC|RVANYI|ISA_and,
+    RVANYCM  = RVANYC|RVANYM|ISA_and,
     RVANYVA  = RVANYV|RVANYA|ISA_and,
     RVANYBK  = RVANYB|RVANYK,
 
@@ -234,8 +243,8 @@ typedef enum riscvPrivVerE {
 //
 // Date and tag of Vector Architecture master version
 //
-#define RVVV_MASTER_DATE    "8 June 2021"
-#define RVVV_MASTER_TAG     "795a4dd"
+#define RVVV_MASTER_DATE    "20 September 2021"
+#define RVVV_MASTER_TAG     "3570f99"
 
 //
 // Supported Vector Architecture versions
@@ -265,8 +274,9 @@ typedef enum riscvVectorSetE {
     RVVS_Application = 0,               // application processor profile
     RVVS_Embedded    = (1<<0),          // embedded processor profile
     RVVS_EEW64       = (1<<1),          // EEW=64 supported
-    RVVS_F           = (1<<2),          // FP32 supported
-    RVVS_D           = (1<<3),          // FP64 supported
+    RVVS_H           = (1<<2),          // FP32 supported
+    RVVS_F           = (1<<3),          // FP32 supported
+    RVVS_D           = (1<<4),          // FP64 supported
 
     // embedded profiles
     RVVS_Zve32x = RVVS_Embedded,
@@ -328,6 +338,45 @@ typedef enum riscvBitManipSetE {
 } riscvBitManipSet;
 
 //
+// Supported Zcea versions
+//
+typedef enum riscvZceaVerE {
+    RVZCEA_NA,                          // Zcea absent
+    RVZCEA_0_50_1,                      // Zcea 0.50.1
+    RVZCEA_LAST,                        // for sizing
+    RVZCEA_DEFAULT = RVZCEA_0_50_1,     // default version
+} riscvZceaVer;
+
+//
+// Supported Zceb versions
+//
+typedef enum riscvZcebVerE {
+    RVZCEB_NA,                          // Zceb absent
+    RVZCEB_0_50_1,                      // Zceb 0.50.1
+    RVZCEB_LAST,                        // for sizing
+    RVZCEB_DEFAULT = RVZCEB_0_50_1,     // default version
+} riscvZcebVer;
+
+//
+// Supported Zcee versions
+//
+typedef enum riscvZceeVerE {
+    RVZCEE_NA,                          // Zcee absent
+    RVZCEE_1_0_0_RC,                    // Zcee 1.0.0-rc
+    RVZCEE_LAST,                        // for sizing
+    RVZCEE_DEFAULT = RVZCEE_1_0_0_RC,   // default version
+} riscvZceeVer;
+
+//
+// Compressed extension subsets
+//
+typedef enum riscvCompressSetE {
+    RVCS_Zcea = (1<<0),                 // Zcea subset
+    RVCS_Zceb = (1<<1),                 // Zceb subset
+    RVCS_Zcee = (1<<2),                 // Zcee subset
+} riscvCompressSet;
+
+//
 // Supported Cryptographic Architecture versions
 //
 typedef enum riscvCryptoVerE {
@@ -335,8 +384,9 @@ typedef enum riscvCryptoVerE {
     RVKV_0_8_1,                         // version 0.8.1
     RVKV_0_9_0,                         // version 0.9.0
     RVKV_0_9_2,                         // version 0.9.2
+    RVKV_1_0_0_RC1,                     // version 1.0.0-rc1
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_0_9_2,          // default version
+    RVKV_DEFAULT = RVKV_1_0_0_RC1,      // default version
 } riscvCryptoVer;
 
 //
@@ -345,8 +395,8 @@ typedef enum riscvCryptoVerE {
 typedef enum riscvCryptoSetE {
     RVKS_Zk_   = 0,                     // absent for all sets
     RVKS_Zbkb  = (1<<0),                // bitmanip subset not in Zbkc or Zbkx
-    RVKS_Zbkc  = (1<<1),                // carry-less multiply
-    RVKS_Zbkx  = (1<<2),                // crossbar permutation
+    RVKS_Zbkc  = (1<<1),                // bitmanip carry-less multiply
+    RVKS_Zbkx  = (1<<2),                // bitmanip crossbar permutation
     RVKS_Zkr   = (1<<3),                // entropy source
     RVKS_Zknd  = (1<<4),                // NIST AES decryption instructions
     RVKS_Zkne  = (1<<5),                // NIST AES encryption instructions
@@ -358,10 +408,28 @@ typedef enum riscvCryptoSetE {
 } riscvCryptoSet;
 
 //
+// Supported DSP instruction versions
+//
+typedef enum riscvDSPVerE {
+    RVDSPV_0_5_2,                       // version 0.5.2
+    RVDSPV_0_9_6,                       // version 0.9.6
+    RVDSPV_LAST,                        // for sizing
+    RVDSPV_DEFAULT = RVDSPV_0_5_2,      // default version
+} riscvDSPVer;
+
+//
+// DSP Architecture subsets
+//
+typedef enum riscvDSPSetE {
+    RVPS_Zp_         = 0,               // absent for all sets
+    RVPS_Zpsfoperand = (1<<0),          // 64-bit operands using RV32 pairs
+} riscvDSPSet;
+
+//
 // Supported Hypervisor Architecture versions
 //
 typedef enum riscvHypVerE {
-    RVHV_0_6_1,                         // version 0.93
+    RVHV_0_6_1,                         // version 0.6.1
     RVHV_LAST,                          // for sizing
     RVHV_DEFAULT = RVHV_0_6_1,          // default version
 } riscvHypVer;
@@ -373,6 +441,7 @@ typedef enum riscvDebugVerE {
     RVDBG_0_13_2,                       // 0.13.2-DRAFT
     RVDBG_0_14_0,                       // 0.14.0-DRAFT
     RVDBG_1_0_0,                        // 1.0.0-STABLE
+    RVDBG_LAST,                         // for sizing
     RVDBG_DEFAULT = RVDBG_1_0_0,        // default version
 } riscvDebugVer;
 
@@ -399,6 +468,8 @@ typedef enum riscvZfinxVerE {
     RVZFINX_NA,                         // Zfinx not implemented (default)
     RVZFINX_0_4,                        // Zfinx version 0.4
     RVZFINX_0_41,                       // Zfinx version 0.41
+    RVZFINX_LAST,                       // for sizing
+    RVZFINX_DEFAULT = RVZFINX_0_41,     // default version
 } riscvZfinxVer;
 
 //
@@ -473,6 +544,9 @@ typedef enum riscvRNMIVerE {
 // macro returning Cryptographic Architecture version
 #define RISCV_CRYPTO_VERSION(_P)    ((_P)->configInfo.crypto_version)
 
+// macro returning DSP Architecture version
+#define RISCV_DSP_VERSION(_P)       ((_P)->configInfo.dsp_version)
+
 // macro returning Debug Architecture version
 #define RISCV_DBG_VERSION(_P)       ((_P)->configInfo.dbg_version)
 
@@ -484,6 +558,15 @@ typedef enum riscvRNMIVerE {
 
 // macro returning Zfinx version
 #define RISCV_ZFINX_VERSION(_P)     ((_P)->configInfo.Zfinx_version)
+
+// macro returning Zcea version
+#define RISCV_ZCEA_VERSION(_P)      ((_P)->configInfo.Zcea_version)
+
+// macro returning Zceb version
+#define RISCV_ZCEB_VERSION(_P)      ((_P)->configInfo.Zceb_version)
+
+// macro returning Zcee version
+#define RISCV_ZCEE_VERSION(_P)      ((_P)->configInfo.Zcee_version)
 
 // macro returning 16-bit floating point version
 #define RISCV_FP16_VERSION(_P)      ((_P)->configInfo.fp16_version)

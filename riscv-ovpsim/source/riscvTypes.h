@@ -45,9 +45,10 @@ typedef enum riscvTLBIdE {
 // Enumeration of supported translation modes
 //
 typedef enum riscvVAModeE {
-    VAM_Sv32 = 1,   // Sv32 translation (32-bit VA)
-    VAM_Sv39 = 8,   // Sv39 translation (39-bit VA)
-    VAM_Sv48 = 9,   // Sv48 translation (48-bit VA)
+    VAM_Sv32 =  1,  // Sv32 translation (32-bit VA)
+    VAM_Sv39 =  8,  // Sv39 translation (39-bit VA)
+    VAM_Sv48 =  9,  // Sv48 translation (48-bit VA)
+    VAM_Sv57 = 10,  // Sv57 translation (57-bit VA)
 } riscvVAMode;
 
 //

@@ -32,6 +32,7 @@
 
 // Model header files
 #include "riscvCLIC.h"
+#include "riscvCLINT.h"
 #include "riscvDecode.h"
 #include "riscvDecodeTypes.h"
 #include "riscvExceptions.h"
@@ -630,23 +631,6 @@ static memPriv checkEntryPermission(
 }
 
 //
-// Do custom validity check on page table entry
-//
-static Bool checkEntryCustom(riscvP riscv, Uns64 PTE, riscvVAMode vaMode) {
-
-    Bool result = True;
-
-    ITER_EXT_CB_WHILE(
-        riscv, extCB, validPTE, result,
-        result = extCB->validPTE(
-            riscv, riscv->activeTLB, vaMode, PTE, extCB->clientData
-        );
-    )
-
-    return result;
-}
-
-//
 // Return the physical memory domain to use for the passed code/data access
 //
 static memDomainP getPhysDomainCorD(riscvP riscv, riscvMode mode, Bool isCode) {
@@ -802,13 +786,14 @@ static void writePageTableEntry(
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// PAGE TABLE WALK ERROR HANDLING AND REPORTING
+// PAGE TABLE COMMON CODE
 ////////////////////////////////////////////////////////////////////////////////
 
 //
 // This enumerates page table walk errors
 //
 typedef enum pteErrorE {
+    PTEE_DONE,              // entry is valid, walk complete
     PTEE_VAEXTEND,          // VA has invalid extension
     PTEE_GPAEXTEND,         // GPA has invalid extension
     PTEE_READ,              // page table entry load failed
@@ -820,8 +805,187 @@ typedef enum pteErrorE {
     PTEE_PRIV,              // page table entry does not allow access
     PTEE_A0,                // page table entry A=0
     PTEE_D0,                // page table entry D=0
+    PTEE_RES0,              // page table entry reserved bits not zero
+    PTEE_D_NL,              // page table entry non-leaf and D!=0
+    PTEE_A_NL,              // page table entry non-leaf and A!=0
+    PTEE_U_NL,              // page table entry non-leaf and U!=0
     PTEE_CUSTOM,            // page table entry custom failure
 } pteError;
+
+//
+// Common control fields in table structure
+//
+typedef struct SvCtrlS {
+    Uns32 V    :  1;
+    Uns32 priv :  3;
+    Uns32 U    :  1;
+    Uns32 G    :  1;
+    Uns32 A    :  1;
+    Uns32 D    :  1;
+    Uns32 RSW  :  2;
+    Uns32 _u1  : 22;
+} SvCtrl;
+
+//
+// Common physical adddress type
+//
+typedef union SvPAU {
+    Uns64 raw;
+    struct {
+        Uns64 pageOffset : 12;
+        Uns64 PPN        : 52;
+    } fields;
+} SvPA;
+
+//
+// Return number of virtual address bits for the given mode
+//
+static Uns32 getVABits(riscvVAMode vaMode) {
+
+    Uns32 result = 0;
+
+    if(vaMode==VAM_Sv32) {
+        result = 32;
+    } else if(vaMode==VAM_Sv39) {
+        result = 39;
+    } else if(vaMode==VAM_Sv48) {
+        result = 48;
+    } else if(vaMode==VAM_Sv57) {
+        result = 57;
+    } else {
+        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
+    }
+
+    return result;
+}
+
+//
+// Return number of levels for the given mode
+//
+static Uns32 getVAlevels(riscvVAMode vaMode) {
+
+    Uns32 result = 0;
+
+    if(vaMode==VAM_Sv32) {
+        result = 2;
+    } else if(vaMode==VAM_Sv39) {
+        result = 3;
+    } else if(vaMode==VAM_Sv48) {
+        result = 4;
+    } else if(vaMode==VAM_Sv57) {
+        result = 5;
+    } else {
+        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
+    }
+
+    return result;
+}
+
+//
+// Check page table entry for validity
+//
+static pteError checkTableEntry(riscvP riscv, SvCtrl ctrl, Bool res0) {
+
+    pteError result = PTEE_LEAF;
+
+    if(riscv->PTWBadAddr) {
+        result = PTEE_READ;
+    } else if(res0) {
+        result = PTEE_RES0;
+    } else if(!ctrl.V) {
+        result = PTEE_V0;
+    } else if((ctrl.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
+        result = PTEE_R0W1;
+    } else if(ctrl.priv) {
+        result = PTEE_DONE;
+    } else if(ctrl.D) {
+        result = PTEE_D_NL;
+    } else if(ctrl.A) {
+        result = PTEE_A_NL;
+    } else if(ctrl.U) {
+        result = PTEE_U_NL;
+    }
+
+    return result;
+}
+
+//
+// Do custom validity check on page table entry
+//
+static pteError checkEntryCustom(riscvP riscv, Uns64 PTE, riscvVAMode vaMode) {
+
+    Bool result = True;
+
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, validPTE, result,
+        result = extCB->validPTE(
+            riscv, riscv->activeTLB, vaMode, PTE, extCB->clientData
+        );
+    )
+
+    return result ? PTEE_DONE : PTEE_CUSTOM;
+}
+
+//
+// Fill TLB entry using details in page table entry
+//
+static pteError fillTLBEntry(
+    riscvP    riscv,
+    riscvMode mode,
+    tlbEntryP entry,
+    memPriv   requiredPriv,
+    SvCtrl    ctrl,
+    Int32     i,
+    Uns32     vpnShift
+) {
+    // calculate entry size
+    Uns64 size = 1ULL << ((i*vpnShift) + RISCV_PAGE_SHIFT);
+
+    // return with page-fault exception if invalid page alignment
+    if(entry->PA & (size-1)) {
+        return PTEE_ALIGN;
+    }
+
+    // fill TLB entry virtual address range
+    entry->lowVA &= -size;
+    entry->highVA = entry->lowVA + size - 1;
+
+    // fill TLB entry attributes
+    entry->tlb  = riscv->activeTLB;
+    entry->priv = ctrl.priv;
+    entry->V    = ctrl.V;
+    entry->U    = ctrl.U;
+    entry->G    = getG(riscv, ctrl.G);
+    entry->A    = ctrl.A;
+    entry->D    = ctrl.D;
+
+    // return with page-fault exception if permissions are invalid
+    if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
+        return PTEE_PRIV;
+    }
+
+    if(entry->A) {
+        // A bit is already set
+    } else if(!updatePTEA(riscv)) {
+        // A bit not yet set, no hardware support
+        return PTEE_A0;
+    } else {
+        // A bit is set on any access
+        entry->A = 1;
+    }
+
+    // D bit is set on any write
+    if(entry->D || !(requiredPriv & MEM_PRIV_W)) {
+        // D bit is already set or not required
+    } else if(!updatePTED(riscv)) {
+        // D bit not yet set, no hardware support
+        return PTEE_D0;
+    } else {
+        entry->D = 1;
+    }
+
+    return PTEE_DONE;
+}
 
 //
 // Return character corresponding to privilege
@@ -945,6 +1109,10 @@ static riscvException getPTWException(
         [PTEE_PRIV]      = {0, PTX_PAGE,         "does not allow access"    },
         [PTEE_A0]        = {0, PTX_PAGE,         "A=0"                      },
         [PTEE_D0]        = {0, PTX_PAGE,         "D=0"                      },
+        [PTEE_RES0]      = {1, PTX_PAGE,         "reserved bits not zero"   },
+        [PTEE_D_NL]      = {1, PTX_PAGE,         "non-leaf and D!=0"        },
+        [PTEE_A_NL]      = {1, PTX_PAGE,         "non-leaf and A!=0"        },
+        [PTEE_U_NL]      = {1, PTX_PAGE,         "non-leaf and U!=0"        },
         [PTEE_CUSTOM]    = {1, PTX_PAGE,         "custom entry check failed"},
     };
 
@@ -954,8 +1122,8 @@ static riscvException getPTWException(
 
     // determine whether PTW exception should be reported, and with what
     // severity
-    if(riscv->suppressExcept) {
-        // don't report suppressed exceptions
+    if(riscv->artifactAccess) {
+        // don't report exceptions for artifact accesses
     } else if(desc->warn) {
         severity = "W";
     } else if(RISCV_DEBUG_MMU(riscv)) {
@@ -1034,30 +1202,14 @@ typedef union Sv32VAU {
 } Sv32VA;
 
 //
-// Sv32 PA
-//
-typedef union Sv32PAU {
-    Uns64 raw;
-    struct {
-        Uns64 pageOffset : 12;
-        Uns64 PPN        : 52;
-    } fields;
-} Sv32PA;
-
-//
 // Sv32 entry
 //
 typedef union Sv32EntryU {
-    Uns32 raw;
+    Uns32  raw;
+    SvCtrl ctrl;
     struct {
-        Uns32 V    :  1;
-        Uns32 priv :  3;
-        Uns32 U    :  1;
-        Uns32 G    :  1;
-        Uns32 A    :  1;
-        Uns32 D    :  1;
-        Uns32 RSW  :  2;
-        Uns32 PPN  : 22;
+        Uns32 _u1 : 10;
+        Uns32 PPN : 22;
     } fields;
 } Sv32Entry;
 
@@ -1078,19 +1230,21 @@ static riscvException tlbLookupSv32(
     tlbEntryP entry,
     memPriv   requiredPriv
 ) {
-    Sv32VA    VA = {raw : entry->lowVA};
-    Sv32PA    PA;
-    Sv32Entry PTE;
-    Addr      PTEAddr;
-    Addr      a;
-    Int32     i;
+    riscvVAMode vaMode = VAM_Sv32;
+    Sv32VA      VA     = {raw : entry->lowVA};
+    SvPA        PA;
+    Sv32Entry   PTE;
+    Addr        PTEAddr;
+    Addr        a;
+    Int32       i;
+    pteError    error;
 
     // clear page offset bits (not relevant for entry creation)
     VA.fields.pageOffset = 0;
 
     // do table walk to find ultimate PTE
     for(
-        i=1, a=getRootTableAddress(riscv);
+        i=getVAlevels(vaMode)-1, a=getRootTableAddress(riscv);
         i>=0;
         i--, a=getPTETableAddress(PTE.fields.PPN)
     ) {
@@ -1100,112 +1254,58 @@ static riscvException tlbLookupSv32(
         // read entry from memory
         PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, 4, i);
 
-        // return with page-fault exception if an invalid entry or entry with
-        // permission combination that is reserved, or break from the loop if
-        // a leaf entry is found
-        if(riscv->PTWBadAddr) {
-            PTE_ERROR(READ);
-        } else if(!PTE.fields.V) {
-            PTE_ERROR(V0);
-        } else if((PTE.fields.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
-            PTE_ERROR(R0W1);
-        } else if(PTE.fields.priv) {
+        // validate PTE entry
+        error = checkTableEntry(riscv, PTE.ctrl, 0);
+
+        // terminate unless next level lookup required
+        if(error!=PTEE_LEAF) {
             break;
         }
     }
 
-    // return with page-fault exception if leaf entry was not found
-    if(i<0) {
-        PTE_ERROR(LEAF);
+    if(!error) {
+
+        // construct entry low PA
+        PA.fields.PPN        = PTE.fields.PPN;
+        PA.fields.pageOffset = 0;
+
+        // fill TLB entry low physical address
+        entry->PA = PA.raw;
+
+        error = fillTLBEntry(
+            riscv, mode, entry, requiredPriv, PTE.ctrl, i, SV32_VPN_SHIFT
+        );
     }
 
-    // construct entry low PA
-    PA.fields.PPN        = PTE.fields.PPN;
-    PA.fields.pageOffset = 0;
+    if(error) {
 
-    // calculate entry size
-    Uns32 size = 1 << ((i*SV32_VPN_SHIFT) + RISCV_PAGE_SHIFT);
+        // no action
 
-    // return with page-fault exception if invalid page alignment
-    if(PA.raw & (size-1)) {
-        PTE_ERROR(ALIGN);
-    }
+    } else if((error=checkEntryCustom(riscv, PTE.raw, vaMode))) {
 
-    // fill TLB entry virtual address range
-    entry->lowVA  = VA.raw & -size;
-    entry->highVA = entry->lowVA + size - 1;
+        // return with page-fault exception if custom entry check fails
 
-    // fill TLB entry low physical address
-    entry->PA = PA.raw;
+    } else if((PTE.ctrl.A != entry->A) || (PTE.ctrl.D != entry->D)) {
 
-    // fill TLB entry attributes
-    entry->tlb  = riscv->activeTLB;
-    entry->priv = PTE.fields.priv;
-    entry->V    = PTE.fields.V;
-    entry->U    = PTE.fields.U;
-    entry->G    = getG(riscv, PTE.fields.G);
-    entry->A    = PTE.fields.A;
-    entry->D    = PTE.fields.D;
-
-    // return with page-fault exception if permissions are invalid
-    if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
-        PTE_ERROR(PRIV);
-    }
-
-    // return with page-fault exception if custom entry check fails
-    if(!checkEntryCustom(riscv, PTE.raw, VAM_Sv32)) {
-        PTE_ERROR(CUSTOM);
-    }
-
-    // update entry A/D bits if required
-    Bool doWrite = False;
-
-    if(entry->A) {
-        // A bit is already set
-    } else if(!updatePTEA(riscv)) {
-        // A bit not yet set, no hardware support
-        PTE_ERROR(A0);
-    } else {
-        // A bit is set on any access
-        entry->A = PTE.fields.A = 1;
-        doWrite  = True;
-    }
-
-    // D bit is set on any write
-    if(entry->D || !(requiredPriv & MEM_PRIV_W)) {
-        // D bit is already set or not required
-    } else if(!updatePTED(riscv)) {
-        // D bit not yet set, no hardware support
-        PTE_ERROR(D0);
-    } else {
-        entry->D = PTE.fields.D = 1;
-        doWrite  = True;
-    }
-
-    // write PTE if it has changed
-    if(doWrite) {
+        // write PTE if it has changed
+        PTE.ctrl.A = entry->A;
+        PTE.ctrl.D = entry->D;
 
         writePageTableEntry(riscv, mode, PTEAddr, 4, PTE.raw, i);
 
         // error if entry is not writable
         if(riscv->PTWBadAddr) {
-            PTE_ERROR(WRITE);
+            error = PTEE_WRITE;
         }
     }
 
-    // entry is valid
-    return 0;
+    // handle result
+    if(error) {
+        return getPTWException(riscv, mode, entry, requiredPriv, PTEAddr, error);
+    } else {
+        return 0;
+    }
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Sv32x4 PAGE TABLE WALK
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// This shift extracts the two extra bits for Sv32x4 mapping
-//
-#define SV32_VA_BITS 32
 
 //
 // Look up any TLB entry for the passed address using Sv32x4 mode and fill byref
@@ -1217,13 +1317,14 @@ static riscvException tlbLookupSv32x4(
     tlbEntryP entry,
     memPriv   requiredPriv
 ) {
-    Uns64 extraBits = entry->lowVA >> SV32_VA_BITS;
+    Uns32 vaBits    = getVABits(VAM_Sv32);
+    Uns64 extraBits = entry->lowVA >> vaBits;
 
     // record additional stage 2 page offset
     riscv->s2Offset = extraBits;
 
     // get ignored bits for Sv32 translation
-    extraBits <<= SV32_VA_BITS;
+    extraBits <<= vaBits;
 
     // use Sv32 lookup logic
     riscvException exception = tlbLookupSv32(
@@ -1241,474 +1342,169 @@ static riscvException tlbLookupSv32x4(
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Sv39 PAGE TABLE WALK
+// Sv39/Sv48/Sv57 PAGE TABLE WALK
 ////////////////////////////////////////////////////////////////////////////////
 
 //
 // This is the VPN page size in bits
 //
-#define SV39_VPN_SHIFT 9
+#define SV64_VPN_SHIFT 9
 
 //
 // This is the VPN page mask
 //
-#define SV39_VPN_MASK ((1<<SV39_VPN_SHIFT)-1)
+#define SV64_VPN_MASK ((1<<SV64_VPN_SHIFT)-1)
 
 //
-// Sv39 VA
+// Sv64 VA
 //
-typedef union Sv39VAU {
+typedef union Sv64VAU {
     Uns64 raw;
     struct {
         Uns32 pageOffset : 12;
-        Int64 VPN        : 27;
-        Int32 VPNextend  : 25;
+        Uns64 VPN        : 52;
     } fields;
-} Sv39VA;
+} Sv64VA;
 
 //
-// Sv39 PA
+// Sv64 entry
 //
-typedef union Sv39PAU {
-    Uns64 raw;
+typedef union Sv64EntryU {
+    Uns64  raw;
+    SvCtrl ctrl;
     struct {
-        Uns64 pageOffset : 12;
-        Uns64 PPN        : 52;
-    } fields;
-} Sv39PA;
-
-//
-// Sv39 entry
-//
-typedef union Sv39EntryU {
-    Uns64 raw;
-    struct {
-        Uns32 V    :  1;
-        Uns32 priv :  3;
-        Uns32 U    :  1;
-        Uns32 G    :  1;
-        Uns32 A    :  1;
-        Uns32 D    :  1;
-        Uns32 RSW  :  2;
-        Uns64 PPN  : 44;
         Uns32 _u1  : 10;
+        Uns64 PPN  : 44;
+        Uns32 res0 : 10;
     } fields;
-} Sv39Entry;
+} Sv64Entry;
 
 //
-// Return Sv39 VPN[level]
+// Return Sv39/Sv48/Sv57 VPN[level]
 //
-static Uns32 getSv39VPNi(Sv39VA VA, Uns32 level) {
-    return (VA.fields.VPN >> (level*SV39_VPN_SHIFT)) & SV39_VPN_MASK;
+static Uns32 getSv64VPNi(Sv64VA VA, Uns32 level) {
+    return (VA.fields.VPN >> (level*SV64_VPN_SHIFT)) & SV64_VPN_MASK;
 }
 
 //
-// Look up any TLB entry for the passed address using Sv39 mode and fill byref
-// argument 'entry' with the details.
+// Look up any TLB entry for the passed address using Sv39/Sv48/Sv57 mode and
+// fill byref argument 'entry' with the details.
 //
-static riscvException tlbLookupSv39(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
+static riscvException tlbLookupSv64(
+    riscvP      riscv,
+    riscvMode   mode,
+    tlbEntryP   entry,
+    memPriv     requiredPriv,
+    riscvVAMode vaMode
 ) {
-    Sv39VA    VA      = {raw : entry->lowVA};
+    Sv64VA    VA      = {raw : entry->lowVA};
     Addr      PTEAddr = 0;
-    Sv39PA    PA;
-    Sv39Entry PTE;
+    SvPA      PA;
+    Sv64Entry PTE;
     Addr      a;
     Int32     i;
+    pteError  error;
 
     // clear page offset bits (not relevant for entry creation)
     VA.fields.pageOffset = 0;
 
     // do table walk to find ultimate PTE
     for(
-        i=2, a=getRootTableAddress(riscv);
+        i=getVAlevels(vaMode)-1, a=getRootTableAddress(riscv);
         i>=0;
         i--, a=getPTETableAddress(PTE.fields.PPN)
     ) {
         // get next page table entry address
-        PTEAddr = a + getSv39VPNi(VA, i)*8;
+        PTEAddr = a + getSv64VPNi(VA, i)*8;
 
         // read entry from memory
         PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, 8, i);
 
-        // return with page-fault exception if an invalid entry or entry with
-        // permission combination that is reserved, or break from the loop if
-        // a leaf entry is found
-        if(riscv->PTWBadAddr) {
-            PTE_ERROR(READ);
-        } else if(!PTE.fields.V) {
-            PTE_ERROR(V0);
-        } else if((PTE.fields.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
-            PTE_ERROR(R0W1);
-        } else if(PTE.fields.priv) {
+        // validate PTE entry
+        error = checkTableEntry(riscv, PTE.ctrl, PTE.fields.res0);
+
+        // terminate unless next level lookup required
+        if(error!=PTEE_LEAF) {
             break;
         }
     }
 
-    // return with page-fault exception if leaf entry was not found
-    if(i<0) {
-        PTE_ERROR(LEAF);
+    if(!error) {
+
+        // construct entry low PA
+        PA.fields.PPN        = PTE.fields.PPN;
+        PA.fields.pageOffset = 0;
+
+        // fill TLB entry low physical address
+        entry->PA = PA.raw;
+
+        error = fillTLBEntry(
+            riscv, mode, entry, requiredPriv, PTE.ctrl, i, SV64_VPN_SHIFT
+        );
     }
 
-    // construct entry low PA
-    PA.fields.PPN        = PTE.fields.PPN;
-    PA.fields.pageOffset = 0;
+    if(error) {
 
-    // calculate entry size
-    Uns64 size = 1ULL << ((i*SV39_VPN_SHIFT) + RISCV_PAGE_SHIFT);
+        // no action
 
-    // return with page-fault exception if invalid page alignment
-    if(PA.raw & (size-1)) {
-        PTE_ERROR(ALIGN);
-    }
+    } else if((error=checkEntryCustom(riscv, PTE.raw, vaMode))) {
 
-    // fill TLB entry virtual address range
-    entry->lowVA  = VA.raw & -size;
-    entry->highVA = entry->lowVA + size - 1;
+        // return with page-fault exception if custom entry check fails
 
-    // fill TLB entry low physical address
-    entry->PA = PA.raw;
+    } else if((PTE.ctrl.A != entry->A) || (PTE.ctrl.D != entry->D)) {
 
-    // fill TLB entry attributes
-    entry->tlb  = riscv->activeTLB;
-    entry->priv = PTE.fields.priv;
-    entry->V    = PTE.fields.V;
-    entry->U    = PTE.fields.U;
-    entry->G    = getG(riscv, PTE.fields.G);
-    entry->A    = PTE.fields.A;
-    entry->D    = PTE.fields.D;
-
-    // return with page-fault exception if permissions are invalid
-    if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
-        PTE_ERROR(PRIV);
-    }
-
-    // return with page-fault exception if custom entry check fails
-    if(!checkEntryCustom(riscv, PTE.raw, VAM_Sv39)) {
-        PTE_ERROR(CUSTOM);
-    }
-
-    // update entry A/D bits if required
-    Bool doWrite = False;
-
-    if(entry->A) {
-        // A bit is already set
-    } else if(!updatePTEA(riscv)) {
-        // A bit not yet set, no hardware support
-        PTE_ERROR(A0);
-    } else {
-        // A bit is set on any access
-        entry->A = PTE.fields.A = 1;
-        doWrite  = True;
-    }
-
-    // D bit is set on any write
-    if(entry->D || !(requiredPriv & MEM_PRIV_W)) {
-        // D bit is already set or not required
-    } else if(!updatePTED(riscv)) {
-        // D bit not yet set, no hardware support
-        PTE_ERROR(D0);
-    } else {
-        entry->D = PTE.fields.D = 1;
-        doWrite  = True;
-    }
-
-    // write PTE if it has changed
-    if(doWrite) {
+        // write PTE if it has changed
+        PTE.ctrl.A = entry->A;
+        PTE.ctrl.D = entry->D;
 
         writePageTableEntry(riscv, mode, PTEAddr, 8, PTE.raw, i);
 
         // error if entry is not writable
         if(riscv->PTWBadAddr) {
-            PTE_ERROR(WRITE);
+            error = PTEE_WRITE;
         }
     }
 
-    // entry is valid
-    return 0;
+    // handle result
+    if(error) {
+        return getPTWException(riscv, mode, entry, requiredPriv, PTEAddr, error);
+    } else {
+        return 0;
+    }
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Sv39x4 PAGE TABLE WALK
-////////////////////////////////////////////////////////////////////////////////
-
 //
-// This shift extracts the two extra bits for Sv39x4 mapping
+// Look up any TLB entry for the passed address using Sv39x4/Sv48x4/Sv57x4 mode
+// and fill byref argument 'entry' with the details.
 //
-#define SV39_VA_BITS 39
-
-//
-// Look up any TLB entry for the passed address using Sv39x4 mode and fill byref
-// argument 'entry' with the details.
-//
-static riscvException tlbLookupSv39x4(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
+static riscvException tlbLookupSv64x4(
+    riscvP      riscv,
+    riscvMode   mode,
+    tlbEntryP   entry,
+    memPriv     requiredPriv,
+    riscvVAMode vaMode
 ) {
-    Uns64 extraBits = entry->lowVA >> SV39_VA_BITS;
-    Uns32 shiftUp   = 64-SV39_VA_BITS;
+    Uns32 vaBits    = getVABits(vaMode);
+    Uns64 extraBits = entry->lowVA >> vaBits;
+    Uns32 shiftUp   = 64-vaBits;
 
     // record additional stage 2 page offset
     riscv->s2Offset = extraBits;
 
-    // get ignored bits for Sv48 translation
-    extraBits <<= SV39_VA_BITS;
+    // get ignored bits for Sv39/Sv48/Sv57 translation
+    extraBits <<= vaBits;
 
-    // remove ignored bits from Sv39 virtual address by sign-extending remainder
+    // remove ignored bits from Sv39/Sv48/Sv57 virtual address by sign-extending
+    // remainder
     Int64 extendVA = entry->lowVA << shiftUp;
     entry->lowVA = extendVA >> shiftUp;
 
-    // use Sv39 lookup logic
-    riscvException exception = tlbLookupSv39(
-        riscv, mode, entry, requiredPriv
+    // use Sv39/Sv48/Sv57 lookup logic
+    riscvException exception = tlbLookupSv64(
+        riscv, mode, entry, requiredPriv, vaMode
     );
 
-    // include additional Sv39x4 offset if lookup succeeded
-    if(!exception) {
-        entry->lowVA  = ((entry->lowVA<<shiftUp)>>shiftUp) + extraBits;
-        entry->highVA = ((entry->highVA<<shiftUp)>>shiftUp) + extraBits;
-    }
-
-    return exception;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Sv48 PAGE TABLE WALK
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// This is the VPN page size in bits
-//
-#define SV48_VPN_SHIFT 9
-
-//
-// This is the VPN page mask
-//
-#define SV48_VPN_MASK ((1<<SV48_VPN_SHIFT)-1)
-
-//
-// Sv48 VA
-//
-typedef union Sv48VAU {
-    Uns64 raw;
-    struct {
-        Uns32 pageOffset : 12;
-        Int64 VPN        : 36;
-        Int32 VPNextend  : 16;
-    } fields;
-} Sv48VA;
-
-//
-// Sv48 PA
-//
-typedef union Sv48PAU {
-    Uns64 raw;
-    struct {
-        Uns64 pageOffset : 12;
-        Uns64 PPN        : 52;
-    } fields;
-} Sv48PA;
-
-//
-// Sv48 entry
-//
-typedef union Sv48EntryU {
-    Uns64 raw;
-    struct {
-        Uns32 V    :  1;
-        Uns32 priv :  3;
-        Uns32 U    :  1;
-        Uns32 G    :  1;
-        Uns32 A    :  1;
-        Uns32 D    :  1;
-        Uns32 RSW  :  2;
-        Uns64 PPN  : 44;
-        Uns32 _u1  : 10;
-    } fields;
-} Sv48Entry;
-
-//
-// Return Sv48 VPN[level]
-//
-static Uns32 getSv48VPNi(Sv48VA VA, Uns32 level) {
-    return (VA.fields.VPN >> (level*SV48_VPN_SHIFT)) & SV48_VPN_MASK;
-}
-
-//
-// Look up any TLB entry for the passed address using Sv48 mode and fill byref
-// argument 'entry' with the details.
-//
-static riscvException tlbLookupSv48(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
-) {
-    Sv48VA    VA      = {raw : entry->lowVA};
-    Addr      PTEAddr = 0;
-    Sv48PA    PA;
-    Sv48Entry PTE;
-    Addr      a;
-    Int32     i;
-
-    // clear page offset bits (not relevant for entry creation)
-    VA.fields.pageOffset = 0;
-
-    // do table walk to find ultimate PTE
-    for(
-        i=3, a=getRootTableAddress(riscv);
-        i>=0;
-        i--, a=getPTETableAddress(PTE.fields.PPN)
-    ) {
-        // get next page table entry address
-        PTEAddr = a + getSv48VPNi(VA, i)*8;
-
-        // read entry from memory
-        PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, 8, i);
-
-        // return with page-fault exception if an invalid entry or entry with
-        // permission combination that is reserved, or break from the loop if
-        // a leaf entry is found
-        if(riscv->PTWBadAddr) {
-            PTE_ERROR(READ);
-        } else if(!PTE.fields.V) {
-            PTE_ERROR(V0);
-        } else if((PTE.fields.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
-            PTE_ERROR(R0W1);
-        } else if(PTE.fields.priv) {
-            break;
-        }
-    }
-
-    // return with page-fault exception if leaf entry was not found
-    if(i<0) {
-        PTE_ERROR(LEAF);
-    }
-
-    // construct entry low PA
-    PA.fields.PPN        = PTE.fields.PPN;
-    PA.fields.pageOffset = 0;
-
-    // calculate entry size
-    Uns64 size = 1ULL << ((i*SV48_VPN_SHIFT) + RISCV_PAGE_SHIFT);
-
-    // return with page-fault exception if invalid page alignment
-    if(PA.raw & (size-1)) {
-        PTE_ERROR(ALIGN);
-    }
-
-    // fill TLB entry virtual address range
-    entry->lowVA  = VA.raw & -size;
-    entry->highVA = entry->lowVA + size - 1;
-
-    // fill TLB entry low physical address
-    entry->PA = PA.raw;
-
-    // fill TLB entry attributes
-    entry->tlb  = riscv->activeTLB;
-    entry->priv = PTE.fields.priv;
-    entry->V    = PTE.fields.V;
-    entry->U    = PTE.fields.U;
-    entry->G    = getG(riscv, PTE.fields.G);
-    entry->A    = PTE.fields.A;
-    entry->D    = PTE.fields.D;
-
-    // return with page-fault exception if permissions are invalid
-    if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
-        PTE_ERROR(PRIV);
-    }
-
-    // return with page-fault exception if custom entry check fails
-    if(!checkEntryCustom(riscv, PTE.raw, VAM_Sv48)) {
-        PTE_ERROR(CUSTOM);
-    }
-
-    // update entry A/D bits if required
-    Bool doWrite = False;
-
-    if(entry->A) {
-        // A bit is already set
-    } else if(!updatePTEA(riscv)) {
-        // A bit not yet set, no hardware support
-        PTE_ERROR(A0);
-    } else {
-        // A bit is set on any access
-        entry->A = PTE.fields.A = 1;
-        doWrite  = True;
-    }
-
-    // D bit is set on any write
-    if(entry->D || !(requiredPriv & MEM_PRIV_W)) {
-        // D bit is already set or not required
-    } else if(!updatePTED(riscv)) {
-        // D bit not yet set, no hardware support
-        PTE_ERROR(D0);
-    } else {
-        entry->D = PTE.fields.D = 1;
-        doWrite  = True;
-    }
-
-    // write PTE if it has changed
-    if(doWrite) {
-
-        writePageTableEntry(riscv, mode, PTEAddr, 8, PTE.raw, i);
-
-        // error if entry is not writable
-        if(riscv->PTWBadAddr) {
-            PTE_ERROR(WRITE);
-        }
-    }
-
-    // entry is valid
-    return 0;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Sv48x4 PAGE TABLE WALK
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// This shift extracts the two extra bits for Sv48x4 mapping
-//
-#define SV48_VA_BITS 48
-
-//
-// Look up any TLB entry for the passed address using Sv48x4 mode and fill byref
-// argument 'entry' with the details.
-//
-static riscvException tlbLookupSv48x4(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
-) {
-    Uns64 extraBits = entry->lowVA >> SV48_VA_BITS;
-    Uns32 shiftUp   = 64-SV48_VA_BITS;
-
-    // record additional stage 2 page offset
-    riscv->s2Offset = extraBits;
-
-    // get ignored bits for Sv48 translation
-    extraBits <<= SV48_VA_BITS;
-
-    // remove ignored bits from Sv48 virtual address by sign-extending remainder
-    Int64 extendVA = entry->lowVA << shiftUp;
-    entry->lowVA = extendVA >> shiftUp;
-
-    // use Sv48 lookup logic
-    riscvException exception = tlbLookupSv48(
-        riscv, mode, entry, requiredPriv
-    );
-
-    // include additional Sv48x4 offset if lookup succeeded
+    // include additional Sv39x4/Sv48x4/Sv57x4 offset if lookup succeeded
     if(!exception) {
         entry->lowVA  = ((entry->lowVA<<shiftUp)>>shiftUp) + extraBits;
         entry->highVA = ((entry->highVA<<shiftUp)>>shiftUp) + extraBits;
@@ -2336,8 +2132,8 @@ static tlbEntryP allocateTLBEntry(riscvP riscv, riscvTLBP tlb, tlbEntryP base) {
     // get new entry structure
     tlbEntryP entry = newTLBEntry(tlb);
 
-    // artifact accesses must be marked as such
-    base->artifact = riscv->artifactAccess;
+    // artifact load/store accesses must be marked as such
+    base->artifact = riscv->artifactLdSt;
 
     // fill entry from base object
     *entry = *base;
@@ -2686,7 +2482,7 @@ static void createHLVXDomain(riscvP riscv, riscvVMMode vmMode) {
 //
 static memDomainP createCLICDomain(riscvP riscv, memDomainP dataDomain) {
 
-    riscvP root = riscv->smpRoot;
+    riscvP root = riscv->clusterRoot;
 
     // CLIC memory map is shared by all harts in a cluster
     if(!root->CLICDomain) {
@@ -2702,8 +2498,15 @@ static memDomainP createCLICDomain(riscvP riscv, memDomainP dataDomain) {
         // create mapping to data domain
         vmirtAliasMemory(dataDomain, CLICDomain, 0, mask, 0, 0);
 
-        // create CLIC memory-mapped block
-        riscvMapCLICDomain(riscv, CLICDomain);
+        // create CLINT memory-mapped block if required
+        if(CLINTInternal(riscv)) {
+            riscvMapCLINTDomain(riscv, CLICDomain);
+        }
+
+        // create CLIC memory-mapped block if required
+        if(CLICInternal(riscv)) {
+            riscvMapCLICDomain(riscv, CLICDomain);
+        }
 
         // save CLIC domain on cluster root
         root->CLICDomain = CLICDomain;
@@ -2833,9 +2636,13 @@ VMI_VMINIT_FN(riscvVMInit) {
     riscv->extBits = (codeBits<dataBits) ? codeBits : dataBits;
 
     // install memory-mapped CLIC control register block if required
-    if(CLICInternal(riscv)) {
+    if(CLINTInternal(riscv) || CLICInternal(riscv)) {
         dataDomain = createCLICDomain(riscv, dataDomain);
     }
+
+    // set internal code and data domains
+    vmirtSetProcessorInternalCodeDomain(processor, codeDomain);
+    vmirtSetProcessorInternalDataDomain(processor, dataDomain);
 
     // save external domains (including CLIC block) for lazy PMA mapping
     riscv->extDomains[0] = dataDomain;
@@ -2880,6 +2687,12 @@ VMI_VMINIT_FN(riscvVMInit) {
     riscv->pmpDomains [RISCV_MODE_U][1] = riscv->pmpDomains [RISCV_MODE_S][1];
     riscv->physDomains[RISCV_MODE_U][0] = riscv->physDomains[RISCV_MODE_S][0];
     riscv->physDomains[RISCV_MODE_U][1] = riscv->physDomains[RISCV_MODE_S][1];
+
+    // allow derived model to update physical domains
+    ITER_EXT_CB(
+        riscv, extCB, installPhysMem,
+        extCB->installPhysMem(riscv, extCB->clientData);
+    )
 
     // create guest physical domain if required
     if(hypervisorPresent(riscv)) {
@@ -2979,26 +2792,6 @@ static riscvException trapDerived(
 }
 
 //
-// Return number of virtual address bits for the given mode
-//
-static Uns32 getVABits(riscvVAMode vaMode) {
-
-    Uns32 result = 0;
-
-    if(vaMode==VAM_Sv32) {
-        result = SV32_VA_BITS;
-    } else if(vaMode==VAM_Sv39) {
-        result = SV39_VA_BITS;
-    } else if(vaMode==VAM_Sv48) {
-        result = SV48_VA_BITS;
-    } else {
-        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
-    }
-
-    return result;
-}
-
-//
 // Is the stage 1 virtual address valid for the given mode?
 //
 static Bool validS1VA(Uns64 VA, riscvVAMode vaMode) {
@@ -3054,12 +2847,8 @@ static riscvException tlbLookupS1(
         // no further action if derived model lookup traps
     } else if(vaMode==VAM_Sv32) {
         result = tlbLookupSv32(riscv, mode, entry, requiredPriv);
-    } else if(vaMode==VAM_Sv39) {
-        result = tlbLookupSv39(riscv, mode, entry, requiredPriv);
-    } else if(vaMode==VAM_Sv48) {
-        result = tlbLookupSv48(riscv, mode, entry, requiredPriv);
     } else {
-        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
+        result = tlbLookupSv64(riscv, mode, entry, requiredPriv, vaMode);
     }
 
     return result;
@@ -3085,12 +2874,8 @@ static riscvException tlbLookupS2(
         // no further action if derived model lookup traps
     } else if(vaMode==VAM_Sv32) {
         result = tlbLookupSv32x4(riscv, mode, entry, requiredPriv);
-    } else if(vaMode==VAM_Sv39) {
-        result = tlbLookupSv39x4(riscv, mode, entry, requiredPriv);
-    } else if(vaMode==VAM_Sv48) {
-        result = tlbLookupSv48x4(riscv, mode, entry, requiredPriv);
     } else {
-        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
+        result = tlbLookupSv64x4(riscv, mode, entry, requiredPriv, vaMode);
     }
 
     return result;
@@ -3115,26 +2900,6 @@ static riscvException tlbLookup(
     }
 
     return result;
-}
-
-//
-// is the fault a load/store/AMO fault requiring a syndrome?
-//
-static Bool isLoadStoreAMOFault(riscvException exception) {
-
-    switch(exception) {
-        case riscv_E_LoadAddressMisaligned:
-        case riscv_E_LoadAccessFault:
-        case riscv_E_StoreAMOAddressMisaligned:
-        case riscv_E_StoreAMOAccessFault:
-        case riscv_E_LoadPageFault:
-        case riscv_E_StoreAMOPageFault:
-        case riscv_E_LoadGuestPageFault:
-        case riscv_E_StoreAMOGuestPageFault:
-            return True;
-        default:
-            return False;
-    }
 }
 
 //
@@ -3296,7 +3061,7 @@ static Uns64 fillSyndrome(riscvP riscv, riscvException exception, Uns64 VA) {
     Uns32 result = 0;
 
     // create syndrome for load/store/AMO exception if required
-    if(!xtinstBasic(riscv) && isLoadStoreAMOFault(exception)) {
+    if(!xtinstBasic(riscv) && riscvIsLoadStoreAMOFault(exception)) {
 
         riscvInstrInfo info;
 
@@ -3330,7 +3095,7 @@ static void handleInvalidAccess(
     riscvException exception
 ) {
     // take exception only if not an artifact access
-    if(!riscv->suppressExcept) {
+    if(!riscv->artifactAccess) {
 
         // if failure is at stage 2, record failing VA as guest physical address
         if(activeTLBIsVS2(riscv)) {
@@ -3347,7 +3112,7 @@ static void handleInvalidAccess(
 
         // take exception, indicating guest virtual address if required
         Bool GVA = activeTLBIsVirtual(riscv);
-        riscvTakeMemoryException(riscv, exception, VA, GVA);
+        riscvTakeMemoryExceptionGVA(riscv, exception, VA, GVA);
 
         // clear down pending exception GPA and tinst
         riscv->GPA   = 0;
@@ -3667,7 +3432,7 @@ static void pmpProtect(
 }
 
 //
-// Set privileges for the given rangein PMP domain for the given mode, or, if
+// Set privileges for the given range in PMP domain for the given mode, or, if
 // update does not include PMPU_SET_PRIV, only remove permissions on adjacent
 // regions
 //
@@ -3849,6 +3614,18 @@ static void invalidatePMPEntry(riscvP riscv, Uns32 index) {
 }
 
 //
+// If the PMP entry is a TOR entry, invalidate it
+//
+static void invalidatePMPEntryTOR(riscvP riscv, Uns32 index) {
+
+    if(index==getNumPMPs(riscv)) {
+        // index out of range
+    } else if(getPMPCFGElem(riscv, index).mode==PMPM_TOR) {
+        invalidatePMPEntry(riscv, index);
+    }
+}
+
+//
 // Return offset into PMP bank allowing for the fact that when in 64-bit mode
 // the second set of PMP registers are controlled by pmpcfg2 (not pmpcfg1,
 // which is unimplemented)
@@ -3984,12 +3761,14 @@ Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
 
             // invalidate entry using its original specification
             invalidatePMPEntry(riscv, index);
+            invalidatePMPEntryTOR(riscv, index+1);
 
             // set new value
             riscv->pmpaddr[index] = newValue;
 
             // invalidate entry using its new specification
             invalidatePMPEntry(riscv, index);
+            invalidatePMPEntryTOR(riscv, index+1);
         }
 
         result = getEffectivePMPAddr(riscv, index);
@@ -4728,28 +4507,6 @@ static domainType getDomainType(
 }
 
 //
-// Indicate whether a failing access to the given domain should be reported
-// by setting xstatus.GVA=1
-//
-Bool riscvVMGetGVA(riscvP riscv, memDomainP domain) {
-
-    Bool GVA = False;
-
-    if(domain && hypervisorPresent(riscv)) {
-
-        riscvMode  mode   = 0;
-        Bool       isCode = False;
-        domainType dt     = getDomainType(riscv, domain, &mode, &isCode);
-
-        if(dt==DT_VIRT) {
-            GVA = modeIsVirtual(mode);
-        }
-    }
-
-    return GVA;
-}
-
-//
 // Try mapping memory at the passed address for the specified access type and
 // return a status code indicating if virtual mapping failed
 //
@@ -4762,14 +4519,16 @@ Bool riscvVMMiss(
     memAccessAttrs attrs
 ) {
     Bool      oldHVLX = riscv->hlvxActive;
-    Bool      oldSE   = riscv->suppressExcept;
+    Bool      oldAA   = riscv->artifactAccess;
+    Bool      oldALS  = riscv->artifactLdSt;
     Bool      miss    = False;
     riscvMode mode    = 0;
     Bool      isCode  = False;
 
     // artifact accesses should cause no exceptions
     if(MEM_AA_IS_ARTIFACT_ACCESS(attrs)) {
-        riscv->suppressExcept = True;
+        riscv->artifactAccess = True;
+        riscv->artifactLdSt  |= ((requiredPriv&MEM_PRIV_RW) && True);
     }
 
     // record original VA that might initiate a fault (for syndrome address
@@ -4777,7 +4536,7 @@ Bool riscvVMMiss(
     riscv->originalVA = address;
 
     // start HLVX access if required
-    riscv->hlvxActive = startHLVX(riscv, &domain, &requiredPriv);
+    riscv->hlvxActive |= startHLVX(riscv, &domain, &requiredPriv);
 
     // assume any Access Fault error generated here will be a Bus Error
     riscv->AFErrorIn = riscv_AFault_Bus;
@@ -4832,9 +4591,10 @@ Bool riscvVMMiss(
         mapPMA(riscv, mode, requiredPriv, lowPA, highPA);
     }
 
-    // restore hlvxActive and suppressExcept
+    // restore hlvxActive and artifactAccess
     riscv->hlvxActive     = oldHVLX;
-    riscv->suppressExcept = oldSE;
+    riscv->artifactAccess = oldAA;
+    riscv->artifactLdSt   = oldALS;
 
     // return value indicates whether this was a TLB miss that has now been
     // resolved
@@ -5026,7 +4786,7 @@ static void updateLdStDomainMode(riscvP riscv, riscvMode mode) {
         VM = True;
     }
 
-    // record data access mode (affects endianness)
+    // record data access mode (affects endianness and xstatus.GVA on fault)
     riscv->dataMode = mode;
 
     // look for virtual domain for this mode if required

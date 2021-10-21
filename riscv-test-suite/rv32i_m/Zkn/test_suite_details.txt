@@ -19,62 +19,58 @@
 
 
 Architectural Test Suite Data for RV32ZKN K Crypto/Scalar:
-    35 test source files
-    10 different instruction categories
-    41 different instructions
-    29,982 total instructions
+    32 test source files
+    8 different instruction categories
+    39 different instructions
+    27,696 total instructions
 
 Instruction category: OPK_Zknd NIST AES Decryption Instructions
   aes32dsmi : 402
   aes32dsi : 402
 Instruction category: OPK_Zkne NIST AES Encryption Instructions
-  aes32esi : 402
   aes32esmi : 402
+  aes32esi : 402
 Instruction category: OPB_LWNE Logic With Negate
+  andn : 146
   orn : 146
   xnor : 146
-  andn : 146
 Instruction category: OPB_CLML Carry-less Multiply
   clmul : 146
   clmulh : 146
-Instruction category: OPB_GORC Generalised Or-Combine
 Instruction category: OPB_PACK Packing
   packh : 146
   packu : 146
   pack : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
+  ror : 146
   rol : 146
   rori : 146
-  ror : 146
 Instruction category: OPK_Zknh NIST SHA2 Hash function instructions
-  sha256sig0 : 146
-  sha256sig1 : 146
-  sha512sig0l : 146
-  sha512sig1h : 146
-  sha512sum0r : 146
   sha256sum0 : 146
+  sha256sig0 : 146
+  sha512sig0l : 146
   sha256sum1 : 146
   sha512sig0h : 146
-  sha512sum1r : 146
+  sha512sig1h : 146
+  sha256sig1 : 146
   sha512sig1l : 146
-Instruction category: OPB_XBAR Crossbar Permutation
-  xperm.b : 146
-  xperm.n : 146
+  sha512sum0r : 146
+  sha512sum1r : 146
 
 Other instructions (those not the focus of this suite)
-  jal : 35
-  lui : 7,104
-  addi : 10,045
-  csrrs : 105
-  auipc : 1,313
-  csrrw : 70
-  mret : 35
-  sw : 5,550
-  fence : 35
-  ecall : 35
-  beq : 105
-  grevi : 292
+  jal : 32
+  lui : 6,608
+  addi : 9,272
+  csrrs : 96
+  auipc : 1,208
+  csrrw : 64
+  mret : 32
+  sw : 5,112
+  fence : 32
+  ecall : 32
+  beq : 96
   shfli : 146
   unshfli : 146
+  grevi : 146
 

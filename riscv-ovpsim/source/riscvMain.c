@@ -29,6 +29,7 @@
 
 // Model header files
 #include "riscvCLIC.h"
+#include "riscvCLINT.h"
 #include "riscvCluster.h"
 #include "riscvBus.h"
 #include "riscvConfig.h"
@@ -90,8 +91,9 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.illegalVerbose     = riscvIllegalInstructionMessage;
     riscv->cb.virtualInstruction = riscvVirtualInstruction;
     riscv->cb.virtualVerbose     = riscvVirtualInstructionMessage;
+    riscv->cb.illegalCustom      = riscvIllegalCustom;
     riscv->cb.takeException      = riscvTakeAsynchonousException;
-    riscv->cb.takeReset          = riscvReset,
+    riscv->cb.takeReset          = riscvReset;
 
     // from riscvDecode.h
     riscv->cb.fetchInstruction   = riscvExtFetchInstruction;
@@ -110,6 +112,8 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.writeReg           = riscvWriteReg;
     riscv->cb.getFPFlagsMt       = riscvGetFPFlagsMT;
     riscv->cb.getDataEndianMt    = riscvGetCurrentDataEndianMT;
+    riscv->cb.loadMt             = riscvEmitLoad;
+    riscv->cb.storeMt            = riscvEmitStore;
     riscv->cb.requireModeMt      = riscvEmitRequireMode;
     riscv->cb.requireNotVMt      = riscvEmitRequireNotV;
     riscv->cb.checkLegalRMMt     = riscvEmitCheckLegalRM;
@@ -118,6 +122,7 @@ static void initLeafModelCBs(riscvP riscv) {
 
     // from riscvCSR.h
     riscv->cb.newCSR             = riscvNewCSR;
+    riscv->cb.hpmAccessValid     = riscvHPMAccessValid;
 
     // from riscvVM.h
     riscv->cb.mapAddress         = riscvVMMiss;
@@ -158,10 +163,24 @@ static riscvConfigCP getConfigVariantArg(riscvP riscv, riscvParamValuesP params)
 }
 
 //
+// Get the first child of a processor
+//
+inline static riscvP getChild(riscvP riscv) {
+    return (riscvP)vmirtGetSMPChild((vmiProcessorP)riscv);
+}
+
+//
 // Return the number of child processors of the given processor
 //
 inline static riscvP getParent(riscvP riscv) {
     return (riscvP)vmirtGetSMPParent((vmiProcessorP)riscv);
+}
+
+//
+// Is the processor a leaf processor?
+//
+inline static Bool isLeaf(riscvP riscv) {
+    return !getChild(riscv);
 }
 
 //
@@ -285,6 +304,26 @@ static void reportFixed(riscvArchitecture fixed, riscvConfigP cfg) {
 }
 
 //
+// Handle absent compressed subsets
+//
+#define ADD_C_SET(_PROC, _CFG, _PARAMS, _NAME) { \
+    if(_CFG->_NAME##_version) {                             \
+        _CFG->compress_present |= RVCS_##_NAME;             \
+    }                                                       \
+    REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME##_version);    \
+}
+
+//
+// Handle absent DSP subsets
+//
+#define ADD_P_SET(_PROC, _CFG, _PARAMS, _NAME) { \
+    if(!_PARAMS->_NAME) {                       \
+        _CFG->dsp_absent |= RVPS_##_NAME;       \
+    }                                           \
+    REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME);  \
+}
+
+//
 // If sext is True, return the number of zero bits at the top of the mask
 //
 static Uns32 getSExtendBits(Bool sext, Int64 mask) {
@@ -382,6 +421,11 @@ static void setVProfile(riscvP riscv, riscvParamValuesP params) {
         V = new;
     }
 
+    // include half-precision vector instructions if required
+    if(cfg->fp16_version && (V&RVVS_F)) {
+        V |= RVVS_H;
+    }
+
     cfg->vect_profile = V;
 }
 
@@ -412,12 +456,17 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->csr.mclicbase.u64.bits    = params->mclicbase;
 
     // get uninterpreted CSR mask configuration parameters
-    cfg->csrMask.mtvec.u64.bits = params->mtvec_mask;
-    cfg->csrMask.stvec.u64.bits = params->stvec_mask;
-    cfg->csrMask.utvec.u64.bits = params->utvec_mask;
-    cfg->csrMask.mtvt.u64.bits  = params->mtvt_mask;
-    cfg->csrMask.stvt.u64.bits  = params->stvt_mask;
-    cfg->csrMask.utvt.u64.bits  = params->utvt_mask;
+    cfg->csrMask.mtvec.u64.bits  = params->mtvec_mask;
+    cfg->csrMask.stvec.u64.bits  = params->stvec_mask;
+    cfg->csrMask.utvec.u64.bits  = params->utvec_mask;
+    cfg->csrMask.mtvt.u64.bits   = params->mtvt_mask;
+    cfg->csrMask.stvt.u64.bits   = params->stvt_mask;
+    cfg->csrMask.utvt.u64.bits   = params->utvt_mask;
+    cfg->csrMask.tdata1.u64.bits = params->tdata1_mask;
+    cfg->csrMask.mip.u64.bits    = params->mip_mask;
+    cfg->csrMask.sip.u64.bits    = params->sip_mask;
+    cfg->csrMask.uip.u64.bits    = params->uip_mask;
+    cfg->csrMask.hip.u64.bits    = params->hip_mask;
 
     // get implied CSR sign extension configuration parameters
     cfg->mtvec_sext = getSExtendBits(params->mtvec_sext, params->mtvec_mask);
@@ -443,10 +492,14 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->user_version        = params->user_version;
     cfg->priv_version        = params->priv_version;
     cfg->hyp_version         = params->hypervisor_version;
+    cfg->dsp_version         = params->dsp_version;
     cfg->dbg_version         = params->debug_version;
     cfg->rnmi_version        = params->rnmi_version;
     cfg->CLIC_version        = params->CLIC_version;
     cfg->Zfinx_version       = params->Zfinx_version;
+    cfg->Zcea_version        = params->Zcea_version;
+    cfg->Zceb_version        = params->Zceb_version;
+    cfg->Zcee_version        = params->Zcee_version;
     cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
     cfg->agnostic_ones       = params->agnostic_ones;
     cfg->MXL_writable        = params->MXL_writable;
@@ -456,6 +509,8 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->reset_address       = params->reset_address;
     cfg->nmi_address         = params->nmi_address;
     cfg->nmiexc_address      = params->nmiexc_address;
+    cfg->CLINT_address       = params->CLINT_address;
+    cfg->mtime_Hz            = params->mtime_Hz;
     cfg->ASID_cache_size     = params->ASID_cache_size;
     cfg->ASID_bits           = params->ASID_bits;
     cfg->VMID_bits           = params->VMID_bits;
@@ -502,12 +557,14 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->cycle_undefined     = params->cycle_undefined;
     cfg->time_undefined      = params->time_undefined;
     cfg->instret_undefined   = params->instret_undefined;
+    cfg->hpmcounter_undefined= params->hpmcounter_undefined;
     cfg->tinfo_undefined     = params->tinfo_undefined;
     cfg->tcontrol_undefined  = params->tcontrol_undefined;
     cfg->mcontext_undefined  = params->mcontext_undefined;
     cfg->scontext_undefined  = params->scontext_undefined;
     cfg->mscontext_undefined = params->mscontext_undefined;
     cfg->hcontext_undefined  = params->hcontext_undefined;
+    cfg->mnoise_undefined    = params->mnoise_undefined;
     cfg->amo_trigger         = params->amo_trigger;
     cfg->no_hit              = params->no_hit;
     cfg->no_sselect_2        = params->no_sselect_2;
@@ -581,57 +638,80 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     // get explicit extensions and extension mask
     riscvArchitecture misa_Extensions      = params->misa_Extensions;
     riscvArchitecture misa_Extensions_mask = params->misa_Extensions_mask;
+    riscvArchitecture implicit_Extensions  = cfg->archImplicit;
 
     // exclude/include extensions specified by letter
     misa_Extensions      &= ~riscvParseExtensions(params->sub_Extensions);
     misa_Extensions_mask &= ~riscvParseExtensions(params->sub_Extensions_mask);
+    implicit_Extensions  &= ~riscvParseExtensions(params->sub_implicit_Extensions);
     misa_Extensions      |=  riscvParseExtensions(params->add_Extensions);
     misa_Extensions_mask |=  riscvParseExtensions(params->add_Extensions_mask);
+    implicit_Extensions  |=  riscvParseExtensions(params->add_implicit_Extensions);
+
+    // from Zfinx version 0.41, misa.[FDQ] are implicit extensions
+    if(cfg->Zfinx_version>=RVZFINX_0_41) {
+        implicit_Extensions |= (misa_Extensions & (ISA_F|ISA_D|ISA_Q));
+    }
+
+    // from B extension 1.0.0, misa.B is implicit
+    if((cfg->bitmanip_version>=RVBV_1_0_0) && (misa_Extensions & ISA_B)) {
+        implicit_Extensions |= ISA_B;
+    }
+
+    // from K extension 1.0.0, misa.K is implicit
+    if((cfg->crypto_version>=RVKV_1_0_0_RC1) && (misa_Extensions & ISA_K)) {
+        implicit_Extensions |= ISA_K;
+    }
+
+    // compose full extensions list
+    riscvArchitecture allExtensions = misa_Extensions | implicit_Extensions;
 
     // if the H extension is implemented then S and U must also be present
-    if(misa_Extensions & ISA_H) {
-        misa_Extensions |= (ISA_S|ISA_U);
+    if(allExtensions & ISA_H) {
+        allExtensions |= (ISA_S|ISA_U);
     }
 
     // exactly one of I and E base ISA features must be present and initially
     // enabled; if the E bit is initially enabled, the I bit must be read-only
     // and zero
-    if(misa_Extensions & ISA_E) {
-        misa_Extensions &= ~ISA_I;
+    if(allExtensions & ISA_E) {
+        allExtensions &= ~ISA_I;
     } else {
-        misa_Extensions |= ISA_I;
+        allExtensions |= ISA_I;
     }
 
     // get extensions before masking for fixed
-    riscvArchitecture rawExtensions = misa_Extensions;
+    riscvArchitecture rawExtensions = allExtensions;
 
-    // bits in the misa fixed mask may not be updated
-    misa_Extensions = (
-        (cfg->arch       &  cfg->archFixed) |
-        (misa_Extensions & ~cfg->archFixed)
+    // features in the fixed mask may not be modified by parameters
+    allExtensions = (
+        (cfg->arch     &  cfg->archFixed) |
+        (allExtensions & ~cfg->archFixed)
     );
 
-    // report extensions that are fixed and may not be modified
-    riscvArchitecture fixed = (rawExtensions^misa_Extensions) & ((1<<26)-1);
+    // report extensions that may not be modified by parameters
+    riscvArchitecture fixed = (rawExtensions^allExtensions) & ((1<<26)-1);
     if(fixed && !getNumChildren(riscv)) {
         reportFixed(fixed, cfg);
     }
 
+    // only present extensions can be members of implicit_Extensions
+    implicit_Extensions &= allExtensions;
+
+    // implicit extension bits are not writable
+    misa_Extensions_mask &= ~implicit_Extensions;
+
     // the E bit is always read only (it is a complement of the I bit)
     misa_Extensions_mask &= ~ISA_E;
 
-    // only bits that are initially non-zero in misa_Extensions are writable
-    misa_Extensions_mask &= misa_Extensions;
-
-    // from Zfinx version 0.41, misa.[FDQ] are read-only
-    if(cfg->Zfinx_version>=RVZFINX_0_41) {
-        misa_Extensions_mask &= ~(ISA_F|ISA_D|ISA_Q);
-    }
+    // only present extensions can be members of misa_Extensions_mask
+    misa_Extensions_mask &= allExtensions;
 
     // define architecture and writable bits
     Uns32 misa_MXL_mask = cfg->MXL_writable ? 3 : 0;
-    cfg->arch     = misa_Extensions      | (misa_MXL<<XLEN_SHIFT);
-    cfg->archMask = misa_Extensions_mask | (misa_MXL_mask<<XLEN_SHIFT);
+    cfg->arch         = allExtensions        | (misa_MXL<<XLEN_SHIFT);
+    cfg->archMask     = misa_Extensions_mask | (misa_MXL_mask<<XLEN_SHIFT);
+    cfg->archImplicit = implicit_Extensions;
 
     // enable_fflags_i can only be set if floating point is present
     cfg->enable_fflags_i = cfg->enable_fflags_i && (cfg->arch&ISA_DF);
@@ -801,6 +881,32 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     ADD_K_SET(riscv, cfg, params, Zknh);
     ADD_K_SET(riscv, cfg, params, Zksed);
     ADD_K_SET(riscv, cfg, params, Zksh);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // COMPRESSED EXTENSION CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Zceb is incompatible with D extension unless Zfinx is also specified
+    if(Zceb(riscv) && (cfg->arch&ISA_D) && !Zfinx(riscv)) {
+        vmiMessage("W", CPU_PREFIX"_ZCEBNA",
+            "Zceb cannot be used with D extension - ignored"
+        );
+        cfg->Zceb_version = RVZCEB_NA;
+    }
+
+    // handle compressed profile parameters
+    cfg->compress_present = 0;
+    ADD_C_SET(riscv, cfg, params, Zcea);
+    ADD_C_SET(riscv, cfg, params, Zceb);
+    ADD_C_SET(riscv, cfg, params, Zcee);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DSP EXTENSION CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle DSP profile parameters
+    cfg->dsp_absent = 0;
+    ADD_P_SET(riscv, cfg, params, Zpsfoperand);
 }
 
 //
@@ -833,18 +939,20 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
     riscvP            parent      = getParent(riscv);
     riscvParamValuesP paramValues = parameterValues;
 
-    // indicate no interrupts are pending and enabled initially
-    riscv->pendEnab.id  = RV_NO_INT;
-    riscv->clicState.id = RV_NO_INT;
-    riscv->clic.sel.id  = RV_NO_INT;
-
     // initialize enhanced model support callbacks that apply at all levels
     initAllModelCBs(riscv);
 
     // set hierarchical properties
-    riscv->parent  = parent;
-    riscv->smpRoot = parent ? parent->smpRoot : riscv;
-    riscv->flags   = parent ? parent->flags : vmirtProcessorFlags(processor);
+    if(!parent) {
+        riscv->clusterRoot = riscv;
+        riscv->smpRoot     = riscv;
+        riscv->flags       = vmirtProcessorFlags(processor);
+    } else {
+        riscv->parent      = parent;
+        riscv->clusterRoot = parent->clusterRoot;
+        riscv->smpRoot     = riscvIsCluster(parent) ? riscv : parent;
+        riscv->flags       = parent->flags;
+    }
 
     // use parameters from parent if that is an SMP container
     if(parent && !riscvIsCluster(parent)) {
@@ -867,13 +975,15 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         // save parameters for use in child
         riscv->paramValues = paramValues;
 
-        // save the number of child harts
-        riscv->numHarts = numChildren;
-
     } else {
 
         // initialize enhanced model support callbacks that apply at leaf levels
         initLeafModelCBs(riscv);
+
+        // indicate no interrupts are pending and enabled initially
+        riscv->pendEnab.id  = RV_NO_INT;
+        riscv->clicState.id = RV_NO_INT;
+        riscv->clic.sel.id  = RV_NO_INT;
 
         // indicate no LR/SC is active initially
         riscv->exclusiveTag = RISCV_NO_TAG;
@@ -902,17 +1012,46 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         // allocate timers
         riscvNewTimers(riscv);
 
-        // allocate CLIC data structures if required
-        if(CLICInternal(riscv)) {
-            riscvNewCLIC(riscv, smpContext->index);
-        }
-
         // add CSR commands
         if(!isPSE(riscv)) {
             riscvAddCSRCommands(riscv);
         }
 
-        // do initial reset
+        // set hart index number within cluster
+        riscv->hartNum = riscv->clusterRoot->numHarts++;
+
+        // set hart index number within SMP group
+        if(riscv->smpRoot != riscv->clusterRoot) {
+            riscv->smpRoot->numHarts++;
+        }
+    }
+}
+
+//
+// Initialize cluster state for a hart
+//
+static VMI_SMP_ITER_FN(initializeCluster) {
+
+    riscvP riscv = (riscvP)processor;
+
+    if(isLeaf(riscv)) {
+
+        // fill CLINT entry if required
+        riscvFillCLINT(riscv);
+
+        // fill CLIC entry if required
+        riscvFillCLIC(riscv);
+    }
+}
+
+//
+// Do initial reset for a hart
+//
+static VMI_SMP_ITER_FN(initialReset) {
+
+    riscvP riscv = (riscvP)processor;
+
+    if(isLeaf(riscv)) {
         riscvReset(riscv);
     }
 }
@@ -922,15 +1061,33 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
 //
 VMI_POST_CONSTRUCTOR_FN(riscvPostConstructor) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP root = (riscvP)processor;
 
-    // install documentation after processor is initialized
-    if(!isPSE(riscv)) {
-        riscvDoc(riscv);
+    if(!isPSE(root)) {
+
+        // allocate CLINT data structures if required
+        riscvNewCLINT(root);
+
+        // allocate CLIC data structures if required
+        riscvNewCLIC(root);
+
+        // initialize cluster state for each hart
+        vmirtIterAllProcessors(processor, initializeCluster, 0);
+
+        // do initial reset of each hart
+        vmirtIterAllProcessors(processor, initialReset, 0);
+
+        // install documentation
+        riscvDoc(root);
+
+    } else {
+
+        // do initial reset
+        riscvReset(root);
     }
 
     // create root level bus port specifications for root level ports
-    riscvNewRootBusPorts(riscv);
+    riscvNewRootBusPorts(root);
 }
 
 //
@@ -966,6 +1123,9 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free timers
     riscvFreeTimers(riscv);
+
+    // free CLINT data structures
+    riscvFreeCLINT(riscv);
 
     // free CLIC data structures
     riscvFreeCLIC(riscv);

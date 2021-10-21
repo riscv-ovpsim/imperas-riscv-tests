@@ -158,6 +158,9 @@ const vmiIASAttr modelAttrs = {
     .modeInfoCB         = riscvModeInfo,
     .getExceptionCB     = riscvGetException,
     .getModeCB          = riscvGetMode,
+#if(ENABLE_MEM_TRACE_ATTRS)
+    .traceMemAttrsCB    = riscvTraceMemAttrs,
+#endif
     .procDescCB         = riscvProcessorDescription,
 
     ////////////////////////////////////////////////////////////////////////

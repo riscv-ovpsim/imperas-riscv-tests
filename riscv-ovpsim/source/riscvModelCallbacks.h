@@ -191,6 +191,16 @@ typedef RISCV_ILLEGAL_INSTRUCTION_FN((*riscvIllegalInstructionFn));
 typedef RISCV_ILLEGAL_VERBOSE_FN((*riscvIllegalVerboseFn));
 
 //
+// Take custom Illegal Instruction exception issuing message in verbose mode
+//
+#define RISCV_ILLEGAL_CUSTOM_FN(_NAME) void _NAME( \
+    riscvP         riscv,       \
+    riscvException exception,   \
+    const char    *reason       \
+)
+typedef RISCV_ILLEGAL_CUSTOM_FN((*riscvIllegalCustomFn));
+
+//
 // Take processor exception
 //
 #define RISCV_TAKE_EXCEPTION_FN(_NAME) void _NAME( \
@@ -314,6 +324,45 @@ typedef RISCV_GET_FP_FLAGS_MT_FN((*riscvGetFPFlagsMtFn));
 typedef RISCV_GET_DATA_ENDIAN_MT_FN((*riscvGetDataEndianMtFn));
 
 //
+// Emit code to perform a load from address ra+offset of size memBits, assigning
+// the result to register rd of size rdBits. The load is performed with the
+// current data or instruction endianness, as appropriate. Parameter attrs
+// specifies load characteristics, including whether the load sign-extends,
+// whether it is a virtual operation (like HLV/HLVX) and whether it is a load
+// with execute semantics (HLVX). The load will activate any Debug Module
+// triggers sensitive to the access, and will conform to any active
+// transactional memory requirements.
+//
+#define RISCV_LOAD_MT_FN(_NAME) void _NAME( \
+    riscvP            riscv,    \
+    vmiReg            rd,       \
+    Uns32             rdBits,   \
+    vmiReg            ra,       \
+    Uns32             memBits,  \
+    Uns64             offset,   \
+    riscvExtLdStAttrs attrs     \
+)
+typedef RISCV_LOAD_MT_FN((*riscvLoadMtFn));
+
+//
+// Emit code to perform a store to address ra+offset of size memBits, obtaining
+// the value to store from register rs. The load is performed with the current
+// data endianness. Parameter attrs specifies store characteristics, including
+// whether the store is a virtual operation (like HSV). The store will activate
+// any Debug Module triggers sensitive to the access, and will conform to any
+// active transactional memory requirements.
+//
+#define RISCV_STORE_MT_FN(_NAME) void _NAME( \
+    riscvP            riscv,    \
+    vmiReg            rs,       \
+    vmiReg            ra,       \
+    Uns32             memBits,  \
+    Uns64             offset,   \
+    riscvExtLdStAttrs attrs     \
+)
+typedef RISCV_STORE_MT_FN((*riscvStoreMtFn));
+
+//
 // Validate the hart is in the given mode or a more privileged one and emit an
 // Illegal Instruction exception call if not
 //
@@ -372,6 +421,17 @@ typedef RISCV_MORPH_VOP_FN((*riscvMorphVOpFn));
     vmiosObjectP    object          \
 )
 typedef RISCV_NEW_CSR_FN((*riscvNewCSRFn));
+
+//
+// Return a Boolean indicating if an access to the indicated Performance
+// Monitor register is valid (and take an Undefined Instruction or Virtual
+// Instruction trap if not)
+//
+#define HPM_ACCESS_VALID_FN(_NAME) Bool _NAME( \
+    riscvCSRAttrsCP attrs,          \
+    riscvP          riscv           \
+)
+typedef HPM_ACCESS_VALID_FN((*riscvHPMAccessValidFn));
 
 //
 // Try mapping memory at the passed address for the specified access type and
@@ -572,6 +632,15 @@ typedef RISCV_TLOAD_FN((*riscvTLoadFn));
 typedef RISCV_TSTORE_FN((*riscvTStoreFn));
 
 //
+// Install custom physical memory domains if required
+//
+#define RISCV_PHYS_MEM_FN(_NAME) void _NAME( \
+    riscvP riscv,               \
+    void  *clientData           \
+)
+typedef RISCV_PHYS_MEM_FN((*riscvPhysMemFn));
+
+//
 // Refine access privilege for accesses to the indicated PMP region
 //
 #define RISCV_PMP_PRIV_FN(_NAME) memPriv _NAME( \
@@ -691,6 +760,7 @@ typedef struct riscvModelCBS {
     riscvIllegalVerboseFn     illegalVerbose;
     riscvIllegalInstructionFn virtualInstruction;
     riscvIllegalVerboseFn     virtualVerbose;
+    riscvIllegalCustomFn      illegalCustom;
     riscvTakeExceptionFn      takeException;
     riscvTakeResetFn          takeReset;
 
@@ -711,6 +781,8 @@ typedef struct riscvModelCBS {
     riscvWriteRegFn           writeReg;
     riscvGetFPFlagsMtFn       getFPFlagsMt;
     riscvGetDataEndianMtFn    getDataEndianMt;
+    riscvLoadMtFn             loadMt;
+    riscvStoreMtFn            storeMt;
     riscvRequireModeMtFn      requireModeMt;
     riscvRequireNotVMtFn      requireNotVMt;
     riscvCheckLegalRMMtFn     checkLegalRMMt;
@@ -719,6 +791,7 @@ typedef struct riscvModelCBS {
 
     // from riscvCSR.h
     riscvNewCSRFn             newCSR;
+    riscvHPMAccessValidFn     hpmAccessValid;
 
     // from riscvVM.h
     riscvMapAddressFn         mapAddress;
@@ -764,11 +837,15 @@ typedef struct riscvExtCBS {
     // code generation actions
     riscvDerivedMorphFn       preMorph;
     riscvDerivedMorphFn       postMorph;
+    riscvDerivedMorphFn       AMOMorph;
 
     // transaction support actions
     riscvIASSwitchFn          switchCB;
     riscvTLoadFn              tLoad;
     riscvTStoreFn             tStore;
+
+    // physical memory actions
+    riscvPhysMemFn            installPhysMem;
 
     // PMP support actions
     riscvPMPPrivFn            PMPPriv;

@@ -202,6 +202,28 @@ static void addBFeature(
 }
 
 //
+// Add documentation of a C-extension subset parameter
+//
+static void addCFeature(
+    riscvConfigCP cfg,
+    vmiDocNodeP   Parameters,
+    char         *string,
+    Uns32         stringLen,
+    const char   *name,
+    const char   *value
+) {
+    snprintf(
+        string, stringLen,
+        "Parameter %s_version is used to specify the version of %s "
+        "instructions  present. By default, %s_version is set to \"%s\" in "
+        "this variant.  Updates to this parameter require a commercial product "
+        "license.",
+        name, name, name, value
+    );
+    vmidocAddText(Parameters, string);
+}
+
+//
 // Add documentation of a K-extension subset parameter
 //
 static void addKFeature(
@@ -243,6 +265,28 @@ static void addDeprecatedKFeature(
         "default, %s is set to %u in this variant. Updates to this parameter "
         "require a commercial product license.",
         name, desc, alias, name, !(cfg->crypto_absent & feature)
+    );
+    vmidocAddText(Parameters, string);
+}
+
+//
+// Add documentation of a P extension subset parameter
+//
+static void addPFeature(
+    riscvConfigCP    cfg,
+    vmiDocNodeP      Parameters,
+    char            *string,
+    Uns32            stringLen,
+    riscvBitManipSet feature,
+    const char      *name,
+    const char      *desc
+) {
+    snprintf(
+        string, stringLen,
+        "Parameter %s is used to specify that %s instructions are present. "
+        "By default, %s is set to %u in this variant. Updates to this "
+        "parameter require a commercial product license.",
+        name, desc, name, !(cfg->dsp_absent & feature)
     );
     vmidocAddText(Parameters, string);
 }
@@ -480,10 +524,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     ////////////////////////////////////////////////////////////////////////////
 
     {
-        vmiDocNodeP       Extensions = vmidocAddSection(Root, "Extensions");
-        riscvArchitecture arch       = cfg->arch;
-        riscvArchitecture canEnable  = getCanEnable(cfg);
-        riscvArchitecture canDisable = getCanDisable(cfg);
+        vmiDocNodeP       Extensions   = vmidocAddSection(Root, "Extensions");
+        riscvArchitecture arch         = cfg->arch;
+        riscvArchitecture archImplicit = cfg->archImplicit;
+        riscvArchitecture archExplicit = arch & ~archImplicit;
+        riscvArchitecture canEnable    = getCanEnable(cfg);
+        riscvArchitecture canDisable   = getCanDisable(cfg);
 
         vmiDocNodeP EnabledExt = vmidocAddSection(
             Extensions, "Extensions Enabled by Default"
@@ -496,8 +542,21 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             "be set upon reset:"
         );
 
-        // list enabled extensions
-        listFeatures(EnabledExt, arch, SNPRINTF_TGT(string));
+        // list explicitly-enabled extensions
+        listFeatures(EnabledExt, archExplicit, SNPRINTF_TGT(string));
+
+        if(archImplicit) {
+
+            vmidocAddText(
+                EnabledExt,
+                "In addition, the model has the following architectural "
+                "extensions implicitly enabled (not shown in the misa CSR "
+                "Extensions field):"
+            );
+
+            // list implicitly-enabled extensions
+            listFeatures(EnabledExt, archImplicit, SNPRINTF_TGT(string));
+        }
 
         vmidocAddText(
             EnabledExt,
@@ -547,12 +606,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 ExtSubset,
-                "To enable features from this list, use parameter "
-                "\"add_Extensions\". This is a string containing "
-                "identification letters of features to enable; for example, "
-                "value \"DV\" indicates that double-precision floating point "
-                "and the Vector Extension should be enabled, if they are "
-                "currently absent and are available on this variant."
+                "To add features from this list to the visible set in the misa "
+                "register, use parameter \"add_Extensions\". This is a string "
+                "containing identification letters of features to enable; for "
+                "example, value \"DV\" indicates that double-precision "
+                "floating point and the Vector Extension should be enabled, if "
+                "they are currently absent and are available on this variant."
             );
 
             vmidocAddText(
@@ -561,6 +620,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "Uns32-valued parameter specifies the reset value for the misa "
                 "CSR Extensions field, replacing any permitted bits defined "
                 "in the base variant."
+            );
+
+            vmidocAddText(
+                ExtSubset,
+                "To add features from this list to the implicitly-enabled set "
+                "(not visible in the misa register), use parameter "
+                "\"add_implicit_Extensions\". This is a string parameter in "
+                "the same format as the \"add_Extensions\" parameter described "
+                "above."
             );
         }
 
@@ -591,6 +659,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "value \"DF\" indicates that double-precision and "
                 "single-precision floating point extensions should be "
                 "disabled, if they are enabled by default on this variant."
+            );
+
+            vmidocAddText(
+                ExtSubset,
+                "To remove features from this list from the implicitly-enabled "
+                "set (not visible in the misa register), use parameter "
+                "\"sub_implicit_Extensions\". This is a string parameter in "
+                "the same format as the \"sub_Extensions\" parameter described "
+                "above."
             );
         }
     }
@@ -754,7 +831,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(
                     sub,
                     "The \"cycle\" CSR is not implemented in this variant and "
-                    "reads of it will require emulation in Machine mode. Set "
+                    "reads of it will cause Illegal Instruction traps. Set "
                     "parameter \"cycle_undefined\" to False to instead specify "
                     "that \"cycle\" is implemented."
                 );
@@ -764,7 +841,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     "The \"cycle\" CSR is implemented in this variant. Set "
                     "parameter \"cycle_undefined\" to True to instead specify "
                     "that \"cycle\" is unimplemented and reads of it should "
-                    "trap to Machine mode."
+                    "cause Illegal Instruction traps."
                 );
             }
         }
@@ -777,7 +854,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(
                     sub,
                     "The \"time\" CSR is not implemented in this variant and "
-                    "reads of it will require emulation in Machine mode. Set "
+                    "reads of it will cause Illegal Instruction traps. Set "
                     "parameter \"time_undefined\" to False to instead specify "
                     "that \"time\" is implemented."
                 );
@@ -787,10 +864,10 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     "The \"time\" CSR is implemented in this variant. Set "
                     "parameter \"time_undefined\" to True to instead specify "
                     "that \"time\" is unimplemented and reads of it should "
-                    "trap to Machine mode. Usually, the value of the \"time\" "
-                    "CSR should be provided by the platform - see notes below "
-                    "about the artifact \"CSR\" bus for information about how "
-                    "this is done."
+                    "cause Illegal Instruction traps. Usually, the value of "
+                    "the \"time\" CSR should be provided by the platform - see "
+                    "notes below about the artifact \"CSR\" bus for "
+                    "information about how this is done."
                 );
             }
         }
@@ -803,8 +880,8 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(
                     sub,
                     "The \"instret\" CSR is not implemented in this variant "
-                    "and reads of it will require emulation in Machine mode. "
-                    "Set parameter \"instret_undefined\" to False to instead "
+                    "and reads of it will cause Illegal Instruction traps. Set "
+                    "parameter \"instret_undefined\" to False to instead "
                     "specify that \"instret\" is implemented."
                 );
             } else {
@@ -813,7 +890,30 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     "The \"instret\" CSR is implemented in this variant. Set "
                     "parameter \"instret_undefined\" to True to instead "
                     "specify that \"instret\" is unimplemented and reads of it "
-                    "should trap to Machine mode."
+                    "should cause Illegal Instruction traps."
+                );
+            }
+        }
+
+        // document whether hpmcounter CSRs are implemented
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "hpmcounter CSRs");
+
+            if(cfg->hpmcounter_undefined) {
+                vmidocAddText(
+                    sub,
+                    "\"hpmcounter\" CSRs are not implemented in this variant "
+                    "and reads of them will cause Illegal Instruction traps. "
+                    "Set parameter \"hpmcounter_undefined\" to False to "
+                    "instead specify that \"hpmcounter\" CSRs are implemented."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "\"hpmcounter\" CSRs are implemented in this variant. Set "
+                    "parameter \"hpmcounter_undefined\" to True to instead "
+                    "specify that \"hpmcounter\" CSRs are unimplemented and "
+                    "reads of them should cause Illegal Instruction traps."
                 );
             }
         }
@@ -980,6 +1080,45 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(sub, string);
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // COMPRESSED EXTENSION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // floating point configuration
+    if(cfg->arch&ISA_C) {
+
+        vmiDocNodeP Features = vmidocAddSection(Root, "Compressed Extension");
+
+        vmidocAddText(
+            Features,
+            "Standard compressed instructions are present in this variant."
+        );
+
+        addCFeature(
+            cfg,
+            Features,
+            SNPRINTF_TGT(string),
+            "Zcea",
+            riscvGetZceaVersionName(riscv)
+        );
+
+        addCFeature(
+            cfg,
+            Features,
+            SNPRINTF_TGT(string),
+            "Zceb",
+            riscvGetZcebVersionName(riscv)
+        );
+
+        addCFeature(
+            cfg,
+            Features,
+            SNPRINTF_TGT(string),
+            "Zcee",
+            riscvGetZceeVersionName(riscv)
+        );
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1369,7 +1508,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- only subsets Zba, Zbb, Zbc and Zbs may be enabled."
+                "- only subsets Zba, Zbb, Zbc and Zbs may be enabled;"
+            );
+            vmidocAddText(
+                Version,
+                "- if the B extension is present, it is implicitly always "
+                "enabled and not subject to control by misa.B, which is zero."
             );
         }
 
@@ -1478,6 +1622,17 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmiDocNodeP Parameters = vmidocAddSection(
                 extK, "Cryptographic Extension Parameters"
             );
+
+            // document mnoise_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"mnoise_undefined\" is used to specify whether "
+                "the \"mnoise\" CSR is undefined, in which case accesses to it "
+                "trap to Machine mode. In this variant, \"mnoise_undefined\" "
+                "is %u.",
+                riscv->configInfo.mnoise_undefined
+            );
+            vmidocAddText(Parameters, string);
 
             // add subset control parameter description
             addKFeature(
@@ -1632,6 +1787,40 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- sentropy and mseccfg CSRs have been added."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 1.0.0-rc1
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 1.0.0-rc1");
+
+            vmidocAddText(
+                Version,
+                "Stable 1.0.0-rc1 version of August 6 2021, with these changes "
+                "compared to version 0.9.2:"
+            );
+
+            vmidocAddText(
+                Version,
+                "- aes32* opcodes have changed;"
+            );
+            vmidocAddText(
+                Version,
+                "- all scalar crypto specific instructions which produce "
+                "32-bit results now sign-extend them to XLEN bits where "
+                "relevant (previously they were zero extended);"
+            );
+            vmidocAddText(
+                Version,
+                "- encodings for ES16 and WAIT states have changed;"
+            );
+            vmidocAddText(
+                Version,
+                "- if the K extension is present, it is implicitly always "
+                "enabled and not subject to control by misa.K, which is zero."
             );
         }
     }
@@ -2249,12 +2438,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- instructions vle1.v/vse1.v renamed vlm.v/vsm.v."
+                "- instructions vle1.v/vse1.v renamed vlm.v/vsm.v;"
             );
             vmidocAddText(
                 Version,
                 "- instructions vfredsum.vs/vfwredsum.vs renamed "
-                "vfredusum.vs/vfwredusum.vs"
+                "vfredusum.vs/vfwredusum.vs;"
             );
             vmidocAddText(
                 Version,
@@ -2276,8 +2465,141 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVVV_MASTER_DATE" (commit "
-                RVVV_MASTER_TAG"). This is currently identical to  "
+                RVVV_MASTER_TAG") with these changes compared to version "
                 "1.0-rc1-20210608:"
+            );
+            vmidocAddText(
+                Version,
+                "- instruction vpopc.m renamed vcpop.m;"
+            );
+            vmidocAddText(
+                Version,
+                "- instruction vmandnot.mm renamed vmandn.mm;"
+            );
+            vmidocAddText(
+                Version,
+                "- instruction vmornot.mm renamed vmorn.mm."
+            );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DSP EXTENSION
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(cfg->arch&ISA_P) {
+
+        vmiDocNodeP extP = vmidocAddSection(Root, "DSP Extension");
+
+        vmidocAddText(
+            extP,
+            "This variant implements the DSP extension with version specified "
+            "in the References section of this document. Note that parameter "
+            "\"dsp_version\" can be used to select the required version of "
+            "this extension."
+        );
+
+        if(cfg->arch&ISA_XLEN_32) {
+
+            vmiDocNodeP Parameters = vmidocAddSection(
+                extP, "DSP Extension Parameters"
+            );
+
+            // add subset control parameter description
+            addPFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVPS_Zpsfoperand,
+                "Zpsfoperand", "register-pair"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DSP EXTENSION VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                extP, "DSP Extension Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "The DSP Extension specification has been under active "
+                "development. To enable simulation of hardware that may "
+                "be based on an older version of the specification, the model "
+                "implements behavior for a number of versions of the "
+                "specification. The differing features of these are listed "
+                "below, in chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DSP EXTENSION VERSION 0.5.2
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extP, "Version 0.5.2");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.5.2 version of July 8 2019."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DSP EXTENSION VERSION 0.9.6
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extP, "Version 0.9.6");
+
+            vmidocAddText(
+                Version,
+                "Stable 0.9.6 version of September 8 2021, with these changes "
+                "compared to version 0.5.2:"
+            );
+            vmidocAddText(
+                Version,
+                "- major opcode is changed from 1111111 to 1110111;"
+            );
+            vmidocAddText(
+                Version,
+                " - use of misaligned (odd-numbered) registers for RV32 64-bit "
+                "instructions is reserved;"
+            );
+            vmidocAddText(
+                Version,
+                " - regardless of endianness, for RV32 64-bit instructions "
+                "the lower-numbered register holds the low-order bits, and the "
+                "higher-numbered register holds the high-order bits;"
+            );
+            vmidocAddText(
+                Version,
+                " - when an RV32 64-bit result is written to x0, the entire "
+                "write takes no effect;"
+            );
+            vmidocAddText(
+                Version,
+                " - when x0 is used as an RV32 64-bit operand, the entire "
+                "operand is zero;"
+            );
+            vmidocAddText(
+                Version,
+                " - changed ucode (0x801) CSR to vxsat CSR (0x009);"
+            );
+            vmidocAddText(
+                Version,
+                " - CLO and SWAP16 instructions have been removed;"
+            );
+            vmidocAddText(
+                Version,
+                " - modified encoding and field layout of BPICK instruction;"
+            );
+            vmidocAddText(
+                Version,
+                " - modified minor encodings of STAS16, RSTAS16, KSTAS16, "
+                "URSTAS16, UKSTAS16, STSA16, RSTSA16, KSTSA16, URSTSA16, "
+                "UKSTSA16, STAS32, RSTAS32, KSTAS32, URSTAS32, UKSTAS32, "
+                "STSA32, RSTSA32, KSTSA32, URSTSA32 and UKSTSA32."
             );
         }
     }
@@ -2611,6 +2933,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "01:Supervisor, 11=Machine)."
             );
         }
+
         ////////////////////////////////////////////////////////////////////////
         // CLIC VERSIONS
         ////////////////////////////////////////////////////////////////////////
@@ -2693,6 +3016,35 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "instruction is obtained by a load from address xepc."
             );
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CLINT
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(cfg->CLINT_address) {
+
+        vmiDocNodeP CLINT = vmidocAddSection(
+            Root, "CLINT"
+        );
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "This model implements a SiFive-compatible Core Local Interruptor "
+            "(CLINT) block at address 0x"FMT_Ax". Use parameter "
+            "\"CLINT_address\" to specify a different address for this block, "
+            "or set it to zero to disable the CLINT",
+            cfg->CLINT_address
+        );
+        vmidocAddText(CLINT, string);
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "The tick timer in the CLINT (mtime) will increment at %gHz. Use "
+            "parameter \"mtime_Hz\" to specify a different timer frequency.",
+            cfg->mtime_Hz
+        );
+        vmidocAddText(CLINT, string);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3195,7 +3547,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(Parameters, string);
 
-            // document scontext_undefined
+            // document mscontext_undefined
             if(RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) {
                 snprintf(
                     SNPRINTF_TGT(string),
@@ -3208,7 +3560,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(Parameters, string);
             }
 
-            // document scontext_undefined
+            // document hcontext_undefined
             if(cfg->arch&ISA_H) {
                 snprintf(
                     SNPRINTF_TGT(string),
@@ -3612,6 +3964,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 SNPRINTF_TGT(string),
                 "RISC-V \"K\" Cryptographic Extension (%s)",
                 riscvGetCryptographicVersionDesc(riscv)
+            );
+            vmidocAddText(References, string);
+        }
+
+        if(cfg->arch&ISA_P) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V \"P\" DSP Extension (%s)",
+                riscvGetDSPVersionDesc(riscv)
             );
             vmidocAddText(References, string);
         }

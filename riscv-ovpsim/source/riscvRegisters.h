@@ -31,12 +31,40 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // aliases for specific RISCV registers
-#define RV_REG_X_ZERO    0
-#define RV_REG_X_RA      1
-#define RV_REG_X_SP      2
-#define RV_REG_X_GP      3
-#define RV_REG_X_A0      10
-#define RV_REG_X_A1      11
+typedef enum rvRegE {
+    RV_REG_X_ZERO =  0,
+    RV_REG_X_RA   =  1,
+    RV_REG_X_SP   =  2,
+    RV_REG_X_GP   =  3,
+    RV_REG_X_TP   =  4,
+    RV_REG_X_T0   =  5,
+    RV_REG_X_T1   =  6,
+    RV_REG_X_T2   =  7,
+    RV_REG_X_S0   =  8,
+    RV_REG_X_S1   =  9,
+    RV_REG_X_A0   =  10,
+    RV_REG_X_A1   =  11,
+    RV_REG_X_A2   =  12,
+    RV_REG_X_A3   =  13,
+    RV_REG_X_A4   =  14,
+    RV_REG_X_A5   =  15,
+    RV_REG_X_A6   =  16,
+    RV_REG_X_A7   =  17,
+    RV_REG_X_S2   =  18,
+    RV_REG_X_S3   =  19,
+    RV_REG_X_S4   =  20,
+    RV_REG_X_S5   =  21,
+    RV_REG_X_S6   =  22,
+    RV_REG_X_S7   =  23,
+    RV_REG_X_S8   =  24,
+    RV_REG_X_S9   =  25,
+    RV_REG_X_S10  =  26,
+    RV_REG_X_S11  =  27,
+    RV_REG_X_T3   =  28,
+    RV_REG_X_T4   =  29,
+    RV_REG_X_T5   =  30,
+    RV_REG_X_T6   =  31,
+} rvReg;
 
 // morph-time macros to calculate offsets to registers in a RISCV structure
 #define RISCV_CPU_OFFSET(_R)    VMI_CPU_OFFSET(riscvP, _R)
@@ -51,6 +79,7 @@
 #define RISCV_EA_ADDR           RISCV_CPU_REG(exclusiveAddr)
 #define RISCV_EA_TAG            RISCV_CPU_REG(exclusiveTag)
 #define RISCV_ATOMIC            RISCV_CPU_REG(atomic)
+#define RISCV_HLVHSV            RISCV_CPU_REG(HLVHSV)
 #define RISCV_DM                RISCV_CPU_REG(DM)
 #define RISCV_DM_STALL          RISCV_CPU_REG(DMStall)
 #define RISCV_COMMERCIAL        RISCV_CPU_REG(commercial)

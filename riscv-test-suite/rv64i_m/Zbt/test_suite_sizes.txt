@@ -1,0 +1,34 @@
+# Imperas RISC-V Architecture Tests for RV64I_M/ZBT
+
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| CMIX-01                            |     6,664 |       8,176  |         2,208  |               2,495  |
+| CMOV-01                            |     6,664 |       8,176  |         2,208  |               2,495  |
+| FSRI-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| FSL-01                             |     6,664 |       8,176  |         2,208  |               2,495  |
+| FSR-01                             |     6,664 |       8,176  |         2,208  |               2,495  |
+| FSRIW-01                           |     6,664 |       8,114  |         2,208  |               2,007  |
+| FSRW-01                            |     6,664 |       8,176  |         2,208  |               2,495  |
+| FSLW-01                            |     6,664 |       8,176  |         2,208  |               2,495  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

@@ -1,0 +1,63 @@
+# Imperas RISC-V Architecture Tests for RV64I_M/ZBB
+
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| CLZ-01                             |     6,664 |       5,494  |         2,208  |               1,520  |
+| ORC-B-01                           |     6,664 |       5,494  |         2,208  |               1,520  |
+| ANDN-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| MINU-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| MAX-01                             |     6,664 |       8,114  |         2,208  |               2,007  |
+| ORN-01                             |     6,664 |       8,114  |         2,208  |               2,007  |
+| MAXU-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| ROR-01                             |     6,664 |       8,114  |         2,208  |               2,007  |
+| CTZ-01                             |     6,664 |       5,494  |         2,208  |               1,520  |
+| REV8-01                            |     6,664 |       5,494  |         2,208  |               1,520  |
+| MIN-01                             |     6,664 |       8,114  |         2,208  |               2,007  |
+| ROL-01                             |     6,664 |       8,114  |         2,208  |               2,007  |
+| RORI-01                            |     6,664 |       6,130  |         2,208  |               1,519  |
+| SEXT-H-01                          |     6,664 |       5,494  |         2,208  |               1,520  |
+| PCNT-01                            |     6,664 |       5,494  |         2,208  |               1,520  |
+| SEXT-B-01                          |     6,664 |       5,494  |         2,208  |               1,520  |
+| SLO-92-01                          |     6,664 |       8,114  |         2,208  |               2,007  |
+| SLOI-92-01                         |     6,664 |       6,130  |         2,208  |               1,519  |
+| SRO-92-01                          |     6,664 |       8,114  |         2,208  |               2,007  |
+| SROI-92-01                         |     6,664 |       6,130  |         2,208  |               1,519  |
+| SUBU-W-01                          |     6,664 |       8,114  |         2,208  |               2,007  |
+| ADDU-W-01                          |     6,664 |       8,114  |         2,208  |               2,007  |
+| XNOR-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| PCNTW-01                           |     6,664 |       5,494  |         2,208  |               1,520  |
+| ADDIWU-01                          |     6,664 |       6,130  |         2,208  |               1,519  |
+| CTZW-01                            |     6,664 |       5,494  |         2,208  |               1,520  |
+| RORW-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| SUBWU-01                           |     6,664 |       8,114  |         2,208  |               2,007  |
+| ADDWU-01                           |     6,664 |       8,114  |         2,208  |               2,007  |
+| RORIW-01                           |     6,664 |       6,130  |         2,208  |               1,519  |
+| CLZW-01                            |     6,664 |       5,494  |         2,208  |               1,520  |
+| ROLW-01                            |     6,664 |       8,114  |         2,208  |               2,007  |
+| SLLIU-W-01                         |     6,664 |       6,130  |         2,208  |               1,519  |
+| SLOIW-92-01                        |     6,664 |       6,130  |         2,208  |               1,519  |
+| SROW-92-01                         |     6,664 |       8,114  |         2,208  |               2,007  |
+| SLOW-92-01                         |     6,664 |       8,114  |         2,208  |               2,007  |
+| SROIW-92-01                        |     6,664 |       6,130  |         2,208  |               1,519  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

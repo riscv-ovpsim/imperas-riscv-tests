@@ -32,15 +32,16 @@
 //
 // These define virtual memory mode settings
 //
-#define RISCV_VMM_BARE  (1<<0)
-#define RISCV_VMM_SV32  (1<<1)
-#define RISCV_VMM_SV39  (1<<8)
-#define RISCV_VMM_SV48  (1<<9)
+#define RISCV_VMM_BARE  (1<< 0)
+#define RISCV_VMM_SV32  (1<< 1)
+#define RISCV_VMM_SV39  (1<< 8)
+#define RISCV_VMM_SV48  (1<< 9)
+#define RISCV_VMM_SV57  (1<<10)
 
 //
 // These define composite virtual memory mode settings
 //
 #define RISCV_VMM_32    (RISCV_VMM_BARE|RISCV_VMM_SV32)
-#define RISCV_VMM_64    (RISCV_VMM_BARE|RISCV_VMM_SV39|RISCV_VMM_SV48)
+#define RISCV_VMM_64    (RISCV_VMM_BARE|RISCV_VMM_SV39|RISCV_VMM_SV48|RISCV_VMM_SV57)
 
 

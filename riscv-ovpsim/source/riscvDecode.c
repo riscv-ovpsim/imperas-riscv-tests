@@ -17,6 +17,12 @@
  *
  */
 
+// standard includes
+#include <string.h>
+
+// Imperas header files
+#include "hostapi/impAlloc.h"
+
 // VMI header files
 #include "vmi/vmiCxt.h"
 #include "vmi/vmiDecode.h"
@@ -52,13 +58,6 @@ inline static Uns32 fetch4(riscvP riscv, riscvAddr thisPC) {
 }
 
 //
-// Is the instruction a 4-byte instruction?
-//
-inline static Bool is4ByteInstruction(Uns32 instruction) {
-    return ((instruction & 3) == 3);
-}
-
-//
 // Are compressed instructions present?
 //
 inline static Bool compressedPresent(riscvP riscv) {
@@ -66,18 +65,48 @@ inline static Bool compressedPresent(riscvP riscv) {
 }
 
 //
+// Are expanded instructions present?
+//
+inline static Bool expandedPresent(riscvP riscv) {
+    return riscv->configInfo.enable_expanded;
+}
+
+//
+// Are all instructions (and fetches) 4 bytes?
+//
+inline static Bool force4ByteInstructions(riscvP riscv) {
+    return (!compressedPresent(riscv) && !expandedPresent(riscv));
+}
+
+//
+// Return instruction size in bytes
+//
+inline static Uns32 getInstructionBytes(riscvP riscv, Uns32 instruction) {
+
+    Uns32 result = 4;
+
+    if((instruction & 0x3) != 0x3) {
+        result = 2;
+    } else if(!expandedPresent(riscv) || ((instruction & 0x1f) != 0x1f)) {
+        result = 4;
+    } else if((instruction & 0x3f) == 0x1f) {
+        result = 6;
+    } else if((instruction & 0x7f) == 0x3f) {
+        result = 8;
+    }
+
+    return result;
+}
+
+//
 // Return size of the instruction at address thisPC
 //
-static Uns32 getInstructionSize(riscvP riscv, riscvAddr thisPC) {
+static Uns32 getInstructionBytesAtPC(riscvP riscv, riscvAddr thisPC) {
 
-    Uns32 result;
+    Uns32 result = 4;
 
-    if(!compressedPresent(riscv)) {
-        result = 4;
-    } else if(is4ByteInstruction(fetch2(riscv, thisPC))) {
-        result = 4;
-    } else {
-        result = 2;
+    if(!force4ByteInstructions(riscv)) {
+        result = getInstructionBytes(riscv, fetch2(riscv, thisPC));
     }
 
     return result;
@@ -106,13 +135,16 @@ inline static Uns32 getXLenBits(riscvP riscv) {
 #define SBITS(_BITS, _ARG)  (((Int32)((_ARG)<<(32-_BITS)))>>(32-_BITS))
 
 // unsigned field extraction macros
+#define U_1(_I)             UBITS(1, (_I)>> 1)
 #define U_2(_I)             UBITS(1, (_I)>> 2)
 #define U_3(_I)             UBITS(1, (_I)>> 3)
 #define U_3_2(_I)           UBITS(2, (_I)>> 2)
+#define U_4(_I)             UBITS(1, (_I)>> 4)
 #define U_4_2(_I)           UBITS(3, (_I)>> 2)
 #define U_4_3(_I)           UBITS(2, (_I)>> 3)
 #define U_5(_I)             UBITS(1, (_I)>> 5)
 #define U_5_3(_I)           UBITS(3, (_I)>> 3)
+#define U_5_4(_I)           UBITS(2, (_I)>> 4)
 #define U_6(_I)             UBITS(1, (_I)>> 6)
 #define U_6_2(_I)           UBITS(5, (_I)>> 2)
 #define U_6_4(_I)           UBITS(3, (_I)>> 4)
@@ -120,52 +152,73 @@ inline static Uns32 getXLenBits(riscvP riscv) {
 #define U_7(_I)             UBITS(1, (_I)>> 7)
 #define U_8(_I)             UBITS(1, (_I)>> 8)
 #define U_8_7(_I)           UBITS(2, (_I)>> 7)
+#define U_9_2(_I)           UBITS(8, (_I)>> 2)
 #define U_9_7(_I)           UBITS(3, (_I)>> 7)
+#define U_10(_I)            UBITS(1, (_I)>>10)
 #define U_10_7(_I)          UBITS(4, (_I)>> 7)
 #define U_10_9(_I)          UBITS(2, (_I)>> 9)
 #define U_11(_I)            UBITS(1, (_I)>>11)
 #define U_11_7(_I)          UBITS(5, (_I)>> 7)
 #define U_11_8(_I)          UBITS(4, (_I)>> 8)
 #define U_11_10(_I)         UBITS(2, (_I)>>10)
+#define U_11_9(_I)          UBITS(3, (_I)>> 9)
+#define U_11_10(_I)         UBITS(2, (_I)>>10)
 #define U_12(_I)            UBITS(1, (_I)>>12)
 #define U_12_9(_I)          UBITS(4, (_I)>> 9)
 #define U_12_10(_I)         UBITS(3, (_I)>>10)
 #define U_12_11(_I)         UBITS(2, (_I)>>11)
+#define U_13(_I)            UBITS(1, (_I)>>13)
 #define U_13_12(_I)         UBITS(2, (_I)>>12)
 #define U_14(_I)            UBITS(1, (_I)>>14)
 #define U_14_12(_I)         UBITS(3, (_I)>>12)
 #define U_14_13(_I)         UBITS(2, (_I)>>13)
+#define U_17(_I)            UBITS(1, (_I)>>17)
 #define U_17_15(_I)         UBITS(3, (_I)>>15)
 #define U_17_16(_I)         UBITS(2, (_I)>>16)
 #define U_19_12(_I)         UBITS(8, (_I)>>12)
 #define U_19_15(_I)         UBITS(5, (_I)>>15)
+#define U_19_16(_I)         UBITS(4, (_I)>>16)
+#define U_19_18(_I)         UBITS(2, (_I)>>18)
 #define U_20(_I)            UBITS(1, (_I)>>20)
 #define U_21(_I)            UBITS(1, (_I)>>21)
 #define U_21_20(_I)         UBITS(2, (_I)>>20)
+#define U_22_20(_I)         UBITS(3, (_I)>>20)
 #define U_23_20(_I)         UBITS(4, (_I)>>20)
 #define U_23(_I)            UBITS(1, (_I)>>23)
 #define U_24(_I)            UBITS(1, (_I)>>24)
 #define U_24_20(_I)         UBITS(5, (_I)>>20)
+#define U_24_23(_I)         UBITS(2, (_I)>>23)
 #define U_25(_I)            UBITS(1, (_I)>>25)
 #define U_25_20(_I)         UBITS(6, (_I)>>20)
 #define U_26(_I)            UBITS(1, (_I)>>26)
 #define U_26_20(_I)         UBITS(7, (_I)>>20)
 #define U_26_25(_I)         UBITS(2, (_I)>>25)
+#define U_27(_I)            UBITS(1, (_I)>>27)
 #define U_27_24(_I)         UBITS(4, (_I)>>24)
 #define U_27_26(_I)         UBITS(2, (_I)>>26)
 #define U_28(_I)            UBITS(1, (_I)>>28)
+#define U_28_22(_I)         UBITS(7, (_I)>>22)
+#define U_28_23(_I)         UBITS(6, (_I)>>23)
+#define U_28_25(_I)         UBITS(4, (_I)>>25)
+#define U_29(_I)            UBITS(1, (_I)>>29)
 #define U_29_20(_I)         UBITS(10,(_I)>>20)
+#define U_29_25(_I)         UBITS(5, (_I)>>25)
+#define U_29_28(_I)         UBITS(2, (_I)>>28)
 #define U_30_20(_I)         UBITS(11,(_I)>>20)
 #define U_30_21(_I)         UBITS(10,(_I)>>21)
 #define U_30_25(_I)         UBITS(6, (_I)>>25)
+#define U_31(_I)            UBITS(1, (_I)>>31)
 #define U_31_20(_I)         UBITS(12,(_I)>>20)
 #define U_31_27(_I)         UBITS(5, (_I)>>27)
 #define U_31_29(_I)         UBITS(3, (_I)>>29)
 #define U_31_30(_I)         UBITS(2, (_I)>>30)
 
 // signed field extraction macros
+#define S_9(_I)             SBITS(1, (_I)>> 9)
 #define S_12(_I)            SBITS(1, (_I)>>12)
+#define S_16_15(_I)         SBITS(2, (_I)>>15)
 #define S_19_15(_I)         SBITS(5, (_I)>>15)
+#define S_22(_I)            SBITS(1, (_I)>>22)
 #define S_31_12(_I)         SBITS(20,(_I)>>12)
 #define S_31_20(_I)         SBITS(12,(_I)>>20)
 #define S_31_25(_I)         SBITS(7, (_I)>>25)
@@ -233,6 +286,7 @@ typedef enum memBitsSpecE {
     MBS_EEW,            // memory bit size in bits 28,14:12 (vector instructions)
     MBS_SEW,            // memory bit size of SEW (vector instructions)
     MBS_B,              // memory bit size 8 (byte)
+    MBS_H,              // memory bit size 16 (halfword)
     MBS_W,              // memory bit size 32 (word)
     MBS_D,              // memory bit size 64 (double)
 } memBitsSpec;
@@ -243,10 +297,25 @@ typedef enum memBitsSpecE {
 typedef enum unsExtSpecE {
     USX_NA,             // instruction has no extension specification
     USX_T,              // extension always unsigned
+    USX_1,              // extension specification in bit 1
+    USX_2,              // extension specification in bit 2
     USX_14,             // extension specification in bit 14
     USX_20,             // extension specification in bit 20
     USX_28,             // extension specification in bit 28
 } unsExtSpec;
+
+//
+// Define the encoding of a target address in an instruction
+//
+typedef enum targetSpecE {
+    TGTS_NA,            // instruction has no constant
+    TGTS_J,             // target address in 31:12 (J encoding)
+    TGTS_B,             // target address in 31:25 and 11:6 (B encoding)
+    TGTS_C_B,           // target address in 12:10 and 6:2 (C.B encoding)
+    TGTS_C_J,           // target address in 12:2 (C.J encoding)
+    TGTS_DECBNEZ,       // target address in 28:20 and 17:15 (DECBNEZ encoding)
+    TGTS_C_DECBNEZ,     // target address in 12:10 and 6:4 (C.DECBNEZ encoding)
+} targetSpec;
 
 //
 // Define the encoding of a constant in an instruction
@@ -254,17 +323,18 @@ typedef enum unsExtSpecE {
 typedef enum constSpecE {
     CS_NA,              // instruction has no constant
     CS_U_19_15,         // unsigned value in 19:15
+    CS_U_22_20,         // unsigned value in 22:20
     CS_U_23_20,         // unsigned value in 23:20
+    CS_U_24_20,         // unsigned value in 24:20
     CS_U_31_30,         // unsigned value in 31:30
     CS_S_19_15,         // signed value in 19:15
     CS_S_31_20,         // signed value in 31:20
     CS_S_31_25_11_7,    // signed value in 31:25,11:7
     CS_XPERM_14_13,     // size in bits 14:13 (xperm)
+    CS_BYTE_22_20,      // byte index in 22:20 (or 21:20 when XLEN==32)
     CS_SHAMT_25_20,     // shift amount in 25:20 (or 24:20 when XLEN==32)
     CS_SHAMT_26_20_B,   // shift amount in 26:20 (B extension semantics)
     CS_AUIPC,           // signed value in 31:12 << 12 (AUIPC encoding)
-    CS_J,               // target address in 31:12 (J encoding)
-    CS_B,               // target address in 31:25 and 11:6 (B encoding)
     CS_C_ADDI,          // signed value in 12,6:2 (C.ADDI encoding)
     CS_C_SLLI,          // unsigned value in 12,6:2 (C.SLLI encoding)
     CS_C_ADDI16SP,      // signed value in 12,6:2 (C.ADDI16SP encoding)
@@ -276,8 +346,23 @@ typedef enum constSpecE {
     CS_C_LDSP,          // unsigned value in 12,6:2 (C.LDSP encoding)
     CS_C_SWSP,          // unsigned value in 12:7 (C.SWSP encoding)
     CS_C_SDSP,          // unsigned value in 12:7 (C.SDSP encoding)
-    CS_C_B,             // target address in 12:10 and 6:2 (C.B encoding)
-    CS_C_J,             // target address in 12:2 (C.J encoding)
+    CS_C_TBLJ_M0,       // unsigned value in 9:2-0 (C.TBLJALM encoding)
+    CS_C_TBLJ_M8,       // unsigned value in 9:2-0 (C.TBLJ encoding)
+    CS_C_TBLJ_M64,      // unsigned value in 9:2-0 (C.TBLJAL encoding)
+    CS_C_LB,            // signed value in 10,6:5,11 (C.LB encoding)
+    CS_C_LH,            // signed value in 11:10,6:5 (C.LH encoding)
+    CS_NSTKA_11_7,      // negative stack adjust in 11:7
+    CS_PSTKA_11_7,      // positive stack adjust in 11:7
+    CS_NSTKA_9_7,       // negative stack adjust in 9:7
+    CS_PSTKA_9_7,       // positive stack adjust in 9:7
+    CS_NSTKA_5_4_7,     // negative stack adjust in {5:4,7}
+    CS_PSTKA_7,         // positive stack adjust in 7
+    CS_S_LWGP,          // signed value, LWGP (Zceb)
+    CS_S_LDGP,          // signed value, LDGP (Zceb)
+    CS_S_SWGP,          // signed value, SWGP (Zceb)
+    CS_S_SDGP,          // signed value, SDGP (Zceb)
+    CS_S_1_LSL_3_2,     // 1 << unsigned(3:2)
+    CS_S_1_LSL_19_18,   // 1 << unsigned(19:18)
 } constSpec;
 
 //
@@ -286,16 +371,24 @@ typedef enum constSpecE {
 typedef enum rSpecE {
     R_NA,               // no register
     RS_X_ZERO,          // zero register
-    RS_X_LR,            // lr register
+    RS_X_RA,            // ra register
     RS_X_SP,            // sp register
+    RS_X_GP,            // gp register
+    RS_X_T0,            // t0 register
+    RS_X_A0,            // a0 register
+    RS_X_A1,            // a1 register
     RS_X_4_2_P8,        // X register in 4:2 + 8
+    RS_X_4_2_S,         // X register in 4:2 (s0...s7)
+    RS_X_9_7_P8_S_4_3,  // X register in 4:2 + 8, B/H/W/D in bits 4:3
     RS_X_6_2,           // X register in 6:2
     RS_X_11_7,          // X register in 11:7
     RS_X_19_15,         // X register in 19:15
     RS_X_19_15_S_21_20, // X register in 19:15, B/H/W/D in bits 21:20
     RS_X_24_20,         // X register in 24:20
+    RS_X_29_25,         // X register in 29:25
     RS_X_31_27,         // X register in 31:27
     RS_X_9_7_P8,        // X register in 9:7 + 8
+    RS_X_9_7_S,         // X register in 9:7 (s0...s7)
     RS_XWL_11_7,        // X register in 11:7 (use W/L name)
     RS_XWL_19_15,       // X register in 19:15 (use W/L name)
     RS_XX_11_7,         // X register in 11:7 (use X name)
@@ -323,8 +416,12 @@ typedef enum wxSpecE {
     WX_3,               // W in bit 3 (explicit in disassembly)
     WX_12,              // !W in bit 12 (explicit in disassembly)
     WX_25,              // !W in bit 25 (implicit in disassembly)
+    WX_26,              // W/H in bit 26
     WX_21_U_20,         // !W in bit 21 and unsigned in bit 20
-    WX_W1,              // W=1 (implicit in disassembly)
+    WX_W1,              // W=1 (explicit in disassembly)
+    WX_W1_KV_1_0_0_RC1, // W=1 (implicit in disassembly if crypto 1.0.0-rc1)
+    WX_W1_RV32,         // W=1 (explicit in disassembly, legal on RV32)
+    WX_W1_RV32Q,        // W=1 (implicit in disassembly, legal on RV32)
 } wxSpec;
 
 //
@@ -392,6 +489,105 @@ typedef enum numFieldsSpecE {
 } numFieldsSpec;
 
 //
+// Define the encoding of element size specifier in an instruction
+//
+typedef enum elemSizeSpecE {
+    ESZ_NA,             // no elemSize
+    ESZ_12_13_27,       // elemSize encoded in bits 12, 13 and 27
+    ESZ_13,             // elemSize encoded in bit 13
+    ESZ_24_23,          // elemSize encoded in bits 24:23
+    ESZ_21_20,          // elemSize encoded in bits 21:20
+    ESZ_25,             // elemSize encoded in bit 25
+    ESZ_26,             // elemSize encoded in bit 26
+    ESZ_C8,             // elemSize 8
+    ESZ_C16,            // elemSize 16
+    ESZ_C32,            // elemSize 32
+    ESZ_C64,            // elemSize 64
+} elemSizeSpec;
+
+//
+// Define the encoding of crossed operation specifier in an instruction
+//
+typedef enum crossOpSpecE {
+    CR_NA,              // no crossed operation
+    CR_25,              // crossed operation encoded in bit 25
+} crossOpSpec;
+
+//
+// Define the encoding of half operation specifier in an instruction
+//
+typedef enum halfSpecE {
+    HA_NA,              // no half operation
+    HA_29,              // half operation encoded in bit 29
+    HA012_29_28,        // half operation encoded in bits 29:28, values 0,1,2
+    HA123_29_28,        // half operation encoded in bits 29:28, values 1,2,3
+} halfSpec;
+
+//
+// Define the encoding of half operation specifier in an instruction
+//
+typedef enum doubleSpecE {
+    DO_NA,              // no doubling operation
+    DO_31,              // doubling encoded in bit 31
+} doubleSpec;
+
+//
+// Define the encoding of half operation specifier in an instruction
+//
+typedef enum packSpecE {
+    PS_NA,              // no packing operation
+    PS_24_20,           // packing encoded in bits 24:20
+} packSpec;
+
+//
+// Define the encoding of rounding specifier in an instruction
+//
+typedef enum roundSpecE {
+    RD_NA,              // no rounding operation
+    RD_28,              // rounding operation encoded in bit 28
+    RD_29,              // rounding operation encoded in bit 29
+    RD_T,               // rounding operation always enabled
+} roundSpec;
+
+//
+// Define the encoding of rlist in an instruction
+//
+typedef enum rlistSpecE {
+    RL_NA,              // no rlist specification
+    RL_3_2,             // rlist encoded in bits 3:2
+    RL_4_2,             // rlist encoded in bits 4:2
+    RL_19_16,           // rlist encoded in bits 19:16
+} rlistSpec;
+
+//
+// Define the encoding of alist in an instruction
+//
+typedef enum alistSpecE {
+    RA_NA,              // no alist specification
+    RA_T,               // alist always present
+    RA_20,              // alist present if bit 20 set
+} alistSpec;
+
+//
+// Define the encoding of retval in an instruction
+//
+typedef enum retvalSpecE {
+    RV_NA,              // no retval specification
+    RV_4,               // retval encoded in bit 4
+    RV_5,               // retval encoded in bit 5
+    RV_21_20,           // retval encoded in bits 21:20
+} retvalSpec;
+
+//
+// Define the encoding of return specification in an instruction
+//
+typedef enum retSpecE {
+    RS_NA,              // no return specification
+    RS_T,               // return always present
+    RS_13,              // return encoded in bit 13
+} retSpec;
+
+//
 // Structure defining characteristics of each opcode type
 //
 typedef struct opAttrsS {
@@ -399,12 +595,14 @@ typedef struct opAttrsS {
     const char       *format;           // format string
     riscvArchitecture arch;             // architectural requirements
     riscvIType        type     : 16;    // equivalent generic instruction
+    riscvCompressSet  Zc       :  8;    // compressed extension
     riscvVIType       VIType   :  8;    // vector instruction type
     rSpec             r1       :  8;    // specification of r1
     rSpec             r2       :  8;    // specification of r2
     rSpec             r3       :  8;    // specification of r3
     rSpec             r4       :  8;    // specification of r4
     rSpec             mask     :  8;    // specification of vector mask
+    targetSpec        tgts     :  8;    // location of target address
     constSpec         cs       :  8;    // location of constant
     csrSpec           csr      :  4;    // location of CSR
     csrUpdateSpec     csrUpdate:  4;    // location of CSR update specification
@@ -420,6 +618,16 @@ typedef struct opAttrsS {
     numFieldsSpec     nf       :  4;    // nf specification
     wholeSpec         whole    :  4;    // whole register specification
     vtypeSpec         vtype    :  4;    // vtype specification
+    elemSizeSpec      elemSize :  4;    // elemSize specification
+    halfSpec          half     :  4;    // half operation specification
+    roundSpec         round    :  4;    // rounding specification
+    rlistSpec         rlist    :  4;    // rlist specification
+    alistSpec         alist    :  4;    // alist specification
+    retvalSpec        retval   :  4;    // retval specification
+    retSpec           ret      :  4;    // ret specification
+    doubleSpec        doDouble :  1;    // doubling specification
+    crossOpSpec       crossOp  :  1;    // crossed operation specification
+    packSpec          pack     :  1;    // byte packing specification
     aqrlSpec          aqrl     :  1;    // acquire/release specification
     firstFaultSpec    ff       :  1;    // first fault specification
     eewDivSpec        eewDiv   :  1;    // EEW divisor specification
@@ -428,6 +636,7 @@ typedef struct opAttrsS {
     Bool              xQuiet   :  1;    // are X registers type-quiet?
     Bool              notZfinx :  1;    // absent if Zfinx?
     Bool              higher64 :  1;    // higher-priority RV64 decode?
+    Bool              unsPfx   :  1;    // show unsigned as z/s prefix
 } opAttrs;
 
 typedef const struct opAttrsS *opAttrsCP;
@@ -1187,6 +1396,188 @@ typedef enum riscvIType32E {
     IT32_VQMACCSU_VX,
     IT32_VQMACCUS_VX,
 
+    // P-extension instructions (RV32 and RV64)
+    IT32_ADD_Sx,
+    IT32_AVE,
+    IT32_BITREV,
+    IT32_BITREVI,
+    IT32_BPICK052,
+    IT32_BPICK096,
+    IT32_CLRS_Sx,
+    IT32_CLO_Sx,
+    IT32_CLZ_Sx,
+    IT32_CMPEQ_Sx,
+    IT32_CR_Sx,
+    IT32_INSB,
+    IT32_KABS_Sx,
+    IT32_KABSW,
+    IT32_KADD_Sx,
+    IT32_KADD_Wx,
+    IT32_KCR_Sx,
+    IT32_KDM_Hx,
+    IT32_KDMA_Hx,
+    IT32_KHM_Sx,
+    IT32_KHM_Hx,
+    IT32_KHMX_Sx,
+    IT32_KMA_Hx,
+    IT32_KMADA,
+    IT32_KMAXDA,
+    IT32_KMADS,
+    IT32_KMAXDS,
+    IT32_KMADRS,
+    IT32_KMAR_Sx,
+    IT32_KMDA,
+    IT32_KMXDA,
+    IT32_KMMAC_Rx,
+    IT32_KMMAW_Hx_Dx_Rx,
+    IT32_KMMSB_Rx,
+    IT32_KMMW_Hx_Dx_Rx,
+    IT32_KMSDA,
+    IT32_KMSXDA,
+    IT32_KMSR_Sx,
+    IT32_KSLL_Sx,
+    IT32_KSLLI8,
+    IT32_KSLLI16,
+    IT32_KSLLI32,
+    IT32_KSLLW,
+    IT32_KSLLIW,
+    IT32_KSLRA_Sx_Rx,
+    IT32_KSLRAW_Rx,
+    IT32_KST_Sx,
+    IT32_KSUB_Sx,
+    IT32_KSUB_Wx,
+    IT32_KWMMUL_Rx,
+    IT32_MADDR_Sx,
+    IT32_MAXW,
+    IT32_MINW,
+    IT32_MSUBR_Sx,
+    IT32_MULR_Sx,
+    IT32_MULSR_Sx,
+    IT32_PBSAD,
+    IT32_PBSADA,
+    IT32_PK_Hx_Sx,
+    IT32_RADD_Sx,
+    IT32_RADDW,
+    IT32_RCR_Sx,
+    IT32_RST_Sx,
+    IT32_RSUB_Sx,
+    IT32_RSUBW,
+    IT32_SCLIP8,
+    IT32_SCLIP16,
+    IT32_SCLIP32,
+    IT32_SCMPLE_Sx,
+    IT32_SCMPLT_Sx,
+    IT32_SLL_Sx,
+    IT32_SLLI8,
+    IT32_SLLI16,
+    IT32_SLLI32,
+    IT32_SMAL,
+    IT32_SMAL_Hx,
+    IT32_SMALDA,
+    IT32_SMALXDA,
+    IT32_SMALDS,
+    IT32_SMALDRS,
+    IT32_SMALXDS,
+    IT32_SMAR_Sx,
+    IT32_SMAQA,
+    IT32_SMAQA_SU,
+    IT32_SMAX_Sx,
+    IT32_SM_Hx_Sx,
+    IT32_SMDS,
+    IT32_SMDRS,
+    IT32_SMXDS,
+    IT32_SMIN_Sx,
+    IT32_SMMUL_Rx,
+    IT32_SMMW_Hx_Dx_Rx,
+    IT32_SMSLDA,
+    IT32_SMSLXDA,
+    IT32_SMSR_Sx,
+    IT32_SMUL_Sx,
+    IT32_SMULX_Sx,
+    IT32_SRA_Rx,
+    IT32_SRA_Sx_Rx,
+    IT32_SRAI_Rx,
+    IT32_SRAI8,
+    IT32_SRAI8_U,
+    IT32_SRAI16,
+    IT32_SRAI16_U,
+    IT32_SRAI32,
+    IT32_SRAI32_U,
+    IT32_SRL_Sx_Rx,
+    IT32_SRLI8,
+    IT32_SRLI8_U,
+    IT32_SRLI16,
+    IT32_SRLI16_U,
+    IT32_SRLI32,
+    IT32_SRLI32_U,
+    IT32_ST_Sx,
+    IT32_SUB_Sx,
+    IT32_SUNPKD_Sx_Px,
+    IT32_SWAP_Sx,
+    IT32_UCLIP8,
+    IT32_UCLIP16,
+    IT32_UCLIP32,
+    IT32_UCMPLE_Sx,
+    IT32_UCMPLT_Sx,
+    IT32_UKADD_Sx,
+    IT32_UKADD_Wx,
+    IT32_UKCR_Sx,
+    IT32_UKMAR_Sx,
+    IT32_UKMSR_Sx,
+    IT32_UKST_Sx,
+    IT32_UKSUB_Sx,
+    IT32_UKSUB_Wx,
+    IT32_UMAR_Sx,
+    IT32_UMAQA,
+    IT32_UMAX_Sx,
+    IT32_UMIN_Sx,
+    IT32_UMSR_Sx,
+    IT32_UMUL_Sx,
+    IT32_UMULX_Sx,
+    IT32_URADD_Sx,
+    IT32_URADDW,
+    IT32_URCR_Sx,
+    IT32_URST_Sx,
+    IT32_URSUB_Sx,
+    IT32_URSUBW,
+    IT32_WEXT,
+    IT32_WEXTI,
+    IT32_ZUNPKD_Sx_Px,
+
+    // P-extension instructions (RV64 only)
+    IT32_KDM_Hx_Sx,
+    IT32_KDMA_Hx_Sx,
+    IT32_KHM_Hx_Sx,
+    IT32_KMA_Hx_Sx,
+    IT32_KMAXDA_Sx,
+    IT32_KMDA_Sx,
+    IT32_KMXDA_Sx,
+    IT32_KMADS_Sx,
+    IT32_KMAXDS_Sx,
+    IT32_KMADRS_Sx,
+    IT32_KMSDA_Sx,
+    IT32_KMSXDA_Sx,
+    IT32_SMDS_Sx,
+    IT32_SMDRS_Sx,
+    IT32_SMXDS_Sx,
+    IT32_SRAIW_Rx,
+
+    // Zcea instructions
+    IT32_MULI_I,
+    IT32_BEQI_B,
+    IT32_BNEI_B,
+    IT32_PUSH,
+    IT32_PUSHE,
+    IT32_POP,
+    IT32_POPE,
+
+    // Zceb instructions
+    IT32_LWGP,
+    IT32_LDGP,
+    IT32_SWGP,
+    IT32_SDGP,
+    IT32_DECBNEZ,
+
     // KEEP LAST
     IT32_LAST
 
@@ -1403,12 +1794,12 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(      FNMADD_R4, "|.....|..|.....|.....|...|.....|1001111|"),
     DECODE32_ENTRY(      FNMSUB_R4, "|.....|..|.....|.....|...|.....|1001011|"),
 
-    // F-extension and D-extension I-type instructions
+    // F-extension I-type instructions (NOTE: D-extension requires Zceb absent)
     //                               |       imm32|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(           FL_I, "|............|.....|01.|.....|0000111|"),
+    DECODE32_ENTRY(           FL_I, "|............|.....|010|.....|0000111|"),
     DECODE32_ENTRY(           FL_I, "|............|.....|001|.....|0000111|"),
     DECODE32_ENTRY(           FL_I, "|............|.....|100|.....|0000111|"),
-    DECODE32_ENTRY(           FS_I, "|............|.....|01.|.....|0100111|"),
+    DECODE32_ENTRY(           FS_I, "|............|.....|010|.....|0100111|"),
     DECODE32_ENTRY(           FS_I, "|............|.....|001|.....|0100111|"),
     DECODE32_ENTRY(           FS_I, "|............|.....|100|.....|0100111|"),
 
@@ -1766,6 +2157,53 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(       VWMUL_VX, "|111011|.|.....|.....|110|.....|1010111|"),
     DECODE32_ENTRY(     VWMACCU_VX, "|111100|.|.....|.....|110|.....|1010111|"),
     DECODE32_ENTRY(      VWMACC_VX, "|111101|.|.....|.....|110|.....|1010111|"),
+
+    // Zcea instructions
+    DECODE32_ENTRY(         MULI_I, "|............|.....|001|.....|0001011|"),
+    DECODE32_ENTRY(         BEQI_B, "|.|......|.....|.....|010|....|.|1100011|"),
+    DECODE32_ENTRY(         BNEI_B, "|.|......|.....|.....|011|....|.|1100011|"),
+    DECODE32_ENTRY(           LAST, "|.|......|.....|00000|01.|....|.|1100011|"),
+    DECODE32_ENTRY(           PUSH, "|0000000000|0.|....|0100|.....|0101011|"),
+    DECODE32_ENTRY(          PUSHE, "|0000000000|0.|1101|0100|.....|0101011|"),
+    DECODE32_ENTRY(          PUSHE, "|0000000000|0.|111.|0100|.....|0101011|"),
+    DECODE32_ENTRY(            POP, "|0000000000|..|....|0101|.....|0101011|"),
+    DECODE32_ENTRY(           POPE, "|0000000000|..|1101|0101|.....|0101011|"),
+    DECODE32_ENTRY(           POPE, "|0000000000|..|111.|0101|.....|0101011|"),
+    DECODE32_ENTRY(            POP, "|0000000000|..|....|0110|.....|0101011|"),
+    DECODE32_ENTRY(           POPE, "|0000000000|..|1101|0110|.....|0101011|"),
+    DECODE32_ENTRY(           POPE, "|0000000000|..|111.|0110|.....|0101011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes present only when Zceb is
+// implemented
+//
+const static decodeEntry32 decodeZceb32[] = {
+
+    DECODE32_ENTRY(           LWGP, "|000|.........|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           LDGP, "|010|.........|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           SWGP, "|000|.........|.....|011|.....|0100111|"),
+    DECODE32_ENTRY(           SDGP, "|010|.........|.....|011|.....|0100111|"),
+    DECODE32_ENTRY(        DECBNEZ, "|100|.........|.....|011|.....|0000111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes present only when Zceb is *not*
+// implemented (D-extension loads and stores)
+//
+const static decodeEntry32 decodeNotZceb32[] = {
+
+    // F-extension and D-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(           FL_I, "|............|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           FS_I, "|............|.....|011|.....|0100111|"),
+
     // table termination entry
     {0}
 };
@@ -2764,6 +3202,442 @@ const static decodeEntry32 decodeKV092[] = {
 };
 
 //
+// This specifies Cryptographic Extension decodes for 1.0.0-rc
+//
+const static decodeEntry32 decodeKV100RC[] = {
+
+    // K-extension R-type SAES32 instructions
+    //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( SAES32_ENCSM_R92, "|..10011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES32_ENCS_R92, "|..10001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY( SAES32_DECSM_R92, "|..10111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SAES32_DECS_R92, "|..10101|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SSM3/SSM4 instructions
+    //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(        SSM3_P0_R, "|0001000|01000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(        SSM3_P1_R, "|0001000|01001|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(      SSM4_ED_R72, "|..11000|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(      SSM4_KS_R72, "|..11010|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SAES64 instructions
+    //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(     SAES64_KS1_R, "|0011000|1....|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(     SAES64_KS2_R, "|0111111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(    SAES64_IMIX_R, "|0011000|00000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SAES64_ENCSM_R, "|0011011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(    SAES64_ENCS_R, "|0011001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(   SAES64_DECSM_R, "|0011111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(    SAES64_DECS_R, "|0011101|.....|.....|000|.....|0110011|"),
+
+    // K-extension R-type SSHA256 instructions
+    //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(   SSHA256_SIG0_R, "|0001000|00010|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA256_SIG1_R, "|0001000|00011|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA256_SUM0_R, "|0001000|00000|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA256_SUM1_R, "|0001000|00001|.....|001|.....|0010011|"),
+
+    // K-extension R-type SSHA512 instructions
+    //                                 | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(  SSHA512_SIG0L_R, "|0101010|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SSHA512_SIG0H_R, "|0101110|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SSHA512_SIG1L_R, "|0101011|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SSHA512_SIG1H_R, "|0101111|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SSHA512_SUM0R_R, "|0101000|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(  SSHA512_SUM1R_R, "|0101001|.....|.....|000|.....|0110011|"),
+    DECODE32_ENTRY(   SSHA512_SIG0_R, "|0001000|00110|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA512_SIG1_R, "|0001000|00111|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA512_SUM0_R, "|0001000|00100|.....|001|.....|0010011|"),
+    DECODE32_ENTRY(   SSHA512_SUM1_R, "|0001000|00101|.....|001|.....|0010011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// Create entries in decodeEntries32 table for DSP entries with fixed size
+//
+#define DECODE32_SET_SZ(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1)
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16, 32 and 64
+// bit variants encoded in bits 12, 13 and 27
+//
+#define DECODE32_SET_SZ_12_13_27(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx, "0" _PATTERN1 "." _PATTERN2 "|.....|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, "0" _PATTERN1 "0" _PATTERN2 "|.....|.....|010|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, "1" _PATTERN1 "0" _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16 and 32
+// bit variants encoded in bits 24:23
+//
+#define DECODE32_SET_SZ_24_23(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "0." _PATTERN2 "|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "11" _PATTERN2 "|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8 and 16
+// bit variants encoded in bit 25
+//
+#define DECODE32_SET_SZ_25(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 ".|.....|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16 and 32
+// bit variants encoded in bits 21:20
+//
+#define DECODE32_SET_SZ_21_20(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "00.|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "010|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 16 and 32
+// bit variants encoded in bit 13 and cross operation encoded in bit 25
+//
+#define DECODE32_SET_SZ_13_CR_25(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 ".|.....|.....|0.0|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 16 and 32
+// bit variants encoded in bit 26 and cross operation encoded in bit 25
+//
+#define DECODE32_SET_SZ_26_CR_25(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "..|.....|.....|" _PATTERN2 "|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8 and 16 bit
+// variants encoded in bit 20
+//
+#define DECODE32_SET_SZ_20(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8 and 16 bit
+// variants encoded in bit 27
+//
+#define DECODE32_SET_SZ_27(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx, "1" _PATTERN1 "." _PATTERN2 "|.....|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16 and 32
+// bit variants encoded in bits 13 and 27
+//
+#define DECODE32_SET_SZ2_13_27(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "." _PATTERN2 "|.....|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "0" _PATTERN2 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16 and 32
+// bit variants encoded in bits 13 and 27
+//
+#define DECODE32_SET_SZ3_13_27(_NAME, _PATTERN1, _PATTERN2, _PATTERN3) \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN1 "." _PATTERN3 "|.....|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx, _PATTERN2 "0" _PATTERN3 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with 8, 16 and 32
+// bit variants encoded in bits 13 and 27 and rounding encoded in bits 29/28
+//
+#define DECODE32_SET_SZ_RND(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Sx_Rx, _PATTERN1 "01." _PATTERN2 "|.....|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx_Rx, _PATTERN1 "10." _PATTERN2 "|.....|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx_Rx, _PATTERN1 "100" _PATTERN2 "|.....|.....|010|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx_Rx, _PATTERN1 "010" _PATTERN2 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with H and W variants
+// encoded in bit 26
+//
+#define DECODE32_SET_HW(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Wx, _PATTERN1 "." _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28 (values 0, 1 and 2)
+//
+#define DECODE32_SET_BT012(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx, _PATTERN1 "0." _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx, _PATTERN1 "10" _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28, values 1, 2 and 3
+//
+#define DECODE32_SET_BT123(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx, _PATTERN1 "01" _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx, _PATTERN1 "1." _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28, values 1, 2 and 3, and constant size 16
+//
+#define DECODE32_SET_BT123_SZ16(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "01" _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "1." _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28, values 1, 2 and 3, and constant size 32
+//
+#define DECODE32_SET_BT123_SZ32(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "01" _PATTERN2 "|.....|.....|010|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "1." _PATTERN2 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28 (values 0, 1, and 2), and size 16 or 32
+// encoded in bits 13:12
+//
+#define DECODE32_SET_BT012_SZ(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "0." _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "10" _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "0." _PATTERN2 "|.....|.....|010|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 "10" _PATTERN2 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with bottom/top half
+// variants encoded in bits 29:28 (values 0, 1, 2 and 3), and size 16 or 32
+// encoded in bits 13:12
+//
+#define DECODE32_SET_BT0123_SZ(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 ".." _PATTERN2 "|.....|.....|001|.....|"), \
+    DECODE32_ENTRY(_NAME##_Hx_Sx, _PATTERN1 ".." _PATTERN2 "|.....|.....|010|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with rounding variant
+// encoded in bit 28 (always 1)
+//
+#define DECODE32_SET_RND(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Rx, _PATTERN1 "." _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries which always round
+//
+#define DECODE32_SET_RNDU(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Rx, _PATTERN1 _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with packing variant
+// encoded in bit 22
+//
+#define DECODE32_SET_PACK(_NAME, _PATTERN1) \
+    DECODE32_ENTRY(_NAME##_Sx_Px, "|1010110|01" _PATTERN1 "..|.....|000|.....|"), \
+    DECODE32_ENTRY(_NAME##_Sx_Px, "|1010110|10" _PATTERN1 "11|.....|000|.....|")
+
+//
+// Create entries in decodeEntries32 table for DSP entries with rounding variant
+// encoded in bit 28 (always 1)
+//
+#define DECODE32_SET_BT_DBL_RND(_NAME, _PATTERN1, _PATTERN2) \
+    DECODE32_ENTRY(_NAME##_Hx_Dx_Rx, _PATTERN1 "." _PATTERN2 "|.....|.....|001|.....|")
+
+//
+// This specifies DSP Extension common decodes
+//
+const static decodeEntry32 decodePCommon[] = {
+
+    // P-extension instructions (RV32 and RV64)
+    DECODE32_SET_SZ_12_13_27 (      ADD, "100", "00"),
+    DECODE32_ENTRY           (      AVE, "|1110000|.....|.....|000|.....|"),
+    DECODE32_ENTRY           (   BITREV, "|1110011|.....|.....|000|.....|"),
+    DECODE32_ENTRY           (  BITREVI, "|111010|......|.....|000|.....|"),
+    DECODE32_SET_SZ_24_23    (     CLRS, "1010111", "000"),
+    DECODE32_SET_SZ_24_23    (      CLZ, "1010111", "001"),
+    DECODE32_SET_SZ_25       (    CMPEQ, "010011"),
+    DECODE32_SET_SZ_13_CR_25 (       CR, "010001"),
+    DECODE32_ENTRY           (     INSB, "|101011000|...|.....|000|.....|"),
+    DECODE32_SET_SZ_21_20    (     KABS, "101011010"),
+    DECODE32_ENTRY           (    KABSW, "|101011010|100|.....|000|.....|"),
+    DECODE32_SET_SZ_12_13_27 (     KADD, "001", "00"),
+    DECODE32_SET_HW          (     KADD, "00000", "0"),
+    DECODE32_SET_SZ_13_CR_25 (      KCR, "000101"),
+    DECODE32_SET_BT012       (      KDM, "00", "101"),
+    DECODE32_SET_BT123       (     KDMA, "11", "001"),
+    DECODE32_SET_SZ_27       (      KHM, "000", "11"),
+    DECODE32_SET_BT012       (      KHM, "00", "110"),
+    DECODE32_SET_SZ_27       (     KHMX, "001", "11"),
+    DECODE32_SET_BT123       (      KMA, "01", "101"),
+    DECODE32_ENTRY           (    KMADA, "|0100100|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   KMAXDA, "|0100101|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    KMADS, "|0101110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   KMAXDS, "|0111110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   KMADRS, "|0110110|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (     KMAR, "|1001010|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (     KMDA, "|0011100|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    KMXDA, "|0011101|.....|.....|001|.....|"),
+    DECODE32_SET_RND         (    KMMAC, "011", "000"),
+    DECODE32_SET_BT_DBL_RND  (    KMMAW, "01.", "011"),
+    DECODE32_SET_BT_DBL_RND  (    KMMAW, "11.", "111"),
+    DECODE32_SET_RND         (    KMMSB, "010", "001"),
+    DECODE32_SET_BT_DBL_RND  (     KMMW, "10.", "111"),
+    DECODE32_ENTRY           (    KMSDA, "|0100110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   KMSXDA, "|0100111|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (     KMSR, "|1001011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ2_13_27   (     KSLL, "0110", "10"),
+    DECODE32_ENTRY           (   KSLLI8, "|011111001|...|.....|000|.....|"),
+    DECODE32_ENTRY           (  KSLLI16, "|01110101|....|.....|000|.....|"),
+    DECODE32_ENTRY           (  KSLLI32, "|1000010|.....|.....|010|.....|"),
+    DECODE32_ENTRY           (    KSLLW, "|0010011|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   KSLLIW, "|0011011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_RND      (    KSLRA, "01", "11"),
+    DECODE32_SET_RND         (   KSLRAW, "011", "111"),
+    DECODE32_SET_SZ_12_13_27 (     KSUB, "001", "01"),
+    DECODE32_SET_HW          (     KSUB, "00000", "1"),
+    DECODE32_SET_RND         (   KWMMUL, "011", "001"),
+    DECODE32_SET_SZ          (    MADDR, "|1100010|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (     MAXW, "|1111001|.....|.....|000|.....|"),
+    DECODE32_ENTRY           (     MINW, "|1111000|.....|.....|000|.....|"),
+    DECODE32_SET_SZ          (    MSUBR, "|1100011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (     MULR, "|1111000|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (    MULSR, "|1110000|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    PBSAD, "|1111110|.....|.....|000|.....|"),
+    DECODE32_ENTRY           (   PBSADA, "|1111111|.....|.....|000|.....|"),
+    DECODE32_SET_BT0123_SZ   (       PK, "00", "111"),
+    DECODE32_SET_SZ_12_13_27 (     RADD, "000", "00"),
+    DECODE32_ENTRY           (    RADDW, "|0010000|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_13_CR_25 (      RCR, "000001"),
+    DECODE32_SET_SZ_12_13_27 (     RSUB, "000", "01"),
+    DECODE32_ENTRY           (    RSUBW, "|0010001|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   SCLIP8, "|100011000|...|.....|000|.....|"),
+    DECODE32_ENTRY           (  SCLIP16, "|10000100|....|.....|000|.....|"),
+    DECODE32_ENTRY           (  SCLIP32, "|1110010|.....|.....|000|.....|"),
+    DECODE32_SET_SZ_25       (   SCMPLE, "000111"),
+    DECODE32_SET_SZ_25       (   SCMPLT, "000011"),
+    DECODE32_SET_SZ2_13_27   (      SLL, "0101", "10"),
+    DECODE32_ENTRY           (    SLLI8, "|011111000|...|.....|000|.....|"),
+    DECODE32_ENTRY           (   SLLI16, "|01110100|....|.....|000|.....|"),
+    DECODE32_ENTRY           (   SLLI32, "|0111010|.....|.....|010|.....|"),
+    DECODE32_ENTRY           (     SMAL, "|0101111|.....|.....|001|.....|"),
+    DECODE32_SET_BT012       (     SMAL, "10", "100"),
+    DECODE32_ENTRY           (   SMALDA, "|1000110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (  SMALXDA, "|1001110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (   SMALDS, "|1000101|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (  SMALDRS, "|1001101|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (  SMALXDS, "|1010101|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (     SMAR, "|1000010|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    SMAQA, "|1100100|.....|.....|000|.....|"),
+    DECODE32_ENTRY           ( SMAQA_SU, "|1100101|.....|.....|000|.....|"),
+    DECODE32_SET_SZ3_13_27   (     SMAX, "1000", "1001", "01"),
+    DECODE32_SET_BT012_SZ    (       SM, "00", "100"),
+    DECODE32_ENTRY           (     SMDS, "|0101100|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    SMDRS, "|0110100|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    SMXDS, "|0111100|.....|.....|001|.....|"),
+    DECODE32_SET_SZ3_13_27   (     SMIN, "1000", "1001", "00"),
+    DECODE32_SET_RND         (    SMMUL, "010", "000"),
+    DECODE32_SET_BT_DBL_RND  (     SMMW, "01.", "010"),
+    DECODE32_ENTRY           (   SMSLDA, "|1010110|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (  SMSLXDA, "|1011110|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (     SMSR, "|1000011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_27       (     SMUL, "010", "00"),
+    DECODE32_SET_SZ_27       (    SMULX, "010", "01"),
+    DECODE32_SET_RNDU        (      SRA, "0010", "010"),
+    DECODE32_SET_SZ_RND      (      SRA, "01", "00"),
+    DECODE32_ENTRY           (    SRAI8, "|011110000|........|000|.....|"),
+    DECODE32_ENTRY           (  SRAI8_U, "|011110001|........|000|.....|"),
+    DECODE32_ENTRY           (   SRAI16, "|01110000|.........|000|.....|"),
+    DECODE32_ENTRY           ( SRAI16_U, "|01110001|.........|000|.....|"),
+    DECODE32_ENTRY           (   SRAI32, "|0111000|..........|010|.....|"),
+    DECODE32_ENTRY           ( SRAI32_U, "|1000000|..........|010|.....|"),
+    DECODE32_SET_RNDU        (     SRAI, "1101", "01."),
+    DECODE32_SET_SZ_RND      (      SRL, "01", "01"),
+    DECODE32_ENTRY           (    SRLI8, "|011110100|........|000|.....|"),
+    DECODE32_ENTRY           (  SRLI8_U, "|011110101|........|000|.....|"),
+    DECODE32_ENTRY           (   SRLI16, "|01110010|.........|000|.....|"),
+    DECODE32_ENTRY           ( SRLI16_U, "|01110011|.........|000|.....|"),
+    DECODE32_ENTRY           (   SRLI32, "|0111001|..........|010|.....|"),
+    DECODE32_ENTRY           ( SRLI32_U, "|1000001|..........|010|.....|"),
+    DECODE32_SET_SZ_12_13_27 (      SUB, "100", "01"),
+    DECODE32_SET_PACK        (   SUNPKD, "0"),
+    DECODE32_SET_SZ_20       (     SWAP, "101011011000"),
+    DECODE32_ENTRY           (   UCLIP8, "|100011010|...|.....|000|.....|"),
+    DECODE32_ENTRY           (  UCLIP16, "|10000101|....|.....|000|.....|"),
+    DECODE32_ENTRY           (  UCLIP32, "|1111010|.....|.....|000|.....|"),
+    DECODE32_SET_SZ_25       (   UCMPLE, "001111"),
+    DECODE32_SET_SZ_25       (   UCMPLT, "001011"),
+    DECODE32_SET_SZ_12_13_27 (    UKADD, "011", "00"),
+    DECODE32_SET_HW          (    UKADD, "00010", "0"),
+    DECODE32_SET_SZ_13_CR_25 (     UKCR, "001101"),
+    DECODE32_SET_SZ          (    UKMAR, "|1011010|.....|.....|001|.....|"),
+    DECODE32_SET_SZ          (    UKMSR, "|1011011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_12_13_27 (    UKSUB, "011", "01"),
+    DECODE32_SET_HW          (    UKSUB, "00010", "1"),
+    DECODE32_SET_SZ          (     UMAR, "|1010010|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (    UMAQA, "|1100110|.....|.....|000|.....|"),
+    DECODE32_SET_SZ3_13_27   (     UMAX, "1001", "1010", "01"),
+    DECODE32_SET_SZ3_13_27   (     UMIN, "1001", "1010", "00"),
+    DECODE32_SET_SZ          (     UMSR, "|1010011|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_27       (     UMUL, "011", "00"),
+    DECODE32_SET_SZ_27       (    UMULX, "011", "01"),
+    DECODE32_SET_SZ_12_13_27 (    URADD, "010", "00"),
+    DECODE32_ENTRY           (   URADDW, "|0011000|.....|.....|001|.....|"),
+    DECODE32_SET_SZ_13_CR_25 (     URCR, "001001"),
+    DECODE32_SET_SZ_12_13_27 (    URSUB, "010", "01"),
+    DECODE32_ENTRY           (   URSUBW, "|0011001|.....|.....|001|.....|"),
+    DECODE32_ENTRY           (     WEXT, "|1100111|.....|.....|000|.....|"),
+    DECODE32_ENTRY           (    WEXTI, "|1101111|.....|.....|000|.....|"),
+    DECODE32_SET_PACK        (   ZUNPKD, "1"),
+
+    // P-extension instructions (RV64 only)
+    DECODE32_SET_BT123_SZ16  (      KDM, "11", "101"),
+    DECODE32_SET_BT123_SZ16  (     KDMA, "11", "100"),
+    DECODE32_SET_BT123_SZ16  (      KHM, "11", "110"),
+    DECODE32_SET_BT123_SZ32  (      KMA, "01", "101"),
+    DECODE32_SET_SZ          (   KMAXDA, "|0100101|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (     KMDA, "|0011100|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (    KMXDA, "|0011101|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (    KMADS, "|0101110|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (   KMAXDS, "|0111110|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (   KMADRS, "|0110110|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (    KMSDA, "|0100110|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (   KMSXDA, "|0100111|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (     SMDS, "|0101100|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (    SMDRS, "|0110100|.....|.....|010|.....|"),
+    DECODE32_SET_SZ          (    SMXDS, "|0111100|.....|.....|010|.....|"),
+    DECODE32_SET_RNDU        (    SRAIW, "0011", "010"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies DSP Extension decodes for 0.5.2 only
+//
+const static decodeEntry32 decodeP052[] = {
+
+    // P-extension instructions (RV32 and RV64)
+    DECODE32_SET_SZ_24_23    (      CLO, "1010111", "011"),
+    DECODE32_SET_SZ_20       (     SWAP, "101011011001"),
+    DECODE32_ENTRY           ( BPICK052, "|11|.....|.....|.....|010|.....|"),
+    DECODE32_SET_SZ_26_CR_25 (       ST, "01000", "011"),
+    DECODE32_SET_SZ_26_CR_25 (      RST, "00000", "011"),
+    DECODE32_SET_SZ_26_CR_25 (      KST, "00010", "011"),
+    DECODE32_SET_SZ_26_CR_25 (     URST, "00100", "011"),
+    DECODE32_SET_SZ_26_CR_25 (     UKST, "00110", "011"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies DSP Extension decodes for 0.9.6 only
+//
+const static decodeEntry32 decodeP096[] = {
+
+    // P-extension instructions (RV32 and RV64)
+    DECODE32_ENTRY           ( BPICK096, "|.....|00|.....|.....|011|.....|"),
+    DECODE32_SET_SZ_26_CR_25 (       ST, "11110", "010"),
+    DECODE32_SET_SZ_26_CR_25 (      RST, "10110", "010"),
+    DECODE32_SET_SZ_26_CR_25 (      KST, "11000", "010"),
+    DECODE32_SET_SZ_26_CR_25 (     URST, "11010", "010"),
+    DECODE32_SET_SZ_26_CR_25 (     UKST, "11100", "010"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies attributes for each 32-bit opcode
 //
 const static opAttrs attrsArray32[] = {
@@ -3067,15 +3941,15 @@ const static opAttrs attrsArray32[] = {
     ATTR32_HSV                  (        HSV_D_R,           HSV_R, RV64H,   "hsv."),
 
     // K-extension R-type LUT instructions
-    ATTR32_RD_RS1_RS2_WX0       (       LUT4LO_R,        LUT4LO_R, RVANYK,  "lut4lo"),
-    ATTR32_RD_RS1_RS2_WX0       (       LUT4HI_R,        LUT4HI_R, RVANYK,  "lut4hi"),
+    ATTR32_RD_RS1_RS2_WX1K      (       LUT4LO_R,        LUT4LO_R, RVANYK,  "lut4lo"),
+    ATTR32_RD_RS1_RS2_WX1K      (       LUT4HI_R,        LUT4HI_R, RVANYK,  "lut4hi"),
     ATTR32_RD_RS1_RS2_WX0       (         LUT4_R,          LUT4_R, RV64K,   "lut4"  ),
 
     // K-extension R-type SAES32 instructions
-    ATTR32_RD_RS1_RS2_BS_WX0    ( SAES32_ENCSM_R72, SAES32_ENCSM_R, RV32K,  "aes32esmi"),
-    ATTR32_RD_RS1_RS2_BS_WX0    (  SAES32_ENCS_R72,  SAES32_ENCS_R, RV32K,  "aes32esi" ),
-    ATTR32_RD_RS1_RS2_BS_WX0    ( SAES32_DECSM_R72, SAES32_DECSM_R, RV32K,  "aes32dsmi"),
-    ATTR32_RD_RS1_RS2_BS_WX0    (  SAES32_DECS_R72,  SAES32_DECS_R, RV32K,  "aes32dsi" ),
+    ATTR32_RD_RS1_RS2_BS_WX1K   ( SAES32_ENCSM_R72, SAES32_ENCSM_R, RV32K,  "aes32esmi"),
+    ATTR32_RD_RS1_RS2_BS_WX1K   (  SAES32_ENCS_R72,  SAES32_ENCS_R, RV32K,  "aes32esi" ),
+    ATTR32_RD_RS1_RS2_BS_WX1K   ( SAES32_DECSM_R72, SAES32_DECSM_R, RV32K,  "aes32dsmi"),
+    ATTR32_RD_RS1_RS2_BS_WX1K   (  SAES32_DECS_R72,  SAES32_DECS_R, RV32K,  "aes32dsi" ),
     ATTR32_RD_RS1_BS_WX0_H64    ( SAES32_ENCSM_R81, SAES32_ENCSM_R, RV32K,  "aes32esmi"),
     ATTR32_RD_RS1_BS_WX0_H64    (  SAES32_ENCS_R81,  SAES32_ENCS_R, RV32K,  "aes32esi" ),
     ATTR32_RD_RS1_BS_WX0_H64    ( SAES32_DECSM_R81, SAES32_DECSM_R, RV32K,  "aes32dsmi"),
@@ -3086,10 +3960,10 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2_BS_WX0_H64(  SAES32_DECS_R92,  SAES32_DECS_R, RV32K,  "aes32dsi" ),
 
     // K-extension R-type SSM3/SSM4 instructions
-    ATTR32_RD_RS1_rs2_WX0       (      SSM3_P0_R,       SSM3_P0_R, RVANYK,  "sm3p0"),
-    ATTR32_RD_RS1_rs2_WX0       (      SSM3_P1_R,       SSM3_P1_R, RVANYK,  "sm3p1"),
-    ATTR32_RD_RS1_RS2_BS_WX0    (    SSM4_ED_R72,       SSM4_ED_R, RVANYK,  "sm4ed"),
-    ATTR32_RD_RS1_RS2_BS_WX0    (    SSM4_KS_R72,       SSM4_KS_R, RVANYK,  "sm4ks"),
+    ATTR32_RD_RS1_rs2_WX1K      (      SSM3_P0_R,       SSM3_P0_R, RVANYK,  "sm3p0"),
+    ATTR32_RD_RS1_rs2_WX1K      (      SSM3_P1_R,       SSM3_P1_R, RVANYK,  "sm3p1"),
+    ATTR32_RD_RS1_RS2_BS_WX1K   (    SSM4_ED_R72,       SSM4_ED_R, RVANYK,  "sm4ed"),
+    ATTR32_RD_RS1_RS2_BS_WX1K   (    SSM4_KS_R72,       SSM4_KS_R, RVANYK,  "sm4ks"),
     ATTR32_RD_RS1_BS_WX0        (    SSM4_ED_R81,       SSM4_ED_R, RVANYK,  "sm4ed"),
     ATTR32_RD_RS1_BS_WX0        (    SSM4_KS_R81,       SSM4_KS_R, RVANYK,  "sm4ks"),
 
@@ -3103,10 +3977,10 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2_WX0       (  SAES64_DECS_R,   SAES64_DECS_R, RV64K,   "aes64ds"  ),
 
     // K-extension R-type SSHA256 instructions
-    ATTR32_RD_RS1_rs2_WX0       ( SSHA256_SIG0_R,  SSHA256_SIG0_R, RVANYK,  "sha256sig0"),
-    ATTR32_RD_RS1_rs2_WX0       ( SSHA256_SIG1_R,  SSHA256_SIG1_R, RVANYK,  "sha256sig1"),
-    ATTR32_RD_RS1_rs2_WX0       ( SSHA256_SUM0_R,  SSHA256_SUM0_R, RVANYK,  "sha256sum0"),
-    ATTR32_RD_RS1_rs2_WX0       ( SSHA256_SUM1_R,  SSHA256_SUM1_R, RVANYK,  "sha256sum1"),
+    ATTR32_RD_RS1_rs2_WX1K      ( SSHA256_SIG0_R,  SSHA256_SIG0_R, RVANYK,  "sha256sig0"),
+    ATTR32_RD_RS1_rs2_WX1K      ( SSHA256_SIG1_R,  SSHA256_SIG1_R, RVANYK,  "sha256sig1"),
+    ATTR32_RD_RS1_rs2_WX1K      ( SSHA256_SUM0_R,  SSHA256_SUM0_R, RVANYK,  "sha256sum0"),
+    ATTR32_RD_RS1_rs2_WX1K      ( SSHA256_SUM1_R,  SSHA256_SUM1_R, RVANYK,  "sha256sum1"),
 
     // K-extension R-type SSHA512 instructions
     ATTR32_RD_RS1_RS2_WX0       (SSHA512_SIG0L_R, SSHA512_SIG0L_R, RV32K,   "sha512sig0l"),
@@ -3332,13 +4206,13 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_VS2_M_VS      (     VREDMAX_VS,      VREDMAX_VS, RVANYV,  "vredmax"  ),
     ATTR32_VD_VS1_VS2_MM        (       VMAND_MM,        VMAND_MM, RVANYV,  "vmand"    ),
     ATTR32_VD_VS1_VS2_MM        (      VMNAND_MM,       VMNAND_MM, RVANYV,  "vmnand"   ),
-    ATTR32_VD_VS1_VS2_MM        (    VMANDNOT_MM,     VMANDNOT_MM, RVANYV,  "vmandnot" ),
+    ATTR32_VD_VS1_VS2_MM        (    VMANDNOT_MM,     VMANDNOT_MM, RVANYV,  "vmandn"   ),
     ATTR32_VD_VS1_VS2_MM        (       VMXOR_MM,        VMXOR_MM, RVANYV,  "vmxor"    ),
     ATTR32_VD_VS1_VS2_MM        (        VMOR_MM,         VMOR_MM, RVANYV,  "vmor"     ),
     ATTR32_VD_VS1_VS2_MM        (       VMNOR_MM,        VMNOR_MM, RVANYV,  "vmnor"    ),
-    ATTR32_VD_VS1_VS2_MM        (     VMORNOT_MM,      VMORNOT_MM, RVANYV,  "vmornot"  ),
+    ATTR32_VD_VS1_VS2_MM        (     VMORNOT_MM,      VMORNOT_MM, RVANYV,  "vmorn"    ),
     ATTR32_VD_VS1_VS2_MM        (      VMXNOR_MM,       VMXNOR_MM, RVANYV,  "vmxnor"   ),
-    ATTR32_RD_VS1_M_M           (        VPOPC_M,         VPOPC_M, RVANYV,  "vpopc"    ),
+    ATTR32_RD_VS1_M_M           (        VPOPC_M,         VPOPC_M, RVANYV,  "vcpop"    ),
     ATTR32_RD_VS1_M_M           (       VFIRST_M,        VFIRST_M, RVANYV,  "vfirst"   ),
     ATTR32_VD_VS1_M_M           (        VMSBF_M,         VMSBF_M, RVANYV,  "vmsbf"    ),
     ATTR32_VD_VS1_M_M           (        VMSIF_M,         VMSIF_M, RVANYV,  "vmsif"    ),
@@ -3514,9 +4388,214 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_RS2_VS1_M_VX      (    VWMACCSU_VX,     VWMACCSU_VR, RVANYV,  "vwmaccsu"   ),
     ATTR32_VD_RS2_VS1_M_VX      (    VWMACCUS_VX,     VWMACCUS_VR, RVANYV,  "vwmaccus"   ),
 
+    // P-extension instructions (RV32 and RV64)
+    ATTR32_RD_RS1_RS2_SZ1       (            ADD,             ADD, RVANYP,  "add"        ),
+    ATTR32_RD_RS1_RS2_WX0       (            AVE,             AVE, RVANYP,  "ave"        ),
+    ATTR32_RD_RS1_RS2_WX0       (         BITREV,          BITREV, RVANYP,  "bitrev"     ),
+    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi"    ),
+    ATTR32_RD_RS1_RS2_RS3_WX0   (       BPICK052,           BPICK, RVANYP,  "bpick"      ),
+    ATTR32_RD_RS1_RS2_RS3       (       BPICK096,           BPICK, RVANYP,  "bpick"      ),
+    ATTR32_RD_RS1_SZ2           (           CLRS,            CLRS, RVANYP,  "clrs"       ),
+    ATTR32_RD_RS1_SZ2           (            CLO,             CLO, RVANYP,  "clo"        ),
+    ATTR32_RD_RS1_SZ2           (            CLZ,             CLZ, RVANYP,  "clz"        ),
+    ATTR32_RD_RS1_RS2_SZ3       (          CMPEQ,           CMPEQ, RVANYP,  "cmpeq"      ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (             CR,              CR, RVANYP,  "cr"         ),
+    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi"    ),
+    ATTR32_RD_RS1_BYTE_WX0      (           INSB,            INSB, RVANYP,  "insb"       ),
+    ATTR32_RD_RS1_SZ4           (           KABS,            KABS, RVANYP,  "kabs"       ),
+    ATTR32_RD_RS1_WX1           (           KABSW,          KABSW, RVANYP,  "kabs"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KADD,            KADD, RVANYP,  "kadd"       ),
+    ATTR32_RD_RS1_RS2_HW        (           KADD,            KADD, RVANYP,  "kadd"       ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (            KCR,             KCR, RVANYP,  "kcr"        ),
+    ATTR32_RD_RS1_RS2_BT012_WX1 (            KDM,             KDM, RVANYP,  "kdm"        ),
+    ATTR32_RD_RS1_RS2_BT123_WX1 (           KDMA,            KDMA, RVANYP,  "kdma"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (            KHM,             KHM, RVANYP,  "khm"        ),
+    ATTR32_RD_RS1_RS2_BT012_WX1 (            KHM,             KHM, RVANYP,  "khm"        ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KHMX,            KHMX, RVANYP,  "khmx"       ),
+    ATTR32_RD_RS1_RS2_BT123     (            KMA,             KMA, RVANYP,  "kma"        ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMADA,           KMADA, RVANYP,  "kmada"      ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMAXDA,          KMAXDA, RVANYP,  "kmaxda"     ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMADS,           KMADS, RVANYP,  "kmads"      ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMAXDS,          KMAXDS, RVANYP,  "kmaxds"     ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMADRS,          KMADRS, RVANYP,  "kmadrs"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMAR,            KMAR, RVANYP,  "kmar"       ),
+    ATTR32_RD_RS1_RS2_WX0       (           KMDA,            KMDA, RVANYP,  "kmda"       ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMXDA,           KMXDA, RVANYP,  "kmxda"      ),
+    ATTR32_RD_RS1_RS2_RND       (          KMMAC,           KMMAC, RVANYP,  "kmmac"      ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(          KMMAW,           KMMAW, RVANYP,  "kmmaw"      ),
+    ATTR32_RD_RS1_RS2_RND       (          KMMSB,           KMMSB, RVANYP,  "kmmsb"      ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(           KMMW,            KMMW, RVANYP,  "kmmw"       ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMSDA,           KMSDA, RVANYP,  "kmsda"      ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMSXDA,          KMSXDA, RVANYP,  "kmsxda"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMSR,            KMSR, RVANYP,  "kmsr"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KSLL,            KSLL, RVANYP,  "ksll"       ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
+    ATTR32_RD_RS1_RS2_WX1       (          KSLLW,           KSLLW, RVANYP,  "ksll"       ),
+    ATTR32_RD_RS1_IMM5U_WX1     (         KSLLIW,          KSLLIW, RVANYP,  "kslli"      ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (          KSLRA,           KSLRA, RVANYP,  "kslra"      ),
+    ATTR32_RD_RS1_RS2_RND_WX1   (         KSLRAW,           KSLRA, RVANYP,  "kslra"      ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (            KST,             KST, RVANYP,  "kst"        ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KSUB,            KSUB, RVANYP,  "ksub"       ),
+    ATTR32_RD_RS1_RS2_HW        (           KSUB,            KSUB, RVANYP,  "ksub"       ),
+    ATTR32_RD_RS1_RS2_RND       (         KWMMUL,          KWMMUL, RVANYP,  "kwmmul"     ),
+    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MADDR,           MADDR, RVANYP,  "maddr"      ),
+    ATTR32_RD_RS1_RS2_WX1       (           MAXW,            MAXW, RVANYP,  "max"        ),
+    ATTR32_RD_RS1_RS2_WX1       (           MINW,            MINW, RVANYP,  "min"        ),
+    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MSUBR,           MSUBR, RVANYP,  "msubr"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           MULR,            MULR, RVANYP,  "mulr"       ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          MULSR,           MULSR, RVANYP,  "mulsr"      ),
+    ATTR32_RD_RS1_RS2_WX0       (          PBSAD,           PBSAD, RVANYP,  "pbsad"      ),
+    ATTR32_RD_RS1_RS2_WX0       (         PBSADA,          PBSADA, RVANYP,  "pbsada"     ),
+    ATTR32_RD_RS1_RS2_BT012_SZ  (             PK,              PK, RVANYP,  "pk"         ),
+    ATTR32_RD_RS1_RS2_SZ1       (           RADD,            RADD, RVANYP,  "radd"       ),
+    ATTR32_RD_RS1_RS2_WX1       (          RADDW,           RADDW, RVANYP,  "radd"       ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (            RCR,             RCR, RVANYP,  "rcr"        ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (            RST,             RST, RVANYP,  "rst"        ),
+    ATTR32_RD_RS1_RS2_SZ1       (           RSUB,            RSUB, RVANYP,  "rsub"       ),
+    ATTR32_RD_RS1_RS2_WX1       (          RSUBW,           RSUBW, RVANYP,  "rsub"       ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
+    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLE,          SCMPLE, RVANYP,  "scmple"     ),
+    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLT,          SCMPLT, RVANYP,  "scmplt"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (            SLL,             SLL, RVANYP,  "sll"        ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (           SLLI,            SLLI, RVANYP,  "slli"       ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (           SLLI,            SLLI, RVANYP,  "slli"       ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (           SLLI,            SLLI, RVANYP,  "slli"       ),
+    ATTR32_RD_RS1_RS2_WX0       (           SMAL,            SMAL, RVANYP,  "smal"       ),
+    ATTR32_RD_RS1_RS2_BT012     (           SMAL,            SMAL, RVANYP,  "smal"       ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMALDA,          SMALDA, RVANYP,  "smalda"     ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALXDA,         SMALXDA, RVANYP,  "smalxda"    ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMALDS,          SMALDS, RVANYP,  "smalds"     ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALDRS,         SMALDRS, RVANYP,  "smaldrs"    ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALXDS,         SMALXDS, RVANYP,  "smalxds"    ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMAR,            SMAR, RVANYP,  "smar"       ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMAQA,           SMAQA, RVANYP,  "smaqa"      ),
+    ATTR32_RD_RS1_RS2_WX0       (       SMAQA_SU,        SMAQA_SU, RVANYP,  "smaqa.su"   ),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMAX,            SMAX, RVANYP,  "smax"       ),
+    ATTR32_RD_RS1_RS2_BT012_SZ  (             SM,              SM, RVANYP,  "sm"         ),
+    ATTR32_RD_RS1_RS2_WX0       (           SMDS,            SMDS, RVANYP,  "smds"       ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMDRS,           SMDRS, RVANYP,  "smdrs"      ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMXDS,           SMXDS, RVANYP,  "smxds"      ),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMIN,            SMIN, RVANYP,  "smin"       ),
+    ATTR32_RD_RS1_RS2_RND       (          SMMUL,           SMMUL, RVANYP,  "smmul"      ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(           SMMW,            SMMW, RVANYP,  "smmw"      ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMSLDA,          SMSLDA, RVANYP,  "smslda"     ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMSLXDA,         SMSLXDA, RVANYP,  "smslxda"    ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMSR,            SMSR, RVANYP,  "smsr"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMUL,            SMUL, RVANYP,  "smul"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (          SMULX,           SMULX, RVANYP,  "smulx"      ),
+    ATTR32_RD_RS1_RS2_RNDU      (            SRA,             SRA, RVANYP,  "sra"        ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRA,             SRA, RVANYP,  "sra"        ),
+    ATTR32_RD_RS1_SSHIFT_RND    (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"       ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRL,             SRL, RVANYP,  "srl"        ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"       ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (             ST,              ST, RVANYP,  "st"         ),
+    ATTR32_RD_RS1_RS2_SZ1       (            SUB,             SUB, RVANYP,  "sub"        ),
+    ATTR32_RD_RS1_PACK          (         SUNPKD,          SUNPKD, RVANYP,  "sunpkd"     ),
+    ATTR32_RD_RS1_SZ4           (           SWAP,            SWAP, RVANYP,  "swap"       ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
+    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLE,          UCMPLE, RVANYP,  "ucmple"     ),
+    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLT,          UCMPLT, RVANYP,  "ucmplt"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UKADD,           UKADD, RVANYP,  "ukadd"      ),
+    ATTR32_RD_RS1_RS2_HW        (          UKADD,           UKADD, RVANYP,  "ukadd"      ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (           UKCR,            UKCR, RVANYP,  "ukcr"       ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMAR,           UKMAR, RVANYP,  "ukmar"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMSR,           UKMSR, RVANYP,  "ukmsr"      ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (           UKST,            UKST, RVANYP,  "ukst"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UKSUB,           UKSUB, RVANYP,  "uksub"      ),
+    ATTR32_RD_RS1_RS2_HW        (          UKSUB,           UKSUB, RVANYP,  "uksub"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMAR,            UMAR, RVANYP,  "umar"       ),
+    ATTR32_RD_RS1_RS2_WX0       (          UMAQA,           UMAQA, RVANYP,  "umaqa"      ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMAX,            UMAX, RVANYP,  "umax"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMIN,            UMIN, RVANYP,  "umin"       ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMSR,            UMSR, RVANYP,  "umsr"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMUL,            UMUL, RVANYP,  "umul"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UMULX,           UMULX, RVANYP,  "umulx"      ),
+    ATTR32_RD_RS1_RS2_SZ1       (          URADD,           URADD, RVANYP,  "uradd"      ),
+    ATTR32_RD_RS1_RS2_WX1       (         URADDW,          URADDW, RVANYP,  "uradd"      ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (           URCR,            URCR, RVANYP,  "urcr"       ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (           URST,            URST, RVANYP,  "urst"       ),
+    ATTR32_RD_RS1_RS2_SZ1       (          URSUB,           URSUB, RVANYP,  "ursub"      ),
+    ATTR32_RD_RS1_RS2_WX1       (         URSUBW,          URSUBW, RVANYP,  "ursub"      ),
+    ATTR32_RD_RS1_RS2_WX0       (           WEXT,            WEXT, RVANYP,  "wext"       ),
+    ATTR32_RD_RS1_IMM_WX0       (          WEXTI,           WEXTI, RVANYP,  "wexti"      ),
+    ATTR32_RD_RS1_PACK          (         ZUNPKD,          ZUNPKD, RVANYP,  "zunpkd"     ),
+
+    // P-extension instructions (RV64 only)
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KDM,             KDM, RV64P,   "kdm"        ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (           KDMA,            KDMA, RV64P,   "kdma"       ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KHM,             KHM, RV64P,   "khm"        ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KMA,             KMA, RV64P,   "kma"        ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDA,          KMAXDA, RV64P,   "kmaxda"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (           KMDA,            KMDA, RV64P,   "kmda"       ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMXDA,           KMXDA, RV64P,   "kmxda"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMADS,           KMADS, RV64P,   "kmads"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDS,          KMAXDS, RV64P,   "kmaxds"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMADRS,          KMADRS, RV64P,   "kmadrs"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMSDA,           KMSDA, RV64P,   "kmsda"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMSXDA,          KMSXDA, RV64P,   "kmsxda"     ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (           SMDS,            SMDS, RV64P,   "smds"       ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMDRS,           SMDRS, RV64P,   "smdrs"      ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMXDS,           SMXDS, RV64P,   "smxds"      ),
+    ATTR32_RD_RS1_SSHIFT_RND_WX1(          SRAIW,            SRAI, RV64P,   "srai"       ),
+
+    // Zcea instructions
+    ATTR32_RD_RS1_SI_WX0_ZC     (         MULI_I,          MULI_I, RVANY,   "muli",  Zcea),
+    ATTR32_RS1_IMM_TB_ZC        (         BEQI_B,          BEQI_B, RVANY,   "beqi",  Zcea),
+    ATTR32_RS1_IMM_TB_ZC        (         BNEI_B,          BNEI_B, RVANY,   "bnei",  Zcea),
+    ATTR32_PUSH_ZC              (           PUSH,            PUSH, RVANY,   "push",  Zcea),
+    ATTR32_PUSH_ZC              (          PUSHE,            PUSH, RV32,    "push",  Zcea),
+    ATTR32_POP_ZC               (            POP,             POP, RVANY,   "pop",   Zcea),
+    ATTR32_POP_ZC               (           POPE,             POP, RV32,    "pop",   Zcea),
+
+    // Zceb instructions
+    ATTR32_RDW_MEM_GP_ZC        (           LWGP,             L_I, RVANY,   "l",       Zceb),
+    ATTR32_RDD_MEM_GP_ZC        (           LDGP,             L_I, RV64,    "l",       Zceb),
+    ATTR32_RS2W_MEM_GP_ZC       (           SWGP,             S_I, RVANY,   "s",       Zceb),
+    ATTR32_RS2D_MEM_GP_ZC       (           SDGP,             S_I, RV64,    "s",       Zceb),
+    ATTR32_DECBNEZ_ZC           (        DECBNEZ,         DECBNEZ, RVANY,   "decbnez", Zceb),
+
     // dummy entry for undecoded instruction
-    ATTR32_LAST                 (           LAST,            LAST,          "undef")
+    ATTR32_LAST                 (           LAST,            LAST,          "undef"      )
 };
+
+//
+// Insert 32-bit instruction decode table entry from the given decode table
+//
+static void insertEntry32(
+    vmidDecodeTableP table,
+    decodeEntry32CP  decEntry,
+    const char      *pattern
+) {
+    riscvIType32 type  = decEntry->type;
+    opAttrsCP    entry = &attrsArray32[type];
+
+    VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
+
+    vmidNewEntryFmtBin(
+        table,
+        entry->opcode,
+        type,
+        pattern,
+        VMID_DERIVE_PRIORITY + entry->priDelta
+    );
+}
 
 //
 // Insert 32-bit instruction decode table entries from the given decode table
@@ -3526,71 +4605,107 @@ static void insertEntries32(vmidDecodeTableP table, decodeEntry32CP decEntries) 
     decodeEntry32CP decEntry;
 
     for(decEntry=decEntries; decEntry->pattern; decEntry++) {
-
-        riscvIType32 type  = decEntry->type;
-        opAttrsCP    entry = &attrsArray32[type];
-
-        VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
-
-        vmidNewEntryFmtBin(
-            table,
-            entry->opcode,
-            type,
-            decEntry->pattern,
-            VMID_DERIVE_PRIORITY + entry->priDelta
-        );
+        insertEntry32(table, decEntry, decEntry->pattern);
     }
 }
 
 //
+// Insert 32-bit instruction decode table entries from the given decode table
+// appending the given 7-bit major opcode
+//
+static void insertEntries32OpPrefix(
+    vmidDecodeTableP table,
+    decodeEntry32CP  decEntries,
+    const char      *major
+) {
+    decodeEntry32CP decEntry;
+
+    for(decEntry=decEntries; decEntry->pattern; decEntry++) {
+
+        char pattern[64];
+
+        strcpy(pattern, decEntry->pattern);
+        strcat(pattern, major);
+
+        insertEntry32(table, decEntry, pattern);
+    }
+}
+
+//
+// Key used to identify decoder configration
+//
+typedef union decodeKey32U {
+
+    Uns32 u32;
+
+    struct {
+        riscvVectVer     vect_version     :  4;
+        riscvBitManipVer bitmanip_version :  4;
+        riscvCryptoVer   crypto_version   :  4;
+        riscvDSPVer      dsp_version      :  4;
+        Bool             K                :  1;
+        Bool             P                :  1;
+        Bool             Zceb             :  1;
+        Uns32            _unused          : 13;
+    } f;
+
+} decodeKey32;
+
+//
 // Create the 32-bit instruction decode table
 //
-static vmidDecodeTableP createExtDecodeTable32(
-    riscvVectVer     vect_version,
-    riscvBitManipVer bitmanip_version,
-    riscvCryptoVer   crypto_version,
-    Bool             K
-) {
+static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
+
     vmidDecodeTableP table = vmidNewDecodeTable(32, IT32_LAST);
 
     // insert common table entries
     insertEntries32(table, &decodeCommon32[0]);
 
     ////////////////////////////////////////////////////////////////////////////
+    // DECODES PRESENT WHEN Zceb ABSENT (FLD/FSD) OR PRESENT (LWGP, SWGP ETC)
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(key.f.Zceb) {
+        insertEntries32(table, &decodeZceb32[0]);
+    } else {
+        insertEntries32(table, &decodeNotZceb32[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     // VERSION-DEPENDENT BIT MANIPULATION EXTENSION ENTRIES
     ////////////////////////////////////////////////////////////////////////////
 
     // handle bitmanip-extension-dependent table entries until/after 0.90
-    if(bitmanip_version<=RVBV_0_90) {
+    if(key.f.bitmanip_version<=RVBV_0_90) {
         insertEntries32(table, &decodeBUntilV090[0]);
     } else {
         insertEntries32(table, &decodeBPostV090[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.91
-    if(bitmanip_version<=RVBV_0_91) {
+    if(key.f.bitmanip_version<=RVBV_0_91) {
         insertEntries32(table, &decodeBUntilV091[0]);
     } else {
         insertEntries32(table, &decodeBPostV091[0]);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.91 only
-    if(bitmanip_version==RVBV_0_91) {
+    if(key.f.bitmanip_version==RVBV_0_91) {
         insertEntries32(table, &decodeBV091[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.92
-    if(bitmanip_version>RVBV_0_92) {
+    if(key.f.bitmanip_version>RVBV_0_92) {
         insertEntries32(table, &decodeBPostV092[0]);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.92 only
-    if(bitmanip_version==RVBV_0_92) {
+    if(key.f.bitmanip_version==RVBV_0_92) {
         insertEntries32(table, &decodeBV092[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.93-draft
-    if(bitmanip_version<=RVBV_0_93_DRAFT) {
+    if(key.f.bitmanip_version<=RVBV_0_93_DRAFT) {
         insertEntries32(table, &decodeBUntilV093Draft[0]);
     } else {
         insertEntries32(table, &decodeBPostV093Draft[0]);
@@ -3598,19 +4713,19 @@ static vmidDecodeTableP createExtDecodeTable32(
 
     // handle bitmanip-extension-dependent table entries for version 0.93-draft
     // only
-    if(bitmanip_version==RVBV_0_93_DRAFT) {
+    if(key.f.bitmanip_version==RVBV_0_93_DRAFT) {
         insertEntries32(table, &decodeBV093Draft[0]);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.93
-    if(bitmanip_version<=RVBV_0_93) {
+    if(key.f.bitmanip_version<=RVBV_0_93) {
         insertEntries32(table, &decodeBUntilV093[0]);
     } else {
         insertEntries32(table, &decodeBPostV093[0]);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.93 only
-    if(bitmanip_version==RVBV_0_93) {
+    if(key.f.bitmanip_version==RVBV_0_93) {
         insertEntries32(table, &decodeBV093[0]);
     }
 
@@ -3619,30 +4734,55 @@ static vmidDecodeTableP createExtDecodeTable32(
     ////////////////////////////////////////////////////////////////////////////
 
     // insert version-specific Cryptographic extension decodes
-    if(crypto_version==RVKV_0_7_2) {
+    if(key.f.crypto_version==RVKV_0_7_2) {
         insertEntries32(table, &decodeKV072[0]);
-    } else if(crypto_version<RVKV_0_9_2) {
+    } else if(key.f.crypto_version<RVKV_0_9_2) {
         insertEntries32(table, &decodeKVFrom081[0]);
         insertEntries32(table, &decodeKV081[0]);
         // NOTE: also insert conflicting 64-bit decodes as these are a
         // lower-priority non-subset of 32-bit decodes in this version only
         insertEntries32(table, &decodeKVFrom081_64[0]);
-    } else {
+    } else if(key.f.crypto_version<RVKV_1_0_0_RC1) {
         insertEntries32(table, &decodeKVFrom081[0]);
         insertEntries32(table, &decodeKV092[0]);
+    } else {
+        insertEntries32(table, &decodeKV100RC[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // VERSION-DEPENDENT DSP EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(key.f.P) {
+
+        // get DSP version
+        riscvDSPVer dsp_version = key.f.dsp_version;
+
+        // get version-specific major opcode
+        const char *major = (dsp_version>RVDSPV_0_5_2) ? "1110111" : "1111111";
+
+        // shared entries in all versions
+        insertEntries32OpPrefix(table, &decodePCommon[0], major);
+
+        // version-specific entries
+        if(dsp_version==RVDSPV_0_5_2) {
+            insertEntries32OpPrefix(table, &decodeP052[0], major);
+        } else {
+            insertEntries32OpPrefix(table, &decodeP096[0], major);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
     // VERSION-DEPENDENT CRYPTOGRAPHIC/BIT MANIPULATION PARTIAL SHARED ENTRIES
     ////////////////////////////////////////////////////////////////////////////
 
-    if(K) {
+    if(key.f.K) {
 
         // shared entries in all versions
         insertEntries32(table, &decodeBPartialKAll[0]);
 
         // shared entries prior to version 0.9.0
-        if(crypto_version<RVKV_0_9_0) {
+        if(key.f.crypto_version<RVKV_0_9_0) {
             insertEntries32(table, &decodeBPartialKPreV090[0]);
         }
     }
@@ -3652,19 +4792,19 @@ static vmidDecodeTableP createExtDecodeTable32(
     ////////////////////////////////////////////////////////////////////////////
 
     // insert vector-extension-dependent table entries before/after 0.7.1
-    if(vect_version>RVVV_0_7_1) {
+    if(key.f.vect_version>RVVV_0_7_1) {
         insertEntries32(table, &decodeVV08[0]);
     } else {
         insertEntries32(table, &decodeVV071[0]);
     }
 
     // insert vector-extension-dependent table entries after 0.7.1+
-    if((vect_version>RVVV_0_7_1_P) && (vect_version<=RVVV_0_8)) {
+    if((key.f.vect_version>RVVV_0_7_1_P) && (key.f.vect_version<=RVVV_0_8)) {
         insertEntries32(table, &decodeVV071P[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 20190906
-    if(vect_version>RVVV_0_8_20190906) {
+    if(key.f.vect_version>RVVV_0_8_20190906) {
         insertEntries32(table, &decodeVPost20190906[0]);
     } else {
         insertEntries32(table, &decodeVPre20190906[0]);
@@ -3672,12 +4812,12 @@ static vmidDecodeTableP createExtDecodeTable32(
 
     // insert vector-extension-dependent table entries specific to release
     // 20191004 (deleted thereafter)
-    if(vect_version==RVVV_0_8_20191004) {
+    if(key.f.vect_version==RVVV_0_8_20191004) {
         insertEntries32(table, &decodeV20191004[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 20191004
-    if(vect_version>RVVV_0_8_20191004) {
+    if(key.f.vect_version>RVVV_0_8_20191004) {
         insertEntries32(table, &decodeVPost20191004[0]);
     } else {
         insertEntries32(table, &decodeVPre20191004[0]);
@@ -3685,49 +4825,35 @@ static vmidDecodeTableP createExtDecodeTable32(
 
     // insert vector-extension-dependent table entries introduced with 20191117
     // but deleted after 0.8
-    if((vect_version>=RVVV_0_8_20191117) && (vect_version<=RVVV_0_8)) {
+    if((key.f.vect_version>=RVVV_0_8_20191117) && (key.f.vect_version<=RVVV_0_8)) {
         insertEntries32(table, &decodeVLate08[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 0.8
-    if(vect_version<=RVVV_0_8) {
+    if(key.f.vect_version<=RVVV_0_8) {
         insertEntries32(table, &decodeVPre09[0]);
     } else {
         insertEntries32(table, &decodeVInitial09[0]);
     }
 
     // insert vector-extension-dependent table entries for version 0.9 only
-    if(vect_version==RVVV_0_9) {
+    if(key.f.vect_version==RVVV_0_9) {
         insertEntries32(table, &decodeVV09[0]);
     }
 
     // insert vector-extension-dependent table entries after 0.9
-    if(vect_version>RVVV_0_9) {
+    if(key.f.vect_version>RVVV_0_9) {
         insertEntries32(table, &decodeVInitial10[0]);
     }
 
     // insert vector-extension-dependent table entries before/after 1.0-20210130
-    if(vect_version>RVVV_1_0_20210130) {
+    if(key.f.vect_version>RVVV_1_0_20210130) {
         insertEntries32(table, &decodeVPost1_0_20210130[0]);
     } else {
         insertEntries32(table, &decodeVPre1_0_20210130[0]);
     }
 
     return table;
-}
-
-//
-// Return handle for version-specific decode table
-//
-static vmidDecodeTablePP getTable32P(
-    riscvVectVer     vect_version,
-    riscvBitManipVer bitmanip_version,
-    riscvCryptoVer   crypto_version,
-    Bool             K
-) {
-    static vmidDecodeTableP decodeTables[RVVV_LAST][RVBV_LAST][RVKV_LAST][2];
-
-    return &decodeTables[vect_version][bitmanip_version][crypto_version][K];
 }
 
 //
@@ -3756,30 +4882,65 @@ static riscvIType32 getInstructionType32Higher64(
 }
 
 //
+// Create the 32-bit instruction decode table using instruction key
+//
+static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
+
+    // linked list type of decode tables for key
+    typedef struct decodeConfigS {
+        struct decodeConfigS *next;
+        decodeKey32           key;
+        vmidDecodeTableP      table;
+    } decodeConfig, *decodeConfigP;
+
+    // list of decode tables
+    static decodeConfigP list;
+
+    // create key
+    decodeKey32 key = {
+        f : {
+            vect_version     : riscv->configInfo.vect_version,
+            bitmanip_version : riscv->configInfo.bitmanip_version,
+            crypto_version   : riscv->configInfo.crypto_version,
+            dsp_version      : riscv->configInfo.dsp_version,
+            K                : cryptoPresent(riscv),
+            P                : DSPPresent(riscv),
+            Zceb             : Zceb(riscv),
+        }
+    };
+
+    decodeConfigP this = list;
+
+    // scan for matching table
+    while(this && (this->key.u32 != key.u32)) {
+        this = this->next;
+    }
+
+    // create new table if required
+    if(!this) {
+
+        this = STYPE_ALLOC(decodeConfig);
+
+        this->next  = list;
+        this->key   = key;
+        this->table = createDecodeTable32(key);
+
+        list = this;
+    }
+
+    return this->table;
+}
+
+//
 // Classify 32-bit instruction
 //
 static riscvIType32 getInstructionType32(riscvP riscv, riscvInstrInfoP info) {
 
-    // select decode table depending on instruction versions
-    riscvVectVer     vect_version     = riscv->configInfo.vect_version;
-    riscvBitManipVer bitmanip_version = riscv->configInfo.bitmanip_version;
-    riscvCryptoVer   crypto_version   = riscv->configInfo.crypto_version;
-    Bool             K                = cryptoPresent(riscv);
+    vmidDecodeTableP table = riscv->table32;
 
-    // get handle of version-specific decode table
-    vmidDecodeTablePP tableP = getTable32P(
-        vect_version, bitmanip_version, crypto_version, K
-    );
-
-    // get table, if it already exists
-    vmidDecodeTableP table = *tableP;
-
-    // create instruction decode table if required
+    // create decode table on demand
     if(!table) {
-        table = createExtDecodeTable32(
-            vect_version, bitmanip_version, crypto_version, K
-        );
-        *tableP = table;
+        table = riscv->table32 = createDecodeTable32Key(riscv);
     }
 
     // decode the instruction using decode table
@@ -3878,14 +5039,34 @@ typedef enum riscvIType16E {
     IT16_FSW_I,
     IT16_FSWSP_I,
 
+    // Zcea instructions
+    IT16_NOT_R,
+    IT16_NEG_R,
+    IT16_MVA01S07_R,
+    IT16_TBLJ,
+    IT16_TBLJAL,
+    IT16_TBLJALM,
+    IT16_PUSH,
+    IT16_PUSHE,
+    IT16_POP,
+    IT16_POPE,
+    IT16_POPRET,
+    IT16_POPRETE,
+    IT16_DECBNEZ,
+
+    // Zceb instructions
+    IT16_LB,
+    IT16_LH,
+    IT16_SB,
+    IT16_SH,
+
+    // Zcee instructions
+    IT16_EXT_R,
+    IT16_MUL_R,
+
     // explicitly undefined and reserved instructions
     IT16_UD1,
-    IT16_RES1,  // c.addi4spn/c.addi16sp when nzuimm=0
-    IT16_RES2,  // c.lui when nzimm=0
-    IT16_RES3,  // c.jr when rs=0
-    IT16_RES4,  // c.addiw when rd=0
-    IT16_RES5,  // c.lwsp when rd=0
-    IT16_RES6,  // c.ldsp when rd=0
+    IT16_RES,
 
     // KEEP LAST
     IT16_LAST
@@ -3920,33 +5101,30 @@ const static decodeEntry16 decodeCommon16[] = {
 
     // base R-type instructions
     DECODE16_ENTRY(      ADD_R, "|100|1|.....|.....|10|"),
-    DECODE16_ENTRY(     ADDW_R, "|100111|...|01|...|01|"),
     DECODE16_ENTRY(      AND_R, "|100011|...|11|...|01|"),
     DECODE16_ENTRY(       MV_R, "|100|0|.....|.....|10|"),
     DECODE16_ENTRY(       OR_R, "|100011|...|10|...|01|"),
     DECODE16_ENTRY(      SUB_R, "|100011|...|00|...|01|"),
-    DECODE16_ENTRY(     SUBW_R, "|100111|...|00|...|01|"),
     DECODE16_ENTRY(      XOR_R, "|100011|...|01|...|01|"),
 
     // base I-type instructions
     DECODE16_ENTRY(     ADDI_I, "|000|.|.....|.....|01|"),
     DECODE16_ENTRY( ADDI16SP_I, "|011|.|00010|.....|01|"),
     DECODE16_ENTRY( ADDI4SPN_I, "|000|........|...|00|"),
-    DECODE16_ENTRY(    ADDIW_I, "|001|.|.....|.....|01|"),
+    DECODE16_ENTRY(        RES, "|000|00000000|...|00|"),   // c.addi4spn when nzuimm=0
     DECODE16_ENTRY(     ANDI_I, "|100|.|10...|.....|01|"),
     DECODE16_ENTRY(     SLLI_I, "|000|.|.....|.....|10|"),
     DECODE16_ENTRY(     SRAI_I, "|100|.|01...|.....|01|"),
     DECODE16_ENTRY(     SRLI_I, "|100|.|00...|.....|01|"),
     DECODE16_ENTRY(       LI_I, "|010|.|.....|.....|01|"),
     DECODE16_ENTRY(      LUI_I, "|011|.|.....|.....|01|"),
+    DECODE16_ENTRY(        RES, "|011|0|.....|00000|01|"),  // c.lui/c.addi16sp when nzimm=0
     DECODE16_ENTRY(       JR_I, "|100|0|.....|00000|10|"),
+    DECODE16_ENTRY(        RES, "|100|0|00000|00000|10|"),  // c.jr when rs=0
     DECODE16_ENTRY(     JALR_I, "|100|1|.....|00000|10|"),
-    DECODE16_ENTRY(       LD_I, "|011|...|...|..|...|00|"),
-    DECODE16_ENTRY(     LDSP_I, "|011|.|.....|.....|10|"),
     DECODE16_ENTRY(       LW_I, "|010|...|...|..|...|00|"),
     DECODE16_ENTRY(     LWSP_I, "|010|.|.....|.....|10|"),
-    DECODE16_ENTRY(       SD_I, "|111|...|...|..|...|00|"),
-    DECODE16_ENTRY(     SDSP_I, "|111|.|.....|.....|10|"),
+    DECODE16_ENTRY(        RES, "|010|.|00000|.....|10|"),  // c.lwsp when rd=0
     DECODE16_ENTRY(       SW_I, "|110|...|...|..|...|00|"),
     DECODE16_ENTRY(     SWSP_I, "|110|.|.....|.....|10|"),
 
@@ -3959,26 +5137,108 @@ const static decodeEntry16 decodeCommon16[] = {
 
     // base J-type instructions
     DECODE16_ENTRY(        J_J, "|101|...........|01|"),
+
+    // Zcea instructions
+    DECODE16_ENTRY(      NOT_R, "|100000|...|00|111|00|"),
+    DECODE16_ENTRY(      NEG_R, "|100000|...|00|110|00|"),
+    DECODE16_ENTRY( MVA01S07_R, "|100111|...|11|...|01|"),
+    DECODE16_ENTRY(       TBLJ, "|100010|00......|00|"),
+    DECODE16_ENTRY(     TBLJAL, "|100010|........|00|"),
+    DECODE16_ENTRY(    TBLJALM, "|100010|00000...|00|"),
+    DECODE16_ENTRY(       PUSH, "|100011|0..|10|...|00|"),
+    DECODE16_ENTRY(       PUSH, "|100011|10.|10|...|00|"),
+    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.0.|00|"),
+    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.10|00|"),
+    DECODE16_ENTRY(        POP, "|100011|11.|00|...|00|"),
+    DECODE16_ENTRY(       POPE, "|100011|11.|01|00.|00|"),
+    DECODE16_ENTRY(       POPE, "|100011|11.|01|010|00|"),
+    DECODE16_ENTRY(     POPRET, "|100011|0..|0.|...|00|"),
+    DECODE16_ENTRY(     POPRET, "|100011|10.|0.|...|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.0.|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.10|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.0.|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.10|00|"),
+
+    // Zcee instructions
+    DECODE16_ENTRY(      EXT_R, "|100000|...|00|0..|00|"),
+    DECODE16_ENTRY(      EXT_R, "|100000|...|00|100|00|"),
+    DECODE16_ENTRY(      MUL_R, "|100111|...|10|...|01|"),
+
+    // explicitly undefined instructions
+    DECODE16_ENTRY(        UD1, "|000|0|00000|00000|00|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 16-bit opcodes present only forRV32
+//
+const static decodeEntry16 decodeRV3216[] = {
+
+    // F-extension and D-extension I-type instructions
+    DECODE16_ENTRY(      FLW_I, "|011|...|...|..|...|00|"),
+    DECODE16_ENTRY(    FLWSP_I, "|011|.|.....|.....|10|"),
+    DECODE16_ENTRY(      FSW_I, "|111|...|...|..|...|00|"),
+    DECODE16_ENTRY(    FSWSP_I, "|111|......|.....|10|"),
+
+    // base J-type instructions
     DECODE16_ENTRY(      JAL_J, "|001|...........|01|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 16-bit opcodes present only forRV64
+//
+const static decodeEntry16 decodeRV6416[] = {
+
+    // base R-type instructions
+    DECODE16_ENTRY(     ADDW_R, "|100111|...|01|...|01|"),
+    DECODE16_ENTRY(     SUBW_R, "|100111|...|00|...|01|"),
+
+    // base I-type instructions
+    DECODE16_ENTRY(    ADDIW_I, "|001|.|.....|.....|01|"),
+    DECODE16_ENTRY(        RES, "|001|.|00000|.....|01|"),  // c.addiw when rd=0
+    DECODE16_ENTRY(       LD_I, "|011|...|...|..|...|00|"),
+    DECODE16_ENTRY(     LDSP_I, "|011|.|.....|.....|10|"),
+    DECODE16_ENTRY(        RES, "|011|.|00000|.....|10|"),  // c.ldsp when rd=0
+    DECODE16_ENTRY(       SD_I, "|111|...|...|..|...|00|"),
+    DECODE16_ENTRY(     SDSP_I, "|111|.|.....|.....|10|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 16-bit opcodes present only when Zceb is
+// implemented
+//
+const static decodeEntry16 decodeZceb16[] = {
+
+    DECODE16_ENTRY(         LB, "|001|0|..|...|..|...|.0|"),
+    DECODE16_ENTRY(         LH, "|001|1|..|...|..|...|.0|"),
+    DECODE16_ENTRY(         SB, "|101|0|..|...|..|...|00|"),
+    DECODE16_ENTRY(         SH, "|101|1|..|...|..|...|00|"),
+    DECODE16_ENTRY(    DECBNEZ, "|101|...|...|...|..|10|"),
+    DECODE16_ENTRY(        RES, "|101|000|...|000|..|10|"),  // c.decbnez when offset=0
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes present only when Zceb is *not*
+// implemented (D-extension loads and stores)
+//
+const static decodeEntry16 decodeNotZceb16[] = {
 
     // F-extension and D-extension I-type instructions
     DECODE16_ENTRY(      FLD_I, "|001|...|...|..|...|00|"),
     DECODE16_ENTRY(    FLDSP_I, "|001|.|.....|.....|10|"),
-    DECODE16_ENTRY(      FLW_I, "|011|...|...|..|...|00|"),
-    DECODE16_ENTRY(    FLWSP_I, "|011|.|.....|.....|10|"),
     DECODE16_ENTRY(      FSD_I, "|101|...|...|..|...|00|"),
     DECODE16_ENTRY(    FSDSP_I, "|101|......|.....|10|"),
-    DECODE16_ENTRY(      FSW_I, "|111|...|...|..|...|00|"),
-    DECODE16_ENTRY(    FSWSP_I, "|111|......|.....|10|"),
-
-    // explicitly undefined and reserved instructions
-    DECODE16_ENTRY(        UD1, "|000|0|00000|00000|00|"),
-    DECODE16_ENTRY(       RES1, "|000|00000000|...|00|"),
-    DECODE16_ENTRY(       RES2, "|011|0|.....|00000|01|"),
-    DECODE16_ENTRY(       RES3, "|100|0|00000|00000|10|"),
-    DECODE16_ENTRY(       RES4, "|001|.|00000|.....|01|"),
-    DECODE16_ENTRY(       RES5, "|010|.|00000|.....|10|"),
-    DECODE16_ENTRY(       RES6, "|011|.|00000|.....|10|"),
 
     // table termination entry
     {0}
@@ -3990,113 +5250,216 @@ const static decodeEntry16 decodeCommon16[] = {
 const static opAttrs attrsArray16[] = {
 
     // base R-type instructions
-    ATTR16_ADD      (      ADD_R,    ADD_R, RVANYC,  "add"),
-    ATTR16_ADDW     (     ADDW_R,    ADD_R, RV64C,   "add"),
-    ATTR16_AND      (      AND_R,    AND_R, RVANYC,  "and"),
-    ATTR16_MV       (       MV_R,     MV_R, RVANYC,  "mv" ),
-    ATTR16_AND      (       OR_R,     OR_R, RVANYC,  "or" ),
-    ATTR16_AND      (      SUB_R,    SUB_R, RVANYC,  "sub"),
-    ATTR16_ADDW     (     SUBW_R,    SUB_R, RV64C,   "sub"),
-    ATTR16_AND      (      XOR_R,    XOR_R, RVANYC,  "xor"),
+    ATTR16_ADD         (      ADD_R,    ADD_R, RVANYC,  "add"),
+    ATTR16_ADDW        (     ADDW_R,    ADD_R, RV64C,   "add"),
+    ATTR16_AND         (      AND_R,    AND_R, RVANYC,  "and"),
+    ATTR16_MV          (       MV_R,     MV_R, RVANYC,  "mv" ),
+    ATTR16_AND         (       OR_R,     OR_R, RVANYC,  "or" ),
+    ATTR16_AND         (      SUB_R,    SUB_R, RVANYC,  "sub"),
+    ATTR16_ADDW        (     SUBW_R,    SUB_R, RV64C,   "sub"),
+    ATTR16_AND         (      XOR_R,    XOR_R, RVANYC,  "xor"),
 
     // base I-type instructions
-    ATTR16_ADDI     (     ADDI_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDI16SP ( ADDI16SP_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDI4SPN ( ADDI4SPN_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDIW    (    ADDIW_I,   ADDI_I, RV64C,   "addi"),
-    ATTR16_ANDI     (     ANDI_I,   ANDI_I, RVANYC,  "andi"),
-    ATTR16_SLLI     (     SLLI_I,   SLLI_I, RVANYC,  "slli"),
-    ATTR16_SRAI     (     SRAI_I,   SRAI_I, RVANYC,  "srai"),
-    ATTR16_SRAI     (     SRLI_I,   SRLI_I, RVANYC,  "srli"),
-    ATTR16_LI       (       LI_I,   ADDI_I, RVANYC,  "li"  ),
-    ATTR16_LUI      (      LUI_I,   ADDI_I, RVANYC,  "lui" ),
-    ATTR16_JR       (       JR_I,   JALR_I, RVANYC,  "jr"  ),
-    ATTR16_JALR     (     JALR_I,   JALR_I, RVANYC,  "jalr"),
-    ATTR16_LD       (       LD_I,      L_I, RV64C,   "l"   ),
-    ATTR16_LDSP     (     LDSP_I,      L_I, RV64C,   "l"   ),
-    ATTR16_LW       (       LW_I,      L_I, RVANYC,  "l"   ),
-    ATTR16_LWSP     (     LWSP_I,      L_I, RVANYC,  "l"   ),
-    ATTR16_LD       (       SD_I,      S_I, RV64C,   "s"   ),
-    ATTR16_SDSP     (     SDSP_I,      S_I, RV64C,   "s"   ),
-    ATTR16_LW       (       SW_I,      S_I, RVANYC,  "s"   ),
-    ATTR16_SWSP     (     SWSP_I,      S_I, RVANYC,  "s"   ),
+    ATTR16_ADDI        (     ADDI_I,   ADDI_I, RVANYC,  "addi"),
+    ATTR16_ADDI16SP    ( ADDI16SP_I,   ADDI_I, RVANYC,  "addi"),
+    ATTR16_ADDI4SPN    ( ADDI4SPN_I,   ADDI_I, RVANYC,  "addi"),
+    ATTR16_ADDIW       (    ADDIW_I,   ADDI_I, RV64C,   "addi"),
+    ATTR16_ANDI        (     ANDI_I,   ANDI_I, RVANYC,  "andi"),
+    ATTR16_SLLI        (     SLLI_I,   SLLI_I, RVANYC,  "slli"),
+    ATTR16_SRAI        (     SRAI_I,   SRAI_I, RVANYC,  "srai"),
+    ATTR16_SRAI        (     SRLI_I,   SRLI_I, RVANYC,  "srli"),
+    ATTR16_LI          (       LI_I,   ADDI_I, RVANYC,  "li"  ),
+    ATTR16_LUI         (      LUI_I,   ADDI_I, RVANYC,  "lui" ),
+    ATTR16_JR          (       JR_I,   JALR_I, RVANYC,  "jr"  ),
+    ATTR16_JALR        (     JALR_I,   JALR_I, RVANYC,  "jalr"),
+    ATTR16_LD          (       LD_I,      L_I, RV64C,   "l"   ),
+    ATTR16_LDSP        (     LDSP_I,      L_I, RV64C,   "l"   ),
+    ATTR16_LW          (       LW_I,      L_I, RVANYC,  "l"   ),
+    ATTR16_LWSP        (     LWSP_I,      L_I, RVANYC,  "l"   ),
+    ATTR16_LD          (       SD_I,      S_I, RV64C,   "s"   ),
+    ATTR16_SDSP        (     SDSP_I,      S_I, RV64C,   "s"   ),
+    ATTR16_LW          (       SW_I,      S_I, RVANYC,  "s"   ),
+    ATTR16_SWSP        (     SWSP_I,      S_I, RVANYC,  "s"   ),
 
     // miscellaneous system instructions
-    ATTR16_NOP      (   EBREAK_I, EBREAK_I, RVANYC,  "ebreak"),
+    ATTR16_NOP         (   EBREAK_I, EBREAK_I, RVANYC,  "ebreak"),
 
     // base B-type instructions
-    ATTR16_BEQZ     (     BEQZ_B,    BEQ_B, RVANYC,  "beqz"),
-    ATTR16_BEQZ     (     BNEZ_B,    BNE_B, RVANYC,  "bnez"),
+    ATTR16_BEQZ        (     BEQZ_B,    BEQ_B, RVANYC,  "beqz"),
+    ATTR16_BEQZ        (     BNEZ_B,    BNE_B, RVANYC,  "bnez"),
 
     // base J-type instructions
-    ATTR16_J        (        J_J,    JAL_J, RVANYC,  "j"  ),
-    ATTR16_JAL      (      JAL_J,    JAL_J, RV32C,   "jal"),
+    ATTR16_J           (        J_J,    JAL_J, RVANYC,  "j"  ),
+    ATTR16_JAL         (      JAL_J,    JAL_J, RV32C,   "jal"),
 
     // F-extension and D-extension I-type instructions
-    ATTR16_FLD      (      FLD_I,      L_I, RVANYCD, "fl"),
-    ATTR16_FLDSP    (    FLDSP_I,      L_I, RVANYCD, "fl"),
-    ATTR16_FLW      (      FLW_I,      L_I, RV32CF,  "fl"),
-    ATTR16_FLWSP    (    FLWSP_I,      L_I, RV32CF,  "fl"),
-    ATTR16_FLD      (      FSD_I,      S_I, RVANYCD, "fs"),
-    ATTR16_FSDSP    (    FSDSP_I,      S_I, RVANYCD, "fs"),
-    ATTR16_FLW      (      FSW_I,      S_I, RV32CF,  "fs"),
-    ATTR16_FSWSP    (    FSWSP_I,      S_I, RV32CF,  "fs"),
+    ATTR16_FLD         (      FLD_I,      L_I, RVANYCD, "fl"),
+    ATTR16_FLDSP       (    FLDSP_I,      L_I, RVANYCD, "fl"),
+    ATTR16_FLW         (      FLW_I,      L_I, RV32CF,  "fl"),
+    ATTR16_FLWSP       (    FLWSP_I,      L_I, RV32CF,  "fl"),
+    ATTR16_FLD         (      FSD_I,      S_I, RVANYCD, "fs"),
+    ATTR16_FSDSP       (    FSDSP_I,      S_I, RVANYCD, "fs"),
+    ATTR16_FLW         (      FSW_I,      S_I, RV32CF,  "fs"),
+    ATTR16_FSWSP       (    FSWSP_I,      S_I, RV32CF,  "fs"),
+
+    // Zcea instructions
+    ATTR16_NOT_ZC      (      NOT_R,    NOT_R, RVANYC,  "not",      Zcea),
+    ATTR16_NOT_ZC      (      NEG_R,    NEG_R, RVANYC,  "neg",      Zcea),
+    ATTR16_MVA01S07_ZC ( MVA01S07_R,    MVP_R, RVANYC,  "mva01s07", Zcea),
+    ATTR16_TBLJ_ZC     (       TBLJ,     TBLJ, RVANYC,  "tblj",     Zcea, 8,  ZERO),
+    ATTR16_TBLJ_ZC     (     TBLJAL,   TBLJAL, RVANYC,  "tbljal",   Zcea, 64, RA),
+    ATTR16_TBLJ_ZC     (    TBLJALM,  TBLJALM, RVANYC,  "tbljalm",  Zcea, 0,  T0),
+    ATTR16_PUSH_ZC     (       PUSH,     PUSH, RVANYC,  "push",     Zcea),
+    ATTR16_PUSHE_ZC    (      PUSHE,     PUSH, RV32C,   "push",     Zcea),
+    ATTR16_POP_ZC      (        POP,      POP, RVANYC,  "pop",      Zcea),
+    ATTR16_POPE_ZC     (       POPE,      POP, RV32C,   "pop",      Zcea),
+    ATTR16_POPRET_ZC   (     POPRET,      POP, RVANYC,  "pop",      Zcea),
+    ATTR16_POPRETE_ZC  (    POPRETE,      POP, RV32C,   "pop",      Zcea),
+
+    // Zceb instructions
+    ATTR16_LB_ZC       (        LB,       L_I, RVANYC,  "l",        Zceb),
+    ATTR16_LH_ZC       (        LH,       L_I, RVANYC,  "l",        Zceb),
+    ATTR16_SB_ZC       (        SB,       S_I, RVANYC,  "s",        Zceb),
+    ATTR16_SH_ZC       (        SH,       S_I, RVANYC,  "s",        Zceb),
+    ATTR16_DECBNEZ_ZC  (    DECBNEZ,  DECBNEZ, RVANYC,  "decbnez",  Zceb),
+
+    // Zcee instructions
+    ATTR16_EXT_ZC      (      EXT_R,    EXT_R, RVANYC,  "ext",      Zcee),
+    ATTR16_MUL_ZC      (      MUL_R,    MUL_R, RVANYCM, "mul",      Zcee),
 
     // explicitly undefined and reserved instructions
-    ATTR16_NOP      (        UD1,     LAST, RVANYC,  "illegal"),
-    ATTR16_NOP      (       RES1,     LAST, RVANYC,  "res"    ),
-    ATTR16_NOP      (       RES2,     LAST, RVANYC,  "res"    ),
-    ATTR16_NOP      (       RES3,     LAST, RVANYC,  "res"    ),
-    ATTR16_NOP      (       RES4,     LAST, RV64C,   "res"    ),
-    ATTR16_NOP      (       RES5,     LAST, RVANYC,  "res"    ),
-    ATTR16_NOP      (       RES6,     LAST, RV64C,   "res"    ),
+    ATTR16_NOP         (        UD1,     LAST, RVANYC,  "illegal"),
+    ATTR16_NOP         (        RES,     LAST, RVANYC,  "res"    ),
 
     // dummy entry for undecoded instruction
-    ATTR16_LAST     (       LAST,     LAST,          "undef")
+    ATTR16_LAST        (       LAST,     LAST,          "undef")
 };
+
+//
+// Insert 16-bit instruction decode table entry from the given decode table
+//
+static void insertEntry16(
+    vmidDecodeTableP table,
+    decodeEntry16CP  decEntry,
+    const char      *pattern
+) {
+    riscvIType32 type  = decEntry->type;
+    opAttrsCP    entry = &attrsArray16[type];
+
+    VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
+
+    vmidNewEntryFmtBin(
+        table,
+        entry->opcode,
+        type,
+        pattern,
+        VMID_DERIVE_PRIORITY + entry->priDelta
+    );
+}
 
 //
 // Insert 16-bit instruction decode table entries from the given decode table
 //
-static void insertEntries16(
-    vmidDecodeTableP table,
-    decodeEntry16CP  decEntries,
-    Bool             is64BitMode
-) {
-    riscvArchitecture XLENarch = is64BitMode ? ISA_XLEN_64 : ISA_XLEN_32;
-    decodeEntry16CP   decEntry;
+static void insertEntries16(vmidDecodeTableP table, decodeEntry16CP decEntries) {
+
+    decodeEntry16CP decEntry;
 
     for(decEntry=decEntries; decEntry->pattern; decEntry++) {
-
-        riscvIType16 type  = decEntry->type;
-        opAttrsCP    entry = &attrsArray16[type];
-
-        VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
-
-        // only add entries that apply to the current XLEN (patterns are reused)
-        if(entry->arch & XLENarch) {
-            vmidNewEntryFmtBin(
-                table,
-                entry->opcode,
-                type,
-                decEntry->pattern,
-                VMID_DERIVE_PRIORITY + entry->priDelta
-            );
-        }
+        insertEntry16(table, decEntry, decEntry->pattern);
     }
 }
 
 //
+// Key used to identify decoder configration
+//
+typedef union decodeKey16U {
+
+    Uns32 u32;
+
+    struct {
+        Bool  RV64    :  1;
+        Bool  Zceb    :  1;
+        Uns32 _unused : 30;
+    } f;
+
+} decodeKey16;
+
+//
 // Create the 16-bit instruction decode table
 //
-static vmidDecodeTableP createExtDecodeTable16(Bool is64BitMode) {
+static vmidDecodeTableP createDecodeTable16(decodeKey16 key) {
 
     vmidDecodeTableP table = vmidNewDecodeTable(16, IT16_LAST);
 
-    // insert common 16-bit decode table entries
-    insertEntries16(table, &decodeCommon16[0], is64BitMode);
+    // insert common table entries
+    insertEntries16(table, &decodeCommon16[0]);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DECODES SPECIFIC TO RV32/RV64
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(key.f.RV64) {
+        insertEntries16(table, &decodeRV6416[0]);
+    } else {
+        insertEntries16(table, &decodeRV3216[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DECODES PRESENT WHEN Zceb ABSENT (FLD/FSD) OR PRESENT (LWGP, SWGP ETC)
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(key.f.Zceb) {
+        insertEntries16(table, &decodeZceb16[0]);
+    } else {
+        insertEntries16(table, &decodeNotZceb16[0]);
+    }
 
     return table;
+}
+
+//
+// Create the 16-bit instruction decode table using instruction key
+//
+static vmidDecodeTableP createDecodeTable16Key(riscvP riscv) {
+
+    // linked list type of decode tables for key
+    typedef struct decodeConfigS {
+        struct decodeConfigS *next;
+        decodeKey16           key;
+        vmidDecodeTableP      table;
+    } decodeConfig, *decodeConfigP;
+
+    // list of decode tables
+    static decodeConfigP list;
+
+    // create key
+    decodeKey16 key = {
+        f : {
+            RV64 : (getXLenBits(riscv)==64),
+            Zceb : Zceb(riscv),
+        }
+    };
+
+    decodeConfigP this = list;
+
+    // scan for matching table
+    while(this && (this->key.u32 != key.u32)) {
+        this = this->next;
+    }
+
+    // create new table if required
+    if(!this) {
+
+        this = STYPE_ALLOC(decodeConfig);
+
+        this->next  = list;
+        this->key   = key;
+        this->table = createDecodeTable16(key);
+
+        list = this;
+    }
+
+    return this->table;
 }
 
 //
@@ -4104,18 +5467,14 @@ static vmidDecodeTableP createExtDecodeTable16(Bool is64BitMode) {
 //
 static riscvIType16 getInstructionType16(riscvP riscv, riscvInstrInfoP info) {
 
-    static vmidDecodeTableP decodeTables[2];
+    vmidDecodeTableP table = riscv->table16;
 
-    // select decode table depending on instruction size (patterns are reused)
-    Bool is64BitMode = (getXLenBits(riscv)==64);
-
-    // create instruction decode table if required
-    if(!decodeTables[is64BitMode]) {
-        decodeTables[is64BitMode] = createExtDecodeTable16(is64BitMode);
+    // create decode table on demand
+    if(!table) {
+        table = riscv->table16 = createDecodeTable16Key(riscv);
     }
 
-    // decode the instruction using decode table
-    return vmidDecode(decodeTables[is64BitMode], info->instruction);
+    return vmidDecode(table, info->instruction);
 }
 
 
@@ -4139,10 +5498,10 @@ static void setMinXLEN(riscvInstrInfoP info, Uns32 minXLEN) {
 //
 // Force register width to 32 (when XLEN is 64 only)
 //
-static riscvRegDesc forceWidth32(riscvInstrInfoP info) {
+static riscvRegDesc forceWidth32(riscvInstrInfoP info, Bool explicitW) {
 
     info->arch     &= ~ISA_XLEN_32;
-    info->explicitW = True;
+    info->explicitW = explicitW;
 
     return RV_RD_32;
 }
@@ -4176,9 +5535,11 @@ static riscvRegDesc getXWidth(riscvP riscv, riscvInstrInfoP info, wxSpec w) {
         case WX_NA:
             result = current;
             break;
-        case WX_3:
-            result = !U_3(instr) || isCustom(instr) ? current : forceWidth32(info);
+        case WX_3: {
+            Bool currentW = !U_3(instr) || isCustom(instr);
+            result = currentW ? current : forceWidth32(info, True);
             break;
+        }
         case WX_12:
             result = U_12(instr) ? RV_RD_64 : RV_RD_32;
             // explicitly show operand types
@@ -4186,6 +5547,12 @@ static riscvRegDesc getXWidth(riscvP riscv, riscvInstrInfoP info, wxSpec w) {
             break;
         case WX_25:
             result = U_25(instr) ? RV_RD_64 : RV_RD_32;
+            break;
+        case WX_26:
+            result = U_26(instr) ? RV_RD_16 : RV_RD_32;
+            // explicitly show operand types, without preceding dot
+            info->explicitType = 1;
+            info->explicitDot  = False;
             break;
         case WX_21_U_20:
             result = U_21(instr) ? RV_RD_64 : RV_RD_32;
@@ -4195,7 +5562,19 @@ static riscvRegDesc getXWidth(riscvP riscv, riscvInstrInfoP info, wxSpec w) {
             info->explicitType = 1;
             break;
         case WX_W1:
-            result = forceWidth32(info);
+            result = forceWidth32(info, True);
+            break;
+        case WX_W1_KV_1_0_0_RC1: {
+            Bool currentW = riscv->configInfo.crypto_version<RVKV_1_0_0_RC1;
+            result = currentW ? current : forceWidth32(info, False);
+            break;
+        }
+        case WX_W1_RV32:
+            result = RV_RD_32;
+            info->explicitW = True;
+            break;
+        case WX_W1_RV32Q:
+            result = RV_RD_32;
             break;
         default:
             VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
@@ -4329,6 +5708,18 @@ static void validateShift(
 }
 
 //
+// Set minimum XLEN implied by constant byte index
+//
+static void validateByte(
+    riscvP          riscv,
+    riscvInstrInfoP info,
+    Uns32           byte,
+    riscvRegDesc    wX
+) {
+    validateShift(riscv, info, (byte*8)+7, wX);
+}
+
+//
 // Return a constant encoded within the instruction
 //
 static Uns64 getConstant(
@@ -4349,8 +5740,14 @@ static Uns64 getConstant(
         case CS_U_19_15:
             result = U_19_15(instr);
             break;
+        case CS_U_22_20:
+            result = U_22_20(instr);
+            break;
         case CS_U_23_20:
             result = U_23_20(instr);
+            break;
+        case CS_U_24_20:
+            result = U_24_20(instr);
             break;
         case CS_U_31_30:
             result = U_31_30(instr);
@@ -4368,6 +5765,10 @@ static Uns64 getConstant(
         case CS_XPERM_14_13:
             result = mapXPERMBits[U_14_13(instr)];
             break;
+        case CS_BYTE_22_20:
+            result = U_22_20(instr);
+            validateByte(riscv, info, result, wX);
+            break;
         case CS_SHAMT_25_20:
             result = U_25_20(instr);
             validateShift(riscv, info, result, wX);
@@ -4380,20 +5781,6 @@ static Uns64 getConstant(
             break;
         case CS_AUIPC:
             result = S_31_12(instr) << 12;
-            break;
-        case CS_J:
-            result  = S_31(instr)    << 20;
-            result += U_19_12(instr) << 12;
-            result += U_20(instr)    << 11;
-            result += U_30_21(instr) <<  1;
-            result += info->thisPC;
-            break;
-        case CS_B:
-            result  = S_31(instr)    << 12;
-            result += U_7(instr)     << 11;
-            result += U_30_25(instr) <<  5;
-            result += U_11_8(instr)  <<  1;
-            result += info->thisPC;
             break;
         case CS_C_ADDI:
             result  = S_12(instr) << 5;
@@ -4448,15 +5835,114 @@ static Uns64 getConstant(
             result  = U_9_7(instr)   << 6;
             result += U_12_10(instr) << 3;
             break;
-        case CS_C_B:
+        case CS_C_TBLJ_M0:
+            result  = U_9_2(instr) - 0;
+            break;
+        case CS_C_TBLJ_M8:
+            result  = U_9_2(instr) - 8;
+            break;
+        case CS_C_TBLJ_M64:
+            result  = U_9_2(instr) - 64;
+            break;
+        case CS_C_LB:
+            result  = U_10(instr)  << 3;
+            result += U_6_5(instr) << 1;
+            result += U_11(instr)  << 0;
+            break;
+        case CS_C_LH:
+            result  = U_11_10(instr) << 3;
+            result += U_6_5(instr)   << 1;
+            break;
+        case CS_NSTKA_11_7:
+            result = -(Int32)U_11_7(instr) * 16;
+            break;
+        case CS_PSTKA_11_7:
+            result =  U_11_7(instr) * 16;
+            break;
+        case CS_NSTKA_9_7:
+            result = -(Int32)U_9_7(instr) * 16;
+            break;
+        case CS_PSTKA_9_7:
+            result =  U_9_7(instr) * 16;
+            break;
+        case CS_NSTKA_5_4_7:
+            result = -(Int32)((U_5_4(instr)<<1)+U_7(instr)) * 16;
+            break;
+        case CS_PSTKA_7:
+            result = U_7(instr) * 16;
+            break;
+        case CS_S_LWGP:
+            result  = S_19_15(instr) << 11;
+            result += U_21_20(instr) <<  9;
+            result += U_28_22(instr) <<  2;
+            break;
+        case CS_S_LDGP:
+            result  = S_22(instr)    << 16;
+            result += U_19_15(instr) << 11;
+            result += U_21_20(instr) <<  9;
+            result += U_28_23(instr) <<  3;
+            break;
+        case CS_S_SWGP:
+            result  = S_19_15(instr) << 11;
+            result += U_8_7(instr)   <<  9;
+            result += U_28_25(instr) <<  5;
+            result += U_11_9(instr)  <<  2;
+            break;
+        case CS_S_SDGP:
+            result  = S_9(instr)     << 16;
+            result += U_19_15(instr) << 11;
+            result += U_8_7(instr)   <<  9;
+            result += U_28_25(instr) <<  5;
+            result += U_11_10(instr) <<  3;
+            break;
+        case CS_S_1_LSL_3_2:
+            result = 1 << U_3_2(instr);
+            break;
+        case CS_S_1_LSL_19_18:
+            result = 1 << U_19_18(instr);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return a constant target address within the instruction
+//
+static Uns64 getTarget(
+    riscvP          riscv,
+    riscvInstrInfoP info,
+    targetSpec      tgt
+) {
+    Uns64 result = 0;
+    Uns32 instr  = info->instruction;
+
+    switch(tgt) {
+        case TGTS_NA:
+            break;
+        case TGTS_J:
+            result  = S_31(instr)    << 20;
+            result += U_19_12(instr) << 12;
+            result += U_20(instr)    << 11;
+            result += U_30_21(instr) <<  1;
+            break;
+        case TGTS_B:
+            result  = S_31(instr)    << 12;
+            result += U_7(instr)     << 11;
+            result += U_30_25(instr) <<  5;
+            result += U_11_8(instr)  <<  1;
+            break;
+        case TGTS_C_B:
             result  = S_12(instr)    << 8;
             result += U_6_5(instr)   << 6;
             result += U_2(instr)     << 5;
             result += U_11_10(instr) << 3;
             result += U_4_3(instr)   << 1;
-            result += info->thisPC;
             break;
-        case CS_C_J:
+        case TGTS_C_J:
             result  = S_12(instr)    << 11;
             result += U_8(instr)     << 10;
             result += U_10_9(instr)  <<  8;
@@ -4465,12 +5951,38 @@ static Uns64 getConstant(
             result += U_2(instr)     <<  5;
             result += U_11(instr)    <<  4;
             result += U_5_3(instr)   <<  1;
-            result += info->thisPC;
+            break;
+        case TGTS_DECBNEZ:
+            result  = S_16_15(instr) << 11;
+            result += U_21_20(instr) <<  9;
+            result += U_28_22(instr) <<  2;
+            result += U_17(instr)    <<  1;
+            break;
+        case TGTS_C_DECBNEZ:
+            result  = U_12_10(instr) << 4;
+            result += U_6_4(instr)   << 1;
+            result  = -result;
             break;
         default:
             VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
             break;
     }
+
+    return result + info->thisPC;
+}
+
+//
+// Return explicit width of GPR argument widthArg encoded in the instruction
+//
+static riscvRegDesc explicitXWidth(
+    riscvInstrInfoP info,
+    Uns32           width,
+    Uns32           widthArg
+) {
+    riscvRegDesc result = (RV_RD_8<<width);
+
+    // explicitly show operand types
+    info->explicitType = widthArg;
 
     return result;
 }
@@ -4495,20 +6007,38 @@ static riscvRegDesc getRegister(
         r = RS_V_M_25;
     }
 
+    // map codes 0...7 to s0...s7 register indices
+    static const Uns8 mapS[] = {8, 9, 18, 19, 20, 21, 22, 23};
+
     switch(r) {
         case R_NA:
             break;
         case RS_X_ZERO:
-            result = RV_RD_X | 0;
+            result = RV_RD_X | RV_REG_X_ZERO;
             break;
-        case RS_X_LR:
-            result = RV_RD_X | 1;
+        case RS_X_RA:
+            result = RV_RD_X | RV_REG_X_RA;
             break;
         case RS_X_SP:
-            result = RV_RD_X | 2;
+            result = RV_RD_X | RV_REG_X_SP;
+            break;
+        case RS_X_GP:
+            result = RV_RD_X | RV_REG_X_GP;
+            break;
+        case RS_X_T0:
+            result = RV_RD_X | RV_REG_X_T0;
+            break;
+        case RS_X_A0:
+            result = RV_RD_X | RV_REG_X_A0;
+            break;
+        case RS_X_A1:
+            result = RV_RD_X | RV_REG_X_A1;
             break;
         case RS_X_4_2_P8:
             result = RV_RD_X | (U_4_2(instr)+8);
+            break;
+        case RS_X_4_2_S:
+            result = RV_RD_X | mapS[U_4_2(instr)];
             break;
         case RS_X_6_2:
             result = RV_RD_X | U_6_2(instr);
@@ -4520,18 +6050,26 @@ static riscvRegDesc getRegister(
             result = RV_RD_X | U_19_15(instr);
             break;
         case RS_X_19_15_S_21_20:
-            result = RV_RD_X | U_19_15(instr) | (RV_RD_8<<U_21_20(instr));
-            // explicitly show operand types
-            info->explicitType = 2;
+            result = RV_RD_X | U_19_15(instr) | explicitXWidth(info, U_21_20(instr), 2);
             break;
         case RS_X_24_20:
             result = RV_RD_X | U_24_20(instr);
+            break;
+        case RS_X_29_25:
+            result = RV_RD_X | U_29_25(instr);
             break;
         case RS_X_31_27:
             result = RV_RD_X | U_31_27(instr);
             break;
         case RS_X_9_7_P8:
             result = RV_RD_X | (U_9_7(instr)+8);
+            break;
+        case RS_X_9_7_S:
+            result = RV_RD_X | mapS[U_9_7(instr)];
+            break;
+        case RS_X_9_7_P8_S_4_3:
+            result = RV_RD_X | (U_9_7(instr)+8) | explicitXWidth(info, U_4_3(instr), 2);
+            setMinXLEN(info, getRBits(result)*2);
             break;
         case RS_XWL_11_7:
             result = RV_RD_X | U_11_7(instr) | RV_RD_WL;
@@ -4746,6 +6284,9 @@ static Uns32 getMemBits(
         case MBS_B:
             result = 8;
             break;
+        case MBS_H:
+            result = 16;
+            break;
         case MBS_W:
             result = 32;
             break;
@@ -4773,6 +6314,12 @@ static Bool getUnsExt(riscvInstrInfoP info, unsExtSpec unsExt) {
             break;
         case USX_T:
             result = True;
+            break;
+        case USX_1:
+            result = !U_1(instr);
+            break;
+        case USX_2:
+            result = !U_2(instr);
             break;
         case USX_14:
             result = U_14(instr);
@@ -4966,6 +6513,324 @@ static Uns32 getShN(riscvInstrInfoP info, Bool shN) {
 }
 
 //
+// Return elemSize prefix specification encoded in the instruction
+//
+static Uns8 getElemSize(riscvInstrInfoP info, elemSizeSpec elemSize) {
+
+    Uns8 result = 0;
+
+    switch(elemSize) {
+        case ESZ_NA:
+            break;
+        case ESZ_12_13_27:
+            if(U_12(info->instruction)) {
+                result = 64;
+            } else if(U_13(info->instruction)) {
+                result = 32;
+            } else if(U_27(info->instruction)) {
+                result = 8;
+            } else {
+                result = 16;
+            }
+            break;
+        case ESZ_13:
+            result = U_13(info->instruction) ? 32 : 16;
+            break;
+        case ESZ_24_23:
+            result = 8 * (U_24_23(info->instruction)+1);
+            break;
+        case ESZ_21_20:
+            result = 8 << U_21_20(info->instruction);
+            break;
+        case ESZ_25:
+            result = U_25(info->instruction) ? 8 : 16;
+            break;
+        case ESZ_26:
+            result = U_26(info->instruction) ? 16 : 32;
+            break;
+        case ESZ_C8:
+            result = 8;
+            break;
+        case ESZ_C16:
+            result = 16;
+            break;
+        case ESZ_C32:
+            result = 32;
+            break;
+        case ESZ_C64:
+            result = 64;
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return cross operation specification encoded in the instruction
+//
+static riscvCrossOpDesc getCrossOp(riscvInstrInfoP info, crossOpSpec cross) {
+
+    riscvCrossOpDesc result = 0;
+
+    switch(cross) {
+        case CR_NA:
+            break;
+        case CR_25:
+            result = U_25(info->instruction) ? RV_CR_SA : RV_CR_AS;
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return half operation specification encoded in the instruction
+//
+static riscvHalfDesc getHalf(riscvInstrInfoP info, halfSpec half) {
+
+    riscvHalfDesc result = 0;
+
+    switch(half) {
+        case HA_NA:
+            break;
+        case HA_29:
+            result = U_29(info->instruction) ? RV_HA_T : RV_HA_B;
+            break;
+        case HA012_29_28:
+            result = U_29_28(info->instruction)+1;
+            break;
+        case HA123_29_28:
+            result = U_29_28(info->instruction);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return packing specification encoded in the instruction
+//
+static riscvPackDesc getPack(riscvInstrInfoP info, packSpec pack) {
+
+    riscvPackDesc result = 0;
+
+    switch(pack) {
+        case PS_NA:
+            break;
+        case PS_24_20:
+            switch(U_24_20(info->instruction) & 0x1b) {
+                case 0x08: result = RV_PD_10; break;
+                case 0x09: result = RV_PD_20; break;
+                case 0x0a: result = RV_PD_30; break;
+                case 0x0b: result = RV_PD_31; break;
+                default:   result = RV_PD_32; break;
+            }
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return doubling specification encoded in the instruction
+//
+static Bool getDouble(riscvInstrInfoP info, doubleSpec doDouble) {
+
+    Bool result = False;
+
+    switch(doDouble) {
+        case DO_NA:
+            break;
+        case DO_31:
+            result = U_31(info->instruction);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return rounding specification encoded in the instruction
+//
+static Bool getRound(riscvInstrInfoP info, roundSpec round) {
+
+    Bool result = False;
+
+    switch(round) {
+        case RD_NA:
+            break;
+        case RD_28:
+            result = U_28(info->instruction);
+            break;
+        case RD_29:
+            result = U_29(info->instruction);
+            break;
+        case RD_T:
+            result = True;
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return rlist specification encoded in the instruction
+//
+static riscvRListDesc getRList(riscvInstrInfoP info, rlistSpec rlist) {
+
+    riscvRListDesc result = RV_RL_x_RA;
+
+    // mapping for rlist2
+    static const riscvRListDesc map2[] = {
+        RV_RL_E_RA_S0_2,        // {ra,s0-s2}           EABI
+        RV_RL_E_RA_S3_S0_2,     // {ra,s3,s0-s2}        EABI
+        RV_RL_E_RA_S3_4_S0_2,   // {ra,s3-s4,s0-s2}     EABI
+        RV_RL_x_RA              // reserved
+    };
+
+    // mapping for rlist3
+    static const riscvRListDesc map3[] = {
+        RV_RL_x_RA,             // {ra}                 both
+        RV_RL_x_RA_S0,          // {ra,s0}              both
+        RV_RL_x_RA_S0_1,        // {ra,s0-s1}           both
+        RV_RL_U_RA_S0_2,        // {ra,s0-s2}           UABI
+        RV_RL_U_RA_S0_3,        // {ra,s0-s3}           UABI
+        RV_RL_U_RA_S0_5,        // {ra,s0-s5}           UABI
+        RV_RL_U_RA_S0_7,        // {ra,s0-s7}           UABI
+        RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
+    };
+
+    switch(rlist) {
+        case RL_NA:
+            break;
+        case RL_3_2:
+            result = map2[U_3_2(info->instruction)];
+            break;
+        case RL_4_2:
+            result = map3[U_4_2(info->instruction)];
+            break;
+        case RL_19_16:
+            result = U_19_16(info->instruction);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return rlist specification encoded in the instruction
+//
+static riscvAListDesc getAList(riscvInstrInfoP info, alistSpec alistSpec) {
+
+    riscvAListDesc result = RV_AL_NA;
+
+    if((alistSpec==RA_T) || ((alistSpec==RA_20) && U_20(info->instruction))) {
+
+        // mapping from rlist to alist
+        static const riscvAListDesc map[] = {
+
+            // both ABIs
+            [RV_RL_x_RA]           = RV_AL_NA,      // {ra}
+            [RV_RL_x_RA_S0]        = RV_AL_A0,      // {ra,s0}
+            [RV_RL_x_RA_S0_1]      = RV_AL_A0_1,    // {ra,s0-s1}
+
+            // UABI
+            [RV_RL_U_RA_S0_2]      = RV_AL_A0_2,    // {ra,s0-s2}
+            [RV_RL_U_RA_S0_3]      = RV_AL_A0_3,    // {ra,s0-s3}
+            [RV_RL_U_RA_S0_4]      = RV_AL_A0_3,    // {ra,s0-s4}
+            [RV_RL_U_RA_S0_5]      = RV_AL_A0_3,    // {ra,s0-s5}
+            [RV_RL_U_RA_S0_6]      = RV_AL_A0_3,    // {ra,s0-s6}
+            [RV_RL_U_RA_S0_7]      = RV_AL_A0_3,    // {ra,s0-s7}
+            [RV_RL_U_RA_S0_8]      = RV_AL_A0_3,    // {ra,s0-s8}
+            [RV_RL_U_RA_S0_9]      = RV_AL_A0_3,    // {ra,s0-s9}
+            [RV_RL_U_RA_S0_10]     = RV_AL_A0_3,    // {ra,s0-s10}
+            [RV_RL_U_RA_S0_11]     = RV_AL_A0_3,    // {ra,s0-s11}
+
+            // EABI
+            [RV_RL_E_RA_S0_2]      = RV_AL_A0_2,    // {ra,s0-s2}
+            [RV_RL_E_RA_S3_S0_2]   = RV_AL_A0_3,    // {ra,s3,s0-s2}
+            [RV_RL_E_RA_S3_4_S0_2] = RV_AL_A0_3,    // {ra,s3-s4,s0-s2}
+        };
+
+        result = map[info->rlist];
+    }
+
+    return result;
+}
+
+//
+// Return retval specification encoded in the instruction
+//
+static riscvRetValDesc getRetVal(riscvInstrInfoP info, retvalSpec retval) {
+
+    riscvRetValDesc result = RV_RV_NA;
+
+    switch(retval) {
+        case RV_NA:
+            break;
+        case RV_4:
+            result = U_4(info->instruction);
+            break;
+        case RV_5:
+            result = U_5(info->instruction);
+            break;
+        case RV_21_20:
+            result = U_21_20(info->instruction);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return return specification encoded in the instruction
+//
+static Bool getReturn(riscvInstrInfoP info, retSpec ret) {
+
+    Bool result = False;
+
+    switch(ret) {
+        case RS_NA:
+            break;
+        case RS_T:
+            result = True;
+            break;
+        case RS_13:
+            result = U_13(info->instruction);
+            break;
+        default:
+            VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
+            break;
+    }
+
+    return result;
+}
+
+//
 // Fix instructions that cannot be determined by decode alone
 //
 static void fixPseudoInstructions(riscvP riscv, riscvInstrInfoP info) {
@@ -5089,9 +6954,12 @@ static void interpretInstruction(
     info->opcode = attrs->opcode;
     info->format = attrs->format;
     info->arch   = attrs->arch;
+    info->Zc     = attrs->Zc;
+    info->unsPfx = attrs->unsPfx;
 
     // indicate whether operand types should be explicitly listed
     info->explicitType = 0;
+    info->explicitDot  = True;
     info->explicitW    = False;
 
     // some attributes are copied directly
@@ -5109,6 +6977,7 @@ static void interpretInstruction(
     info->unsExt    = getUnsExt(info, attrs->unsExt);
     info->csr       = getCSR(riscv, info, attrs->csr);
     info->csrUpdate = getCSRUpdate(riscv, info, attrs->csrUpdate);
+    info->tgt       = getTarget(riscv, info, attrs->tgts);
     info->c         = getConstant(riscv, info, attrs->cs,   wX);
     info->r[0]      = getRegister(riscv, info, attrs->r1,   wX, wF, attrs);
     info->r[1]      = getRegister(riscv, info, attrs->r2,   wX, wF, attrs);
@@ -5126,6 +6995,16 @@ static void interpretInstruction(
     info->nf        = getNumFields(info, attrs->nf);
     info->eewDiv    = getEEWDivisor(info, attrs->eewDiv);
     info->shN       = getShN(info, attrs->shN);
+    info->elemSize  = getElemSize(info, attrs->elemSize);
+    info->crossOp   = getCrossOp(info, attrs->crossOp);
+    info->half      = getHalf(info, attrs->half);
+    info->pack      = getPack(info, attrs->pack);
+    info->doDouble  = getDouble(info, attrs->doDouble);
+    info->round     = getRound(info, attrs->round);
+    info->rlist     = getRList(info, attrs->rlist);
+    info->alist     = getAList(info, attrs->alist);
+    info->retval    = getRetVal(info, attrs->retval);
+    info->doRet     = getReturn(info, attrs->ret);
 
     // don't use rd<csr> form for undefined CSRs
     if(info->csrInOp && !riscvGetCSRName(riscv, info->csr)) {
@@ -5172,10 +7051,10 @@ void riscvDecode(
     info->instruction = riscvFetchInstruction(riscv, info->thisPC, &info->bytes);
 
     // decode based on instruction size
-    if(info->bytes==4) {
-        decode32(riscv, info);
-    } else {
+    if(info->bytes==2) {
         decode16(riscv, info);
+    } else if(info->bytes==4) {
+        decode32(riscv, info);
     }
 
     // fix up pseudo-instructions
@@ -5185,34 +7064,49 @@ void riscvDecode(
 //
 // Fetch instruction at address thisPC
 //
-Uns32 riscvFetchInstruction(riscvP riscv, riscvAddr thisPC, Uns8 *bytesP) {
+Uns64 riscvFetchInstruction(riscvP riscv, riscvAddr thisPC, Uns8 *bytesP) {
 
-    Uns32 result;
+    Uns64 result;
 
-    if(!compressedPresent(riscv)) {
+    if(force4ByteInstructions(riscv)) {
 
         // compressed instructions absent: all instructions are 4 bytes, fetched
         // in a single 4-byte operation
         result = fetch4(riscv, thisPC);
 
-    } else if(is4ByteInstruction(result=fetch2(riscv, thisPC))) {
+    } else {
 
-        // compressed instructions present: instructions are 2 or 4 bytes,
-        // fetched in 2-byte parts
-        riscvAddr highPC = thisPC + 2;
+        // get first instruction halfword
+        result = fetch2(riscv, thisPC);
 
-        // allow for highPC wrapping if XLEN is 32
-        if(getXLenBits(riscv)==32) {
-            highPC &= 0xffffffff;
+        // get bytes still to fetch
+        Uns32 todo  = getInstructionBytes(riscv, result)-2;
+        Uns32 shift = 16;
+
+        // fetch remaining instruction halfwords
+        while(todo) {
+
+            // step to next PC
+            thisPC += 2;
+
+            // allow for highPC wrapping if XLEN is 32
+            if(getXLenBits(riscv)==32) {
+                thisPC &= 0xffffffff;
+            }
+
+            // add to instruction pattern
+            Uns64 halfword = fetch2(riscv, thisPC);
+            result |= (halfword << shift);
+
+            // prepare for next iteration
+            todo  -= 2;
+            shift += 16;
         }
-
-        // get full instruction pattern
-        result |= (fetch2(riscv, highPC) << 16);
     }
     
     // return instruction size (irrespective of whether compressed present)
     if(bytesP) {
-        *bytesP = is4ByteInstruction(result) ? 4 : 2;
+        *bytesP = getInstructionBytes(riscv, result);
     }
 
     return result;
@@ -5222,7 +7116,7 @@ Uns32 riscvFetchInstruction(riscvP riscv, riscvAddr thisPC, Uns8 *bytesP) {
 // Return size of the instruction at address thisPC
 //
 Uns32 riscvGetInstructionSize(riscvP riscv, riscvAddr thisPC) {
-    return getInstructionSize(riscv, thisPC);
+    return getInstructionBytesAtPC(riscv, thisPC);
 }
 
 //
@@ -5232,12 +7126,14 @@ VMI_FETCH_FN(riscvFetch) {
 
     riscvP riscv = (riscvP)processor;
     Uns8   bytes;
-    Uns32  instr = riscvFetchInstruction(riscv, thisPC, &bytes);
+    Uns64  instr = riscvFetchInstruction(riscv, thisPC, &bytes);
 
     if(bytes==2) {
         *(Uns16*)value = instr;
     } else if(bytes==4) {
         *(Uns32*)value = instr;
+    } else {
+        *(Uns64*)value = instr;
     }
 
     return bytes;

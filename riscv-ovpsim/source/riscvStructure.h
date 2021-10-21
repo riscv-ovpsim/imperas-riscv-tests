@@ -235,16 +235,18 @@ typedef struct riscvS {
 
     // Model control
     Uns64              TMP[NUM_TEMPS];  // temporaries
-    riscvP             smpRoot;         // root of SMP cluster
+    riscvP             clusterRoot;     // root of cluster
+    riscvP             smpRoot;         // smp container
     riscvP             parent;          // parent (if not root)
     riscvArchitecture  currentArch;     // current enabled features
     riscvDMode         mode;            // current processor dictionary mode
     riscvDisableReason disable;         // reason why processor is disabled
     Uns32              numHarts;        // number of hart contexts in container
+    Uns32              hartNum;         // index number within cluster
     Bool               verbose       :1;// whether verbose output enabled
     Bool               traceVolatile :1;// whether to trace volatile registers
     Bool               artifactAccess:1;// whether artifact access active
-    Bool               suppressExcept:1;// whether to suppress exceptions
+    Bool               artifactLdSt  :1;// whether artifact load/store active
     Bool               externalActive:1;// whether external CSR access active
     Bool               inSaveRestore :1;// is save/restore active?
     Bool               useTMode      :1;// has transaction mode been enabled?
@@ -266,6 +268,7 @@ typedef struct riscvS {
     Uns8               SFCSR;           // SF set by CSR write
     Uns8               SF;              // operation saturation flag
     Uns8               atomic;          // atomic operation code
+    Bool               HLVHSV;          // whether HLV, HLVX or HSV active
     Bool               DM;              // whether in Debug mode
     Bool               DMStall;         // whether stalled in Debug mode
     Bool               commercial;      // whether commercial feature in use
@@ -288,6 +291,7 @@ typedef struct riscvS {
     Uns64              disableMask;     // mask of externally-disabled interrupts
     riscvPendEnab      pendEnab;        // pending and enabled interrupt
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
+    riscvCLINTP        clint;           // CLINT state
     riscvCLIC          clic;            // source interrupt indicated from CLIC
     riscvException     exception : 16;  // last activated exception
     riscvICMode        MIMode    :  2;  // custom M interrupt mode
@@ -306,8 +310,9 @@ typedef struct riscvS {
     Uns64              baseCycles;      // base cycle count
     Uns64              baseInstructions;// base instruction count
 
-    // Debug
+    // Debug and trace
     vmiRegInfoP        regInfo[2];      // register views (normal and debug)
+    char               tmpString[16];   // temporary string
 
     // Parameters
     vmiEnumParameterP  variantList;     // supported variants
@@ -355,7 +360,7 @@ typedef struct riscvS {
     Uns8               extBits    : 8;  // bit size of external domains
     Uns8               s2Offset   : 2;  // stage 2 additional page offset
     riscvTLBId         activeTLB  : 2;  // currently-active TLB context
-    Uns8               PTWLevel   : 2;  // page table walk level
+    Uns8               PTWLevel   : 3;  // page table walk level
     Bool               PTWActive  : 1;  // page table walk active
     Bool               PTWBadAddr : 1;  // page table walk address was bad
     Bool               hlvxActive : 1;  // HLVX access active
@@ -394,6 +399,10 @@ typedef struct riscvS {
     Uns64              vTmp;                 	// vector operation temporary
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
+
+    // Decoder support
+    vmidDecodeTableP   table16;                 // 16-bit decode table
+    vmidDecodeTableP   table32;                 // 32-bit decode table
 
 } riscv;
 
@@ -477,6 +486,13 @@ inline static Uns32 getGEILEN(riscvP riscv) {
 //
 inline static Bool xtinstBasic(riscvP riscv) {
     return riscv->configInfo.xtinst_basic;
+}
+
+//
+// Is CLINT present and implemented internally?
+//
+inline static Bool CLINTInternal(riscvP riscv) {
+    return riscv->configInfo.CLINT_address;
 }
 
 //
@@ -614,6 +630,13 @@ inline static Bool cryptoEnabled(riscvP riscv) {
 }
 
 //
+// Is atomic extension enabled?
+//
+inline static Bool atomicEnabled(riscvP riscv) {
+    return riscv->currentArch & ISA_A;
+}
+
+//
 // Is bit manipulation extension present?
 //
 inline static Bool bitmanipPresent(riscvP riscv) {
@@ -628,6 +651,20 @@ inline static Bool cryptoPresent(riscvP riscv) {
 }
 
 //
+// Is DSP extension present?
+//
+inline static Bool DSPPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_P;
+}
+
+//
+// Is Vector extension present?
+//
+inline static Bool vectorPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_V;
+}
+
+//
 // Return implemented guest external interrupts
 //
 inline static Uns32 getTriggerNum(riscvP riscv) {
@@ -639,6 +676,27 @@ inline static Uns32 getTriggerNum(riscvP riscv) {
 //
 inline static riscvZfinxVer Zfinx(riscvP riscv) {
     return RISCV_ZFINX_VERSION(riscv);
+}
+
+//
+// Is Zcea configured?
+//
+inline static riscvZceaVer Zcea(riscvP riscv) {
+    return RISCV_ZCEA_VERSION(riscv);
+}
+
+//
+// Is Zceb configured?
+//
+inline static riscvZcebVer Zceb(riscvP riscv) {
+    return RISCV_ZCEB_VERSION(riscv);
+}
+
+//
+// Is Zcee configured?
+//
+inline static riscvZceeVer Zcee(riscvP riscv) {
+    return RISCV_ZCEE_VERSION(riscv);
 }
 
 //

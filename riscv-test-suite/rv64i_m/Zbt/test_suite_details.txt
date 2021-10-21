@@ -1,0 +1,56 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV64ZBT B Bit Manipulation:
+    8 test source files
+    2 different instruction categories
+    27 different instructions
+    18,984 total instructions
+
+Instruction category: OPB_COND Conditional
+  cmix : 274
+  cmov : 274
+Instruction category: OPB_FNSH Funnel Shift
+  fsri : 274
+  fsl : 274
+  fsr : 274
+  fsriw : 274
+  fsrw : 274
+  fslw : 274
+
+Other instructions (those not the focus of this suite)
+  c-j : 8
+  c-lui : 296
+  addiw : 2,702
+  csrrs : 24
+  auipc : 480
+  addi : 2,916
+  csrrw : 16
+  mret : 8
+  lui : 1,452
+  slli : 1,258
+  c-slli : 2,274
+  sd : 2,112
+  c-li : 1,872
+  c-addi : 798
+  c-sdsp : 80
+  c-addiw : 456
+  fence : 8
+  ecall : 8
+  beq : 24
+

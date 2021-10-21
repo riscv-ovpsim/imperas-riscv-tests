@@ -39,6 +39,11 @@ void riscvHalt(riscvP riscv, riscvDisableReason reason);
 void riscvRestart(riscvP riscv, riscvDisableReason reason);
 
 //
+// Is the fault a load/store/AMO fault?
+//
+Bool riscvIsLoadStoreAMOFault(riscvException exception);
+
+//
 // Take processor exception
 //
 void riscvTakeException(
@@ -58,9 +63,10 @@ void riscvTakeAsynchonousException(
 
 //
 // Take processor exception because of memory access error which could be
-// suppressed for a fault-only-first instruction
+// suppressed for a fault-only-first instruction or other custom reason using
+// the given GVA value
 //
-void riscvTakeMemoryException(
+void riscvTakeMemoryExceptionGVA(
     riscvP         riscv,
     riscvException exception,
     Uns64          tval,
@@ -68,9 +74,28 @@ void riscvTakeMemoryException(
 );
 
 //
+// Take processor exception because of memory access error which could be
+// suppressed for a fault-only-first instruction
+//
+void riscvTakeMemoryException(
+    riscvP         riscv,
+    riscvException exception,
+    Uns64          tval
+);
+
+//
 // Reset the processor
 //
 void riscvReset(riscvP riscv);
+
+//
+// Take custom Illegal Instruction exception for the given reason
+//
+void riscvIllegalCustom(
+    riscvP         riscv,
+    riscvException exception,
+    const char    *reason
+);
 
 //
 // Take Illegal Instruction exception

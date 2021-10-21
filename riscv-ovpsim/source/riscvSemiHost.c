@@ -59,6 +59,16 @@ static Uns32 getFRegNum(riscvP riscv) {
 }
 
 //
+// Should F register be used for argument or result?
+//
+inline static Bool useFReg(char format, Uns32 xlen, Uns32 flen) {
+    return (
+        ((format=='f') && (flen>=32)) ||
+        ((format=='d') && (xlen==64) && (flen==64))
+    );
+}
+
+//
 // Return processor XLEN
 //
 inline static Uns32 getXLEN(riscvP riscv) {
@@ -96,20 +106,12 @@ VMI_INT_RETURN_FN(riscvIntReturn) {
 VMI_INT_RESULT_FN(riscvIntResult) {
 
     riscvP riscv = (riscvP)processor;
-    vmiReg rdL   = RISCV_GPR(RV_REG_X_A0);
-    vmiReg rdH   = RISCV_GPR(RV_REG_X_A1);
     Uns32  xlen  = getXLEN(riscv);
     Uns32  flen  = getFLEN(riscv);
     Uns32  resBits;
 
-    // determine whether result is returned in f or x register
-    Bool isFReg = (format=='d') && (xlen==64) && (flen==64);
-
-    // decode return value format
-    if(isFReg) {
-        resBits = 64;
-        rdL     = RISCV_FPR(RV_REG_X_A0);
-    } else if(format=='4') {
+    // get result size in bits
+    if((format=='4') || (format=='f')) {
         resBits = 32;
     } else if(format=='a') {
         resBits = xlen;
@@ -120,11 +122,28 @@ VMI_INT_RESULT_FN(riscvIntResult) {
     }
 
     // assign result to register or register pair
-    if(resBits<=xlen) {
+    if(useFReg(format, xlen, flen)) {
+
+        vmiReg rdL = RISCV_FPR(RV_REG_X_A0);
+        vmiReg tmp = getTmp(0);
+
+        vmimtMoveRR(resBits, tmp, VMI_FUNCRESULT);
+        vmimtMoveRC(flen, rdL, -1);
+        vmimtMoveRR(resBits, rdL, tmp);
+
+    } else if(resBits<=xlen) {
+
+        vmiReg rdL = RISCV_GPR(RV_REG_X_A0);
+
         vmimtMoveRR(resBits, rdL, VMI_FUNCRESULT);
         vmimtMoveExtendRR(xlen, rdL, resBits, rdL, False);
+
     } else {
+
+        vmiReg rdL = RISCV_GPR(RV_REG_X_A0);
+        vmiReg rdH = RISCV_GPR(RV_REG_X_A1);
         vmiReg tmp = getTmp(0);
+
         vmimtMoveRR(resBits, tmp, VMI_FUNCRESULT);
         vmimtMoveRR(xlen, rdL, tmp);
         vmimtMoveRR(xlen, rdH, VMI_REG_DELTA(tmp, xlen/8));
@@ -154,7 +173,7 @@ VMI_INT_PAR_FN(riscvIntParCB) {
         Uns32  argBits;
 
         // determine argument size
-        if(ch=='4') {
+        if((ch=='4') || (ch=='f')) {
             argBits = 32;
         } else if(ch=='a') {
             argBits = xlen;
@@ -163,7 +182,7 @@ VMI_INT_PAR_FN(riscvIntParCB) {
         }
 
         // determine whether argument is passed in f or x register
-        Bool isF    = (ch=='d') && (xlen==64) && (flen==64);
+        Bool isF    = useFReg(ch, xlen, flen);
         Bool isFReg = isF && (fNum<fRegNum);
         Bool isPair = (argBits>xlen);
 
@@ -260,8 +279,10 @@ VMI_INT_PAR_FN(riscvIntParCB) {
             vmimtArgRegSimAddress(xlen, argReg);
         } else if(ch=='8') {
             vmimtArgReg(64, argReg);
+        } else if(ch=='f') {
+            vmimtArgReg(32|VPRRAT_FLT, argReg);
         } else if(ch=='d') {
-            vmimtArgReg(VPRRAT_FLT64, argReg);
+            vmimtArgReg(64|VPRRAT_FLT, argReg);
         } else {                                                    // LCOV_EXCL_LINE
             VMI_ABORT("Unrecognised format character '%c'", ch);    // LCOV_EXCL_LINE
         }

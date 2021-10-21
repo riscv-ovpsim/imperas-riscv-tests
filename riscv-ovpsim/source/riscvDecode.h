@@ -31,7 +31,7 @@
 //
 // Return instruction at address thisPC
 //
-Uns32 riscvFetchInstruction(riscvP riscv, riscvAddr thisPC, Uns8 *bytesP);
+Uns64 riscvFetchInstruction(riscvP riscv, riscvAddr thisPC, Uns8 *bytesP);
 
 //
 // Return size of the instruction at address thisPC

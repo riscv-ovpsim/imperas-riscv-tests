@@ -21,6 +21,7 @@
 
 // model header files
 #include "riscvBlockState.h"
+#include "riscvModelCallbackTypes.h"
 #include "riscvRegisterTypes.h"
 #include "riscvTypeRefs.h"
 #include "riscvTypes.h"
@@ -107,6 +108,12 @@ void riscvEmitIllegalOperandMessageDesc(
     illegalDescP desc,
     Uns32        operand
 );
+
+//
+// Emit code to take Illegal Instruction exception when a feature subset is
+// absent
+//
+void riscvEmitIllegalInstructionAbsentSubset(const char *name);
 
 //
 // Validate that the given required feature is present and enabled (using
@@ -202,6 +209,47 @@ void riscvRstFS(riscvMorphStateP state, Bool useRS1);
 //
 vmiReg riscvGetFPFlagsMT(riscvP riscv);
 
+
+////////////////////////////////////////////////////////////////////////////////
+// LOAD/STORE SUPPORT
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Validate the given rounding mode is legal and emit an Illegal Instruction
+// exception call if not
+//
+Bool riscvEmitCheckLegalRM(riscvP riscv, riscvRMDesc rm);
+
+//
+// Fundamental load operation
+//
+void riscvEmitLoad(
+    riscvP            riscv,
+    vmiReg            rd,
+    Uns32             rdBits,
+    vmiReg            ra,
+    Uns32             memBits,
+    Uns64             offset,
+    riscvExtLdStAttrs attrs
+);
+
+//
+// Fundamental store operation
+//
+void riscvEmitStore(
+    riscvP            riscv,
+    vmiReg            rs,
+    vmiReg            ra,
+    Uns32             memBits,
+    Uns64             offset,
+    riscvExtLdStAttrs attrs
+);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MODE VALIDATION
+////////////////////////////////////////////////////////////////////////////////
+
 //
 // Validate the hart operation mode is at least the specified mode and emit an
 // Illegal Instruction or Virtual Instruction exception if not
@@ -213,12 +261,6 @@ Bool riscvEmitRequireMode(riscvP riscv, riscvMode mode);
 // exception if not
 //
 Bool riscvEmitRequireNotV(riscvP riscv);
-
-//
-// Validate the given rounding mode is legal and emit an Illegal Instruction
-// exception call if not
-//
-Bool riscvEmitCheckLegalRM(riscvP riscv, riscvRMDesc rm);
 
 //
 // Emit trap when mstatus.TVM=1 in Supervisor mode

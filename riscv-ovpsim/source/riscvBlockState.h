@@ -97,6 +97,7 @@ typedef struct riscvBlockStateS {
     Uns32            VSetTopMt[2];  // known vector registers with top set
     Bool             VStartZeroMt;  // vstart known to be zero?
     Bool             updateFFlags;  // whether to update fflags from fflags_i
+    Bool             doLSTrig;      // whether load/store triggers enabled
 
 } riscvBlockState;
 

@@ -571,7 +571,7 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta, Bool complete) {
 //
 // Take action for a trigger
 //
-static void doTriggerAction(riscvP riscv, triggerAction action) {
+static void doTriggerAction(riscvP riscv, triggerAction action, Bool baseValid) {
 
     Uns64 tval = getPC(riscv);
     Uns32 i;
@@ -595,7 +595,7 @@ static void doTriggerAction(riscvP riscv, triggerAction action) {
     }
 
     // adjust base instruction count to allow for instruction retirement
-    if(riscvInhibitInstret(riscv)) {
+    if(baseValid || riscvInhibitInstret(riscv)) {
         // no action
     } else if(action==TA_DEBUG_BEFORE) {
         riscv->baseInstructions++;
@@ -623,7 +623,7 @@ inline static void scheduleTriggerAfter(riscvP riscv) {
 // Take action for a trigger *before* the current instruction if required
 // (or schedule action after the instruction completes)
 //
-static Bool doTriggerBefore(riscvP riscv) {
+static Bool doTriggerBefore(riscvP riscv, Bool baseValid) {
 
     triggerAction action = getActiveAction(riscv, 0, True);
 
@@ -632,7 +632,7 @@ static Bool doTriggerBefore(riscvP riscv) {
     } else if(!(action & TA_BEFORE)) {
         scheduleTriggerAfter(riscv);
     } else {
-        doTriggerAction(riscv, action);
+        doTriggerAction(riscv, action, baseValid);
     }
 
     // indicate if some exception is taken
@@ -651,7 +651,7 @@ static Bool doTriggerAfter(riscvP riscv, Bool complete) {
         riscv->netValue.triggerAfter = False;
     } else if(complete) {
         riscv->netValue.triggerAfter = False;
-        doTriggerAction(riscv, action);
+        doTriggerAction(riscv, action, False);
     }
 
     // indicate if some exception is taken
@@ -748,7 +748,7 @@ static Bool doTriggerADMATCH(
     // if some trigger has matched, scan again to see whether action is
     // required
     if(someMatch) {
-        except = doTriggerBefore(riscv);
+        except = doTriggerBefore(riscv, onlyBefore);
     }
 
     return except;

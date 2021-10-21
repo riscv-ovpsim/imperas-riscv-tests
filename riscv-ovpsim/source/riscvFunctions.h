@@ -57,6 +57,9 @@ VMI_EXCEPTION_INFO_FN(riscvExceptionInfo);
 VMI_MODE_INFO_FN(riscvModeInfo);
 VMI_GET_EXCEPTION_FN(riscvGetException);
 VMI_GET_MODE_FN(riscvGetMode);
+#if(ENABLE_MEM_TRACE_ATTRS)
+VMI_TRACE_MEM_ATTRS_FN(riscvTraceMemAttrs);
+#endif
 VMI_PROC_DESC_FN(riscvProcessorDescription);
 
 // exception functions

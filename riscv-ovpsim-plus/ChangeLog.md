@@ -11,6 +11,50 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- An issue has been corrected that prevented pending interrupts being
+  immediately taken after transition from CLIC mode to non-CLIC mode.
+- DSP (P) Extension versions 0.5.2 and 0.9.6 are implemented.
+- If the B extension is present, from version 1.0.0 it is implicitly always 
+  enabled and not subject to control by misa.B, which is zero.
+- If the K extension is present, from version 1.0.0-rc1 it is implicitly always 
+  enabled and not subject to control by misa.K, which is zero.
+- A page table walk encountering an Sv39/Sv48 PTE with reserved bits 63:54
+  non-zero now causes a Page Fault exception, conforming with the evolving
+  Privileged Specification.
+- Behavior of parameter counteren_mask has been modified so that it only affects
+  the writable bits in counteren CSRs and does not make unimplemented counters
+  undefined, to conform with the Privileged Specification which states that 
+  unimplemented counters must appear hard-wired to zero.
+- An issue has been corrected that caused stale PMP TOR mappings to be preserved
+  when lower bound address registers were modified.
+- A bug has been corrected that caused the value of instret to be incorrect
+  when an address match trigger and halt request interrupt occur simultaneously.
+- New cryptographic version 1.0.0-rc has been added, with these differences
+  compared to the previous 0.9.2 version:
+  - aes32* opcodes have been changed;
+  - all scalar crypto specific instructions which produce 32-bit results now 
+    sign-extend them to XLEN bits where relevant (previously they were zero 
+    extended);
+  - encodings for ES16 and WAIT states have changed.
+- Some minor vector extension changes have been implemented:
+  - instruction vpopc.m renamed vcpop.m;
+  - instruction vmandnot.mm renamed vmandn.mm;
+  - instruction vmornot.mm renamed vmorn.mm.
+
+Date 2021-July-22
+Release 20210721.0
+===
+
+- Initial implementation of Zcee version 1.0.0-rc
+- Some Hypervisor extension issues have been corrected:
+  - an HLVX instruction failing because of fault when reading a stage 1 table
+    address is now reported as a load fault, not an instruction fault;
+  - update of xstatus.GVA on a memory fault has been corrected.
+
+Date 2021-July-12
+Release 20210709.0
+===
+
 - The default value of parameter tval_zero_ebreak has been changed to False,
   conforming to Privileged Architecture specification clarifications of
   13 October 2020 (see https://github.com/riscv/riscv-isa-manual/pull/601)

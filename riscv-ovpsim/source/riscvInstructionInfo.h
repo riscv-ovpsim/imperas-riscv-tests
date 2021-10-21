@@ -49,6 +49,19 @@
 }
 
 //
+// Rd, Rs1 (WX=1)
+//
+#define ATTR32_RD_RS1_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    wX       : WX_W1_RV32,          \
+}
+
+//
 // Rd, Rs1, Rs2 (WX=0)
 //
 #define ATTR32_RD_RS1_RS2_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -59,6 +72,77 @@
     r1       : RS_X_11_7,           \
     r2       : RS_X_19_15,          \
     r3       : RS_X_24_20,          \
+}
+
+//
+// Rd, Rs1, Rs2 (WX=1)
+//
+#define ATTR32_RD_RS1_RS2_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    wX       : WX_W1_RV32,          \
+}
+
+//
+// Rd, Rs1, Rs2 (WX=0, element size 32)
+//
+#define ATTR32_RD_RS1_RS2_WX0_SZ32(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_C32,                 \
+}
+
+//
+// Rd, Rs1, Rs2 (WX=1, element size 32)
+//
+#define ATTR32_RD_RS1_RS2_WX1_SZ32(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_C32,                 \
+    wX       : WX_W1_RV32Q,             \
+}
+
+//
+// Rd, Rs1, Rs2 (WX=0, element size 64)
+//
+#define ATTR32_RD_RS1_RS2_WX0_SZ64(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_C64,                 \
+}
+
+//
+// Rd, Rs1, Rs2 (WX=1 if cryptographic version >= 1.0.0-rc1, otherwise WX=0)
+//
+#define ATTR32_RD_RS1_RS2_WX1K(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    wX       : WX_W1_KV_1_0_0_RC1,  \
 }
 
 //
@@ -77,9 +161,9 @@
 }
 
 //
-// Rd, Rs1, Rs2, bs (WX=0)
+// Rd, Rs1, Rs2, bs (WX=1 if cryptographic version >= 1.0.0-rc1, otherwise WX=0)
 //
-#define ATTR32_RD_RS1_RS2_BS_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+#define ATTR32_RD_RS1_RS2_BS_WX1K(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_R2_R3_SIMM,   \
     type     : RV_IT_##_GENERIC,    \
@@ -88,6 +172,7 @@
     r2       : RS_X_19_15,          \
     r3       : RS_X_24_20,          \
     cs       : CS_U_31_30,          \
+    wX       : WX_W1_KV_1_0_0_RC1,  \
 }
 
 //
@@ -194,6 +279,21 @@
 }
 
 //
+// Rd, Rs1[, Rs2] (WX=1 if cryptographic version >= 1.0.0-rc1, otherwise WX=0)
+//
+#define ATTR32_RD_RS1_rs2_WX1K(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    wX       : WX_W1_KV_1_0_0_RC1,  \
+    priDelta : 1,                   \
+}
+
+//
 // Rd[, Rs1], Rs2
 //
 #define ATTR32_RD_rs1_RS2(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -223,6 +323,20 @@
 }
 
 //
+// Rd, Rs1, Rs2, Rs3 (P extension, WX0)
+//
+#define ATTR32_RD_RS1_RS2_RS3_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_R4,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    r4       : RS_X_29_25,          \
+}
+
+//
 // Rd, Rs1, SIMM
 //
 #define ATTR32_RD_RS1_SI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -234,6 +348,20 @@
     r2       : RS_X_19_15,          \
     cs       : CS_S_31_20,          \
     wX       : WX_3,                \
+}
+
+//
+// Rd, Rs1, SIMM (WC=0, Zc subset)
+//
+#define ATTR32_RD_RS1_SI_WX0_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    cs       : CS_S_31_20,          \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
@@ -318,6 +446,189 @@
     r2       : RS_X_19_15,          \
     cs       : CS_SHAMT_25_20,      \
     wX       : WX_3,                \
+}
+
+//
+// Rd, Rs1, SSHIFT (WX=0)
+//
+#define ATTR32_RD_RS1_SSHIFT_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    cs       : CS_SHAMT_25_20,      \
+}
+
+//
+// Rd, Rs1, IMM (WX=0)
+//
+#define ATTR32_RD_RS1_IMM_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_24_20,              \
+}
+
+//
+// Rd, Rs1, IMM3 (WX=0, element size 8)
+//
+#define ATTR32_RD_RS1_IMM_WX0_SZ8(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##8] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_22_20,              \
+    elemSize : ESZ_C8,                  \
+}
+
+//
+// Rd, Rs1, IMM4 (WX=0, element size 16)
+//
+#define ATTR32_RD_RS1_IMM_WX0_SZ16(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##16] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_23_20,              \
+    elemSize : ESZ_C16,                 \
+}
+
+//
+// Rd, Rs1, IMM5 (WX=0, element size 32)
+//
+#define ATTR32_RD_RS1_IMM_WX0_SZ32(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##32] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_24_20,              \
+    elemSize : ESZ_C32,                 \
+}
+
+//
+// Rd, Rs1, IMM3 (WX=0, element size 8, no rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDF_SZ8(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##8] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_22_20,              \
+    elemSize : ESZ_C8,                  \
+}
+
+//
+// Rd, Rs1, IMM4 (WX=0, element size 16, no rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDF_SZ16(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##16] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_23_20,              \
+    elemSize : ESZ_C16,                 \
+}
+
+//
+// Rd, Rs1, IMM5 (WX=0, element size 32, no rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDF_SZ32(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##32] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_24_20,              \
+    elemSize : ESZ_C32,                 \
+}
+
+//
+// Rd, Rs1, IMM3 (WX=0, element size 8, rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDT_SZ8(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##8_U] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_22_20,              \
+    elemSize : ESZ_C8,                  \
+    round    : RD_T,                    \
+}
+
+//
+// Rd, Rs1, IMM4 (WX=0, element size 16, rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDT_SZ16(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##16_U] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_23_20,              \
+    elemSize : ESZ_C16,                 \
+    round    : RD_T,                    \
+}
+
+//
+// Rd, Rs1, IMM5 (WX=0, element size 32, rounding)
+//
+#define ATTR32_RD_RS1_IMM_RNDT_SZ32(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##32_U] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_U_24_20,              \
+    elemSize : ESZ_C32,                 \
+    round    : RD_T,                    \
+}
+
+//
+// Rd, Rs1 (packing)
+//
+#define ATTR32_RD_RS1_PACK(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx_Px] = {  \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2,               \
+    type     : RV_IT_##_GENERIC##_Sx_Px,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    elemSize : ESZ_C8,                  \
+    pack     : PS_24_20,                \
+}
+
+//
+// Rd, Rs1, IMM5 (WX=1)
+//
+#define ATTR32_RD_RS1_IMM5U_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = {  \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_SIMM,      \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    cs       : CS_U_24_20,          \
+    wX       : WX_W1_RV32,          \
 }
 
 //
@@ -566,7 +877,21 @@
     arch     : _ARCH,               \
     r1       : RS_X_19_15,          \
     r2       : RS_X_24_20,          \
-    cs       : CS_B,                \
+    tgts     : TGTS_B,              \
+}
+
+//
+// Rs1, Rs2, TGT(B)
+//
+#define ATTR32_RS1_IMM_TB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_SIMM_TGT,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_24_20,          \
+    cs       : CS_U_19_15,          \
+    tgts     : TGTS_B,              \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
@@ -579,7 +904,7 @@
     arch     : _ARCH,               \
     r1       : RS_X_19_15,          \
     r2       : RS_X_24_20,          \
-    cs       : CS_B,                \
+    tgts     : TGTS_B,              \
 }
 
 //
@@ -592,7 +917,7 @@
     arch     : _ARCH,               \
     r1       : RS_X_19_15,          \
     r2       : RS_X_24_20,          \
-    cs       : CS_B,                \
+    tgts     : TGTS_B,              \
     priDelta : 1,                   \
 }
 
@@ -605,7 +930,7 @@
     type     : RV_IT_##_GENERIC,    \
     arch     : _ARCH,               \
     r1       : RS_X_11_7,           \
-    cs       : CS_J,                \
+    tgts     : TGTS_J,              \
 }
 
 //
@@ -617,7 +942,7 @@
     type     : RV_IT_##_GENERIC,    \
     arch     : _ARCH,               \
     r1       : RS_X_11_7,           \
-    cs       : CS_J,                \
+    tgts     : TGTS_J,              \
 }
 
 //
@@ -1823,6 +2148,414 @@
 }
 
 //
+// Rd, Rs1, Rs2 (operand size 8, 16, 32 or 64 encoded in bits 12, 13 and 27)
+//
+#define ATTR32_RD_RS1_RS2_SZ1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_12_13_27,            \
+}
+
+//
+// Rd, Rs1, Rs2 (operand size 8, 16, 32 or 64 encoded in bits 12, 13 and 27,
+// rounding encoded in bit 29)
+//
+#define ATTR32_RD_RS1_RS2_SZ1_RND(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx_Rx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_12_13_27,            \
+    round    : RD_29,                   \
+}
+
+//
+// Rd, Rs1 (operand size 8, 16 or 32 encoded in bits 24:32)
+//
+#define ATTR32_RD_RS1_SZ2(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2,               \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    elemSize : ESZ_24_23,               \
+}
+
+//
+// Rd, Rs1, Rs2 (operand size 8 or 16 encoded in bit 25)
+//
+#define ATTR32_RD_RS1_RS2_SZ3(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_25,                  \
+}
+
+//
+// Rd, Rs1 (operand size 8, 16 or 32 encoded in bits 21:20)
+//
+#define ATTR32_RD_RS1_SZ4(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2,               \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    elemSize : ESZ_21_20,               \
+}
+
+//
+// Rd, Rs1, Rs2 (cross operation, operand size 16 or 32 encoded in bit 26)
+//
+#define ATTR32_RD_RS1_RS2_SZ26_CR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_26,                  \
+    crossOp  : CR_25,                   \
+}
+
+//
+// Rd, Rs1, Rs2 (cross operation, operand size 16 or 32 encoded in bit 13)
+//
+#define ATTR32_RD_RS1_RS2_SZ13_CR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Sx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    elemSize : ESZ_13,                  \
+    crossOp  : CR_25,                   \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=0, BT=1, TT=2)
+//
+#define ATTR32_RD_RS1_RS2_BT012(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA012_29_28,             \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=0, BT=1, TT=2, WX=1)
+//
+#define ATTR32_RD_RS1_RS2_BT012_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA012_29_28,             \
+    wX       : WX_W1_RV32Q,             \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=1, BT=2, TT=3)
+//
+#define ATTR32_RD_RS1_RS2_BT123(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA123_29_28,             \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=1, BT=2, TT=3, WX=1)
+//
+#define ATTR32_RD_RS1_RS2_BT123_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA123_29_28,             \
+    wX       : WX_W1_RV32Q,             \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=0, BT=1, TT=2)
+//
+#define ATTR32_RD_RS1_RS2_BT012_SZ(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx_Sx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA012_29_28,             \
+    elemSize : ESZ_13,                  \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, BB=1, BT=2, TT=3)
+//
+#define ATTR32_RD_RS1_RS2_BT123_SZ(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx_Sx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Hx_Sx,\
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    half     : HA123_29_28,             \
+    elemSize : ESZ_13,                  \
+}
+
+//
+// Rd, Rs1, Rs2 (optional rounding operation)
+//
+#define ATTR32_RD_RS1_RS2_RND(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Rx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Rx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    round    : RD_28,                   \
+}
+
+//
+// Rd, Rs1, Rs2 (optional rounding operation, WX=1)
+//
+#define ATTR32_RD_RS1_RS2_RND_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Rx] = { \
+    opcode   : _OPCODE,                     \
+    format   : FMT_R1_R2_R3,                \
+    type     : RV_IT_##_GENERIC##_Sx_Rx,    \
+    arch     : _ARCH,                       \
+    r1       : RS_X_11_7,                   \
+    r2       : RS_X_19_15,                  \
+    r3       : RS_X_24_20,                  \
+    round    : RD_28,                       \
+    wX       : WX_W1_RV32,                  \
+}
+
+//
+// Rd, Rs1, Rs2 (half operation, optional doubling, optional rounding operation)
+//
+#define ATTR32_RD_RS1_RS2_BT_DBL_RND(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Hx_Dx_Rx] = { \
+    opcode   : _OPCODE,                     \
+    format   : FMT_R1_R2_R3,                \
+    type     : RV_IT_##_GENERIC##_Hx_Dx_Rx, \
+    arch     : _ARCH,                       \
+    r1       : RS_X_11_7,                   \
+    r2       : RS_X_19_15,                  \
+    r3       : RS_X_24_20,                  \
+    half     : HA_29,                       \
+    doDouble : DO_31,                       \
+    round    : RD_28,                       \
+}
+
+//
+// Rd, Rs1, Rs2 (rounding always up)
+//
+#define ATTR32_RD_RS1_RS2_RNDU(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Rx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Rx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    round    : RD_T,                    \
+}
+
+//
+// Rd, Rs1, SSHIFT (optional rounding operation)
+//
+#define ATTR32_RD_RS1_SSHIFT_RND(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Rx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Rx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_SHAMT_25_20,          \
+    round    : RD_28,                   \
+}
+
+//
+// Rd, Rs1, SSHIFT (optional rounding operation, WX=1)
+//
+#define ATTR32_RD_RS1_SSHIFT_RND_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Rx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC##_Rx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_SHAMT_25_20,          \
+    round    : RD_28,                   \
+    wX       : WX_W1_RV32,              \
+}
+
+//
+// Rd, Rs1, BYTE (WX=0)
+//
+#define ATTR32_RD_RS1_BYTE_WX0(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_SIMM,          \
+    type     : RV_IT_##_GENERIC,        \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    cs       : CS_BYTE_22_20,           \
+}
+
+//
+// Rd, Rs1, Rs2 (operand size H or W encoded in bit 26)
+//
+#define ATTR32_RD_RS1_RS2_HW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME##_Wx] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_R1_R2_R3,            \
+    type     : RV_IT_##_GENERIC##_Wx,   \
+    arch     : _ARCH,                   \
+    r1       : RS_X_11_7,               \
+    r2       : RS_X_19_15,              \
+    r3       : RS_X_24_20,              \
+    wX       : WX_26,                   \
+}
+
+//
+// Rd, SIMM(Rs1) (LD, W)
+//
+#define ATTR32_RDW_MEM_GP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_GP,             \
+    cs       : CS_S_LWGP,           \
+    memBits  : MBS_W,               \
+    unsExt   : USX_14,              \
+    Zc       : RVCS_##_ZC,          \
+}
+
+//
+// Rd, SIMM(Rs1) (LD, D)
+//
+#define ATTR32_RDD_MEM_GP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_GP,             \
+    cs       : CS_S_LDGP,           \
+    memBits  : MBS_D,               \
+    unsExt   : USX_14,              \
+    Zc       : RVCS_##_ZC,          \
+}
+
+//
+// Rs2, SIMM(Rs1) (ST, W)
+//
+#define ATTR32_RS2W_MEM_GP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_24_20,          \
+    r2       : RS_X_GP,             \
+    cs       : CS_S_SWGP,           \
+    memBits  : MBS_W,               \
+    Zc       : RVCS_##_ZC,          \
+}
+
+//
+// Rs2, SIMM(Rs1) (ST, D)
+//
+#define ATTR32_RS2D_MEM_GP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_OFF_R2,       \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_24_20,          \
+    r2       : RS_X_GP,             \
+    cs       : CS_S_SDGP,           \
+    memBits  : MBS_D,               \
+    Zc       : RVCS_##_ZC,          \
+}
+
+//
+// instructions like C.DECBNEZ (Zb subset)
+//
+#define ATTR32_DECBNEZ_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_SIMM_TGT,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    cs       : CS_S_1_LSL_19_18,    \
+    Zc       : RVCS_##_ZC,          \
+    tgts     : TGTS_DECBNEZ,        \
+}
+
+//
+// PUSH (Zcea)
+//
+#define ATTR32_PUSH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_RLIST_ALIST_SIMM,    \
+    type     : RV_IT_##_GENERIC,        \
+    arch     : _ARCH,                   \
+    rlist    : RL_19_16,                \
+    alist    : RA_20,                   \
+    cs       : CS_NSTKA_11_7,           \
+    Zc       : RVCS_##_ZC,              \
+}
+
+//
+// POP (Zcea)
+//
+#define ATTR32_POP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,                 \
+    format   : FMT_RLIST_RETVAL_SIMM,   \
+    type     : RV_IT_##_GENERIC,        \
+    arch     : _ARCH,                   \
+    rlist    : RL_19_16,                \
+    ret      : RS_13,                   \
+    retval   : RV_21_20,                \
+    cs       : CS_PSTKA_11_7,           \
+    Zc       : RVCS_##_ZC,              \
+}
+
+//
 // instructions like LAST
 //
 #define ATTR32_LAST(_NAME, _GENERIC, _OPCODE) [IT32_##_NAME] = { \
@@ -1884,6 +2617,240 @@
     r2     : RS_X_9_7_P8,       \
     r3     : RS_X_4_2_P8,       \
     wX     : WX_W1,             \
+}
+
+//
+// instructions like LB (Zc subset)
+//
+#define ATTR16_LB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LB,           \
+    unsExt : USX_1,             \
+    memBits: MBS_B,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like LB (Zc subset)
+//
+#define ATTR16_LH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LH,           \
+    unsExt : USX_1,             \
+    memBits: MBS_H,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like SB (Zc subset)
+//
+#define ATTR16_SB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LB,           \
+    memBits: MBS_B,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like SH (Zc subset)
+//
+#define ATTR16_SH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LH,           \
+    memBits: MBS_H,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like SEXT.B (Zc subset)
+//
+#define ATTR16_EXT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_R2,         \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_9_7_P8,       \
+    r2     : RS_X_9_7_P8_S_4_3, \
+    unsExt : USX_2,             \
+    unsPfx : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.NOT (Zc subset)
+//
+#define ATTR16_NOT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_R2,         \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_9_7_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.MVA01S07 (Zc subset)
+//
+#define ATTR16_MVA01S07_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R3_R4,         \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_A0,           \
+    r2     : RS_X_A1,           \
+    r3     : RS_X_9_7_S,        \
+    r4     : RS_X_4_2_S,        \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.TBLJ (Zc subset)
+//
+#define ATTR16_TBLJ_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC, _OFF, _LINK) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_SIMM,          \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_##_LINK,      \
+    Zc     : RVCS_##_ZC,        \
+    cs     : CS_C_TBLJ_M##_OFF, \
+}
+
+//
+// instructions like MUL (Zc subset)
+//
+#define ATTR16_MUL_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_R2_R3,      \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_9_7_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    r3     : RS_X_4_2_P8,       \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.PUSH (Zc subset)
+//
+#define ATTR16_PUSH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_ALIST_SIMM,  \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_4_2,                \
+    alist  : RA_T,                  \
+    cs     : CS_NSTKA_9_7,          \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.PUSH.E (Zc subset)
+//
+#define ATTR16_PUSHE_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_ALIST_SIMM,  \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_3_2,                \
+    alist  : RA_T,                  \
+    cs     : CS_NSTKA_5_4_7,        \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.POP (Zc subset)
+//
+#define ATTR16_POP_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_RETVAL_SIMM, \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_4_2,                \
+    cs     : CS_PSTKA_7,            \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.POP.E (Zc subset)
+//
+#define ATTR16_POPE_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_RETVAL_SIMM, \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_3_2,                \
+    cs     : CS_PSTKA_7,            \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.POPRET (Zc subset)
+//
+#define ATTR16_POPRET_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_RETVAL_SIMM, \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_4_2,                \
+    ret    : RS_T,                  \
+    retval : RV_5,                  \
+    cs     : CS_PSTKA_9_7,          \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.POPRET.E (Zc subset)
+//
+#define ATTR16_POPRETE_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,               \
+    format : FMT_RLIST_RETVAL_SIMM, \
+    type   : RV_IT_##_GENERIC,      \
+    arch   : _ARCH,                 \
+    rlist  : RL_3_2,                \
+    ret    : RS_T,                  \
+    retval : RV_4,                  \
+    cs     : CS_PSTKA_9_7,          \
+    Zc     : RVCS_##_ZC,            \
+}
+
+//
+// instructions like C.DECBNEZ (Zb subset)
+//
+#define ATTR16_DECBNEZ_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_SIMM_TGT,   \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_9_7_P8,       \
+    cs     : CS_S_1_LSL_3_2,    \
+    Zc     : RVCS_##_ZC,        \
+    tgts   : TGTS_C_DECBNEZ,    \
 }
 
 //
@@ -2000,7 +2967,7 @@
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
     r2     : RS_X_ZERO,         \
-    cs     : CS_C_B,            \
+    tgts   : TGTS_C_B,          \
 }
 
 //
@@ -2012,7 +2979,7 @@
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_ZERO,         \
-    cs     : CS_C_J,            \
+    tgts   : TGTS_C_J,          \
 }
 
 //
@@ -2023,8 +2990,8 @@
     format : FMT_R1_TGT,        \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
-    r1     : RS_X_LR,           \
-    cs     : CS_C_J,            \
+    r1     : RS_X_RA,           \
+    tgts   : TGTS_C_J,          \
 }
 
 //
@@ -2047,7 +3014,7 @@
     format   : FMT_R2,              \
     type     : RV_IT_##_GENERIC,    \
     arch     : _ARCH,               \
-    r1       : RS_X_LR,             \
+    r1       : RS_X_RA,             \
     r2       : RS_X_11_7,           \
 }
 

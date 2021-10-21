@@ -36,6 +36,9 @@
 #define EMIT_VTYPE      '\014'
 #define EMIT_RM         '\015'
 #define EMIT_RMR        '\016'
+#define EMIT_RLIST      '\017'
+#define EMIT_ALIST      '\020'
+#define EMIT_RETVAL     '\021'
 
 //
 // These are placeholders in disassembly format strings
@@ -54,13 +57,18 @@
 #define EMIT_VTYPE_S    "\014"
 #define EMIT_RM_S       "\015"
 #define EMIT_RMR_S      "\016"
+#define EMIT_RLIST_S    "\017"
+#define EMIT_ALIST_S    "\020"
+#define EMIT_RETVAL_S   "\021"
 
 //
 // These are disassembly format strings
 //
 #define FMT_NONE                ""
+#define FMT_SIMM                EMIT_CS_S
 #define FMT_R1                  EMIT_R1_S
 #define FMT_R1_R2               EMIT_R1_S "," EMIT_R2_S
+#define FMT_R3_R4               EMIT_R3_S "," EMIT_R4_S
 #define FMT_R1NZ_R2             "*" EMIT_R1_S "," EMIT_R2_S
 #define FMT_R1_SIMM             EMIT_R1_S "," EMIT_CS_S
 #define FMT_R1_R3               EMIT_R1_S "," EMIT_R3_S
@@ -73,6 +81,7 @@
 #define FMT_R1_R2_R3_SIMM       EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S "," EMIT_CS_S
 #define FMT_R1_R2_XIMM          EMIT_R1_S "," EMIT_R2_S "," EMIT_CX_S
 #define FMT_R1_R2_TGT           EMIT_R1_S "," EMIT_R2_S "," EMIT_TGT_S
+#define FMT_R1_SIMM_TGT         EMIT_R1_S "," EMIT_CS_S "," EMIT_TGT_S
 #define FMT_R1_R2_VTYPE         EMIT_R1_S "," EMIT_R2_S "," EMIT_VTYPE_S
 #define FMT_R1_SIMM_VTYPE       EMIT_R1_S "," EMIT_CS_S "," EMIT_VTYPE_S
 #define FMT_R1_MEM2             EMIT_R1_S ",(" EMIT_R2_S ")"
@@ -97,6 +106,10 @@
 #define FMT_CSR_SIMM            EMIT_CSR_S "," EMIT_CS_S
 #define FMT_R1_TGT              EMIT_R1_S "," EMIT_TGT_S
 #define FMT_R2_TGT              EMIT_R2_S "," EMIT_TGT_S
+#define FMT_R1_SIMM_TGT         EMIT_R1_S "," EMIT_CS_S "," EMIT_TGT_S
 #define FMT_TGT                 EMIT_TGT_S
 #define FMT_PRED_SUCC           EMIT_PRED_S "," EMIT_SUCC_S
+#define FMT_RLIST_RETVAL_SIMM   EMIT_RLIST_S "," EMIT_RETVAL_S "," EMIT_CS_S
+#define FMT_RLIST_ALIST_SIMM    EMIT_RLIST_S "," EMIT_ALIST_S "," EMIT_CS_S
+
 

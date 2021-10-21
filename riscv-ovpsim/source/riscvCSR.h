@@ -133,6 +133,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (uintthresh),   // 0x047
     CSR_ID      (uscratchcswl), // 0x049
 
+    CSR_ID      (tbljalvec),    // 0x800
+    CSR_ID      (ucode),        // 0x801
     CSR_ID      (cycle),        // 0xC00
     CSR_ID      (time),         // 0xC01
     CSR_ID      (instret),      // 0xC02
@@ -419,6 +421,18 @@ void riscvNewCSR(
     riscvP          riscv,
     vmiosObjectP    object
 );
+
+
+////////////////////////////////////////////////////////////////////////////////
+// COUNTER / TIMER ACCESS VALIDITY
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Return a Boolean indicating if an access to the indicated Performance
+// Monitor register is valid (and take an Undefined Instruction or Virtual
+// Instruction trap if not)
+//
+Bool riscvHPMAccessValid(riscvCSRAttrsCP attrs, riscvP riscv);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1308,6 +1322,28 @@ typedef struct {
 CSR_REG_STRUCT_DECL_32_64(hgatp);
 
 // -----------------------------------------------------------------------------
+// tbljalvec    (id 0x800)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tbljalvec);
+
+// define write masks
+#define WM32_tbljalvec -64
+#define WM64_tbljalvec -64
+
+// -----------------------------------------------------------------------------
+// ucode        (id 0x801)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(ucode);
+
+// define write masks
+#define WM32_ucode 0x1
+#define WM64_ucode 0x1
+
+// -----------------------------------------------------------------------------
 // mcycle       (id 0xB00)
 // cycle        (id 0xC00)
 // -----------------------------------------------------------------------------
@@ -1972,6 +2008,8 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (ucause);         // 0x042
     CSR_REG_DECL  (utval);          // 0x043
     CSR_REG_DECL  (uintthresh);     // 0x04A
+    CSR_REG_DECL  (tbljalvec);      // 0x800
+    CSR_REG_DECL  (ucode);          // 0x801
     CSR_REG_DECL  (vl);             // 0xC20
     CSR_REG_DECL  (vtype);          // 0xC21
     CSR_REG_DECL  (vlenb);          // 0xC22

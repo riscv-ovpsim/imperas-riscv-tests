@@ -17,6 +17,9 @@
  *
  */
 
+// standard header files
+#include <stdio.h>
+
 // Imperas header files
 #include "hostapi/impAlloc.h"
 
@@ -274,11 +277,6 @@ static Bool isISRPresent(riscvP riscv, isrDetailsCP this) {
         // excluded by presence callback
         present = False;
 
-    } else if(required & ISA_and) {
-
-        // all specified features are required
-        present = !(required & ~(actual|ISA_and));
-
     } else if(required) {
 
         // one or more of the specified features is required
@@ -438,7 +436,7 @@ inline static Uns32 getFPRNum(riscvP riscv) {
 // Return number of vector registers
 //
 inline static Uns32 getVRNum(riscvP riscv) {
-    return (riscv->configInfo.arch&ISA_V) ? VREG_NUM : 0;
+    return vectorPresent(riscv) ? VREG_NUM : 0;
 }
 
 //
@@ -713,6 +711,7 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
 
     // exclude artifact registers
     RISCV_FIELD_IMPL_IGNORE(atomic);
+    RISCV_FIELD_IMPL_IGNORE(HLVHSV);
     RISCV_FIELD_IMPL_IGNORE(pmKey);
     RISCV_FIELD_IMPL_IGNORE(vlEEW1);
     RISCV_FIELD_IMPL_IGNORE(vFirstFault);
@@ -724,6 +723,31 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     RISCV_FIELD_IMPL_IGNORE(triggerLV);
     RISCV_FIELD_IMPL_IGNORE(fpFlagsI);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MEMORY ACCESS TRACE ELABORATION
+////////////////////////////////////////////////////////////////////////////////
+
+#if(ENABLE_MEM_TRACE_ATTRS)
+
+//
+// Return elaboration string for memory accesses
+//
+VMI_TRACE_MEM_ATTRS_FN(riscvTraceMemAttrs) {
+
+    riscvP riscv = (riscvP)processor;
+    char  *attrs = 0;
+
+    if(riscv->PTWActive) {
+        attrs = riscv->tmpString;
+        sprintf(attrs, "L%u", riscv->PTWLevel);
+    }
+
+    return attrs;
+}
+
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -31,6 +31,7 @@
 // model header files
 #include "riscvBExtension.h"
 #include "riscvBlockState.h"
+#include "riscvCExtension.h"
 #include "riscvCSRTypes.h"
 #include "riscvDecode.h"
 #include "riscvDecodeTypes.h"
@@ -140,6 +141,35 @@ typedef enum riscvVStartTypeE {
 } riscvVStartType;
 
 //
+// P extension operation shape
+//
+typedef enum riscvPAttrsE {
+
+                    // BASIC OPERATIONS
+    RVPS_N = 0x01,  // narrowing operation
+    RVPS_D = 0x02,  // doubling operation (after multiply)
+    RVPS_X = 0x04,  // cross operands
+    RVPS_W = 0x08,  // 32-bit element size
+    RVPS_2 = 0x10,  // double indicated element size
+
+                    // COMPOSITE OPERATIONS
+    RVPS______ = 0,
+    RVPS_ND___ = (RVPS_N|RVPS_D                     ),
+    RVPS_ND_W_ = (RVPS_N|RVPS_D|       RVPS_W       ),
+    RVPS_ND__2 = (RVPS_N|RVPS_D|              RVPS_2),
+    RVPS_N____ = (RVPS_N                            ),
+    RVPS_N__W_ = (RVPS_N|              RVPS_W       ),
+    RVPS__D___ = (       RVPS_D                     ),
+    RVPS__D__2 = (       RVPS_D|              RVPS_2),
+    RVPS___X__ = (              RVPS_X              ),
+    RVPS___XW_ = (              RVPS_X|RVPS_W       ),
+    RVPS___X_2 = (              RVPS_X|       RVPS_2),
+    RVPS____W_ = (                     RVPS_W       ),
+    RVPS_____2 = (                            RVPS_2),
+
+} riscvPAttrs;
+
+//
 // Attributes controlling JIT code translation
 //
 typedef struct riscvMorphAttrS {
@@ -151,16 +181,21 @@ typedef struct riscvMorphAttrS {
     riscvMorphVFn         endCB;            // called at end of vector operation
     riscvOpCBFn           opCB;             // called to get operation callback
     octiaInstructionClass iClass;           // supplemental instruction class
-    riscvBExtOp           bExtOp     : 8;   // B-extension operation
+    riscvBExtOpSet        bExtOp;           // B-extension operation set
+    Uns32                 offset     : 8;   // constant offset
     riscvKExtOp           kExtOp     : 8;   // K-extension operation
     vmiUnop               unop       : 8;   // integer unary operation
     vmiBinop              binop      : 8;   // integer binary operation
+    vmiBinop              binop2     : 8;   // integer second binary operation
+    vmiBinop              binop3     : 8;   // integer third binary operation
+    vmiBinop              acc        : 8;   // accumulating binary operation
     vmiFUnop              fpUnop     : 8;   // floating-point unary operation
     vmiFBinop             fpBinop    : 8;   // floating-point binary operation
     vmiFTernop            fpTernop   : 8;   // floating-point ternary operation
     riscvFPCtrl           fpConfig   : 8;   // floating point configuration
     riscvFPRelation       fpRel      : 8;   // floating point comparison relation
     riscvVShape           vShape     : 8;   // vector operation shape
+    riscvPAttrs           pAttrs     : 8;   // P-extension operation shape
     vmiCondition          cond       : 4;   // comparison condition
     riscvVArgType         argType    : 4;   // vector argument types
     riscvVStartType       vstart0    : 4;   // constraints on vstart=0
@@ -181,7 +216,6 @@ typedef struct riscvMorphStateS {
     riscvMorphAttrCP attrs;         // instruction attributes
     riscvP           riscv;         // current processor
     Bool             inDelaySlot;   // whether in delay slot
-    Bool             doLSTrig;      // whether load/store triggers enabled
     Uns8             tmpIndex;      // next unallocated temporary index
     riscvVExternalFn externalCB;    // external implementation callback
     void            *userData;      // for externally-implemented operations
@@ -638,6 +672,31 @@ static void emitIllegalInstructionAbsentArch(riscvArchitecture missing) {
 //
 static void emitCustomAbsent() {
     emitIllegalInstructionAbsentArch(ISA_X);
+}
+
+//
+// Take Illegal Instruction exception when subset is absent
+//
+static void illegalInstructionAbsentSubset(riscvP riscv, const char *name) {
+
+    char reason[64];
+
+    if(riscv->verbose) {
+        snprintf(SNPRINTF_TGT(reason), "%s absent", name);
+    }
+
+    // take Illegal Instruction exception
+    riscvIllegalInstructionMessage(riscv, reason);
+}
+
+//
+// Emit code to take Illegal Instruction exception when a feature subset is
+// absent
+//
+void riscvEmitIllegalInstructionAbsentSubset(const char *name) {
+    vmimtArgProcessor();
+    vmimtArgNatAddress(name);
+    vmimtCallAttrs((vmiCallFn)illegalInstructionAbsentSubset, VMCA_EXCEPTION);
 }
 
 //
@@ -1922,23 +1981,38 @@ typedef struct unpackedRegS {
 } unpackedReg;
 
 //
-// Return unpacked GPR description
+// Manufacture unpacked GPR description for the abstract GPR
 //
-inline static unpackedReg unpackRX(riscvMorphStateP state, Uns32 argNum) {
+inline static unpackedReg createRXInt(riscvMorphStateP state, riscvRegDesc rA) {
 
     unpackedReg result;
 
     result.state = state;
-    result.rA    = getRVReg(state, argNum);
-    result.r     = getVMIReg(state->riscv, result.rA);
-    result.bits  = getRBits(result.rA);
+    result.rA    = rA;
+    result.r     = getVMIReg(state->riscv, rA);
+    result.bits  = getRBits(rA);
     result.ftype = 0;
 
     return result;
 }
 
 //
-// Return unpacked destination FPR description
+// Manufacture unpacked GPR description for the indexed GPR
+//
+inline static unpackedReg createRX(riscvMorphStateP state, Uns32 index) {
+    Uns32 bits = riscvGetXlenMode(state->riscv);
+    return createRXInt(state, RV_RD_X | index | (RV_RD_8*bits/8));
+}
+
+//
+// Return unpacked GPR argument description
+//
+inline static unpackedReg unpackRX(riscvMorphStateP state, Uns32 argNum) {
+    return createRXInt(state, getRVReg(state, argNum));
+}
+
+//
+// Return unpacked destination argument FPR description
 //
 inline static unpackedReg unpackFD(riscvMorphStateP state, Uns32 argNum) {
 
@@ -1954,7 +2028,7 @@ inline static unpackedReg unpackFD(riscvMorphStateP state, Uns32 argNum) {
 }
 
 //
-// Return unpacked source FPR description
+// Return unpacked source argument FPR description
 //
 static unpackedReg unpackFS(riscvMorphStateP state, Uns32 argNum) {
 
@@ -1994,8 +2068,8 @@ inline static void writeUnpackedSize(unpackedReg rd, Uns32 srcBits) {
 // Set address bits for a load/store operation (has effect when running with
 // XLEN=32 on a system also implementing XLEN=64)
 //
-static void setAddressMaskMT(riscvMorphStateP state) {
-    vmimtSetAddressMask(getAddressMask(riscvGetXlenMode(state->riscv)));
+static void setAddressMaskMT(riscvP riscv) {
+    vmimtSetAddressMask(getAddressMask(riscvGetXlenMode(riscv)));
 }
 
 //
@@ -2023,9 +2097,7 @@ inline static Bool inVMA1Mode(riscvP riscv) {
 // Return a Boolean indicating if transaction mode is enabled, checked using
 // block mask
 //
-inline static Bool inTransactionModeMT(riscvMorphStateP state) {
-
-    riscvP riscv = state->riscv;
+inline static Bool inTransactionModeMT(riscvP riscv) {
 
     // validate transaction mode state if required
     if(riscv->useTMode) {
@@ -2052,18 +2124,19 @@ inline static Bool inTransactionModeMT(riscvMorphStateP state) {
 // Return domain to use for load/store (default, transaction, or virtual for
 // HLV, HLVX or HSV)
 //
-static memDomainP getLoadStoreDomainMT(riscvMorphStateP state) {
-
-    riscvP     riscv  = state->riscv;
-    Bool       isCode = state->attrs->execute;
+static memDomainP getLoadStoreDomainMT(
+    riscvP riscv,
+    Bool   isVirtual,
+    Bool   isCode
+) {
     memDomainP result = 0;
 
-    if(inTransactionModeMT(state)) {
+    if(inTransactionModeMT(riscv)) {
 
         // use transaction domain
         result = riscv->tmDomain;
 
-    } else if(!state->attrs->virtual) {
+    } else if(!isVirtual) {
 
         // use default domain if not a virtual machine operation
 
@@ -2117,12 +2190,11 @@ static memEndian getVEndianMT(
 //
 // Return endian to use for load/store (default or virtual for HLV or HSV)
 //
-static memEndian getLoadStoreEndianMT(riscvMorphStateP state) {
+static memEndian getLoadStoreEndianMT(riscvP riscv, Bool isVirtual) {
 
-    riscvP    riscv = state->riscv;
     memEndian result;
 
-    if(!state->attrs->virtual) {
+    if(!isVirtual) {
         result = riscvGetCurrentDataEndianMT(riscv);
     } else if(isFeaturePresentMT(riscv, ISA_SPVP)) {
         result = getVEndianMT(riscv, RISCV_MODE_VS, ISA_VSBE);
@@ -2137,9 +2209,9 @@ static memEndian getLoadStoreEndianMT(riscvMorphStateP state) {
 // Compose the access virtual address in the trigger VA pseudo-register and
 // update ra and offset to reference that register
 //
-static void emitTriggerVA(riscvMorphStateP state, vmiReg *raP, Uns64 *offsetP) {
+static void emitTriggerVA(riscvP riscv, vmiReg *raP, Uns64 *offsetP) {
 
-    Uns32  vaBits = riscvGetXlenMode(state->riscv);
+    Uns32  vaBits = riscvGetXlenMode(riscv);
     vmiReg va     = RISCV_TRIGGER_VA;
 
     // compose trigger VA and extend to 64 bits if required
@@ -2194,6 +2266,129 @@ static void emitTriggerS(Bool doTrigger, vmiReg rs, Uns32 memBits) {
 }
 
 //
+// Emit HLV/HLVX/HSV active code
+//
+inline static void emitHLVHSV(Bool start) {
+    vmimtMoveRC(8, RISCV_HLVHSV, start);
+}
+
+//
+// Fundamental load operation
+//
+void riscvEmitLoad(
+    riscvP            riscv,
+    vmiReg            rd,
+    Uns32             rdBits,
+    vmiReg            ra,
+    Uns32             memBits,
+    Uns64             offset,
+    riscvExtLdStAttrs attrs
+) {
+    memConstraint constraint = attrs.constraint;
+    Bool          sExtend    = attrs.sExtend;
+    Bool          isVirtual  = attrs.isVirtual;
+    Bool          isCode     = attrs.isCode;
+    Bool          doLSTrig   = riscv->blockState->doLSTrig;
+    memDomainP    domain     = getLoadStoreDomainMT(riscv, isVirtual, isCode);
+    memEndian     endian     = getLoadStoreEndianMT(riscv, isVirtual);
+    Bool          triggerLA  = doLSTrig && triggerLoadAddressMT(riscv);
+    Bool          triggerLV  = doLSTrig && triggerLoadValueMT(riscv);
+    vmiReg        rdTmp      = rd;
+
+    // indicate start of HLV/HLVX/HSV if required
+    if(isVirtual) {
+        emitHLVHSV(True);
+    }
+
+    // generate trigger VA if required
+    if(triggerLA || triggerLV) {
+        emitTriggerVA(riscv, &ra, &offset);
+    }
+
+    // invoke load address trigger if required
+    emitTriggerLA(triggerLA, memBits);
+
+    // if a transactional domain access, perform try-load in current data
+    // domain (to update VM and PMP structures and generate access exceptions)
+    if(inTransactionMode(riscv)) {
+        setAddressMaskMT(riscv);
+        vmimtTryLoadRC(memBits, offset, ra, constraint);
+    }
+
+    // load result into temporary if load value trigger is active
+    if(triggerLV) {
+        rdTmp = RISCV_TRIGGER_LV;
+    }
+
+    // emit code to perform load
+    setAddressMaskMT(riscv);
+    vmimtLoadRRODomain(
+        domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
+    );
+
+    // invoke load value trigger if required
+    emitTriggerLV(triggerLV, rdTmp, rdBits, memBits);
+
+    // commit result
+    vmimtMoveRR(rdBits, rd, rdTmp);
+
+    // indicate end of HLV/HLVX/HSV if required
+    if(isVirtual) {
+        emitHLVHSV(False);
+    }
+}
+
+//
+// Fundamental store operation
+//
+void riscvEmitStore(
+    riscvP            riscv,
+    vmiReg            rs,
+    vmiReg            ra,
+    Uns32             memBits,
+    Uns64             offset,
+    riscvExtLdStAttrs attrs
+) {
+    memConstraint constraint = attrs.constraint;
+    Bool          isVirtual  = attrs.isVirtual;
+    Bool          doLSTrig   = riscv->blockState->doLSTrig;
+    memDomainP    domain     = getLoadStoreDomainMT(riscv, isVirtual, False);
+    memEndian     endian     = getLoadStoreEndianMT(riscv, isVirtual);
+    Bool          triggerS   = doLSTrig && triggerStoreMT(riscv);
+
+    // indicate start of HLV/HLVX/HSV if required
+    if(isVirtual) {
+        emitHLVHSV(True);
+    }
+
+    // generate trigger VA
+    if(triggerS) {
+        emitTriggerVA(riscv, &ra, &offset);
+    }
+
+    // invoke store address/value trigger if required
+    emitTriggerS(triggerS, rs, memBits);
+
+    // if a transactional domain access, perform try-store in current data
+    // domain (to update VM and PMP structures and generate access exceptions)
+    if(inTransactionMode(riscv)) {
+        setAddressMaskMT(riscv);
+        vmimtTryStoreRC(memBits, offset, ra, constraint);
+    }
+
+    // emit code to perform store
+    setAddressMaskMT(riscv);
+    vmimtStoreRRODomain(
+        domain, memBits, offset, ra, rs, endian, constraint
+    );
+
+    // indicate end of HLV/HLVX/HSV if required
+    if(isVirtual) {
+        emitHLVHSV(False);
+    }
+}
+
+//
 // Load value from memory for explicit memBits and offset
 //
 static void emitLoadCommonMBO(
@@ -2205,45 +2400,16 @@ static void emitLoadCommonMBO(
     Uns64            offset,
     memConstraint    constraint
 ) {
-    Bool       sExtend   = !state->info.unsExt;
-    Bool       doLSTrig  = state->doLSTrig;
-    memDomainP domain    = getLoadStoreDomainMT(state);
-    memEndian  endian    = getLoadStoreEndianMT(state);
-    Bool       triggerLA = doLSTrig && triggerLoadAddressMT(state->riscv);
-    Bool       triggerLV = doLSTrig && triggerLoadValueMT(state->riscv);
-    vmiReg     rdTmp     = rd;
+    // create attributes for memory operation
+    riscvExtLdStAttrs attrs = {
+        constraint : constraint,
+        sExtend    : !state->info.unsExt,
+        isVirtual  : state->attrs->virtual,
+        isCode     : state->attrs->execute
+    };
 
-    // generate trigger VA if required
-    if(triggerLA || triggerLV) {
-        emitTriggerVA(state, &ra, &offset);
-    }
-
-    // invoke load address trigger if required
-    emitTriggerLA(triggerLA, memBits);
-
-    // if a transactional domain access, perform try-load in current data
-    // domain (to update VM and PMP structures and generate access exceptions)
-    if(inTransactionMode(state->riscv)) {
-        setAddressMaskMT(state);
-        vmimtTryLoadRC(memBits, offset, ra, constraint);
-    }
-
-    // load result into temporary if load value trigger is active
-    if(triggerLV) {
-        rdTmp = RISCV_TRIGGER_LV;
-    }
-
-    // emit code to perform load
-    setAddressMaskMT(state);
-    vmimtLoadRRODomain(
-        domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
-    );
-
-    // invoke load value trigger if required
-    emitTriggerLV(triggerLV, rdTmp, rdBits, memBits);
-
-    // commit result
-    vmimtMoveRR(rdBits, rd, rdTmp);
+    // do fundamental operation
+    riscvEmitLoad(state->riscv, rd, rdBits, ra, memBits, offset, attrs);
 }
 
 //
@@ -2257,31 +2423,14 @@ static void emitStoreCommonMBO(
     Uns64            offset,
     memConstraint    constraint
 ) {
-    Bool       doLSTrig = state->doLSTrig;
-    memDomainP domain   = getLoadStoreDomainMT(state);
-    memEndian  endian   = getLoadStoreEndianMT(state);
-    Bool       triggerS = doLSTrig && triggerStoreMT(state->riscv);
+    // create attributes for memory operation
+    riscvExtLdStAttrs attrs = {
+        constraint : constraint,
+        isVirtual  : state->attrs->virtual
+    };
 
-    // generate trigger VA
-    if(triggerS) {
-        emitTriggerVA(state, &ra, &offset);
-    }
-
-    // invoke store address/value trigger if required
-    emitTriggerS(triggerS, rs, memBits);
-
-    // if a transactional domain access, perform try-store in current data
-    // domain (to update VM and PMP structures and generate access exceptions)
-    if(inTransactionMode(state->riscv)) {
-        setAddressMaskMT(state);
-        vmimtTryStoreRC(memBits, offset, ra, constraint);
-    }
-
-    // emit code to perform store
-    setAddressMaskMT(state);
-    vmimtStoreRRODomain(
-        domain, memBits, offset, ra, rs, endian, constraint
-    );
+    // do fundamental operation
+    riscvEmitStore(state->riscv, rs, ra, memBits, offset, attrs);
 }
 
 //
@@ -2323,12 +2472,180 @@ static void emitTryStoreCommon(
     vmiReg           ra,
     memConstraint    constraint
 ) {
-    Uns32 memBits = state->info.memBits;
-    Uns64 offset  = state->info.c;
+    riscvP riscv   = state->riscv;
+    Uns32  memBits = state->info.memBits;
+    Uns64  offset  = state->info.c;
 
     // generate Store/AMO exception in preference to Load exception
-    setAddressMaskMT(state);
+    setAddressMaskMT(riscv);
     vmimtTryStoreRC(memBits, offset, ra, constraint);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SATURATING OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Return vmiFlagsCP specifying which native flag is used to set the saturation
+// flag for unsigned and signed operations
+//
+static vmiFlagsCP getSatFlags(riscvMorphStateP state, Bool isSigned) {
+
+    static const vmiFlags map[2] = {
+        [0] = {f : {[vmi_CF] = RISCV_SF_TMP}, cin : RISCV_SF_TMP},
+        [1] = {f : {[vmi_OF] = RISCV_SF_TMP}, cin : RISCV_SF_TMP}
+    };
+
+    return &map[isSigned];
+}
+
+//
+// Update vxsat after saturating operation
+//
+static void updateVXSat(riscvMorphStateP state) {
+
+    riscvP riscv = state->riscv;
+
+    // set mstatus.FS if required
+    if(writeAnyFS(riscv) && vxSatRMSetFSDirty(riscv)) {
+        updateFS(riscv);
+    }
+
+    vmimtBinopRR(8, vmi_OR, RISCV_SF_FLAGS, RISCV_SF_TMP, 0);
+}
+
+//
+// Commit saturation flag if required
+//
+static void commitSatFlag(riscvMorphStateP state, vmiFlagsCP flags) {
+
+    if(!flags) {
+
+        // no flags to commit
+
+    } else if(RISCV_DSP_VERSION(state->riscv)==RVDSPV_0_5_2) {
+
+        // saturation flag in ucode CSR
+        vmimtBinopRR(8, vmi_OR, CSR_REG_MT(ucode), RISCV_SF_TMP, 0);
+
+    } else {
+
+        // saturation flag in vxsat
+        updateVXSat(state);
+    }
+}
+
+//
+// Return any saturation flags required for the unary operation
+//
+static vmiFlagsCP getUnopSatFlags(riscvMorphStateP state, vmiUnop op) {
+
+    vmiFlagsCP result = 0;
+
+    switch(op) {
+
+        case vmi_NEGSQ:
+        case vmi_ABSSQ:
+            result = getSatFlags(state, True);
+            break;
+
+        default:
+            break;
+    }
+
+    return result;
+}
+
+//
+// Is the binop a signed saturating one?
+//
+static Bool isSQBinop(vmiBinop op) {
+
+    Bool result = False;
+
+    switch(op) {
+
+        case vmi_ADDSQ:
+        case vmi_SUBSQ:
+        case vmi_RSUBSQ:
+        case vmi_SHLSQ:
+#if(ENABLE_P_EXT)
+        case vmi_ADCSQ:
+        case vmi_SBBSQ:
+#endif
+            result = True;
+            break;
+
+        default:
+            break;
+    }
+
+    return result;
+}
+
+//
+// Is the binop an unsigned saturating one?
+//
+static Bool isUQBinop(vmiBinop op) {
+
+    Bool result = False;
+
+    switch(op) {
+
+        case vmi_ADDUQ:
+        case vmi_SUBUQ:
+        case vmi_RSUBUQ:
+        case vmi_SHLUQ:
+#if(ENABLE_P_EXT)
+        case vmi_ADCUQ:
+        case vmi_SBBUQ:
+#endif
+            result = True;
+            break;
+
+        default:
+            break;
+    }
+
+    return result;
+}
+
+//
+// Return any saturation flags required for the binary operation
+//
+static vmiFlagsCP getBinopSatFlags(riscvMorphStateP state, vmiBinop op) {
+
+    vmiFlagsCP result = 0;
+
+    if(isSQBinop(op)) {
+        result = getSatFlags(state, True);
+    } else if(isUQBinop(op)) {
+        result = getSatFlags(state, False);
+    }
+
+    return result;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ROUNDING OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Return the operation, or rounding equivalent if required
+//
+static vmiBinop getBinopRound(riscvMorphStateP state, vmiBinop op) {
+
+    if(!state->info.round) {
+        // no action
+    } else if(op==vmi_SHR) {
+        op = vmi_SHRR;
+    } else if(op==vmi_SAR) {
+        op = vmi_SARR;
+    }
+
+    return op;
 }
 
 
@@ -2399,9 +2716,12 @@ static RISCV_MORPH_FN(emitUnopRR) {
 
     unpackedReg rd   = unpackRX(state, 0);
     unpackedReg rs1  = unpackRX(state, 1);
+    vmiUnop     op   = state->attrs->unop;
+    vmiFlagsCP  f    = getUnopSatFlags(state, op);
     Uns32       bits = rd.bits;
 
-    vmimtUnopRR(bits, state->attrs->unop, rd.r, rs1.r, 0);
+    vmimtUnopRR(bits, op, rd.r, rs1.r, f);
+    commitSatFlag(state, f);
 
     writeUnpacked(rd);
 }
@@ -2414,9 +2734,12 @@ static RISCV_MORPH_FN(emitBinopRRR) {
     unpackedReg rd   = unpackRX(state, 0);
     unpackedReg rs1  = unpackRX(state, 1);
     unpackedReg rs2  = unpackRX(state, 2);
+    vmiBinop    op   = getBinopRound(state, state->attrs->binop);
+    vmiFlagsCP  f    = getBinopSatFlags(state, op);
     Uns32       bits = rd.bits;
 
-    vmimtBinopRRR(bits, state->attrs->binop, rd.r, rs1.r, rs2.r, 0);
+    vmimtBinopRRR(bits, op, rd.r, rs1.r, rs2.r, f);
+    commitSatFlag(state, f);
 
     writeUnpacked(rd);
 }
@@ -2458,10 +2781,13 @@ static RISCV_MORPH_FN(emitBinopRRC) {
 
     unpackedReg rd   = unpackRX(state, 0);
     unpackedReg rs1  = unpackRX(state, 1);
+    vmiBinop    op   = getBinopRound(state, state->attrs->binop);
+    vmiFlagsCP  f    = getBinopSatFlags(state, op);
     Uns64       c    = state->info.c;
     Uns32       bits = rd.bits;
 
-    vmimtBinopRRC(bits, state->attrs->binop, rd.r, rs1.r, c, 0);
+    vmimtBinopRRC(bits, op, rd.r, rs1.r, c, f);
+    commitSatFlag(state, f);
 
     writeUnpacked(rd);
 }
@@ -2627,19 +2953,12 @@ static void checkTargetAddressAlignedR(
 }
 
 //
-// Branch based on register comparison
+// Branch based on comparison
 //
-static RISCV_MORPH_FN(emitBranchRR) {
+static void emitBranchRX(riscvMorphStateP state, vmiReg tmp) {
 
-    riscvP      riscv = state->riscv;
-    unpackedReg rs1   = unpackRX(state, 0);
-    unpackedReg rs2   = unpackRX(state, 1);
-    Uns64       tgt   = state->info.c;
-    Uns32       bits  = rs1.bits;
-    vmiReg      tmp   = newTmp(state);
-
-    // do comparison
-    vmimtCompareRR(bits, state->attrs->cond, rs1.r, rs2.r, tmp);
+    riscvP riscv = state->riscv;
+    Uns64  tgt   = state->info.tgt;
 
     // validate target address alignment
     if(!isTargetAddressAlignedC(riscv, tgt)) {
@@ -2658,6 +2977,40 @@ static RISCV_MORPH_FN(emitBranchRR) {
 
     // do branch
     vmimtCondJump(tmp, True, 0, tgt, VMI_NOREG, vmi_JH_RELATIVE);
+}
+
+//
+// Branch based on register comparison
+//
+static RISCV_MORPH_FN(emitBranchRR) {
+
+    unpackedReg rs1  = unpackRX(state, 0);
+    unpackedReg rs2  = unpackRX(state, 1);
+    Uns32       bits = rs1.bits;
+    vmiReg      tmp  = newTmp(state);
+
+    // do comparison
+    vmimtCompareRR(bits, state->attrs->cond, rs1.r, rs2.r, tmp);
+
+    // common branch code
+    emitBranchRX(state, tmp);
+}
+
+//
+// Branch based on constant comparison
+//
+static RISCV_MORPH_FN(emitBranchRC) {
+
+    unpackedReg rs1  = unpackRX(state, 0);
+    Uns64       c    = state->info.c;
+    Uns32       bits = rs1.bits;
+    vmiReg      tmp  = newTmp(state);
+
+    // do comparison
+    vmimtCompareRC(bits, state->attrs->cond, rs1.r, c, tmp);
+
+    // common branch code
+    emitBranchRX(state, tmp);
 }
 
 //
@@ -2685,7 +3038,7 @@ static RISCV_MORPH_FN(emitJAL) {
 
     riscvP       riscv  = state->riscv;
     unpackedReg  lr     = unpackRX(state, 0);
-    Uns64        tgt    = state->info.c;
+    Uns64        tgt    = state->info.tgt;
     vmiJumpHint  hint   = isLR(lr.r) ? vmi_JH_CALL : vmi_JH_NONE;
 
     // validate target address alignment
@@ -2699,28 +3052,18 @@ static RISCV_MORPH_FN(emitJAL) {
 }
 
 //
-// Jump to register target address
+// Emit common code for indirect jump-and-link
 //
-static RISCV_MORPH_FN(emitJALR) {
+static void emitJALRInt(riscvMorphStateP state, vmiReg ra, unpackedReg lr) {
 
-    unpackedReg  lr     = unpackRX(state, 0);
-    unpackedReg  ra     = unpackRX(state, 1);
-    Uns64        offset = state->info.c;
-    Uns32        bits   = lr.bits;
-    vmiJumpHint  hint;
-
-    // calculate target address if required
-    if(offset) {
-        vmiReg tmp = newTmp(state);
-        vmimtBinopRRC(bits, vmi_ADD, tmp, ra.r, offset, 0);
-        ra.r = tmp;
-    }
+    Uns32       bits = lr.bits;
+    vmiJumpHint hint;
 
     // validate target address alignment
-    checkTargetAddressAlignedR(state, bits, ra.r);
+    checkTargetAddressAlignedR(state, bits, ra);
 
     // derive jump hint
-    if(isLR(ra.r)) {
+    if(isLR(ra)) {
         hint = vmi_JH_RETURN;
     } else if(isLR(lr.r)) {
         hint = vmi_JH_CALL;
@@ -2730,7 +3073,27 @@ static RISCV_MORPH_FN(emitJALR) {
 
     // emit call using calculated linkPC and adjusted lr
     Uns64 linkPC = getLinkPC(state, &lr.r);
-    vmimtUncondJumpReg(linkPC, ra.r, lr.r, hint|vmi_JH_RELATIVE);
+    vmimtUncondJumpReg(linkPC, ra, lr.r, hint|vmi_JH_RELATIVE);
+}
+
+//
+// Jump to register target address
+//
+static RISCV_MORPH_FN(emitJALR) {
+
+    unpackedReg ra     = unpackRX(state, 1);
+    Uns64       offset = state->info.c;
+
+    // calculate target address if required
+    if(offset) {
+        vmiReg tmp  = newTmp(state);
+        Uns32  bits = ra.bits;
+        vmimtBinopRRC(bits, vmi_ADD, tmp, ra.r, offset, 0);
+        ra.r = tmp;
+    }
+
+    // emit code for indirect jump and link
+    emitJALRInt(state, ra.r, unpackRX(state, 0));
 }
 
 
@@ -2760,9 +3123,8 @@ static atomicCode getBinopAtomicCode(riscvMorphStateP state) {
 //
 // Emit atomic code operation if required
 //
-static void emitAtomicCode(riscvMorphStateP state, atomicCode code) {
+static void emitAtomicCode(riscvP riscv, atomicCode code) {
 
-    riscvP riscv  = state->riscv;
     Uns32  handle = riscv->AMOActiveHandle;
 
     // update atomic operation code
@@ -2812,7 +3174,7 @@ static void emitAMOCommonInt(
     Uns32         memBits    = state->info.memBits;
 
     // emit operation atomic code
-    emitAtomicCode(state, code);
+    emitAtomicCode(riscv, code);
 
     // for this instruction, memBits is bits if unspecified or SEW
     if(!memBits || (memBits==-1)) {
@@ -2822,7 +3184,7 @@ static void emitAMOCommonInt(
     // generate trigger VA if required
     if(triggerLA || triggerLV || triggerS) {
         Uns64 offset = 0;
-        emitTriggerVA(state, &ra, &offset);
+        emitTriggerVA(riscv, &ra, &offset);
     }
 
     // invoke load address trigger if required
@@ -2834,8 +3196,14 @@ static void emitAMOCommonInt(
     // generate Store/AMO exception in preference to Load exception
     emitTryStoreCommon(state, ra, constraint);
 
+    // allow derived model to modify atomic operation if required
+    ITER_EXT_CB(
+        riscv, extCB, AMOMorph,
+        extCB->AMOMorph(riscv, extCB->clientData);
+    )
+
     // disable load/store triggers in emitLoadCommon/emitStoreCommon
-    state->doLSTrig = False;
+    riscv->blockState->doLSTrig = False;
 
     // do initial load
     emitLoadCommon(state, tmp1, bits, ra, constraint);
@@ -2856,13 +3224,13 @@ static void emitAMOCommonInt(
     vmimtMoveRR(bits, rd, tmp1);
 
     // enable load/store triggers in emitLoadCommon/emitStoreCommon
-    state->doLSTrig = True;
+    riscv->blockState->doLSTrig = True;
 
     // free temporaries
     freeTmp(state);
 
     // indicate end of atomic operation
-    emitAtomicCode(state, ACODE_NONE);
+    emitAtomicCode(riscv, ACODE_NONE);
 }
 
 //
@@ -3011,10 +3379,11 @@ static void startEA(riscvMorphStateP state, vmiReg ra) {
 //
 static void emitValidateSCAccess(riscvMorphStateP state, vmiReg ra) {
 
+    riscvP        riscv      = state->riscv;
     memConstraint constraint = getLoadStoreConstraintLR(state);
 
     if(constraint) {
-        setAddressMaskMT(state);
+        setAddressMaskMT(riscv);
         vmimtTryStoreRC(state->info.memBits, 0, ra, constraint);
     }
 }
@@ -3090,13 +3459,14 @@ static void endEA(
 //
 static RISCV_MORPH_FN(emitLR) {
 
+    riscvP        riscv      = state->riscv;
     unpackedReg   rd         = unpackRX(state, 0);
     unpackedReg   ra         = unpackRX(state, 1);
     Uns32         rdBits     = rd.bits;
     memConstraint constraint = getLoadStoreConstraintLR(state);
 
     // emit operation atomic code
-    emitAtomicCode(state, ACODE_LR);
+    emitAtomicCode(riscv, ACODE_LR);
 
     // for this instruction, memBits is rdBits
     state->info.memBits = rdBits;
@@ -3111,7 +3481,7 @@ static RISCV_MORPH_FN(emitLR) {
     writeUnpacked(rd);
 
     // indicate end of atomic operation
-    emitAtomicCode(state, ACODE_NONE);
+    emitAtomicCode(riscv, ACODE_NONE);
 }
 
 //
@@ -3119,6 +3489,7 @@ static RISCV_MORPH_FN(emitLR) {
 //
 static RISCV_MORPH_FN(emitSC) {
 
+    riscvP        riscv      = state->riscv;
     unpackedReg   rd         = unpackRX(state, 0);
     unpackedReg   rs         = unpackRX(state, 1);
     unpackedReg   ra         = unpackRX(state, 2);
@@ -3126,7 +3497,7 @@ static RISCV_MORPH_FN(emitSC) {
     memConstraint constraint = getLoadStoreConstraint(state);
 
     // emit operation atomic code
-    emitAtomicCode(state, ACODE_SC);
+    emitAtomicCode(riscv, ACODE_SC);
 
     // for this instruction, memBits is rsBits
     state->info.memBits = rs.bits;
@@ -3144,7 +3515,7 @@ static RISCV_MORPH_FN(emitSC) {
     writeUnpacked(rd);
 
     // indicate end of atomic operation
-    emitAtomicCode(state, ACODE_NONE);
+    emitAtomicCode(riscv, ACODE_NONE);
 }
 
 
@@ -5337,7 +5708,7 @@ static RISCV_MORPH_FN(emit3264RRCR) {
 // Get B-extension implementation callback
 //
 static RISCV_OPCB_FN(getBOpCB) {
-    return riscvGetBOpCB(state->riscv, state->attrs->bExtOp, bits);
+    return riscvGetBOpCB(state->riscv, state->attrs->bExtOp.B, bits);
 }
 
 //
@@ -5677,23 +6048,33 @@ static RISCV_MORPH_FN(emitCRC32C) {
 }
 
 //
+// Implement CMIX with given register indices
+//
+static void emitCMIXInt(
+    riscvMorphStateP state,
+    Uns32            raIndex,
+    Uns32            rbIndex,
+    Uns32            rcIndex
+) {
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg ra   = unpackRX(state, raIndex);
+    unpackedReg rb   = unpackRX(state, rbIndex);
+    unpackedReg rc   = unpackRX(state, rcIndex);
+    Uns32       bits = rd.bits;
+    vmiReg      tmp  = newTmp(state);
+
+    vmimtBinopRRR(bits, vmi_AND,  tmp,  ra.r, rc.r, 0);
+    vmimtBinopRRR(bits, vmi_ANDN, rd.r, rb.r, rc.r, 0);
+    vmimtBinopRR (bits, vmi_OR,   rd.r, tmp, 0);
+
+    writeUnpacked(rd);
+}
+
+//
 // Implement CMIX (four registers)
 //
 static RISCV_MORPH_FN(emitCMIX) {
-
-    unpackedReg rd   = unpackRX(state, 0);
-    unpackedReg rs1  = unpackRX(state, 1);
-    unpackedReg rs2  = unpackRX(state, 2);
-    unpackedReg rs3  = unpackRX(state, 3);
-    Uns32       bits = rd.bits;
-    vmiReg      tmp1 = newTmp(state);
-    vmiReg      tmp2 = newTmp(state);
-
-    vmimtBinopRRR(bits, vmi_AND,  tmp1, rs1.r, rs2.r, 0);
-    vmimtBinopRRR(bits, vmi_ANDN, tmp2, rs3.r, rs2.r, 0);
-    vmimtBinopRRR(bits, vmi_OR,   rd.r, tmp1,  tmp2,  0);
-
-    writeUnpacked(rd);
+    emitCMIXInt(state, 1, 3, 2);
 }
 
 //
@@ -5747,6 +6128,340 @@ static RISCV_OPCB_FN(getKOpCB) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// CODE SIZE REDUCTION INSTRUCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Move value with extension (paired registers)
+//
+static RISCV_MORPH_FN(emitMVP) {
+
+    unpackedReg rd1  = unpackRX(state, 0);
+    unpackedReg rd2  = unpackRX(state, 1);
+    unpackedReg rs1  = unpackRX(state, 2);
+    unpackedReg rs2  = unpackRX(state, 3);
+    Uns32       bits = rd1.bits;
+
+    vmimtMoveRR(bits, rd1.r, rs1.r);
+    vmimtMoveRR(bits, rd2.r, rs2.r);
+
+    writeUnpacked(rd1);
+    writeUnpacked(rd2);
+}
+
+//
+// Do table jump target fetch (XLEN=32)
+//
+static Uns32 doTBLJFetch32(vmiProcessorP processor, Uns32 va) {
+
+    memDomainP     domain = vmirtGetProcessorCodeDomain(processor);
+    memEndian      endian = MEM_ENDIAN_LITTLE;
+    memAccessAttrs attrs  = MEM_AA_TRUE|MEM_AA_FETCH;
+
+    return vmirtRead4ByteDomain(domain, va, endian, attrs) & -2;
+}
+
+//
+// Do table jump target fetch (XLEN=64)
+//
+static Uns64 doTBLJFetch64(vmiProcessorP processor, Uns64 va) {
+
+    memDomainP     domain = vmirtGetProcessorCodeDomain(processor);
+    memEndian      endian = MEM_ENDIAN_LITTLE;
+    memAccessAttrs attrs  = MEM_AA_TRUE|MEM_AA_FETCH;
+
+    return vmirtRead8ByteDomain(domain, va, endian, attrs) & -2;
+}
+
+//
+// Implement table jump
+//
+static RISCV_MORPH_FN(emitTBLJ) {
+
+    unpackedReg lr     = unpackRX(state, 0);
+    Uns32       bits   = lr.bits;
+    Uns32       bytes  = bits/8;
+    Uns64       offset = (state->info.c + state->attrs->offset)*bytes;
+    vmiReg      tmp    = newTmp(state);
+    vmiCallFn   cb;
+
+    // get table access function
+    cb = (bits==32) ? (vmiCallFn)doTBLJFetch32 : (vmiCallFn)doTBLJFetch64;
+
+    // calculate address of jump table entry
+    vmimtBinopRRC(bits, vmi_ADD, tmp, RISCV_CPU_REG(csr.tbljalvec), offset, 0);
+
+    // fetch target address (may cause exception)
+    vmimtArgProcessor();
+    vmimtArgReg(bits, tmp);
+    vmimtCallResult(cb, bits, tmp);
+
+    // emit code for indirect jump and link
+    emitJALRInt(state, tmp, unpackRX(state, 0));
+}
+
+//
+// Return stack adjustment allowing for memory required for registers pushed
+// implicitly
+//
+static Int32 getStackAdjust(Int32 spimm, Int32 rNum, Uns32 rBytes) {
+
+    Int32 result = spimm + (rNum*rBytes);
+    Uns32 align  = 16;
+
+    if(result>0) {
+        result += align-1;
+    }
+
+    return result & -align;
+}
+
+//
+// Emit code to validate stack alignment
+//
+static void emitCheckStackAlign(riscvMorphStateP state) {
+
+    unpackedReg sp    = createRX(state, RV_REG_X_SP);
+    Uns32       align = (sp.bits==32) ? 8 : 16;
+    vmiLabelP   ok    = vmimtNewLabel();
+
+    // skip mode switch unless stack is misaligned
+    vmimtTestRCJumpLabel(sp.bits, vmi_COND_Z, sp.r, align-1, ok);
+
+    // emit call to stack alignment exception routine
+    ILLEGAL_INSTRUCTION_MESSAGE(state->riscv, "ISA", "Illegal stack alignment");
+
+    // here if no stack alignment exception
+    vmimtInsertLabel(ok);
+}
+
+//
+// Emit code to adjust stack
+//
+static void emitAdjustStack(riscvMorphStateP state, Int32 adjust) {
+
+    unpackedReg sp = createRX(state, RV_REG_X_SP);
+
+    vmimtBinopRC(sp.bits, vmi_ADD, sp.r, adjust, 0);
+
+    writeUnpacked(sp);
+}
+
+//
+// Structure holding rlist in unpacked form
+//
+typedef struct unpackedRListS {
+    unpackedReg r[16];  // rlist registers
+    Uns32       rNum;   // rlist register count
+} unpackedRList;
+
+//
+// Unpack all members of rlist in high-to-low register order
+//
+static unpackedRList unpackRList(riscvMorphStateP state) {
+
+    unpackedRList result = {rNum : 0};
+
+    // masks of registers selected by each rlist specifier
+    enum riscvRListDescE {
+
+        // both ABIs
+        MASK_x_RA           = 0,
+        MASK_x_RA_S0        = MASK_x_RA         + (1<<RV_REG_X_S0),
+        MASK_x_RA_S0_1      = MASK_x_RA_S0      + (1<<RV_REG_X_S1),
+
+        // UABI
+        MASK_U_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_S2),
+        MASK_U_RA_S0_3      = MASK_U_RA_S0_2    + (1<<RV_REG_X_S3),
+        MASK_U_RA_S0_4      = MASK_U_RA_S0_3    + (1<<RV_REG_X_S4),
+        MASK_U_RA_S0_5      = MASK_U_RA_S0_4    + (1<<RV_REG_X_S5),
+        MASK_U_RA_S0_6      = MASK_U_RA_S0_5    + (1<<RV_REG_X_S6),
+        MASK_U_RA_S0_7      = MASK_U_RA_S0_6    + (1<<RV_REG_X_S7),
+        MASK_U_RA_S0_8      = MASK_U_RA_S0_7    + (1<<RV_REG_X_S8),
+        MASK_U_RA_S0_9      = MASK_U_RA_S0_8    + (1<<RV_REG_X_S9),
+        MASK_U_RA_S0_10     = MASK_U_RA_S0_9    + (1<<RV_REG_X_S10),
+        MASK_U_RA_S0_11     = MASK_U_RA_S0_10   + (1<<RV_REG_X_S11),
+
+        // EABI
+        MASK_E_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_A4),
+        MASK_E_RA_S3_S0_2   = MASK_E_RA_S0_2    + (1<<RV_REG_X_T1),
+        MASK_E_RA_S3_4_S0_2 = MASK_E_RA_S3_S0_2 + (1<<RV_REG_X_T2) ,
+    };
+
+    // macro to add entry in table below
+    #define RLIST_MASK_ENTRY(_N) [RV_RL_##_N] = MASK_##_N
+
+    // table mapping from rlist specifier to register mask
+    static const Uns32 map[] = {
+
+        // both ABIs
+        RLIST_MASK_ENTRY(x_RA),             // {ra}
+        RLIST_MASK_ENTRY(x_RA_S0),          // {ra,s0}
+        RLIST_MASK_ENTRY(x_RA_S0_1),        // {ra,s0-s1}
+
+        // UABI
+        RLIST_MASK_ENTRY(U_RA_S0_2),        // {ra,s0-s2}
+        RLIST_MASK_ENTRY(U_RA_S0_3),        // {ra,s0-s3}
+        RLIST_MASK_ENTRY(U_RA_S0_4),        // {ra,s0-s4}
+        RLIST_MASK_ENTRY(U_RA_S0_5),        // {ra,s0-s5}
+        RLIST_MASK_ENTRY(U_RA_S0_6),        // {ra,s0-s6}
+        RLIST_MASK_ENTRY(U_RA_S0_7),        // {ra,s0-s7}
+        RLIST_MASK_ENTRY(U_RA_S0_8),        // {ra,s0-s8}
+        RLIST_MASK_ENTRY(U_RA_S0_9),        // {ra,s0-s9}
+        RLIST_MASK_ENTRY(U_RA_S0_10),       // {ra,s0-s10}
+        RLIST_MASK_ENTRY(U_RA_S0_11),       // {ra,s0-s11}
+
+        // EABI
+        RLIST_MASK_ENTRY(E_RA_S0_2),        // {ra,s0-s2}
+        RLIST_MASK_ENTRY(E_RA_S3_S0_2),     // {ra,s3,s0-s2}
+        RLIST_MASK_ENTRY(E_RA_S3_4_S0_2),   // {ra,s3-s4,s0-s2}
+    };
+
+    // first entry is always ra
+    result.r[result.rNum++] = createRX(state, RV_REG_X_RA);
+
+    // get mask of affected registers
+    Uns32 mask = map[state->info.rlist];
+    rvReg i;
+
+    // add affected registers in highest-to-lowest index order
+    for(i=31; i>0; i--) {
+        if(mask & (1<<i)) {
+            result.r[result.rNum++] = createRX(state, i);
+        }
+    }
+
+    return result;
+}
+
+//
+// Implement push
+//
+static RISCV_MORPH_FN(emitPUSH) {
+
+    unpackedReg   sp     = createRX(state, RV_REG_X_SP);
+    unpackedRList rlist  = unpackRList(state);
+    Uns32         bits   = sp.bits;
+    Uns32         bytes  = bits/8;
+    Int32         adjust = getStackAdjust(state->info.c, -rlist.rNum, bytes);
+    Int32         offset = 0;
+    Uns32         i;
+
+    // validate stack alignment
+    emitCheckStackAlign(state);
+
+    // push registers in high-to-low order
+    for(i=0; i<rlist.rNum; i++) {
+
+        unpackedReg rs = rlist.r[i];
+
+        offset -= bytes;
+
+        emitStoreCommonMBO(
+            state, rs.r, sp.r, bits, offset, MEM_CONSTRAINT_NONE
+        );
+    }
+
+    // do moves from alist
+    for(i=0; i<state->info.alist; i++) {
+
+        Bool ABIE = (state->info.rlist>=RV_RL_E_RA_S0_2);
+
+        static rvReg map[2][4] = {
+            // UABI target registers
+            {RV_REG_X_S0, RV_REG_X_S1, RV_REG_X_S2, RV_REG_X_S3},
+            // EABI target registers
+            {RV_REG_X_S0, RV_REG_X_S1, RV_REG_X_A4, RV_REG_X_T1},
+        };
+
+        unpackedReg ra = createRX(state, RV_REG_X_A0+i);
+        unpackedReg rd = createRX(state, map[ABIE][i]);
+
+        vmimtMoveRR(rd.bits, rd.r, ra.r);
+
+        writeUnpacked(rd);
+    }
+
+    // update stack
+    emitAdjustStack(state, adjust);
+}
+
+//
+// Implement pop
+//
+static RISCV_MORPH_FN(emitPOP) {
+
+    unpackedReg     sp     = createRX(state, RV_REG_X_SP);
+    unpackedRList   rlist  = unpackRList(state);
+    Uns32           bits   = sp.bits;
+    Uns32           bytes  = bits/8;
+    Int32           adjust = getStackAdjust(state->info.c, rlist.rNum, bytes);
+    Int32           offset = adjust;
+    riscvRetValDesc retval = state->info.retval;
+    Uns32           i;
+
+    // validate stack alignment
+    emitCheckStackAlign(state);
+
+    // pop registers in high-to-low order
+    for(i=0; i<rlist.rNum; i++) {
+
+        unpackedReg rd = rlist.r[i];
+
+        offset -= bytes;
+
+        emitLoadCommonMBO(
+            state, rd.r, bits, sp.r, bits, offset, MEM_CONSTRAINT_NONE
+        );
+
+        writeUnpacked(rd);
+    }
+
+    // handle return value
+    if(retval) {
+
+        unpackedReg a0  = createRX(state, RV_REG_X_A0);
+        Int32       val = (retval==RV_RV_0) ? 0 : (retval==RV_RV_P1) ? 1 : -1;
+
+        vmimtMoveRC(a0.bits, a0.r, val);
+
+        writeUnpacked(a0);
+    }
+
+    // update stack
+    emitAdjustStack(state, adjust);
+
+    // do return if required
+    if(state->info.doRet) {
+
+        unpackedReg ra   = createRX(state, RV_REG_X_RA);
+        unpackedReg zero = createRX(state, RV_REG_X_ZERO);
+
+        emitJALRInt(state, ra.r, zero);
+    }
+}
+
+//
+// Implement decbnez
+//
+static RISCV_MORPH_FN(emitDECBNEZ) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    Uns32       bits = rd.bits;
+    Uns64       tgt  = state->info.tgt;
+    vmiReg      tmp  = newTmp(state);
+    vmiFlags    zf   = {f:{[vmi_ZF]=tmp}};
+
+    // decrement the counter register
+    vmimtBinopRC(bits, vmi_SUB, rd.r, state->info.c, &zf);
+    writeUnpacked(rd);
+
+    // jump if counter is non-zero
+    vmimtCondJump(tmp, False, 0, tgt, VMI_NOREG, vmi_JH_RELATIVE);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // VECTOR UNIT CONFIGURATION
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -5758,7 +6473,7 @@ void riscvConfigureVector(riscvP riscv) {
     Uns32 vRegBytes = riscv->configInfo.VLEN/8;
 
     // allocate vector registers if required
-    if(riscv->configInfo.arch & ISA_V) {
+    if(vectorPresent(riscv)) {
         riscv->v = STYPE_CALLOC_N(Uns32, (vRegBytes/4)*VREG_NUM);
     }
 }
@@ -6844,15 +7559,15 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
 }
 
 //
-// Validate floating point argument widths are implemented (but not necessarily
-// enabled) in the base ISA
+// Validate vector floating point argument widths are implemented (but not
+// necessarily enabled in the base ISA)
 //
-static Bool validateFPArgWidth(riscvP riscv, Uns32 SEW) {
+static Bool validateVFPArgWidth(riscvP riscv, Uns32 SEW) {
 
     Bool ok = False;
 
     if(SEW==16) {
-        ok = riscv->configInfo.fp16_version;
+        ok = riscv->configInfo.vect_profile & RVVS_H;
     } else if(SEW==32) {
         ok = riscv->configInfo.vect_profile & RVVS_F;
     } else if(SEW==64) {
@@ -6860,7 +7575,9 @@ static Bool validateFPArgWidth(riscvP riscv, Uns32 SEW) {
     }
 
     if(!ok) {
-        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IFPSEW", "Illegal floating point SEW");
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "IFPSEW", "Illegal vector floating point SEW"
+        );
     }
 
     return ok;
@@ -6917,7 +7634,7 @@ static Bool validateVArgWidths(riscvMorphStateP state, iterDescP id) {
 
             } else if(isFloatN(vShape, i)) {
 
-                ok = validateFPArgWidth(riscv, EEW);
+                ok = validateVFPArgWidth(riscv, EEW);
             }
         }
     }
@@ -6997,33 +7714,11 @@ static void widenOperands(riscvMorphStateP state, iterDescP id) {
 
 //
 // Return vmiFlagsCP specifying which native flag is used to set the saturation
-// flag for unsigned and signed operations
+// flag for unsigned and signed vector operations
 //
-static vmiFlagsCP getSatFlags(riscvMorphStateP state) {
+inline static vmiFlagsCP getVSatFlags(riscvMorphStateP state) {
 
-    Bool isSigned = isAnyVArgSigned(state);
-
-    static const vmiFlags map[2] = {
-        [0] = {f : {[vmi_CF] = RISCV_SF_TMP}},
-        [1] = {f : {[vmi_OF] = RISCV_SF_TMP}}
-    };
-
-    return &map[isSigned];
-}
-
-//
-// Update vxsat after saturating operation
-//
-static void updateVXSat(riscvMorphStateP state) {
-
-    riscvP riscv = state->riscv;
-
-    // set mstatus.FS if required
-    if(writeAnyFS(riscv) && vxSatRMSetFSDirty(riscv)) {
-        updateFS(riscv);
-    }
-
-    vmimtBinopRR(8, vmi_OR, RISCV_SF_FLAGS, RISCV_SF_TMP, 0);
+    return getSatFlags(state, isAnyVArgSigned(state));
 }
 
 //
@@ -7047,7 +7742,7 @@ static void narrowResult(riscvMorphStateP state, iterDescP id) {
         // narrowing with saturation
         Bool       isSigned = isAnyVArgSigned(state);
         vmiBinop   shiftop  = isSigned ? vmi_SHLSQ : vmi_SHLUQ;
-        vmiFlagsCP flags    = getSatFlags(state);
+        vmiFlagsCP flags    = getVSatFlags(state);
         Uns32      bytes    = id->SEW/8;
 
         // narrow result with saturation
@@ -8924,7 +9619,8 @@ static RISCV_CHECKV_FN(emitVMVRCheckCB) {
 //
 static RISCV_MORPHV_FN(emitVLdStInitCB) {
 
-    riscvSEWMt eew = state->info.eew;
+    riscvP     riscv = state->riscv;
+    riscvSEWMt eew   = state->info.eew;
 
     // validate whole-register load alignment if required
     if(!state->info.isWhole) {
@@ -8935,7 +9631,7 @@ static RISCV_MORPHV_FN(emitVLdStInitCB) {
         // encoded EEW does not exceed effective SEW
     } else {
         unpackedReg ra = unpackRX(state, 1);
-        setAddressMaskMT(state);
+        setAddressMaskMT(riscv);
         vmimtTryLoadRC(eew, 0, ra.r, getLoadStoreConstraintV(state));
     }
 
@@ -9980,7 +10676,7 @@ static void emitFixedPointRounding(
 static RISCV_MORPHV_FN(emitVRSBinaryCB) {
 
     vmiReg     arg2  = id->r[2];
-    vmiFlagsCP flags = getSatFlags(state);
+    vmiFlagsCP flags = getVSatFlags(state);
 
     // do saturating operation
     vmimtBinopRRR(id->SEW, state->attrs->binop, id->r[0], id->r[1], arg2, flags);
@@ -9996,7 +10692,7 @@ static RISCV_MORPHV_FN(emitVRSBinaryCB) {
 static RISCV_MORPHV_FN(emitVISBinaryCB) {
 
     Uns64      arg2  = state->info.c;
-    vmiFlagsCP flags = getSatFlags(state);
+    vmiFlagsCP flags = getVSatFlags(state);
 
     // do saturating operation
     vmimtBinopRRC(id->SEW, state->attrs->binop, id->r[0], id->r[1], arg2, flags);
@@ -10126,7 +10822,7 @@ static RISCV_MORPHV_FN(emitVRSMULCB) {
     vmiReg     arg2  = id->r[2];
     vmiReg     t1    = newTmp(state);
     vmiReg     t2    = newTmp(state);
-    vmiFlagsCP flags = getSatFlags(state);
+    vmiFlagsCP flags = getVSatFlags(state);
     Uns32      bits  = id->SEW;
 
     // produce 2*SEW-width result
@@ -10170,7 +10866,7 @@ static void emitVRSMAddIntInt(
     vmiReg     arg3     = id->r[arg3Index];
     vmiReg     t0       = newTmp(state);
     vmiReg     t1       = newTmp(state);
-    vmiFlagsCP flags    = getSatFlags(state);
+    vmiFlagsCP flags    = getVSatFlags(state);
     Uns32      bits     = id->SEW;
     Uns32      rBits    = bits/4;
     Uns32      rMask    = (1<<rBits)-1;
@@ -10906,7 +11602,7 @@ static RISCV_MORPHV_FN(emitVExternalCB) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// DIVIDED ELEMENT EXTENSION
+// QUAD WIDENING EXTENSION
 ////////////////////////////////////////////////////////////////////////////////
 
 //
@@ -10964,6 +11660,1538 @@ static RISCV_CHECKV_FN(emitEDIVCheckCB) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// P EXTENSION
+////////////////////////////////////////////////////////////////////////////////
+
+#if(ENABLE_P_EXT)
+
+//
+// Macro returning members of an array
+//
+#define NUM_MEMBERS(_A) (sizeof(_A)/sizeof((_A)[0]))
+
+//
+// Return any saturation flags required for the binary operation
+//
+static vmiFlagsCP getMulopSatFlags(riscvMorphStateP state, vmiBinop op) {
+
+    vmiFlagsCP result = 0;
+
+    if(op==vmi_IMUL) {
+        result = getSatFlags(state, True);
+    } else if(op==vmi_MUL) {                    // LCOV_EXCL_LINE
+        result = getSatFlags(state, False);     // LCOV_EXCL_LINE
+    }
+
+    return result;
+}
+
+//
+// Is the binary operation signed?
+//
+inline static Bool isSignedBinop(vmiBinop op) {
+    return isSQBinop(op) || (op==vmi_IMUL) || (op==vmi_IMULSU);
+}
+
+//
+// Return saturating left shift operation for the given base operation
+//
+inline static vmiBinop getSHLQBinop(vmiBinop op) {
+    return isSignedBinop(op) ? vmi_SHLSQ : vmi_SHLUQ;
+}
+
+//
+// Return right shift operation for the given base operation and rounding
+//
+static vmiBinop getSHRRBinop(vmiBinop op, Bool round) {
+    VMI_ASSERT(isSignedBinop(op), "Unexpected unsigned binop %u", op);
+    return round ? vmi_SARR : vmi_SAR;
+}
+
+//
+// Return the binary operation that is the pair of the given operation
+//
+static vmiBinop getPairBinop(vmiBinop op) {
+
+    switch(op) {
+        case vmi_ADD:
+            op = vmi_SUB;
+            break;
+        case vmi_ADDSQ:
+            op = vmi_SUBSQ;
+            break;
+        case vmi_ADDUQ:
+            op = vmi_SUBUQ;
+            break;
+        case vmi_ADDSH:
+            op = vmi_SUBSH;
+            break;
+        case vmi_ADDUH:
+            op = vmi_SUBUH;
+            break;
+        default:
+            VMI_ABORT("Unexpected pair binop %u", op);   // LCOV_EXCL_LINE
+    }
+
+    return op;
+}
+
+//
+// Return the binary operation that is the equivalent of the given operation
+// but is unaffected by carry-in
+//
+static vmiBinop getNoCINBinop(vmiBinop op) {
+
+    switch(op) {
+        case vmi_ADCSQ:
+            op = vmi_ADDSQ;
+            break;
+        case vmi_SBBSQ:
+            op = vmi_SUBSQ;
+            break;
+        default:
+            break;
+    }
+
+    return op;
+}
+
+//
+// Unpacked register for P extension - on RV32, a pair of registers may be used
+// together as a wider value
+//
+typedef struct unpackedRegXS {
+    unpackedReg r;
+    unpackedReg lo32;
+    unpackedReg hi32;
+    Bool        isPair;
+} unpackedRegX;
+
+//
+// Is a W operand explicitly specified for this operation?
+//
+inline static Bool explicitW(riscvMorphStateP state) {
+    return state->attrs->pAttrs & RVPS_W;
+}
+
+//
+// Should operation be double width?
+//
+inline static Bool doubleW(riscvMorphStateP state) {
+    return state->attrs->pAttrs & RVPS_2;
+}
+
+//
+// Return unpacked GPR argument odd/even half
+//
+static unpackedReg unpackRXHalf(
+    riscvMorphStateP state,
+    Uns32            argNum,
+    Bool             useOdd
+) {
+    unpackedReg result;
+
+    // after version 0.5.2, use of x0 implies zero source and ignored result
+    if(getRIndex(state->info.r[argNum])) {
+        // no action if encoded register is not x0
+    } else if(RISCV_DSP_VERSION(state->riscv)>RVDSPV_0_5_2) {
+        useOdd = False;
+    }
+
+    state->info.r[argNum] += useOdd;
+    result = unpackRX(state, argNum);
+    state->info.r[argNum] -= useOdd;
+
+    return result;
+}
+
+//
+// Return unpacked GPR argument description for GPR decomposed into elements
+//
+static unpackedRegX unpackRXxInt(
+    riscvMorphStateP state,
+    Uns32            argNum,
+    Bool             force64
+) {
+    riscvP       riscv   = state->riscv;
+    riscvDSPVer  version = RISCV_DSP_VERSION(riscv);
+    Uns32        XLEN    = riscvGetXlenMode(riscv);
+    unpackedRegX r       = {r:unpackRX(state, argNum)};
+
+    if(XLEN>32) {
+
+        // no action
+
+    } else if((state->info.elemSize==32) && !explicitW(state)) {
+
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IPES", "Illegal for RV32");
+
+    } else if(!force64 && (state->info.elemSize!=64)) {
+
+        // no action
+
+    } else if(riscv->configInfo.dsp_absent & RVPS_Zpsfoperand) {
+
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IPWO", "Zpsfoperand unimplemented");
+
+    } else if((state->info.r[argNum]&1) && (version>RVDSPV_0_5_2)) {
+
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IUR", "Illegal misaligned register");
+
+    } else {
+
+        Bool loIsOdd = False;
+
+        // in version 0.5.2 lo/hi register usage depends on data endianness
+        if(version==RVDSPV_0_5_2) {
+            loIsOdd = (getLoadStoreEndianMT(riscv, False)==MEM_ENDIAN_BIG);
+        }
+
+        // allocate temporary for this register
+        r.r.r    = newTmp(state);
+        r.r.bits = 64;
+
+        // ensure register number is even
+        state->info.r[argNum] &= -2;
+
+        // unpack register halves
+        r.lo32 = unpackRXHalf(state, argNum,  loIsOdd);
+        r.hi32 = unpackRXHalf(state, argNum, !loIsOdd);
+
+        // indicate register is a pair
+        r.isPair = True;
+    }
+
+    return r;
+}
+
+//
+// Return unpacked GPR argument description for GPR decomposed into elements
+//
+inline static unpackedRegX unpackRXx(riscvMorphStateP state, Uns32 argNum) {
+    return unpackRXxInt(state, argNum, False);
+}
+
+//
+// Return unpacked GPR argument description for 64-bit GPR decomposed into
+// elements
+//
+inline static unpackedRegX unpackRXx64(riscvMorphStateP state, Uns32 argNum) {
+    return unpackRXxInt(state, argNum, True);
+}
+
+//
+// Return unpacked GPR argument description for destination GPR decomposed into
+// elements
+//
+inline static unpackedRegX unpackRXxD(riscvMorphStateP state, Uns32 argNum) {
+    return unpackRXx(state, argNum);
+}
+
+//
+// Return unpacked GPR argument description for 64-bit destination GPR
+// decomposed into elements
+//
+inline static unpackedRegX unpackRXxD64(riscvMorphStateP state, Uns32 argNum) {
+    return unpackRXx64(state, argNum);
+}
+
+//
+// Form 64-bit source from 32-bit GPRs if required
+//
+static unpackedRegX form64BitSrc(unpackedRegX r) {
+
+    if(r.isPair) {
+
+        // paired register argument
+        vmiReg lo32 = r.r.r;
+        vmiReg hi32 = VMI_REG_DELTA(lo32, 4);
+
+        // copy source value from unpacked halves
+        vmimtMoveRR(32, lo32, r.lo32.r);
+        vmimtMoveRR(32, hi32, r.hi32.r);
+    }
+
+    return r;
+}
+
+//
+// Return unpacked GPR argument description for source GPR decomposed into
+// elements
+//
+static unpackedRegX unpackRXxS(riscvMorphStateP state, Uns32 argNum) {
+    return form64BitSrc(unpackRXx(state, argNum));
+}
+
+//
+// Return unpacked GPR argument description for 64-bit source GPR decomposed
+// into elements
+//
+static unpackedRegX unpackRXxS64(riscvMorphStateP state, Uns32 argNum) {
+    return form64BitSrc(unpackRXx64(state, argNum));
+}
+
+//
+// Does this operation accumulate results?
+//
+inline static Bool doAccumulate(riscvMorphStateP state) {
+    return (state->attrs->acc!=vmi_BINOP_LAST);
+}
+
+//
+// Return unpacked GPR argument description for destination GPR that is
+// optionally an accumulator decomposed into elements
+//
+static unpackedRegX unpackRXxA(riscvMorphStateP state, Uns32 argNum) {
+
+    Bool isAcc = doAccumulate(state);
+
+    return isAcc ? unpackRXxS(state, argNum) : unpackRXxD(state, argNum);
+}
+
+//
+// Return unpacked GPR argument description for 64-bit destination GPR that is
+// optionally an accumulator decomposed into elements
+//
+static unpackedRegX unpackRXxA64(riscvMorphStateP state, Uns32 argNum) {
+
+    Bool isAcc = doAccumulate(state);
+
+    return isAcc ? unpackRXxS64(state, argNum) : unpackRXxD64(state, argNum);
+}
+
+//
+// Do actions when an unpacked register is written using the derived register
+// size and handling paired registers
+//
+static void writeUnpackedX(riscvMorphStateP state, unpackedRegX rd) {
+
+    if(!rd.isPair) {
+
+        // not a paired register result
+        writeUnpacked(rd.r);
+
+    } else {
+
+        // paired register result
+        vmiReg lo32 = rd.r.r;
+        vmiReg hi32 = VMI_REG_DELTA(lo32, 4);
+
+        // copy result value to unpacked halves
+        vmimtMoveRR(32, rd.lo32.r, lo32);
+        vmimtMoveRR(32, rd.hi32.r, hi32);
+
+        // write unpacked halves
+        writeUnpacked(rd.lo32);
+        writeUnpacked(rd.hi32);
+    }
+}
+
+//
+// Structure used to describe element characteristics
+//
+typedef struct elemInfoS {
+    Uns8 eBits;     // element bits
+    Uns8 eBytes;    // element bytes
+    Uns8 num;       // number of elements
+} elemInfo;
+
+//
+// Return element characteristics for GPR
+//
+static elemInfo getElemInfo(riscvMorphStateP state, unpackedReg r) {
+
+    Uns32 rBits = r.bits;
+    Uns32 eBits = state->info.elemSize;
+
+    if(eBits) {
+        // bits explicitly specified
+    } else if(explicitW(state)) {
+        eBits = 32;
+    } else {
+        eBits = rBits;
+    }
+
+    // use double width if required
+    if(doubleW(state)) {
+        eBits *= 2;
+    }
+
+    elemInfo result = {eBits:eBits, eBytes:eBits/8, num:rBits/eBits};
+
+    return result;
+}
+
+//
+// Return element characteristics for SIMD register (paired on RV32)
+//
+static elemInfo getElemInfoX(riscvMorphStateP state, unpackedRegX r) {
+
+    return getElemInfo(state, r.r);
+}
+
+//
+// Adjust vmiReg descriptors to next value
+//
+static void nextElement(vmiRegP regs, Uns32 num, Uns32 bytes) {
+
+    Uns32 i;
+
+    for(i=0; i<num; i++) {
+        regs[i] = VMI_REG_DELTA(regs[i], bytes);
+    }
+}
+
+//
+// Implement generic SIMD operation (two registers)
+//
+static RISCV_MORPH_FN(emitUnopRR_Sx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiUnop      op  = state->attrs->unop;
+    vmiFlagsCP   f   = getUnopSatFlags(state, op);
+    vmiReg       r[] = {rd.r.r, rs1.r.r};
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        vmimtUnopRR(ei.eBits, op, r[0], r[1], f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement generic SIMD binary operation (three registers)
+//
+static RISCV_MORPH_FN(emitBinopRRR_Sx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    unpackedRegX rs2 = unpackRXxS(state, 2);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiBinop     op  = getBinopRound(state, state->attrs->binop);
+    vmiFlagsCP   f   = getBinopSatFlags(state, op);
+    vmiReg       r[] = {rd.r.r, rs1.r.r, rs2.r.r};
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        vmimtBinopRRR(ei.eBits, op, r[0], r[1], r[2], f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement generic SIMD binary operation (two registers and constant)
+//
+static RISCV_MORPH_FN(emitBinopRRC_Sx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiBinop     op  = getBinopRound(state, state->attrs->binop);
+    Uns64        c   = state->info.c;
+    vmiFlagsCP   f   = getBinopSatFlags(state, op);
+    vmiReg       r[] = {rd.r.r, rs1.r.r};
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        vmimtBinopRRC(ei.eBits, op, r[0], r[1], c, f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement generic SIMD shift operation (three registers)
+//
+static RISCV_MORPH_FN(emitShiftopRRR_Sx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    unpackedRegX rs2 = unpackRXxS(state, 2);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiBinop     op  = getBinopRound(state, state->attrs->binop);
+    vmiFlagsCP   f   = getBinopSatFlags(state, op);
+    vmiReg       r[] = {rd.r.r, rs1.r.r};
+    vmiReg       tmp = newTmp(state);
+    Uns32        i;
+
+    // get shift amount
+    vmimtMoveRR(ei.eBits, tmp, rs2.r.r);
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        vmimtBinopRRR(ei.eBits, op, r[0], r[1], tmp, f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement saturating Binop (three registers) with extension to 32 bits
+//
+static RISCV_MORPH_FN(emitBinopRRR_Wx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    unpackedRegX rs2 = unpackRXxS(state, 2);
+    vmiBinop     op   = state->attrs->binop;
+    vmiFlagsCP   f    = getBinopSatFlags(state, op);
+    Uns32        bits = rd.r.bits;
+    Uns32        shft = 32-bits;
+    vmiReg       tmp  = newTmp(state);
+
+    // do saturating add/subtract with 32-bit width
+    vmimtBinopRRR(32, op, tmp, rs1.r.r, rs2.r.r, f);
+
+    // restrict result width if required
+    if(shft) {
+        commitSatFlag(state, f);
+        vmimtBinopRC(32, getSHLQBinop(op), tmp, shft, f);
+        vmimtBinopRC(32, vmi_SHR,          tmp, shft, 0);
+    }
+
+    // commit result from temporary (required when result in x0)
+    vmimtMoveRR(bits, rd.r.r, tmp);
+    commitSatFlag(state, f);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement generic SIMD paired operation (three registers)
+//
+static RISCV_MORPH_FN(emitPairRRR_Sx) {
+
+    riscvPAttrs  attrs = state->attrs->pAttrs;
+    unpackedRegX rd    = unpackRXxD(state, 0);
+    unpackedRegX rs1   = unpackRXxS(state, 1);
+    unpackedRegX rs2   = unpackRXxS(state, 2);
+    elemInfo     ei    = getElemInfoX(state, rd);
+    vmiReg       r[]   = {rd.r.r, rs1.r.r, rs2.r.r, rs2.r.r};
+    vmiBinop     opA   = state->attrs->binop;
+    vmiBinop     opB   = getPairBinop(opA);
+    vmiBinop     op1   = (state->info.crossOp==RV_CR_SA) ? opA : opB;
+    vmiBinop     op2   = (state->info.crossOp==RV_CR_SA) ? opB : opA;
+    vmiFlagsCP   f     = getBinopSatFlags(state, opA);
+    vmiReg       tmp   = newTmp(state);
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/2; i++) {
+
+        // prepare element-swapped source if required
+        if(attrs&RVPS_X) {
+            r[3] = tmp;
+            vmimtMoveRR(ei.eBits, r[3], VMI_REG_DELTA(r[2], ei.eBytes));
+            vmimtMoveRR(ei.eBits, VMI_REG_DELTA(r[3], ei.eBytes), r[2]);
+        }
+
+        // do first pair operation
+        vmimtBinopRRR(ei.eBits, op1, r[0], r[1], r[3], f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+
+        // do second pair operation
+        vmimtBinopRRR(ei.eBits, op2, r[0], r[1], r[3], f);
+        commitSatFlag(state, f);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement generic SIMD compare (three registers)
+//
+static RISCV_MORPH_FN(emitCmpopRRR_Sx) {
+
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    unpackedRegX rs2 = unpackRXxS(state, 2);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiReg       r[] = {rd.r.r, rs1.r.r, rs2.r.r};
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        vmimtCompareRR(ei.eBits, state->attrs->cond, r[1], r[2], r[0]);
+        vmimtMoveExtendRR(ei.eBits, r[0], 8, r[0], False);
+        vmimtUnopR(ei.eBits, vmi_NEG, r[0], 0);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement BITREV
+//
+static RISCV_MORPH_FN(emitBITREV) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs1  = unpackRX(state, 1);
+    unpackedReg rs2  = unpackRX(state, 2);
+    vmiReg      tmp1 = newTmp(state);
+    vmiReg      tmp2 = newTmp(state);
+    Uns32       bits = rd.bits;
+
+    vmimtUnopRR(bits, vmi_RBIT, tmp1, rs1.r, 0);
+    vmimtBinopRCR(bits, vmi_SUB, tmp2, -1, rs2.r, 0);
+    vmimtBinopRRR(bits, vmi_SHR, rd.r, tmp1, tmp2, 0);
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement BITREVI
+//
+static RISCV_MORPH_FN(emitBITREVI) {
+
+    unpackedReg rd    = unpackRX(state, 0);
+    unpackedReg rs1   = unpackRX(state, 1);
+    Uns64       c    = state->info.c;
+    vmiReg      tmp  = newTmp(state);
+    Uns32       bits = rd.bits;
+
+    vmimtUnopRR(bits, vmi_RBIT, tmp, rs1.r, 0);
+    vmimtBinopRRC(bits, vmi_SHR, rd.r, tmp, bits-c-1, 0);
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement MADDR/MSUBR
+//
+static RISCV_MORPH_FN(emitMACCR) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs1  = unpackRX(state, 1);
+    unpackedReg rs2  = unpackRX(state, 2);
+    vmiBinop    op   = state->attrs->binop;
+    vmiBinop    acc  = state->attrs->acc;
+    vmiReg      tmp  = newTmp(state);
+    Uns32       bits = rd.bits;
+
+    vmimtBinopRRR(bits, op, tmp, rs1.r, rs2.r, 0);
+    vmimtBinopRR(bits, acc, rd.r, tmp, 0);
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement MULR/MULSR
+//
+static RISCV_MORPH_FN(emitMULR) {
+
+    unpackedRegX rd   = unpackRXxD(state, 0);
+    unpackedReg  rs1  = unpackRX(state, 1);
+    unpackedReg  rs2  = unpackRX(state, 2);
+    vmiBinop     op   = state->attrs->binop;
+    Uns32        bits = rd.r.bits/2;
+    vmiReg       rdl  = rd.r.r;
+    vmiReg       rdh  = VMI_REG_DELTA(rdl, bits/8);
+
+    vmimtMulopRRR(bits, op, rdh, rdl, rs1.r, rs2.r, 0);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Emit code to accumulate result
+//
+static void emitAccumulateResult(
+    riscvMorphStateP state,
+    Uns32            bits,
+    vmiReg           rd,
+    vmiReg           rs1,
+    vmiReg           rs2
+) {
+    vmiBinop acc = state->attrs->acc;
+
+    if(acc!=vmi_BINOP_LAST) {
+        vmimtBinopRRR(bits, acc, rd, rs1, rs2, 0);
+    } else {
+        vmimtMoveRR(bits, rd, rs2);
+    }
+}
+
+//
+// Implement PBSAD/PBSADA
+//
+static RISCV_MORPH_FN(emitPBSAD) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs1  = unpackRX(state, 1);
+    unpackedReg rs2  = unpackRX(state, 2);
+    vmiBinop    op   = state->attrs->binop;
+    vmiReg      td   = newTmp(state);
+    vmiReg      ts1  = newTmp(state);
+    vmiReg      ts2  = newTmp(state);
+    Uns32       bits = rd.bits;
+    Uns32       num  = bits/8;
+    Uns32       i;
+
+    // zero accumulator
+    vmimtMoveRC(bits, td, 0);
+
+    for(i=0; i<num; i++) {
+
+        // extend operands
+        vmimtMoveExtendRR(bits, ts1, 8, rs1.r, False);
+        vmimtMoveExtendRR(bits, ts2, 8, rs2.r, False);
+
+        // subtract and take absolute difference
+        vmimtBinopRR(bits, op, ts1, ts2, 0);
+        vmimtUnopR(bits, vmi_ABS, ts1, 0);
+
+        // add to accumulator
+        vmimtBinopRR(bits, vmi_ADD, td, ts1, 0);
+
+        // step to next byte
+        rs1.r = VMI_REG_DELTA(rs1.r, 1);
+        rs2.r = VMI_REG_DELTA(rs2.r, 1);
+    }
+
+    // commit result
+    emitAccumulateResult(state, bits, rd.r, rd.r, td);
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement BPICK
+//
+static RISCV_MORPH_FN(emitBPICK) {
+    emitCMIXInt(state, 1, 2, 3);
+}
+
+//
+// Implement INSB
+//
+static RISCV_MORPH_FN(emitINSB) {
+
+    unpackedReg rd    = unpackRX(state, 0);
+    unpackedReg rs1   = unpackRX(state, 1);
+    Uns64       c     = state->info.c;
+    Uns32       bits  = rd.bits;
+    Uns32       bytes = bits/8;
+
+    vmimtMoveRR(8, VMI_REG_DELTA(rd.r, c&(bytes-1)), rs1.r);
+
+    writeUnpacked(rd);
+}
+
+//
+// Get required half of input register ra
+//
+static vmiReg getRAHalf(Uns32 hbits, vmiReg ra, riscvHalfDesc half) {
+
+    if((half==RV_HA_TB) || (half==RV_HA_TT)) {
+        ra = VMI_REG_DELTA(ra, hbits/8);
+    }
+
+    return ra;
+}
+
+//
+// Get required half of input register rb
+//
+static vmiReg getRBHalf(Uns32 hbits, vmiReg rb, riscvHalfDesc half) {
+
+    if((half==RV_HA_BT) || (half==RV_HA_TT)) {
+        rb = VMI_REG_DELTA(rb, hbits/8);
+    } else if(half==RV_HA_T) {
+        rb = VMI_REG_DELTA(rb, hbits/16);
+    }
+
+    return rb;
+}
+
+//
+// Does operation use two half-width operands?
+//
+static Bool bothHalf(riscvHalfDesc half) {
+    return (
+        (half==RV_HA_BB) ||
+        (half==RV_HA_BT) ||
+        (half==RV_HA_TB) ||
+        (half==RV_HA_TT)
+    );
+}
+
+//
+// Does operation use half-width second operand?
+//
+static Bool rbHalf(riscvHalfDesc half) {
+    return (
+        (half==RV_HA_B) ||
+        (half==RV_HA_T)
+    );
+}
+
+//
+// Implement optionally-saturating multiply of operands, optionally with half
+// width operands or result narrowing
+//
+static void emitMulQn(
+    riscvMorphStateP state,
+    Uns32            bits,
+    vmiReg           rd,
+    vmiReg           ra,
+    vmiReg           rb
+) {
+    // determine operation attributes
+    riscvPAttrs   attrs = state->attrs->pAttrs;
+    riscvHalfDesc half  = state->info.half;
+    Bool          round = state->info.round;
+    Bool          doD   = (attrs&RVPS_D) || state->info.doDouble;
+    Bool          doN   = (attrs&RVPS_N) || round;
+
+    // determine operation bits, left shift and right shift from attributes
+    Uns32 hbits   = (bothHalf(half) || !doN) ? bits/2 : bits;
+    Uns32 shlbits = !doD ? 0 : rbHalf(half) ? (bits/2)+1 : 1;
+    Uns32 shrbits = !doN ? 0 : rbHalf(half) && !doD ? bits/2 : hbits;
+
+    vmiBinop op  = state->attrs->binop;
+    vmiBinop acc = state->attrs->acc;
+    vmiReg   tl  = newTmp(state);
+    vmiReg   th  = VMI_REG_DELTA(tl, hbits/8);
+
+    // select high/low operand halves if required
+    ra = getRAHalf(hbits, ra, half);
+    rb = getRBHalf(hbits, rb, half);
+
+    // prepare extended second argument if required
+    if(rbHalf(half)) {
+        vmimtMoveExtendRR(hbits, tl, hbits/2, rb, op==vmi_IMUL);
+        rb = tl;
+    }
+
+    // do multiply
+    vmimtMulopRRR(hbits, op, th, tl, ra, rb, 0);
+
+    // handle rounding if required
+    if(round) {
+        vmimtBinopRC(hbits*2, vmi_ADD, tl, 1ULL<<(shrbits-shlbits-1), 0);
+    }
+
+    // double result with saturation if required
+    if(doD) {
+        vmiFlagsCP f = getMulopSatFlags(state, op);
+        vmimtBinopRC(hbits*2, getSHLQBinop(op), tl, shlbits, f);
+        commitSatFlag(state, f);
+    }
+
+    // narrow result if required
+    if(doN) {
+        vmimtBinopRC(hbits*2, getSHRRBinop(op, False), tl, shrbits, 0);
+        vmimtMoveExtendRR(bits, tl, hbits, tl, True);
+    }
+
+    // accumulate result if required
+    if(acc!=vmi_BINOP_LAST) {
+        vmiFlagsCP f = getBinopSatFlags(state, acc);
+        vmimtBinopRRR(bits, acc, tl, rd, tl, f);
+        commitSatFlag(state, f);
+    }
+
+    // commit result
+    vmimtMoveRR(bits, rd, tl);
+
+    // free allocated temporary
+    freeTmp(state);
+}
+
+//
+// Implement SIMD saturating multiply operation
+//
+static RISCV_MORPH_FN(emitMulQn_Sx) {
+
+    unpackedRegX rd  = unpackRXxA(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    unpackedRegX rs2 = unpackRXxS(state, 2);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiReg       r[] = {rd.r.r, rs1.r.r, rs2.r.r};
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        emitMulQn(state, ei.eBits, r[0], r[1], r[2]);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement SIMD crossed saturating multiply operation
+//
+static RISCV_MORPH_FN(emitMulQnX_Sx) {
+
+    unpackedRegX rd   = unpackRXxA(state, 0);
+    unpackedRegX rs1  = unpackRXxS(state, 1);
+    unpackedRegX rs2  = unpackRXxS(state, 2);
+    elemInfo     ei   = getElemInfoX(state, rd);
+    vmiReg       r[]  = {rd.r.r, rs1.r.r, rs2.r.r, VMI_NOREG};
+    vmiReg       tmp1 = newTmp(state);
+    vmiReg       tmp2 = newTmp(state);
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/2; i++) {
+
+        // prepare element-swapped source
+        r[3] = tmp1;
+        vmimtMoveRR(ei.eBits, r[3], VMI_REG_DELTA(r[2], ei.eBytes));
+        vmimtMoveRR(ei.eBits, VMI_REG_DELTA(r[3], ei.eBytes), r[2]);
+
+        // do first crossed operation
+        emitMulQn(state, ei.eBits, tmp2, r[1], r[3]);
+        vmimtMoveRR(ei.eBits, r[0], tmp2);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+
+        // do second crossed operation
+        emitMulQn(state, ei.eBits, tmp2, r[1], r[3]);
+        vmimtMoveRR(ei.eBits, r[0], tmp2);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement KMA[X]D[AS]
+//
+static RISCV_MORPH_FN(emitKMAXDAS) {
+
+    unpackedRegX rd   = unpackRXxA(state, 0);
+    unpackedRegX rs1  = unpackRXxS(state, 1);
+    unpackedRegX rs2  = unpackRXxS(state, 2);
+    elemInfo     ei   = getElemInfoX(state, rd);
+    vmiReg       r[]  = {rd.r.r, rs1.r.r, rs2.r.r};
+    vmiReg       tmp1 = newTmp(state);
+    vmiReg       tmp2 = newTmp(state);
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+
+        riscvPAttrs attrs = state->attrs->pAttrs;
+        vmiBinop    op    = state->attrs->binop;
+        vmiBinop    op2   = state->attrs->binop2;
+        vmiBinop    acc   = state->attrs->acc;
+        vmiFlagsCP  f     = getBinopSatFlags(state, acc);
+        vmiReg      t1L   = tmp1;
+        vmiReg      t1H   = VMI_REG_DELTA(t1L, ei.eBytes/2);
+        vmiReg      t2L   = tmp2;
+        vmiReg      t2H   = VMI_REG_DELTA(t2L, ei.eBytes/2);
+        vmiReg      s1A   = r[1];
+        vmiReg      s1B   = VMI_REG_DELTA(s1A, ei.eBytes/2);
+        vmiReg      s2A   = r[2];
+        vmiReg      s2B   = VMI_REG_DELTA(s2A, ei.eBytes/2);
+
+        // handle crossed arguments
+        if(attrs&RVPS_X) {
+            vmiReg t = s2A; s2A = s2B; s2B = t;
+        }
+
+        // do half-width multiplications (no saturation possible)
+        vmimtMulopRRR(ei.eBits/2, op, t1H, t1L, s1A, s2A, 0);
+        vmimtMulopRRR(ei.eBits/2, op, t2H, t2L, s1B, s2B, 0);
+
+        // compose result
+        if(acc==vmi_BINOP_LAST) {
+
+            // compose result
+            vmimtBinopRRR(ei.eBits, op2, r[0], tmp1, tmp2, f);
+            commitSatFlag(state, f);
+
+        } else if(isUQBinop(op2)) {
+
+            // add/subtract first partial result with saturation
+            vmimtBinopRRR(ei.eBits, op2, tmp1, r[0], tmp1, f);
+            commitSatFlag(state, f);
+
+            // add/subtract second partial result with saturation
+            vmimtBinopRRR(ei.eBits, acc, r[0], tmp1, tmp2, f);
+            commitSatFlag(state, f);
+
+        } else {
+
+            // add/subtract partial results with saturation
+            vmimtBinopRR(ei.eBits, op2, tmp1, tmp2, f);
+
+            // compose result
+            vmimtBinopRR(ei.eBits, acc, r[0], tmp1, f);
+            commitSatFlag(state, f);
+        }
+
+        // step to next element
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement KMAR64/KMSR64
+//
+static RISCV_MORPH_FN(emitKMASR) {
+
+    unpackedRegX rd   = unpackRXxA(state, 0);
+    unpackedReg  rs1  = unpackRX(state, 1);
+    unpackedReg  rs2  = unpackRX(state, 2);
+    Uns32        bits = rs1.bits;
+
+    if(bits==64) {
+
+        // can share KMA code for other operations on RV64
+        emitKMAXDAS(state);
+
+    } else {
+
+        // special function for RV32
+        vmiBinop   op  = state->attrs->binop;
+        vmiBinop   acc = getNoCINBinop(state->attrs->acc);
+        vmiFlagsCP f   = getBinopSatFlags(state, acc);
+        vmiReg     t1L = newTmp(state);
+        vmiReg     t1H = VMI_REG_DELTA(t1L, bits/8);
+
+        // do multiplication (no saturation possible)
+        vmimtMulopRRR(bits, op, t1H, t1L, rs1.r, rs2.r, 0);
+
+        // compose result
+        vmimtBinopRR(bits*2, acc, rd.r.r, t1L, f);
+        commitSatFlag(state, f);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement KSLRA
+//
+static RISCV_MORPH_FN(emitKSLRA) {
+
+    Bool         round = state->info.round;
+    vmiBinop     opP   = state->attrs->binop;
+    vmiBinop     opN   = getSHRRBinop(opP, round);
+    vmiFlagsCP   f     = getBinopSatFlags(state, opP);
+    unpackedRegX rd    = unpackRXxD(state, 0);
+    unpackedRegX rs1   = unpackRXxS(state, 1);
+    unpackedRegX rs2   = unpackRXxS(state, 2);
+    elemInfo     ei    = getElemInfoX(state, rd);
+    vmiReg       rP[]  = {rd.r.r, rs1.r.r};
+    vmiReg       rN[]  = {rd.r.r, rs1.r.r};
+    vmiReg       tmp   = newTmp(state);
+    vmiLabelP    neg   = vmimtNewLabel();
+    vmiLabelP    shok  = vmimtNewLabel();
+    vmiLabelP    done  = vmimtNewLabel();
+    Uns32        i;
+
+    // get shift amount in temporary and branch if it should be considered
+    // negative
+    vmimtMoveRR(ei.eBits, tmp, rs2.r.r);
+    vmimtTestRCJumpLabel(ei.eBits, vmi_COND_NZ, tmp, ei.eBits, neg);
+
+    // process SIMD elements (positive shift)
+    for(i=0; i<ei.num; i++) {
+        vmimtBinopRRR(ei.eBits, opP, rP[0], rP[1], tmp, f);
+        commitSatFlag(state, f);
+        nextElement(rP, NUM_MEMBERS(rP), ei.eBytes);
+    }
+
+    vmimtUncondJumpLabel(done);
+    vmimtInsertLabel(neg);
+
+    // negate shift
+    vmimtUnopR(ei.eBits, vmi_NEG, tmp, 0);
+
+    // adjust shift if it exceeds element size
+    vmimtTestRCJumpLabel(ei.eBits, vmi_COND_Z, tmp, ei.eBits, shok);
+    vmimtMoveRC(ei.eBits, tmp, ei.eBits-1);
+    vmimtInsertLabel(shok);
+
+    // process SIMD elements (negative shift)
+    for(i=0; i<ei.num; i++) {
+        vmimtBinopRRR(ei.eBits, opN, rN[0], rN[1], tmp, 0);
+        nextElement(rN, NUM_MEMBERS(rN), ei.eBytes);
+    }
+
+    vmimtInsertLabel(done);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement PK[BT][BT]
+//
+static RISCV_MORPH_FN(emitPK) {
+
+    riscvHalfDesc half = state->info.half;
+    unpackedRegX  rd   = unpackRXxD(state, 0);
+    unpackedRegX  rs1  = unpackRXxS(state, 1);
+    unpackedRegX  rs2  = unpackRXxS(state, 2);
+    elemInfo      ei   = getElemInfoX(state, rd);
+    vmiReg        r[]  = {rd.r.r, rs1.r.r, rs2.r.r};
+    vmiReg        tmp  = newTmp(state);
+    Uns32         i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/2; i++) {
+
+        // select high/low operand halves
+        vmiReg ra = getRAHalf(ei.eBits, r[1], half);
+        vmiReg rb = getRBHalf(ei.eBits, r[2], half);
+
+        // compose result
+        vmimtMoveRR(ei.eBits, tmp, rb);
+        vmimtMoveRR(ei.eBits, VMI_REG_DELTA(tmp, ei.eBits/8), ra);
+
+        // assign result
+        vmimtMoveRR(ei.eBits*2, r[0], tmp);
+
+        // step to next element
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes*2);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement [SU]CLIP
+//
+static RISCV_MORPH_FN(emitCLIP) {
+
+    vmiBinop     op  = state->attrs->binop;
+    vmiFlagsCP   f   = getBinopSatFlags(state, op);
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    Int32        max = (1<<state->info.c)-1;
+    Int32        min = isSQBinop(op) ? -max-1 : 0;
+    vmiReg       r[] = {rd.r.r, rs1.r.r};
+    vmiReg       tmp = newTmp(state);
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+
+        // handle input < min
+        vmimtCompareRC(ei.eBits, vmi_COND_L, r[1], min, RISCV_SF_TMP);
+        vmimtCondMoveRRC(ei.eBits, RISCV_SF_TMP, False, tmp, r[1], min);
+        commitSatFlag(state, f);
+
+        // handle input > max
+        vmimtCompareRC(ei.eBits, vmi_COND_NLE, tmp, max, RISCV_SF_TMP);
+        vmimtCondMoveRRC(ei.eBits, RISCV_SF_TMP, False, r[0], tmp, max);
+        commitSatFlag(state, f);
+
+        // step to next element
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement multiply-accumulate element accumulating 64-bit result, optionally
+// with half width operands
+//
+static void emitMAL64Element(
+    riscvMorphStateP state,
+    Uns32            bits,
+    vmiBinop         acc,
+    vmiReg           rd,
+    vmiReg           ra,
+    vmiReg           rb
+) {
+    // determine operation attributes
+    riscvHalfDesc half = state->info.half;
+    vmiBinop      op   = state->attrs->binop;
+    vmiReg        tl   = newTmp(state);
+    vmiReg        th   = VMI_REG_DELTA(tl, bits/8);
+
+    // select high/low operand halves if required
+    ra = getRAHalf(bits, ra, half);
+    rb = getRBHalf(bits, rb, half);
+
+    // do multiplication, extend, and add to accumulator
+    vmimtMulopRRR(bits, op, th, tl, ra, rb, 0);
+    vmimtMoveExtendRR(64, tl, bits*2, tl, isSignedBinop(op));
+    vmimtBinopRR(64, acc, rd, tl, 0);
+
+    // free allocated temporary
+    freeTmp(state);
+}
+
+//
+// Implement multiply-accumulate accumulating 64-bit result, optionally with
+// half width operands
+//
+static void emitMAL64Int(
+    riscvMorphStateP state,
+    unpackedRegX     rd,
+    vmiReg           ra,
+    vmiReg           rb,
+    vmiReg           rc,
+    unpackedReg      size
+) {
+    vmiBinop op2 = state->attrs->binop2;
+    vmiBinop acc = state->attrs->acc;
+    elemInfo ei  = getElemInfo(state, size);
+    vmiReg   r[] = {ra, rb};
+    vmiReg   tmp = newTmp(state);
+    Uns32    i;
+
+    // clear accumulator
+    vmimtMoveRC(rd.r.bits, tmp, 0);
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+        emitMAL64Element(state, ei.eBits/2, op2, tmp, r[0], r[1]);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+    }
+
+    // compose result
+    vmimtBinopRRR(rd.r.bits, acc, rd.r.r, rc, tmp, 0);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement paired multiply-accumulate accumulating 64-bit result, optionally
+// with half width operands
+//
+static void emitPairMAL64Int(
+    riscvMorphStateP state,
+    unpackedRegX     rd,
+    vmiReg           ra,
+    vmiReg           rb,
+    vmiReg           rc,
+    unpackedReg      size
+) {
+    riscvPAttrs attrs = state->attrs->pAttrs;
+    vmiBinop    op2   = state->attrs->binop2;
+    vmiBinop    op3   = state->attrs->binop3;
+    elemInfo    ei    = getElemInfo(state, size);
+    vmiReg      r[]   = {ra, rb, rb};
+    vmiReg      tmp1  = newTmp(state);
+    vmiReg      tmp2  = newTmp(state);
+    Uns32       i;
+
+    // clear accumulator
+    vmimtMoveRC(rd.r.bits, tmp1, 0);
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+
+        // prepare element-swapped source if required
+        if(attrs&RVPS_X) {
+            r[2] = tmp2;
+            vmimtMoveRR(ei.eBits/2, r[2], VMI_REG_DELTA(r[1], ei.eBytes/2));
+            vmimtMoveRR(ei.eBits/2, VMI_REG_DELTA(r[2], ei.eBytes/2), r[1]);
+        }
+
+        // do first element
+        emitMAL64Element(state, ei.eBits/2, op2, tmp1, r[0], r[2]);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes/2);
+
+        // do second element
+        emitMAL64Element(state, ei.eBits/2, op3, tmp1, r[0], r[2]);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes/2);
+    }
+
+    // commit result
+    emitAccumulateResult(state, rd.r.bits, rd.r.r, rc, tmp1);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement [SU]MAL
+//
+static RISCV_MORPH_FN(emitMAL64) {
+
+    unpackedRegX rd  = unpackRXxD64(state, 0);
+    unpackedRegX rs1 = unpackRXxS64(state, 1);
+    unpackedReg  rs2 = unpackRX(state, 2);
+    vmiReg       ra  = rs2.r;
+    vmiReg       rb  = VMI_REG_DELTA(rs2.r, 2);
+
+    emitMAL64Int(state, rd, ra, rb, rs1.r.r, rs2);
+}
+
+//
+// Implement [SU]MAL[BT][BT]
+//
+static RISCV_MORPH_FN(emitMAL64_Hx) {
+
+    unpackedRegX rd  = unpackRXxA64(state, 0);
+    unpackedReg  rs1 = unpackRX(state, 1);
+    unpackedReg  rs2 = unpackRX(state, 2);
+
+    emitMAL64Int(state, rd, rs1.r, rs2.r, rd.r.r, rs2);
+}
+
+//
+// Implement [SU]MALDA
+//
+static RISCV_MORPH_FN(emitPairMAL64_Hx) {
+
+    unpackedRegX rd  = unpackRXxA64(state, 0);
+    unpackedReg  rs1 = unpackRX(state, 1);
+    unpackedReg  rs2 = unpackRX(state, 2);
+
+    emitPairMAL64Int(state, rd, rs1.r, rs2.r, rd.r.r, rs2);
+}
+
+//
+// Implement [Su]MAQA
+//
+static RISCV_MORPH_FN(emitMAQA) {
+
+    vmiBinop    op     = state->attrs->binop;
+    vmiBinop    acc    = state->attrs->acc;
+    unpackedReg rd     = unpackRX(state, 0);
+    unpackedReg rs1    = unpackRX(state, 1);
+    unpackedReg rs2    = unpackRX(state, 2);
+    elemInfo    ei     = getElemInfo(state, rd);
+    vmiReg      rS[]   = {rs1.r, rs2.r};
+    vmiReg      rD[]   = {rd.r};
+    vmiReg      tmp1   = newTmp(state);
+    vmiReg      tmp2   = newTmp(state);
+    Uns32       mBits  = 8;
+    Uns32       mBytes = mBits/8;
+    vmiReg      t2L    = tmp2;
+    vmiReg      t2H    = VMI_REG_DELTA(t2L, mBytes);
+    Uns32       i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num; i++) {
+
+        Uns32 j;
+
+        // seed accumulator with destination
+        vmimtMoveRR(ei.eBits, tmp1, rD[0]);
+
+        for(j=0; j<(ei.eBits/mBits); j++) {
+            vmimtMulopRRR(mBits, op, t2H, t2L, rS[0], rS[1], 0);
+            vmimtMoveExtendRR(ei.eBits, tmp2, mBits*2, tmp2, isSignedBinop(op));
+            vmimtBinopRR(ei.eBits, acc, tmp1, tmp2, 0);
+            nextElement(rS, NUM_MEMBERS(rS), mBytes);
+        }
+
+        // compose result
+        vmimtMoveRR(ei.eBits, rD[0], tmp1);
+        nextElement(rD, NUM_MEMBERS(rD), ei.eBytes);
+    }
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement SMUL
+//
+static RISCV_MORPH_FN(emitSMUL) {
+
+    riscvPAttrs  attrs = state->attrs->pAttrs;
+    vmiBinop     op    = state->attrs->binop;
+    unpackedRegX rd    = unpackRXxA64(state, 0);
+    unpackedReg  rs1   = unpackRX(state, 1);
+    unpackedReg  rs2   = unpackRX(state, 2);
+    elemInfo     ei    = getElemInfoX(state, rd);
+    vmiReg       r[]   = {rs1.r, rs2.r, rs2.r};
+    vmiReg       tmp1  = newTmp(state);
+    vmiReg       tmp2  = newTmp(state);
+    vmiReg       tL    = tmp1;
+    vmiReg       tH    = VMI_REG_DELTA(tL, ei.eBytes);
+    Uns32        i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/2; i++) {
+
+        // prepare element-swapped source if required
+        if(attrs&RVPS_X) {
+            r[2] = tmp2;
+            vmimtMoveRR(ei.eBits, r[2], VMI_REG_DELTA(r[1], ei.eBytes));
+            vmimtMoveRR(ei.eBits, VMI_REG_DELTA(r[2], ei.eBytes), r[1]);
+        }
+
+        // do first element
+        vmimtMulopRRR(ei.eBits, op, tH, tL, r[0], r[2], 0);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+        tL = VMI_REG_DELTA(tL, ei.eBytes*2);
+        tH = VMI_REG_DELTA(tH, ei.eBytes*2);
+
+        // do second element
+        vmimtMulopRRR(ei.eBits, op, tH, tL, r[0], r[2], 0);
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes);
+        tL = VMI_REG_DELTA(tL, ei.eBytes*2);
+        tH = VMI_REG_DELTA(tH, ei.eBytes*2);
+    }
+
+    // commit result
+    emitAccumulateResult(state, rd.r.bits, rd.r.r, rd.r.r, tmp1);
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement [SZ]UNPKD8
+//
+static void emitUNPKD8(riscvMorphStateP state, Bool sExtend) {
+
+    riscvPackDesc pack = state->info.pack;
+    unpackedRegX  rd   = unpackRXxD(state, 0);
+    unpackedRegX  rs1  = unpackRXxS(state, 1);
+    elemInfo      ei   = getElemInfoX(state, rd);
+    vmiReg        r[]  = {rd.r.r, rs1.r.r};
+    vmiReg        tmp  = newTmp(state);
+    vmiReg        tL   = tmp;
+    vmiReg        tH   = VMI_REG_DELTA(tmp, 2);
+    Uns32         i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/4; i++) {
+
+        // index for first source argument
+        static const Uns8 s1Map[] = {
+            [RV_PD_10] = 0,
+            [RV_PD_20] = 0,
+            [RV_PD_30] = 0,
+            [RV_PD_31] = 1,
+            [RV_PD_32] = 2,
+        };
+
+        // index for second source argument
+        static const Uns8 s2Map[] = {
+            [RV_PD_10] = 1,
+            [RV_PD_20] = 2,
+            [RV_PD_30] = 3,
+            [RV_PD_31] = 3,
+            [RV_PD_32] = 3,
+        };
+
+        // locate byte sources
+        vmiReg s1 = VMI_REG_DELTA(r[1], s1Map[pack]);
+        vmiReg s2 = VMI_REG_DELTA(r[1], s2Map[pack]);
+
+        // construct result
+        vmimtMoveExtendRR(ei.eBits*2, tL, ei.eBits, s1, sExtend);
+        vmimtMoveExtendRR(ei.eBits*2, tH, ei.eBits, s2, sExtend);
+
+        // assign result
+        vmimtMoveRR(ei.eBits*4, r[0], tmp);
+
+        // step to next element
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes*4);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement SUNPKD8
+//
+static RISCV_MORPH_FN(emitSUNPKD8) {
+    emitUNPKD8(state, True);
+}
+
+//
+// Implement ZUNPKD8
+//
+static RISCV_MORPH_FN(emitZUNPKD8) {
+    emitUNPKD8(state, False);
+}
+
+//
+// Implement SWAP
+//
+static RISCV_MORPH_FN(emitSWAP) {
+
+    unpackedRegX  rd  = unpackRXxD(state, 0);
+    unpackedRegX  rs1 = unpackRXxS(state, 1);
+    elemInfo      ei  = getElemInfoX(state, rd);
+    vmiReg        r[] = {rd.r.r, rs1.r.r};
+    vmiReg        tmp = newTmp(state);
+    vmiReg        tL  = tmp;
+    vmiReg        tH  = VMI_REG_DELTA(tmp, ei.eBytes);
+    Uns32         i;
+
+    // process SIMD elements
+    for(i=0; i<ei.num/2; i++) {
+
+        // locate byte sources
+        vmiReg s1 = VMI_REG_DELTA(r[1], 0);
+        vmiReg s2 = VMI_REG_DELTA(r[1], ei.eBytes);
+
+        // construct result
+        vmimtMoveRR(ei.eBits, tL, s2);
+        vmimtMoveRR(ei.eBits, tH, s1);
+
+        // assign result
+        vmimtMoveRR(ei.eBits*2, r[0], tmp);
+
+        // step to next element
+        nextElement(r, NUM_MEMBERS(r), ei.eBytes*2);
+    }
+
+    writeUnpackedX(state, rd);
+}
+
+//
+// Implement WEXT
+//
+static RISCV_MORPH_FN(emitWEXT) {
+
+    unpackedReg  rd  = unpackRX(state, 0);
+    unpackedRegX rs1 = unpackRXxS64(state, 1);
+    unpackedReg  rs2 = unpackRX(state, 2);
+    vmiReg       tmp = newTmp(state);
+
+    vmimtSetShiftMask(0x1f);
+    vmimtBinopRRR(rs1.r.bits, vmi_SHR, tmp, rs1.r.r, rs2.r, 0);
+    vmimtMoveExtendRR(rd.bits, rd.r, 32, tmp, True);
+
+    writeUnpacked(rd);
+}
+
+//
+// Implement WEXTI
+//
+static RISCV_MORPH_FN(emitWEXTI) {
+
+    unpackedReg  rd  = unpackRX(state, 0);
+    unpackedRegX rs1 = unpackRXxS64(state, 1);
+    Uns32        c   = state->info.c;
+    vmiReg       tmp = newTmp(state);
+
+    vmimtBinopRRC(rs1.r.bits, vmi_SHR, tmp, rs1.r.r, c, 0);
+    vmimtMoveExtendRR(rd.bits, rd.r, 32, tmp, True);
+
+    writeUnpacked(rd);
+}
+
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
 // INSTRUCTION TABLE
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -10987,6 +13215,7 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_SRL_R]            = {morph:emitBinopRRR,  binop:vmi_SHR,    iClass:OCL_IC_INTEGER},
     [RV_IT_SUB_R]            = {morph:emitBinopRRR,  binop:vmi_SUB,    iClass:OCL_IC_INTEGER},
     [RV_IT_XOR_R]            = {morph:emitBinopRRR,  binop:vmi_XOR,    iClass:OCL_IC_INTEGER},
+    [RV_IT_EXT_R]            = {morph:emitMoveExtendRR,                iClass:OCL_IC_INTEGER},
 
     // M-extension R-type instructions
     [RV_IT_DIV_R]            = {morph:emitBinopRRR,  binop:vmi_IDIV,   iClass:OCL_IC_INTEGER},
@@ -11096,83 +13325,83 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_CUSTOM]           = {morph:emitCustomAbsent},
 
     // B-extension R-type instructions
-    [RV_IT_ANDN_R]           = {morph:emitBinopRRR,  binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_ORN_R]            = {morph:emitBinopRRR,  binop:vmi_ORN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_XNOR_R]           = {morph:emitBinopRRR,  binop:vmi_XNOR, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_SLO_R]            = {morph:emitShiftORRR, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                     },
-    [RV_IT_SRO_R]            = {morph:emitShiftORRR, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                     },
-    [RV_IT_ROL_R]            = {morph:emitBinopRRR,  binop:vmi_ROL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_ROR_R]            = {morph:emitBinopRRR,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_SBCLR_R]          = {morph:emitSBitopRRR, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBSET_R]          = {morph:emitSBitopRRR, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBINV_R]          = {morph:emitSBitopRRR, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBEXT_R]          = {morph:emitEBitopRRR,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_GORC_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC                        },
-    [RV_IT_GREV_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV                        },
-    [RV_IT_CLZ_R]            = {morph:emitUnopRR,    unop:vmi_CLZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_CTZ_R]            = {morph:emitUnopRR,    unop:vmi_CTZ,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_PCNT_R]           = {morph:emitUnopRR,    unop:vmi_CNTO,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_SEXT_R]           = {morph:emitMoveExtendRR,              iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_CRC32_R]          = {morph:emitCRC32,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32                       },
-    [RV_IT_CRC32C_R]         = {morph:emitCRC32C,                    iClass:OCL_IC_INTEGER, bExtOp:RVBOP_CRC32                       },
-    [RV_IT_CLMUL_R]          = {morph:emitBinopRRR,  binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc,     kExtOp:RVKOP_Zbkc  },
-    [RV_IT_CLMULR_R]         = {morph:emitCLMULR,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc                         },
-    [RV_IT_CLMULH_R]         = {morph:emitCLMULH,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbc,     kExtOp:RVKOP_Zbkc  },
-    [RV_IT_MIN_R]            = {morph:emitBinopRRR,  binop:vmi_IMIN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_MAX_R]            = {morph:emitBinopRRR,  binop:vmi_IMAX, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_MINU_R]           = {morph:emitBinopRRR,  binop:vmi_MIN,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_MAXU_R]           = {morph:emitBinopRRR,  binop:vmi_MAX,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_SHFL_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL                        },
-    [RV_IT_UNSHFL_R]         = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL                      },
-    [RV_IT_BDEP_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BDEP                        },
-    [RV_IT_BEXT_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BEXT                        },
-    [RV_IT_PACK_R]           = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACK,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_PACKU_R]          = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKU,   kExtOp:RVKOP_PACKU },
-    [RV_IT_PACKH_R]          = {morph:emitPACKH,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKH,   kExtOp:RVKOP_Zbkb  },
-    [RV_IT_PACKW_R]          = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKW,   kExtOp:RVKOP_Zbkb  },
-    [RV_IT_PACKUW_R]         = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:RVBOP_PACKUW,  kExtOp:RVKOP_PACKUW},
-    [RV_IT_ZEXT32_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ZEXT32_H                    },
-    [RV_IT_ZEXT64_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ZEXT64_H                    },
-    [RV_IT_BMATFLIP_R]       = {morph:emit3264RR,    opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATFLIP                    },
-    [RV_IT_BMATOR_R]         = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATOR                      },
-    [RV_IT_BMATXOR_R]        = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BMATXOR                     },
-    [RV_IT_BFP_R]            = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_BFP                         },
-    [RV_IT_ADDWU_R]          = {morph:emitBinopRRRW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_SUBWU_R]          = {morph:emitBinopRRRW, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_ADDU_W_R]         = {morph:emitBinopWRRR, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ADD_UW                      },
-    [RV_IT_SUBU_W_R]         = {morph:emitBinopWRRR, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_SHADD_R]          = {morph:emitSHADD,     binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zba                         },
-    [RV_IT_XPERM_R]          = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_XPERM,   kExtOp:RVKOP_XPERM },
+    [RV_IT_ANDN_R]           = {morph:emitBinopRRR,  binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_ORN_R]            = {morph:emitBinopRRR,  binop:vmi_ORN,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_XNOR_R]           = {morph:emitBinopRRR,  binop:vmi_XNOR, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_SLO_R]            = {morph:emitShiftORRR, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SLO_SRO                }},
+    [RV_IT_SRO_R]            = {morph:emitShiftORRR, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SLO_SRO                }},
+    [RV_IT_ROL_R]            = {morph:emitBinopRRR,  binop:vmi_ROL,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_ROR_R]            = {morph:emitBinopRRR,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_SBCLR_R]          = {morph:emitSBitopRRR, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBSET_R]          = {morph:emitSBitopRRR, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBINV_R]          = {morph:emitSBitopRRR, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBEXT_R]          = {morph:emitEBitopRRR,                 iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_GORC_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GORC                   }},
+    [RV_IT_GREV_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GREV                   }},
+    [RV_IT_CLZ_R]            = {morph:emitUnopRR,    unop:vmi_CLZ,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_CTZ_R]            = {morph:emitUnopRR,    unop:vmi_CTZ,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_PCNT_R]           = {morph:emitUnopRR,    unop:vmi_CNTO,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SEXT_R]           = {morph:emitMoveExtendRR,              iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_CRC32_R]          = {morph:emitCRC32,                     iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_CRC32                  }},
+    [RV_IT_CRC32C_R]         = {morph:emitCRC32C,                    iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_CRC32                  }},
+    [RV_IT_CLMUL_R]          = {morph:emitBinopRRR,  binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbc,     K:RVBOP_Zbkc  }},
+    [RV_IT_CLMULR_R]         = {morph:emitCLMULR,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbc                    }},
+    [RV_IT_CLMULH_R]         = {morph:emitCLMULH,    binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbc,     K:RVBOP_Zbkc  }},
+    [RV_IT_MIN_R]            = {morph:emitBinopRRR,  binop:vmi_IMIN, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_MAX_R]            = {morph:emitBinopRRR,  binop:vmi_IMAX, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_MINU_R]           = {morph:emitBinopRRR,  binop:vmi_MIN,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_MAXU_R]           = {morph:emitBinopRRR,  binop:vmi_MAX,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SHFL_R]           = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SHFL                   }},
+    [RV_IT_UNSHFL_R]         = {morph:emit3264RRS,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_UNSHFL                 }},
+    [RV_IT_BDEP_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BDEP                   }},
+    [RV_IT_BEXT_R]           = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BEXT                   }},
+    [RV_IT_PACK_R]           = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_PACK,    K:RVBOP_Zbkb  }},
+    [RV_IT_PACKU_R]          = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_PACKU,   K:RVBOP_PACKU }},
+    [RV_IT_PACKH_R]          = {morph:emitPACKH,                     iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_PACKH,   K:RVBOP_Zbkb  }},
+    [RV_IT_PACKW_R]          = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_PACKW,   K:RVBOP_Zbkb  }},
+    [RV_IT_PACKUW_R]         = {morph:emitPACKU,                     iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_PACKUW,  K:RVBOP_PACKUW}},
+    [RV_IT_ZEXT32_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_ZEXT32_H               }},
+    [RV_IT_ZEXT64_H_R]       = {morph:emitPACK,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_ZEXT64_H               }},
+    [RV_IT_BMATFLIP_R]       = {morph:emit3264RR,    opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BMATFLIP               }},
+    [RV_IT_BMATOR_R]         = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BMATOR                 }},
+    [RV_IT_BMATXOR_R]        = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BMATXOR                }},
+    [RV_IT_BFP_R]            = {morph:emit3264RRR,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_BFP                    }},
+    [RV_IT_ADDWU_R]          = {morph:emitBinopRRRW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SUBWU_R]          = {morph:emitBinopRRRW, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_ADDU_W_R]         = {morph:emitBinopWRRR, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_ADD_UW                 }},
+    [RV_IT_SUBU_W_R]         = {morph:emitBinopWRRR, binop:vmi_SUB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SHADD_R]          = {morph:emitSHADD,     binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zba                    }},
+    [RV_IT_XPERM_R]          = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_XPERM,   K:RVBOP_XPERM }},
 
     // B-extension I-type instructions
-    [RV_IT_SLOI_I]           = {morph:emitShiftORRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                     },
-    [RV_IT_SROI_I]           = {morph:emitShiftORRC, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLO_SRO                     },
-    [RV_IT_RORI_I]           = {morph:emitBinopRRC,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbbp,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_SBCLRI_I]         = {morph:emitSBitopRRC, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBSETI_I]         = {morph:emitSBitopRRC, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBINVI_I]         = {morph:emitSBitopRRC, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_SBEXTI_I]         = {morph:emitEBitopRRC,                 iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbs                         },
-    [RV_IT_GORCI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GORC,    kExtOp:RVKOP_GORCI },
-    [RV_IT_ORCB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORCB,    kExtOp:RVKOP_GORCI },
-    [RV_IT_ORC16_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_ORC16                       },
-    [RV_IT_GREVI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV                        },
-    [RV_IT_REVB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_REV8_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV8,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_REV8W_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_GREV,    kExtOp:RVKOP_REV8W },
-    [RV_IT_REV_I]            = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_REV,     kExtOp:RVKOP_Zbkb  },
-    [RV_IT_SHFLI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SHFL,    kExtOp:RVKOP_Zbkb  },
-    [RV_IT_UNSHFLI_I]        = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_UNSHFL,  kExtOp:RVKOP_Zbkb  },
-    [RV_IT_ADDIWU_I]         = {morph:emitBinopRRCW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbb                         },
-    [RV_IT_SLLIU_W_I]        = {morph:emitBinopWRRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_SLLI_UW                     },
+    [RV_IT_SLOI_I]           = {morph:emitShiftORRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SLO_SRO                }},
+    [RV_IT_SROI_I]           = {morph:emitShiftORRC, binop:vmi_SHR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SLO_SRO                }},
+    [RV_IT_RORI_I]           = {morph:emitBinopRRC,  binop:vmi_ROR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbbp,    K:RVBOP_Zbkb  }},
+    [RV_IT_SBCLRI_I]         = {morph:emitSBitopRRC, binop:vmi_ANDN, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBSETI_I]         = {morph:emitSBitopRRC, binop:vmi_OR,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBINVI_I]         = {morph:emitSBitopRRC, binop:vmi_XOR,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_SBEXTI_I]         = {morph:emitEBitopRRC,                 iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbs                    }},
+    [RV_IT_GORCI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GORC,    K:RVBOP_GORCI }},
+    [RV_IT_ORCB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_ORCB,    K:RVBOP_GORCI }},
+    [RV_IT_ORC16_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_ORC16                  }},
+    [RV_IT_GREVI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GREV                   }},
+    [RV_IT_REVB_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GREV,    K:RVBOP_Zbkb  }},
+    [RV_IT_REV8_I]           = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_REV8,    K:RVBOP_Zbkb  }},
+    [RV_IT_REV8W_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_GREV,    K:RVBOP_REV8W }},
+    [RV_IT_REV_I]            = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_REV,     K:RVBOP_Zbkb  }},
+    [RV_IT_SHFLI_I]          = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SHFL,    K:RVBOP_Zbkb  }},
+    [RV_IT_UNSHFLI_I]        = {morph:emit3264RRC,   opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_UNSHFL,  K:RVBOP_Zbkb  }},
+    [RV_IT_ADDIWU_I]         = {morph:emitBinopRRCW, binop:vmi_ADD,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SLLIU_W_I]        = {morph:emitBinopWRRC, binop:vmi_SHL,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_SLLI_UW                }},
 
     // B-extension R4-type instructions
-    [RV_IT_CMIX_R4]          = {morph:emitCMIX,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt},
-    [RV_IT_CMOV_R4]          = {morph:emitCMOV,                      iClass:OCL_IC_INTEGER, bExtOp:RVBOP_Zbt},
-    [RV_IT_FSL_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSL},
-    [RV_IT_FSR_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR},
+    [RV_IT_CMIX_R4]          = {morph:emitCMIX,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbt                    }},
+    [RV_IT_CMOV_R4]          = {morph:emitCMOV,                      iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbt                    }},
+    [RV_IT_FSL_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_FSL                    }},
+    [RV_IT_FSR_R4]           = {morph:emit3264RRSR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_FSR                    }},
 
     // B-extension R3I-type instructions
-    [RV_IT_FSRI_R3I]         = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:RVBOP_FSR},
+    [RV_IT_FSRI_R3I]         = {morph:emit3264RRCR,  opCB:getBOpCB,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_FSR                    }},
 
     // H-extension R-type instructions for load
     [RV_IT_HLV_R]            = {morph:emitLoad,  virtual:1},
@@ -11480,6 +13709,169 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VZEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_UU},
     [RV_IT_VSEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_SS},
 
+#if(ENABLE_P_EXT)
+
+    // P-extension instructions (RV32 and RV64)
+    [RV_IT_ADD_Sx]           = {morph:emitBinopRRR_Sx,   binop:vmi_ADD,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_AVE]              = {morph:emitBinopRRR,      binop:vmi_ADDSHR,                                                                          iClass:OCL_IC_INTEGER},
+    [RV_IT_BITREV]           = {morph:emitBITREV,                                                                                                   iClass:OCL_IC_INTEGER},
+    [RV_IT_BITREVI]          = {morph:emitBITREVI,                                                                                                  iClass:OCL_IC_INTEGER},
+    [RV_IT_BPICK]            = {morph:emitBPICK,                                                                                                    iClass:OCL_IC_INTEGER},
+    [RV_IT_CLRS_Sx]          = {morph:emitUnopRR_Sx,     unop :vmi_CLS,     pAttrs:RVPS____W_,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_CLO_Sx]           = {morph:emitUnopRR_Sx,     unop :vmi_CLO,     pAttrs:RVPS____W_,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_CLZ_Sx]           = {morph:emitUnopRR_Sx,     unop :vmi_CLZ,     pAttrs:RVPS____W_,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_CMPEQ_Sx]         = {morph:emitCmpopRRR_Sx,   cond :vmi_COND_EQ,                                                                         iClass:OCL_IC_INTEGER},
+    [RV_IT_CR_Sx]            = {morph:emitPairRRR_Sx,    binop:vmi_ADD,     pAttrs:RVPS___X__,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_INSB]             = {morph:emitINSB,                                                                                                     iClass:OCL_IC_INTEGER},
+    [RV_IT_KABS_Sx]          = {morph:emitUnopRR_Sx,     unop :vmi_ABSSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KABSW]            = {morph:emitUnopRR,        unop :vmi_ABSSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KADD_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_ADDSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KADD_Wx]          = {morph:emitBinopRRR_Wx,   binop:vmi_ADDSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KCR_Sx]           = {morph:emitPairRRR_Sx,    binop:vmi_ADDSQ,   pAttrs:RVPS___X__,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_KDM_Hx]           = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS__D___,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KDMA_Hx]          = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS__D___,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KHM_Sx]           = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_ND___,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KHM_Hx]           = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_ND___,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KHMX_Sx]          = {morph:emitMulQnX_Sx,     binop:vmi_IMUL,    pAttrs:RVPS_ND___,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMA_Hx]           = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS____W_,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMADA]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADDSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMAXDA]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADDSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMADS]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMAXDS]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMADRS]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_SUBSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMAR_Sx]          = {morph:emitKMASR,         binop:vmi_IMUL,    pAttrs:RVPS______, binop2:vmi_ADDSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMDA]             = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMXDA]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMMAC_Rx]         = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMMAW_Hx_Dx_Rx]   = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMMSB_Rx]         = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMMW_Hx_Dx_Rx]    = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSDA]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSXDA]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSR_Sx]          = {morph:emitKMASR,         binop:vmi_IMUL,    pAttrs:RVPS______, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KSLL_Sx]          = {morph:emitShiftopRRR_Sx, binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KSLLI_Sx]         = {morph:emitBinopRRC_Sx,   binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KSLLW]            = {morph:emitBinopRRR,      binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KSLLIW]           = {morph:emitBinopRRC,      binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KSLRA_Sx_Rx]      = {morph:emitKSLRA,         binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KST_Sx]           = {morph:emitPairRRR_Sx,    binop:vmi_ADDSQ,   pAttrs:RVPS______,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_KSUB_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_SUBSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KSUB_Wx]          = {morph:emitBinopRRR_Wx,   binop:vmi_SUBSQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_KWMMUL_Rx]        = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_ND_W_,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_MADDR_Sx]         = {morph:emitMACCR,         binop:vmi_IMUL,                                                        acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_MAXW]             = {morph:emitBinopRRR,      binop:vmi_IMAX,                                                                            iClass:OCL_IC_INTEGER},
+    [RV_IT_MINW]             = {morph:emitBinopRRR,      binop:vmi_IMIN,                                                                            iClass:OCL_IC_INTEGER},
+    [RV_IT_MSUBR_Sx]         = {morph:emitMACCR,         binop:vmi_IMUL,                                                        acc:vmi_SUB,        iClass:OCL_IC_INTEGER},
+    [RV_IT_MULR_Sx]          = {morph:emitMULR,          binop:vmi_MUL,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_MULSR_Sx]         = {morph:emitMULR,          binop:vmi_IMUL,                                                                            iClass:OCL_IC_INTEGER},
+    [RV_IT_PBSAD]            = {morph:emitPBSAD,         binop:vmi_SUB,                                                         acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_PBSADA]           = {morph:emitPBSAD,         binop:vmi_SUB,                                                         acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_PK_Hx_Sx]         = {morph:emitPK,                                                                                                       iClass:OCL_IC_INTEGER},
+    [RV_IT_RADD_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_ADDSH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_RADDW]            = {morph:emitBinopRRR,      binop:vmi_ADDSH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_RCR_Sx]           = {morph:emitPairRRR_Sx,    binop:vmi_ADDSH,   pAttrs:RVPS___X__,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_RST_Sx]           = {morph:emitPairRRR_Sx,    binop:vmi_ADDSH,   pAttrs:RVPS______,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_RSUB_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_SUBSH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_RSUBW]            = {morph:emitBinopRRR,      binop:vmi_SUBSH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_SCLIP_Sx]         = {morph:emitCLIP,          binop:vmi_SHLSQ,   pAttrs:RVPS____W_,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_SCMPLE_Sx]        = {morph:emitCmpopRRR_Sx,   cond :vmi_COND_LE,                                                                         iClass:OCL_IC_INTEGER},
+    [RV_IT_SCMPLT_Sx]        = {morph:emitCmpopRRR_Sx,   cond :vmi_COND_L,                                                                          iClass:OCL_IC_INTEGER},
+    [RV_IT_SLL_Sx]           = {morph:emitShiftopRRR_Sx, binop:vmi_SHL,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SLLI_Sx]          = {morph:emitBinopRRC_Sx,   binop:vmi_SHL,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAL]             = {morph:emitMAL64,         binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADD,                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAL_Hx]          = {morph:emitMAL64_Hx,      binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADD,                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMALDA]           = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADD, binop3:vmi_ADD,  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMALXDA]          = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADD, binop3:vmi_ADD,  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMALDS]           = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_SUB, binop3:vmi_ADD,  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMALDRS]          = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADD, binop3:vmi_SUB,  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMALXDS]          = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_SUB, binop3:vmi_ADD,  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAR_Sx]          = {morph:emitKMASR,         binop:vmi_IMUL,    pAttrs:RVPS______, binop2:vmi_ADD,                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAQA]            = {morph:emitMAQA,          binop:vmi_IMUL,    pAttrs:RVPS____W_,                                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAQA_SU]         = {morph:emitMAQA,          binop:vmi_IMULSU,  pAttrs:RVPS____W_,                                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMAX_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_IMAX,                                                                            iClass:OCL_IC_INTEGER},
+    [RV_IT_SM_Hx_Sx]         = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_____2,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMDS]             = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMDRS]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_SUB,                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMXDS]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMIN_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_IMIN,                                                                            iClass:OCL_IC_INTEGER},
+    [RV_IT_SMMUL_Rx]         = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMMW_Hx_Dx_Rx]    = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMSLDA]           = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADD, binop3:vmi_ADD,  acc:vmi_SUB,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMSLXDA]          = {morph:emitPairMAL64_Hx,  binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADD, binop3:vmi_ADD,  acc:vmi_SUB,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMSR_Sx]          = {morph:emitKMASR,         binop:vmi_IMUL,    pAttrs:RVPS______, binop2:vmi_ADD,                  acc:vmi_SUB,        iClass:OCL_IC_INTEGER},
+    [RV_IT_SMUL_Sx]          = {morph:emitSMUL,          binop:vmi_IMUL,    pAttrs:RVPS______,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMULX_Sx]         = {morph:emitSMUL,          binop:vmi_IMUL,    pAttrs:RVPS___X__,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SRA_Rx]           = {morph:emitBinopRRR,      binop:vmi_SAR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SRA_Sx_Rx]        = {morph:emitShiftopRRR_Sx, binop:vmi_SAR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SRAI_Rx]          = {morph:emitBinopRRC,      binop:vmi_SAR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SRAI_Sx_Rx]       = {morph:emitBinopRRC_Sx,   binop:vmi_SAR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SRL_Sx_Rx]        = {morph:emitShiftopRRR_Sx, binop:vmi_SHR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SRLI_Sx_Rx]       = {morph:emitBinopRRC_Sx,   binop:vmi_SHR,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_ST_Sx]            = {morph:emitPairRRR_Sx,    binop:vmi_ADD,     pAttrs:RVPS______,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_SUB_Sx]           = {morph:emitBinopRRR_Sx,   binop:vmi_SUB,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_SUNPKD_Sx_Px]     = {morph:emitSUNPKD8,                                                                                                  iClass:OCL_IC_INTEGER},
+    [RV_IT_SWAP_Sx]          = {morph:emitSWAP,                                                                                                     iClass:OCL_IC_INTEGER},
+    [RV_IT_UCLIP_Sx]         = {morph:emitCLIP,          binop:vmi_SHLUQ,   pAttrs:RVPS____W_,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_UCMPLE_Sx]        = {morph:emitCmpopRRR_Sx,   cond :vmi_COND_BE,                                                                         iClass:OCL_IC_INTEGER},
+    [RV_IT_UCMPLT_Sx]        = {morph:emitCmpopRRR_Sx,   cond :vmi_COND_B,                                                                          iClass:OCL_IC_INTEGER},
+    [RV_IT_UKADD_Sx]         = {morph:emitBinopRRR_Sx,   binop:vmi_ADDUQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_UKADD_Wx]         = {morph:emitBinopRRR_Wx,   binop:vmi_ADDUQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_UKCR_Sx]          = {morph:emitPairRRR_Sx,    binop:vmi_ADDUQ,   pAttrs:RVPS___X__,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_UKMAR_Sx]         = {morph:emitKMASR,         binop:vmi_MUL,     pAttrs:RVPS______, binop2:vmi_ADDUQ,                acc:vmi_ADDUQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_UKMSR_Sx]         = {morph:emitKMASR,         binop:vmi_MUL,     pAttrs:RVPS______, binop2:vmi_SUBUQ,                acc:vmi_SUBUQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_UKST_Sx]          = {morph:emitPairRRR_Sx,    binop:vmi_ADDUQ,   pAttrs:RVPS______,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_UKSUB_Sx]         = {morph:emitBinopRRR_Sx,   binop:vmi_SUBUQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_UKSUB_Wx]         = {morph:emitBinopRRR_Wx,   binop:vmi_SUBUQ,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_UMAR_Sx]          = {morph:emitKMASR,         binop:vmi_MUL,     pAttrs:RVPS______, binop2:vmi_ADD,                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_UMAQA]            = {morph:emitMAQA,          binop:vmi_MUL,     pAttrs:RVPS____W_,                                  acc:vmi_ADD,        iClass:OCL_IC_INTEGER},
+    [RV_IT_UMAX_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_MAX,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_UMIN_Sx]          = {morph:emitBinopRRR_Sx,   binop:vmi_MIN,                                                                             iClass:OCL_IC_INTEGER},
+    [RV_IT_UMSR_Sx]          = {morph:emitKMASR,         binop:vmi_MUL,     pAttrs:RVPS______, binop2:vmi_ADD,                  acc:vmi_SUB,        iClass:OCL_IC_INTEGER},
+    [RV_IT_UMUL_Sx]          = {morph:emitSMUL,          binop:vmi_MUL,     pAttrs:RVPS______,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_UMULX_Sx]         = {morph:emitSMUL,          binop:vmi_MUL,     pAttrs:RVPS___X__,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_URADD_Sx]         = {morph:emitBinopRRR_Sx,   binop:vmi_ADDUH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_URADDW]           = {morph:emitBinopRRR,      binop:vmi_ADDUH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_URCR_Sx]          = {morph:emitPairRRR_Sx,    binop:vmi_ADDUH,   pAttrs:RVPS___X__,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_URST_Sx]          = {morph:emitPairRRR_Sx,    binop:vmi_ADDUH,   pAttrs:RVPS______,                                                      iClass:OCL_IC_INTEGER},
+    [RV_IT_URSUB_Sx]         = {morph:emitBinopRRR_Sx,   binop:vmi_SUBUH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_URSUBW]           = {morph:emitBinopRRR,      binop:vmi_SUBUH,                                                                           iClass:OCL_IC_INTEGER},
+    [RV_IT_WEXT]             = {morph:emitWEXT,                                                                                                     iClass:OCL_IC_INTEGER},
+    [RV_IT_WEXTI]            = {morph:emitWEXTI,                                                                                                    iClass:OCL_IC_INTEGER},
+    [RV_IT_ZUNPKD_Sx_Px]     = {morph:emitZUNPKD8,                                                                                                  iClass:OCL_IC_INTEGER},
+
+    // P-extension instructions (RV64 only)
+    [RV_IT_KDM_Hx_Sx]        = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS__D__2,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KDMA_Hx_Sx]       = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS__D__2,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KHM_Hx_Sx]        = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_ND__2,                                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMA_Hx_Sx]        = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_____2,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMAXDA_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_ADDSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMDA_Sx]          = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMXDA_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_KMADS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMADRS_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUBSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMAXDS_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSDA_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSXDA_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_SMDS_Sx]          = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMDRS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUB,                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+    [RV_IT_SMXDS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
+
+    #endif
+
+    // code size reduction instructions
+    [RV_IT_NOT_R]            = {morph:emitUnopRR,   unop :vmi_NOT,  iClass:OCL_IC_INTEGER},
+    [RV_IT_NEG_R]            = {morph:emitUnopRR,   unop :vmi_NEG,  iClass:OCL_IC_INTEGER},
+    [RV_IT_MVP_R]            = {morph:emitMVP,                      iClass:OCL_IC_INTEGER},
+    [RV_IT_MULI_I]           = {morph:emitBinopRRC, binop:vmi_IMUL, iClass:OCL_IC_INTEGER},
+    [RV_IT_BEQI_B]           = {morph:emitBranchRC, cond:vmi_COND_EQ},
+    [RV_IT_BNEI_B]           = {morph:emitBranchRC, cond:vmi_COND_NE},
+    [RV_IT_TBLJ]             = {morph:emitTBLJ,     offset: 8},
+    [RV_IT_TBLJAL]           = {morph:emitTBLJ,     offset:64},
+    [RV_IT_TBLJALM]          = {morph:emitTBLJ,     offset: 0},
+    [RV_IT_PUSH]             = {morph:emitPUSH},
+    [RV_IT_POP]              = {morph:emitPOP},
+    [RV_IT_DECBNEZ]          = {morph:emitDECBNEZ},
+
     // KEEP LAST
     [RV_IT_LAST]             = {0}
 };
@@ -11548,6 +13940,7 @@ VMI_MORPH_FN(riscvPreMorph) {
     riscvBlockStateP thisState = blockState;
 
     thisState->updateFFlags = False;
+    thisState->doLSTrig     = True;
 
     // clear per-instruction fflags if required
     if(perInstructionFFlags(riscv)) {
@@ -11611,7 +14004,6 @@ VMI_MORPH_FN(riscvMorph) {
     state.attrs       = &dispatchTable[state.info.type];
     state.riscv       = riscv;
     state.inDelaySlot = inDelaySlot;
-    state.doLSTrig    = True;
     state.tmpIndex    = 0;
 
     // clear mask of X registers targeted by this instruction
@@ -11650,7 +14042,11 @@ VMI_MORPH_FN(riscvMorph) {
 
         // B-extension feature subset not present
 
-    } else if(!riscvValidateKExtSubset(riscv, state.attrs->kExtOp, state.info.arch)) {
+    } else if(!riscvValidateCExtSubset(riscv, state.info.Zc)) {
+
+        // C-extension feature subset not present
+
+    } else if(!riscvValidateKExtSubset(riscv, state.attrs->kExtOp)) {
 
         // K-extension feature subset not present
 

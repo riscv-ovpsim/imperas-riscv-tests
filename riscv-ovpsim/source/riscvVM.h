@@ -27,12 +27,6 @@
 #include "riscvTypeRefs.h"
 
 //
-// Indicate whether a failing access to the given domain should be reported
-// by setting xstatus.GVA=1
-//
-Bool riscvVMGetGVA(riscvP riscv, memDomainP domain);
-
-//
 // Try mapping memory at the passed address for the specified access type and
 // return a status code indicating if there was a TLB miss
 //

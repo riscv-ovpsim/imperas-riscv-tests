@@ -3,12 +3,28 @@
 Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the Imperas RISC-V test framework and tests.
+
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2021-July-12
-Release 20210709.0
-First release of P-SIMD/DSP architectural tests
+Date 2021-October-20
+Release 20211018.0
+
+This releaase includes some refactorization to support multiple versions.
+Current default versions for extensions are:
+
+| Instructions            | Extension | Version |
+|:----------------------- |:---------:|:------- | 
+| Base instructions       | IMC       | v2.1    |
+| Floating Point          |  FD       | v2.2    |
+| Bitmanipulation         |   B       | v0.92   |
+| Crypto                  |   K       | v0.8.1  |
+| SIMD/DSP                |   P       | v0.5.2  |
+| VECTOR XLEN 32 VLEN 256 |   V       | v0.8    |
+
+Date 2021-July-02
+Release 20210701.0
+First release of P-DSP (v0.5.2) architectural tests
 
 Date 2021-June-29
 Release 20210628.0
@@ -28,7 +44,7 @@ First release of F and D Single- and Double-Precision Floating Point architectur
 
 Date 2020-December-12
 Release 20201212.0
-First release of K-bitmanip and K-crypto architectural tests
+First release of B-bitmanip and K-crypto architectural tests
 
 Date 2020-October-14
 Release 20201014.0

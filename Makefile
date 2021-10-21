@@ -16,7 +16,7 @@ empty:=
 comma:= ,
 space:= $(empty) $(empty)
 
-RISCV_DEVICE_ALL = $(shell ls $(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)i_m)
+RISCV_DEVICE_ALL = $(shell ls $(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)$(RISCV_BASE)_m)
 RISCV_DEVICE_OPT = $(subst $(space),$(pipe),$(RISCV_DEVICE_ALL))
 
 RISCV_DEVICE_ALL := $(filter-out Makefile.include,$(RISCV_DEVICE_ALL))
@@ -26,7 +26,7 @@ ifeq ($(RISCV_DEVICE),)
 else
     DEFAULT_TARGET=variant
 endif
-export SUITEDIR   = $(ROOTDIR)/riscv-test-suite/rv$(XLEN)i_m/$(RISCV_DEVICE)
+export SUITEDIR   = $(ROOTDIR)/riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)
 
 ifeq ($(RISCV_TARGET),)
     # Check riscvOVPsim present
@@ -49,6 +49,7 @@ $(info WORK: $(WORK) [origin: $(origin WORK)])
 $(info TARGETDIR: $(TARGETDIR) [origin: $(origin TARGETDIR)])
 $(info RISCV_TARGET: $(RISCV_TARGET) [origin: $(origin RISCV_TARGET)])
 $(info XLEN: $(XLEN) [origin: $(origin XLEN)])
+$(info RISCV_BASE: $(RISCV_BASE) [origin: $(origin RISCV_BASE)])
 $(info RISCV_DEVICE: $(RISCV_DEVICE) [origin: $(origin RISCV_DEVICE)])
 $(info =============================================================================)
 $(info )
@@ -64,6 +65,9 @@ endif
 RVTEST_DEFINES = 
 ifeq ($(RISCV_ASSERT),1)
 	RVTEST_DEFINES += -DRVMODEL_ASSERT
+endif
+ifeq ($(RISCV_ASSERT),2)
+	RVTEST_DEFINES += -DRVMODEL_ASSERT -DRVMODEL_ASSERT_SHORT
 endif
 export RVTEST_DEFINES
 
@@ -101,7 +105,7 @@ variant: simulate verify
 
 all_variant:
 	for isa in $(RISCV_DEVICE_ALL); do \
-		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_TARGET_FLAGS="$(RISCV_TARGET_FLAGS)" RISCV_DEVICE=$$isa variant; \
+		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_BASE=$(RISCV_BASE) RISCV_TARGET_FLAGS="$(RISCV_TARGET_FLAGS)" RISCV_DEVICE=$$isa variant; \
 			rc=$$?; \
 			if [ $$rc -ne 0 ]; then \
 				exit $$rc; \
@@ -113,22 +117,24 @@ run: simulate
 
 compile:
 ifeq ($(wildcard $(SUITEDIR)/Makefile),)
-	@echo "# Ignore riscv-test-suite/rv$(XLEN)i_m/$(RISCV_DEVICE)"
+	@echo "# Ignore riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)"
 else
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_BASE=$(RISCV_BASE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
 		compile -C $(SUITEDIR)
 endif
 
 simulate:
 ifeq ($(wildcard $(SUITEDIR)/Makefile),)
-	@echo "# Ignore riscv-test-suite/rv$(XLEN)i_m/$(RISCV_DEVICE)"
+	@echo "# Ignore riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)"
 else
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_BASE=$(RISCV_BASE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
 		run -C $(SUITEDIR)
 endif
@@ -137,6 +143,7 @@ verify: simulate
 	riscv-test-env/verify.sh \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_BASE=$(RISCV_BASE) \
 		RISCV_PREFIX=$(RISCV_PREFIX)
 
 cover: postverify
@@ -147,12 +154,13 @@ else
 	$(TARGETDIR)/$(RISCV_TARGET)/postverify.sh \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_BASE=$(RISCV_BASE) \
 		RISCV_PREFIX=$(RISCV_PREFIX)
 endif
 
 all_clean:
 	for isa in $(RISCV_DEVICE_ALL); do \
-		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_DEVICE=$$isa clean; \
+		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_BASE=$(RISCV_BASE) RISCV_DEVICE=$$isa clean; \
 			rc=$$?; \
 			if [ $$rc -ne 0 ]; then \
 				exit $$rc; \
@@ -161,11 +169,12 @@ all_clean:
 
 clean:
 ifeq ($(wildcard $(SUITEDIR)/Makefile),)
-	@echo "# Ignore riscv-test-suite/rv$(XLEN)i_m/$(RISCV_DEVICE)"
+	@echo "# Ignore riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)"
 else
 	$(MAKE) $(JOBS) \
 		RISCV_TARGET=$(RISCV_TARGET) \
 		RISCV_DEVICE=$(RISCV_DEVICE) \
+		RISCV_BASE=$(RISCV_BASE) \
 		RISCV_PREFIX=$(RISCV_PREFIX) \
 		clean -C $(SUITEDIR)
 endif
@@ -179,6 +188,7 @@ help:
 	@echo "     -- RISCV_TARGET='<name of target>'"
 	@echo "     -- RISCV_TARGET_FLAGS='<any flags to be passed to target>'"
 	@echo "     -- RISCV_DEVICE='$(RISCV_DEVICE_OPT)' [ leave empty to run all devices ]"
+	@echo "     -- RISCV_BASE='<make isa i or e>'"
 	@echo "     -- RISCV_TEST='<name of the test. eg. I-ADD-01'"
 	@echo "    "
 	@echo "  Makefile targets available"

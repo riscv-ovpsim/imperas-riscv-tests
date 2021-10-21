@@ -122,6 +122,8 @@
      LI (x13, (0xEADFEEDBEADFEEDB & MASK));
      LI (x14, (0xF56FF76DF56FF76D & MASK));
      LI (x15, (0xFAB7FBB6FAB7FBB6 & MASK));
+// Only include initialization if not RV32E base
+#ifndef RV32E
      LI (x16, (0x7D5BFDDB7D5BFDDB & MASK));
      LI (x17, (0xBEADFEEDBEADFEED & MASK));
      LI (x18, (0xDF56FF76DF56FF76 & MASK));
@@ -138,6 +140,7 @@
      LI (x29, (0xEEDBEADFEEDBEADF & MASK));
      LI (x30, (0xF76DF56FF76DF56F & MASK));
      LI (x31, (0xFBB6FAB7FBB6FAB7 & MASK));
+#endif
   .globl rvtest_code_begin
   rvtest_code_begin:
 .endm
@@ -805,6 +808,13 @@ RVTEST_SIGUPD(swreg,destreg,offset)
       inst destreg, reg1, reg2; \
     )
 
+#define TEST_RRR_OP(inst, destreg, reg1, reg2, reg3, correctval, val1, val2, val3, swreg, offset, testreg) \
+    TEST_CASE(testreg, destreg, correctval, swreg, offset, \
+      LI(reg1, MASK_XLEN(val1)); \
+      LI(reg2, MASK_XLEN(val2)); \
+      LI(reg3, MASK_XLEN(val3)); \
+      inst destreg, reg1, reg2, reg3; \
+    )
 
 #define TEST_CNOP_OP( inst, testreg, imm_val, swreg, offset) \
     TEST_CASE(testreg, x0, 0, swreg, offset, \

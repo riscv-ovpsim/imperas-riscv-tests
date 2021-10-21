@@ -114,15 +114,15 @@ static void putInstruction(riscvInstrInfoP info, char **result) {
 
     // select format string
     if(info->bytes==2) {
-        fmt = "%04x     ";
+        fmt = FMT_6404x"     ";
     } else {
-        fmt = "%08x ";
+        fmt = FMT_6408x" ";
     }
 
     // mask raw instruction pattern to instruction byte size (prevents
     // misleading disassembly when compressed instruction encountered by
     // processor that does not support such instructions)
-    Uns32 instruction = info->instruction & ((1ULL<<(info->bytes*8))-1);
+    Uns64 instruction = info->instruction & ((1ULL<<(info->bytes*8))-1);
 
     // emit basic opcode string
     *result += sprintf(*result, fmt, instruction);
@@ -152,15 +152,15 @@ static void putComma(char **result, Bool uncooked) {
 //
 // Emit signed argument
 //
-static void putD(char **result, Uns32 value) {
-    *result += sprintf(*result, "%d", value);
+static void putD(char **result, Uns64 value) {
+    *result += sprintf(*result, FMT_Ad, value);
 }
 
 //
 // Emit hexadeximal argument
 //
-static void putX(char **result, Uns32 value) {
-    *result += sprintf(*result, "0x%x", value);
+static void putX(char **result, Uns64 value) {
+    *result += sprintf(*result, "0x"FMT_Ax, value);
 }
 
 //
@@ -209,6 +209,64 @@ static void putOptMask(
             putString(result, suffix);
         }
     }
+}
+
+//
+// Emit rlist argument
+//
+static void putRlist(char **result, riscvRListDesc rlist) {
+
+    static const char *map[] = {
+        [RV_RL_x_RA]           = "{ra}",
+        [RV_RL_x_RA_S0]        = "{ra,s0}",
+        [RV_RL_x_RA_S0_1]      = "{ra,s0-s1}",
+        [RV_RL_U_RA_S0_2]      = "{ra,s0-s2}",
+        [RV_RL_U_RA_S0_3]      = "{ra,s0-s3}",
+        [RV_RL_U_RA_S0_4]      = "{ra,s0-s4}",
+        [RV_RL_U_RA_S0_5]      = "{ra,s0-s5}",
+        [RV_RL_U_RA_S0_6]      = "{ra,s0-s6}",
+        [RV_RL_U_RA_S0_7]      = "{ra,s0-s7}",
+        [RV_RL_U_RA_S0_8]      = "{ra,s0-s8}",
+        [RV_RL_U_RA_S0_9]      = "{ra,s0-s9}",
+        [RV_RL_U_RA_S0_10]     = "{ra,s0-s10}",
+        [RV_RL_U_RA_S0_11]     = "{ra,s0-s11}",
+        [RV_RL_E_RA_S0_2]      = "{ra,s0-s2}",
+        [RV_RL_E_RA_S3_S0_2]   = "{ra,s3,s0-s2}",
+        [RV_RL_E_RA_S3_4_S0_2] = "{ra,s3-s4,s0-s2}",
+    };
+
+    putString(result, map[rlist]);
+}
+
+//
+// Emit alist argument
+//
+static void putAList(char **result, riscvAListDesc alist) {
+
+    static const char *map[] = {
+        [RV_AL_NA]   = "{}",
+        [RV_AL_A0]   = "{a0}",
+        [RV_AL_A0_1] = "{a0-a1}",
+        [RV_AL_A0_2] = "{a0-a2}",
+        [RV_AL_A0_3] = "{a0-a3}",
+    };
+
+    putString(result, map[alist]);
+}
+
+//
+// Emit retval argument
+//
+static void putRetVal(char **result, riscvRetValDesc retval) {
+
+    static const char *map[] = {
+        [RV_RV_NA] = "{}",
+        [RV_RV_0]  = "{0}",
+        [RV_RV_P1] = "{1}",
+        [RV_RV_M1] = "{-1}"
+    };
+
+    putString(result, map[retval]);
 }
 
 //
@@ -347,7 +405,9 @@ static riscvRegDesc putType(
         if(explicitType) {
 
             // emit dot before type
-            putChar(result, '.');
+            if(info->explicitDot) {
+                putChar(result, '.');
+            }
 
             // show explicit operand types
             if(isFXReg(this)) {
@@ -393,6 +453,11 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
         putD(result, info->shN);
     }
 
+    // emit z/s prefix if required
+    if(info->unsPfx) {
+        putChar(result, info->unsExt ? 'z' : 's');
+    }
+
     // emit basic opcode
     putString(result, info->opcode);
 
@@ -403,12 +468,12 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
 
     if(info->isWhole) {
 
-        // whole register load/store
+        // whole register load/store or move
         putD(result, info->nf+1);
         putChar(result, 'r');
 
         // emit version 1.0 EEW hint if required
-        if(riscvVFSupport(riscv, RVVF_VLR_HINT)) {
+        if(info->eew && riscvVFSupport(riscv, RVVF_VLR_HINT)) {
             putChar(result, 'e');
             putD(result, info->eew);
         }
@@ -446,11 +511,70 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     }
 
     // emit unsigned modifier if required
-    if(info->unsExt) {
+    if(info->unsExt && !info->unsPfx) {
         putChar(result, 'u');
     }
 
-    // emit CSR as part of opcode if required
+    // emit element size modifier if required
+    if(info->crossOp) {
+        static const char *map[] = {
+            [RV_CR_AS] = "as",
+            [RV_CR_SA] = "sa"
+        };
+        putString(result, map[info->crossOp]);
+    }
+
+    // emit half modifier if required
+    if(info->half) {
+        static const char *map[] = {
+            [RV_HA_B]  = "b",
+            [RV_HA_T]  = "t",
+            [RV_HA_BB] = "bb",
+            [RV_HA_BT] = "bt",
+            [RV_HA_TB] = "tb",
+            [RV_HA_TT] = "tt"
+        };
+        putString(result, map[info->half]);
+    }
+
+    // emit soubling modifier if required
+    if(info->doDouble) {
+        putD(result, 2);
+    }
+
+    // emit element size modifier if required
+    if(info->elemSize) {
+        putD(result, info->elemSize);
+    }
+
+    // emit pack modifier if required
+    if(info->pack) {
+        static const char *map[] = {
+            [RV_PD_10] = "10",
+            [RV_PD_20] = "20",
+            [RV_PD_30] = "30",
+            [RV_PD_31] = "31",
+            [RV_PD_32] = "32",
+        };
+        putString(result, map[info->pack]);
+    }
+
+    // emit round modifier if required
+    if(info->round) {
+        putString(result, ".u");
+    }
+
+    // emit return modifier if required
+    if(info->doRet) {
+        putString(result, "ret");
+    }
+
+    // emit embedded modifier if required
+    if(info->rlist>=RV_RL_E_RA_S0_2) {
+        putString(result, ".e");
+    }
+
+     // emit CSR as part of opcode if required
     if(info->csrInOp) {
         putCSR(result, riscv, info->csr);
     }
@@ -601,7 +725,7 @@ static void disassembleFormat(
                     break;
                 case EMIT_TGT:
                     putUncookedKey(result, " T", uncooked);
-                    putTarget(result, info->c);
+                    putTarget(result, info->tgt);
                     break;
                 case EMIT_CSR:
                     putUncookedKey(result, " CSR", uncooked);
@@ -624,6 +748,18 @@ static void disassembleFormat(
                     break;
                 case EMIT_RMR:
                     putOptMask(result, info->mask, "", uncooked);
+                    break;
+                case EMIT_RLIST:
+                    putUncookedKey(result, " RLIST", uncooked);
+                    putRlist(result, info->rlist);
+                    break;
+                case EMIT_ALIST:
+                    putUncookedKey(result, " ALIST", uncooked);
+                    putAList(result, info->alist);
+                    break;
+                case EMIT_RETVAL:
+                    putUncookedKey(result, " RETVAL", uncooked);
+                    putRetVal(result, info->retval);
                     break;
                 case '*':
                     nextOpt = True;

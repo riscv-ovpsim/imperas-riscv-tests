@@ -50,9 +50,14 @@ void riscvAcknowledgeCLICInt(riscvP hart, Uns32 intIndex);
 void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain);
 
 //
-// Allocate CLIC data structures
+// Allocate CLIC data structures if implemented internally
 //
-void riscvNewCLIC(riscvP riscv, Uns32 index);
+void riscvNewCLIC(riscvP root);
+
+//
+// Fill CLIC entry if required
+//
+void riscvFillCLIC(riscvP riscv);
 
 //
 // Free CLIC data structures
@@ -67,18 +72,10 @@ void riscvResetCLIC(riscvP riscv);
 //
 // Save CLIC state not covered by register read/write API
 //
-void riscvSaveCLIC(
-    riscvP              riscv,
-    vmiSaveContextP     cxt,
-    vmiSaveRestorePhase phase
-);
+void riscvSaveCLIC(riscvP riscv, vmiSaveContextP cxt);
 
 //
 // Restore net state not covered by register read/write API
 //
-void riscvRestoreCLIC(
-    riscvP              riscv,
-    vmiRestoreContextP  cxt,
-    vmiSaveRestorePhase phase
-);
+void riscvRestoreCLIC(riscvP riscv, vmiRestoreContextP cxt);
 

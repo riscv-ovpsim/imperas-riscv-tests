@@ -40,6 +40,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(bitmanip_version);
     VMI_ENUM_PARAM(hypervisor_version);
     VMI_ENUM_PARAM(crypto_version);
+    VMI_ENUM_PARAM(dsp_version);
     VMI_ENUM_PARAM(debug_version);
     VMI_ENUM_PARAM(rnmi_version);
     VMI_ENUM_PARAM(CLIC_version);
@@ -69,6 +70,11 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(mtvt_mask);
     VMI_UNS64_PARAM(stvt_mask);
     VMI_UNS64_PARAM(utvt_mask);
+    VMI_UNS64_PARAM(tdata1_mask);
+    VMI_UNS64_PARAM(mip_mask);
+    VMI_UNS64_PARAM(sip_mask);
+    VMI_UNS64_PARAM(uip_mask);
+    VMI_UNS64_PARAM(hip_mask);
     VMI_BOOL_PARAM(mtvec_sext);
     VMI_BOOL_PARAM(stvec_sext);
     VMI_BOOL_PARAM(utvec_sext);
@@ -84,12 +90,14 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(time_undefined);
     VMI_BOOL_PARAM(cycle_undefined);
     VMI_BOOL_PARAM(instret_undefined);
+    VMI_BOOL_PARAM(hpmcounter_undefined);
     VMI_BOOL_PARAM(tinfo_undefined);
     VMI_BOOL_PARAM(tcontrol_undefined);
     VMI_BOOL_PARAM(mcontext_undefined);
     VMI_BOOL_PARAM(scontext_undefined);
     VMI_BOOL_PARAM(mscontext_undefined);
     VMI_BOOL_PARAM(hcontext_undefined);
+    VMI_BOOL_PARAM(mnoise_undefined);
     VMI_BOOL_PARAM(amo_trigger);
     VMI_BOOL_PARAM(no_hit);
     VMI_BOOL_PARAM(no_sselect_2);
@@ -120,6 +128,8 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(reset_address);
     VMI_UNS64_PARAM(nmi_address);
     VMI_UNS64_PARAM(nmiexc_address);
+    VMI_UNS64_PARAM(CLINT_address);
+    VMI_DBL_PARAM(mtime_Hz);
     VMI_UNS32_PARAM(local_int_num);
     VMI_UNS64_PARAM(unimp_int_mask);
     VMI_UNS64_PARAM(force_mideleg);
@@ -140,6 +150,8 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(misa_Extensions_mask);
     VMI_STRING_PARAM(add_Extensions_mask);
     VMI_STRING_PARAM(sub_Extensions_mask);
+    VMI_STRING_PARAM(add_implicit_Extensions);
+    VMI_STRING_PARAM(sub_implicit_Extensions);
     VMI_UNS64_PARAM(mvendorid);
     VMI_UNS64_PARAM(marchid);
     VMI_UNS64_PARAM(mimpid);
@@ -191,7 +203,11 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zkb);
     VMI_BOOL_PARAM(Zkg);
     VMI_BOOL_PARAM(Zfh);
+    VMI_BOOL_PARAM(Zpsfoperand);
     VMI_ENUM_PARAM(Zfinx_version);
+    VMI_ENUM_PARAM(Zcea_version);
+    VMI_ENUM_PARAM(Zceb_version);
+    VMI_ENUM_PARAM(Zcee_version);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);
@@ -260,6 +276,11 @@ const char *riscvGetHypervisorVersionDesc(riscvP riscv);
 const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 
 //
+// Return DSP Architecture description
+//
+const char *riscvGetDSPVersionDesc(riscvP riscv);
+
+//
 // Return Debug Architecture description
 //
 const char *riscvGetDebugVersionDesc(riscvP riscv);
@@ -278,6 +299,21 @@ const char *riscvGetCLICVersionDesc(riscvP riscv);
 // Return Zfinx version description
 //
 const char *riscvGetZfinxVersionDesc(riscvP riscv);
+
+//
+// Return Zcea version name
+//
+const char *riscvGetZceaVersionName(riscvP riscv);
+
+//
+// Return Zceb version name
+//
+const char *riscvGetZcebVersionName(riscvP riscv);
+
+//
+// Return Zcee version name
+//
+const char *riscvGetZceeVersionName(riscvP riscv);
 
 //
 // Return 16-bit floating point description

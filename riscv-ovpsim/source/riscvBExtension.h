@@ -35,7 +35,7 @@ typedef enum riscvBExtOpE {
 
     RVBOP_NONE,         // not a B-extension operation
 
-    // operation subsets (if not callbacks)
+    // B extension operation subsets (if not callbacks)
     RVBOP_Zba,          // address calculation
     RVBOP_Zbb,          // base set
     RVBOP_Zbc,          // carryless operations
@@ -50,6 +50,13 @@ typedef enum riscvBExtOpE {
     RVBOP_Zbmp,         // Zbm and Zbp
     RVBOP_Zbefmp,       // Zbe, Zbf, Zbm and Zbp
     RVBOP_Zbefp,        // Zbe, Zbf and Zbp
+
+    // K extension operation subsets
+    RVBOP_Zbkb,         // cryptography subset
+    RVBOP_Zbkc,         // carryless multiply subset
+    RVBOP_Zbkx,         // crossbar multiply subset
+    RVBOP_GORCI,        // gorci subset
+    RVBOP_REV8W,        // rev8w subset
 
     // operations implemented as callbacks or version-specific
     RVBOP_GORC,         // gorc/gorci
@@ -86,6 +93,15 @@ typedef enum riscvBExtOpE {
 } riscvBExtOp;
 
 //
+// This specifies subset requirements for B, K and P extensions
+//
+typedef struct riscvBExtOpSetS {
+    riscvBExtOp B : 8;  // B extension subsets
+    riscvBExtOp K : 8;  // K extension shared operation subsets
+    riscvBExtOp P : 8;  // P extension shared operation subsets
+} riscvBExtOpSet;
+
+//
 // Return implementation callback for B-extension operation and bits
 //
 vmiCallFn riscvGetBOpCB(riscvP riscv, riscvBExtOp op, Uns32 bits);
@@ -94,5 +110,5 @@ vmiCallFn riscvGetBOpCB(riscvP riscv, riscvBExtOp op, Uns32 bits);
 // Validate that the instruction subset is supported and enabled and take an
 // Illegal Instruction exception if not
 //
-Bool riscvValidateBExtSubset(riscvP riscv, riscvBExtOp op);
+Bool riscvValidateBExtSubset(riscvP riscv, riscvBExtOpSet op);
 

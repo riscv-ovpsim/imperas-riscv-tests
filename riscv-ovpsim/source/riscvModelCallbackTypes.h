@@ -39,7 +39,7 @@
 //
 typedef struct riscvExtInstrInfoS {
     riscvAddr         thisPC;       // instruction address
-    Uns32             instruction;  // instruction word
+    Uns64             instruction;  // instruction word
     Uns8              bytes;        // instruction bytes
     const char       *opcode;       // opcode name
     const char       *format;       // disassembly format string
@@ -138,6 +138,16 @@ typedef struct riscvExtMorphStateS {
     riscvP              riscv;      // current processor
     vmiosObjectP        object;     // current extension object
 } riscvExtMorphState;
+
+//
+// Context for load/store operation
+//
+typedef struct riscvExtLdStAttrsS {
+    memConstraint constraint : 4;   // access constraints
+    Bool          sExtend    : 1;   // sign-extension (load only)
+    Bool          isVirtual  : 1;   // whether HLV/HLVX/HSV
+    Bool          isCode     : 1;   // whether load as if fetch (HLVX)
+} riscvExtLdStAttrs;
 
 
 ////////////////////////////////////////////////////////////////////////////////

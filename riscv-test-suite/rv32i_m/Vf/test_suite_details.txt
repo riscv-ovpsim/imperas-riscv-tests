@@ -70,8 +70,8 @@ Instruction category: OPV_FPMO floating-point move
   vfmv.v.f : 224
 Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.f.f.w : 150
-  vfncvt.rod.f.f.w : 150
   vfncvt.f.x.w : 150
+  vfncvt.rod.f.f.w : 150
   vfncvt.f.xu.w : 150
   vfncvt.x.f.w : 150
   vfncvt.xu.f.w : 150
@@ -131,10 +131,10 @@ Other instructions (those not the focus of this suite)
   auipc : 31,498
   csrrw : 3,066
   mret : 1,022
-  vsetvli : 93,520
-  vle.v : 76,664
   fmv.s.x : 12,426
+  vsetvli : 93,520
   add : 107,712
+  vle.v : 76,664
   vse.v : 26,928
   fence : 1,022
   ecall : 1,022

@@ -27,6 +27,7 @@
 // model header files
 #include "riscvCLIC.h"
 #include "riscvCLICTypes.h"
+#include "riscvCluster.h"
 #include "riscvExceptions.h"
 #include "riscvMessage.h"
 #include "riscvStructure.h"
@@ -81,7 +82,14 @@ static const char *mapCLICPageTypeName(CLICPageType type) {
 // Return the number of hart contexts in a cluster
 //
 inline static Uns32 getNumHarts(riscvP root) {
-    return root->numHarts ? : 1;
+    return root->numHarts;
+}
+
+//
+// Return CLIC scope object
+//
+inline static riscvP getCLICRoot(riscvP riscv) {
+    return riscv->clusterRoot;
 }
 
 //
@@ -221,16 +229,16 @@ static void debugCLICAccess(
     if(type==CPT_C) {
 
         // control page access
-        vmiPrintf(
-            "CLIC %s offset=0x%x %s\n",
+        vmiMessage("I", CPU_PREFIX"_CLIC",
+            "%s offset=0x%x %s\n",
             access, raw, name
         );
 
     } else {
 
         // interrupt page access
-        vmiPrintf(
-            "CLIC %s offset=0x%x %s (hart %d)\n",
+        vmiMessage("I", CPU_PREFIX"_CLIC",
+            "%s offset=0x%x %s (hart %d)\n",
             access, raw, name, hart
         );
     }
@@ -240,7 +248,7 @@ static void debugCLICAccess(
 // Return the number of CLIC interrupts
 //
 inline static Uns32 getIntNum(riscvP hart) {
-    return hart->smpRoot->clic.clicinfo.fields.num_interrupt;
+    return getCLICRoot(hart)->clic.clicinfo.fields.num_interrupt;
 }
 
 //
@@ -248,7 +256,7 @@ inline static Uns32 getIntNum(riscvP hart) {
 //
 static Uns32 getCLICIntCtl1Bits(riscvP hart) {
 
-    riscvP root           = hart->smpRoot;
+    riscvP root           = getCLICRoot(hart);
     Uns32  CLICINTCTLBITS = root->clic.clicinfo.fields.CLICINTCTLBITS;
 
     return ((1<<(8-CLICINTCTLBITS))-1);
@@ -474,7 +482,7 @@ static void writeCLICInterruptAttr(
     riscvMode pageMode
 ) {
     CLIC_REG_DECL(clicintattr) = {bits:newValue};
-    riscvP    root             = hart->smpRoot;
+    riscvP    root             = getCLICRoot(hart);
     Uns32     CLICCFGMBITS     = root->configInfo.CLICCFGMBITS;
     riscvMode intMode          = clicintattr.fields.mode;
 
@@ -535,7 +543,7 @@ static void writeCLICInterruptCtl(
 static riscvMode getCLICInterruptMode(riscvP hart, Uns32 intIndex) {
 
     CLIC_REG_DECL(clicintattr) = getCLICInterruptAttr(hart, intIndex);
-    riscvP    root             = hart->smpRoot;
+    riscvP    root             = getCLICRoot(hart);
     Uns8      attr_mode        = clicintattr.fields.mode;
     Uns32     nmbits           = root->clic.cliccfg.fields.nmbits;
     riscvMode intMode          = RISCV_MODE_MACHINE;
@@ -665,7 +673,7 @@ static void writeCLICInterrupt(riscvP root, Uns32 offset, Uns8 newValue) {
 //
 void riscvRefreshPendingAndEnabledInternalCLIC(riscvP hart) {
 
-    riscvP root    = hart->smpRoot;
+    riscvP root    = getCLICRoot(hart);
     Uns32  maxRank = 0;
     Int32  id      = RV_NO_INT;
     Uns32  wordIndex;
@@ -816,7 +824,7 @@ static VMI_SMP_ITER_FN(refreshCCLICInterruptAllCB) {
 //
 static void refreshCCLICInterruptAll(riscvP riscv) {
     vmirtIterAllProcessors(
-        (vmiProcessorP)riscv->smpRoot,
+        (vmiProcessorP)getCLICRoot(riscv),
         refreshCCLICInterruptAllCB,
         0
     );
@@ -1132,6 +1140,11 @@ static void mapCLICDomainOld(riscvP root, memDomainP CLICDomain) {
     vmirtMapCallbacks(
         CLICDomain, lowAddr, highAddr, readCLICOld, writeCLICOld, root
     );
+
+    // force aligned access
+    vmirtProtectMemory(
+        CLICDomain, lowAddr, highAddr, MEM_PRIV_ALIGN, MEM_PRIV_ADD
+    );
 }
 
 
@@ -1186,6 +1199,11 @@ static void mapCLICDomain_0_9(riscvP root, memDomainP CLICDomain) {
     vmirtMapCallbacks(
         CLICDomain, lowAddr, highAddr, readCLIC_0_9, writeCLIC_0_9, root
     );
+
+    // force aligned access
+    vmirtProtectMemory(
+        CLICDomain, lowAddr, highAddr, MEM_PRIV_ALIGN, MEM_PRIV_ADD
+    );
 }
 
 
@@ -1198,7 +1216,7 @@ static void mapCLICDomain_0_9(riscvP root, memDomainP CLICDomain) {
 //
 void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain) {
 
-    riscvP root = riscv->smpRoot;
+    riscvP root = getCLICRoot(riscv);
 
     if(riscv->configInfo.CLIC_version>=RVCLC_0_9_20191208) {
         mapCLICDomain_0_9(root, CLICDomain);
@@ -1208,82 +1226,128 @@ void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain) {
 }
 
 //
-// Allocate CLIC data structures
+// Copy CLIC configuration setting
 //
-void riscvNewCLIC(riscvP riscv, Uns32 index) {
+#define COPY_CLIC_CFG(_DST, _SRC, _NAME) \
+    (_DST)->configInfo._NAME = (_SRC)->configInfo._NAME
 
-    riscvP  root     = riscv->smpRoot;
-    riscvPP table    = root->clic.harts;
-    Uns32   numHarts = getNumHarts(root);
-    Uns32   intNum   = riscvGetIntNum(riscv);
-    Uns32   i;
+//
+// Allocate CLIC data structures if implemented internally
+//
+void riscvNewCLIC(riscvP root) {
 
-    // do actions required when first leaf hart is encountered
-    if(!table) {
+    // if this is an AMP cluster, copy CLIC configuration from the first child
+    if(riscvIsCluster(root)) {
+
+        riscvP child = (riscvP)vmirtGetSMPChild((vmiProcessorP)root);
+
+        COPY_CLIC_CFG(root, child, CLIC_version);
+        COPY_CLIC_CFG(root, child, posedge_0_63);
+        COPY_CLIC_CFG(root, child, poslevel_0_63);
+        COPY_CLIC_CFG(root, child, CLICLEVELS);
+        COPY_CLIC_CFG(root, child, externalCLIC);
+        COPY_CLIC_CFG(root, child, CLICANDBASIC);
+        COPY_CLIC_CFG(root, child, CLICVERSION);
+        COPY_CLIC_CFG(root, child, CLICINTCTLBITS);
+        COPY_CLIC_CFG(root, child, CLICCFGMBITS);
+        COPY_CLIC_CFG(root, child, CLICCFGLBITS);
+        COPY_CLIC_CFG(root, child, CLICSELHVEC);
+        COPY_CLIC_CFG(root, child, CLICXNXTI);
+        COPY_CLIC_CFG(root, child, CLICXCSW);
+        COPY_CLIC_CFG(root, child, tvt_undefined);
+        COPY_CLIC_CFG(root, child, intthresh_undefined);
+        COPY_CLIC_CFG(root, child, mclicbase_undefined);
+        COPY_CLIC_CFG(root, child, posedge_other);
+        COPY_CLIC_CFG(root, child, poslevel_other);
+        COPY_CLIC_CFG(root, child, local_int_num);
+    }
+
+    // allocate CLIC data structures if required
+    if(CLICInternal(root)) {
+
+        Uns32 numHarts = getNumHarts(root);
+        Uns32 intNum   = riscvGetIntNum(root);
 
         // initialise read-only fields in cliccfg using configuration options
-        root->clic.cliccfg.fields.nvbits = riscv->configInfo.CLICSELHVEC;
+        root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
 
         // initialise read-only fields in clicinfo using configuration options
         root->clic.clicinfo.fields.num_interrupt  = intNum;
-        root->clic.clicinfo.fields.version        = riscv->configInfo.CLICVERSION;
-        root->clic.clicinfo.fields.CLICINTCTLBITS = riscv->configInfo.CLICINTCTLBITS;
+        root->clic.clicinfo.fields.version        = root->configInfo.CLICVERSION;
+        root->clic.clicinfo.fields.CLICINTCTLBITS = root->configInfo.CLICINTCTLBITS;
 
         // allocate hart table
-        table = root->clic.harts = STYPE_CALLOC_N(riscvP, numHarts);
+        root->clic.harts = STYPE_CALLOC_N(riscvP, numHarts);
     }
+}
 
-    // sanity check hart index and table
-    VMI_ASSERT(
-        index<numHarts,
-        "illegal hart index %u (maximum %u)",
-        index, numHarts
-    );
-    VMI_ASSERT(
-        !table[index],
-        "table entry %u already filled",
-        index
-    );
+//
+// Fill CLIC entry if required
+//
+void riscvFillCLIC(riscvP riscv) {
 
-    // insert this hart in the lookup table
-    table[index] = riscv;
+    riscvP  root  = getCLICRoot(riscv);
+    riscvPP table = root->clic.harts;
+    
+    if(table) {
 
-    // indicate internal CLIC is always enabled
-    riscv->netValue.enableCLIC = True;
+        Uns32 numHarts = getNumHarts(root);
+        Uns32 intNum   = riscvGetIntNum(root);
+        Uns32 index    = riscv->hartNum;
+        Uns32 i;
 
-    // allocate control state for interrupts
-    riscv->clic.intState  = STYPE_CALLOC_N(riscvCLICIntState, intNum);
-    riscv->clic.ipe       = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
-    riscv->clic.trigFixed = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
+        // sanity check hart index and table
+        VMI_ASSERT(
+            index<numHarts,
+            "illegal hart index %u (maximum %u)",
+            index, numHarts
+        );
+        VMI_ASSERT(
+            !table[index],
+            "table entry %u already filled",
+            index
+        );
 
-    // define default value for interrupt control state
-    Uns32 clicintctl = getCLICIntCtl1Bits(riscv);
+        // insert this hart in the lookup table
+        table[index] = riscv;
 
-    // get definitions of fixed trigger CLIC interrupts
-    Uns64 posedge_0_63   = riscv->configInfo.posedge_0_63;
-    Uns64 poslevel_0_63  = riscv->configInfo.poslevel_0_63;
-    Bool  posedge_other  = riscv->configInfo.posedge_other;
-    Bool  poslevel_other = riscv->configInfo.poslevel_other;
+        // indicate internal CLIC is always enabled
+        riscv->netValue.enableCLIC = True;
 
-    // initialise control state for interrupts
-    for(i=0; i<intNum; i++) {
+        // allocate control state for interrupts
+        riscv->clic.intState  = STYPE_CALLOC_N(riscvCLICIntState, intNum);
+        riscv->clic.ipe       = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
+        riscv->clic.trigFixed = STYPE_CALLOC_N(Uns64, riscv->ipDWords);
 
-        INT_TO_INDEX_MASK(i, word, mask);
+        // define default value for interrupt control state
+        Uns32 clicintctl = getCLICIntCtl1Bits(riscv);
 
-        // get default value for clicintattr
-        CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_MACHINE}};
+        // get definitions of fixed trigger CLIC interrupts
+        Uns64 posedge_0_63   = riscv->configInfo.posedge_0_63;
+        Uns64 poslevel_0_63  = riscv->configInfo.poslevel_0_63;
+        Bool  posedge_other  = riscv->configInfo.posedge_other;
+        Bool  poslevel_other = riscv->configInfo.poslevel_other;
 
-        // handle fixed positive edge/level triggered interrupts
-        if(word ? posedge_other : (mask&posedge_0_63)) {
-            riscv->clic.trigFixed[word] |= mask;
-            clicintattr.fields.trig = 1;
-        } else if(word ? poslevel_other : (mask&poslevel_0_63)) {
-            riscv->clic.trigFixed[word] |= mask;
+        // initialise control state for interrupts
+        for(i=0; i<intNum; i++) {
+
+            INT_TO_INDEX_MASK(i, word, mask);
+
+            // get default value for clicintattr
+            CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_MACHINE}};
+
+            // handle fixed positive edge/level triggered interrupts
+            if(word ? posedge_other : (mask&posedge_0_63)) {
+                riscv->clic.trigFixed[word] |= mask;
+                clicintattr.fields.trig = 1;
+            } else if(word ? poslevel_other : (mask&poslevel_0_63)) {
+                riscv->clic.trigFixed[word] |= mask;
+            }
+
+            // set initial clicintattr and clicintctl for this interruipt
+            setCLICInterruptField(riscv, i, CIT_clicintattr, clicintattr.bits);
+            setCLICInterruptField(riscv, i, CIT_clicintctl, clicintctl);
         }
-
-        // set initial clicintattr and clicintctl for this interruipt
-        setCLICInterruptField(riscv, i, CIT_clicintattr, clicintattr.bits);
-        setCLICInterruptField(riscv, i, CIT_clicintctl, clicintctl);
     }
 }
 
@@ -1333,13 +1397,10 @@ void riscvResetCLIC(riscvP riscv) {
 //
 // Save CLIC state not covered by register read/write API
 //
-void riscvSaveCLIC(
-    riscvP              riscv,
-    vmiSaveContextP     cxt,
-    vmiSaveRestorePhase phase
-) {
+void riscvSaveCLIC(riscvP riscv, vmiSaveContextP cxt) {
+
     // save CLIC configuration (root level)
-    VMIRT_SAVE_FIELD(cxt, riscv->smpRoot, clic.cliccfg);
+    VMIRT_SAVE_FIELD(cxt, getCLICRoot(riscv), clic.cliccfg);
 
     // save CLIC interrupt state
     vmirtSave(
@@ -1353,13 +1414,10 @@ void riscvSaveCLIC(
 //
 // Restore net state not covered by register read/write API
 //
-void riscvRestoreCLIC(
-    riscvP              riscv,
-    vmiRestoreContextP  cxt,
-    vmiSaveRestorePhase phase
-) {
+void riscvRestoreCLIC(riscvP riscv, vmiRestoreContextP cxt) {
+
     // restore CLIC configuration (root level)
-    VMIRT_RESTORE_FIELD(cxt, riscv->smpRoot, clic.cliccfg);
+    VMIRT_RESTORE_FIELD(cxt, getCLICRoot(riscv), clic.cliccfg);
 
     // restore CLIC interrupt state
     vmirtRestore(

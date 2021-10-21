@@ -26,17 +26,14 @@ Instruction category: OPV_MASK mask
   vfirst.m : 639
   viota.m : 639
   vmand.mm : 336
-  vmandnot.mm : 336
   vmnand.mm : 336
   vmnor.mm : 336
   vmor.mm : 336
-  vmornot.mm : 336
   vmxnor.mm : 336
   vmxor.mm : 336
   vmsbf.m : 639
   vmsif.m : 639
   vmsof.m : 639
-  vpopc.m : 639
 Instruction category: OPV_INDXEX index
   vid.v : 639
 
@@ -57,4 +54,7 @@ Other instructions (those not the focus of this suite)
   beq : 792
   vse.v : 5,883
   lw : 21,504
+  vmandn.mm : 336
+  vmorn.mm : 336
+  vcpop.m : 639
 

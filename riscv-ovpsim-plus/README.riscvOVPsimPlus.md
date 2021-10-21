@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 09 Jul 2021
+Date      : 20 Oct 2021
 
-Version   : 20210709.0
+Version   : 20211019.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -56,7 +56,7 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 0.9 : Vector Architecture Version 0.9
     - Version 1.0-draft-20210130 : Vector Architecture Version 1.0-draft-20210130
     - Version 1.0-rc1-20210608 : Vector Architecture Version 1.0-rc1-20210608
-    - Version master : Vector Architecture Master Branch as of commit 795a4dd (this is subject to change)
+    - Version master : Vector Architecture Master Branch as of commit 3570f99 (this is subject to change)
 
 - RISC-V B Bit Manipulation Extension (bitmanip_version)
     - Version 0.90 : Bit Manipulation Architecture Version v0.90-20190610
@@ -73,6 +73,11 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 0.8.1 : Cryptographic Architecture Version 0.8.1
     - Version 0.9.0 : Cryptographic Architecture Version 0.9.0
     - Version 0.9.2 : Cryptographic Architecture Version 0.9.2
+    - Version 1.0.0-rc1 : Cryptographic Architecture Version 1.0.0-rc1
+
+- RISC-V P DSP/SIMD Extension (dsp_version)
+    - Version 0.5.2 : DSP Architecture Version 0.5.2
+    - Version 0.9.6 : DSP Architecture Version 0.9.6
 
 
 ## Additional specifications available in Imperas simulators currently not supported in this product

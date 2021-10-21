@@ -1,0 +1,51 @@
+    #
+    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+Architectural Test Suite Data for RV32ZBS B Bit Manipulation:
+    8 test source files
+    1 different instruction categories
+    23 different instructions
+    5,864 total instructions
+
+Instruction category: OPB_SBIT Single-Bit
+  sbclr : 146
+  sbclri : 146
+  sbext : 146
+  sbinvi : 146
+  sbinv : 146
+  sbseti : 146
+  sbexti : 146
+  sbset : 146
+
+Other instructions (those not the focus of this suite)
+  c-j : 8
+  c-lui : 8
+  addi : 1,872
+  csrrs : 24
+  auipc : 280
+  csrrw : 16
+  mret : 8
+  lui : 1,240
+  sw : 1,128
+  c-swsp : 40
+  c-addi : 8
+  fence : 8
+  ecall : 8
+  c-li : 24
+  beq : 24
+

@@ -293,6 +293,8 @@ inst_6:
     RVMODEL_IO_WRITE_STR(x30, "Test part A1  - Complete\n")
 
     # ---------------------------------------------------------------------------------------------
+    # force alignment
+    .balign 64
     # Exception handler
 _trap_handler:
     # increment return address
