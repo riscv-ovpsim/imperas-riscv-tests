@@ -37,15 +37,15 @@ Instruction category: OPB_PACK Packing
   packw : 274
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 274
-  rori : 274
   rol : 274
+  rori : 274
+  ror : 274
+  rolw : 274
   roriw : 274
   rorw : 274
-  rolw : 274
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p0 : 274
   sm3p1 : 274
+  sm3p0 : 274
 Instruction category: OPK_Zkse 
   sm4ed : 530
   sm4ks : 530

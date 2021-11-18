@@ -7,10 +7,10 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2021-November-18
-Release 20211117.0
+Date 2021-November-16
+Release 20211018.0
 
-This releaase includes some refactorization to support multiple versions.
+This release includes some refactorization to support multiple versions.
 Current default versions for extensions are:
 
 | Instructions            | Extension | Version |
@@ -21,6 +21,9 @@ Current default versions for extensions are:
 | Crypto                  |   K       | v1.0.0  |
 | Vector XLEN=32 VLEN=256 |   V       | v1.0    |
 | SIMD/DSP                |   P       | v0.5.2  |
+
+If you need different extension versions for your current RTL - or require
+a different configuration for the Vector tests, please contact info@imperas.com
 
 Date 2021-July-02
 Release 20210701.0

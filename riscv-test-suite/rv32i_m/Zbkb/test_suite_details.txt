@@ -26,15 +26,15 @@ Architectural Test Suite Data for RV32ZBKB K Crypto/Scalar:
 
 Instruction category: OPB_LWNE Logic With Negate
   andn : 146
-  xnor : 146
   orn : 146
+  xnor : 146
 Instruction category: OPB_PACK Packing
-  pack : 146
   packh : 146
+  pack : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 146
   rol : 146
+  ror : 146
   rori : 146
 
 Other instructions (those not the focus of this suite)

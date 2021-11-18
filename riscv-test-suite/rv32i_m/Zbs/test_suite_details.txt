@@ -24,12 +24,12 @@ Architectural Test Suite Data for RV32ZBS B Bit Manipulation:
 
 Instruction category: OPB_SBIT Single-Bit
   bclri : 146
-  binvi : 146
   bclr : 146
-  bseti : 146
-  binv : 146
-  bset : 146
   bexti : 146
+  binvi : 146
+  bset : 146
+  binv : 146
+  bseti : 146
 Instruction category: OPB_EXDE Bit Extract/Deposit
   bext : 146
 

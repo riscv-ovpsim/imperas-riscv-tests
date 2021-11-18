@@ -29,19 +29,19 @@ Instruction category: arithmetic
   sub : 440
   add : 1,358
 Instruction category: logical 
-  andi : 170
   ori : 147
+  andi : 170
   xori : 147
   xor : 147
-  and : 147
   or : 147
+  and : 147
 Instruction category: branch 
   beq : 293
-  bltu : 149
-  bne : 149
-  bgeu : 149
-  bge : 149
   blt : 180
+  bltu : 149
+  bge : 149
+  bgeu : 149
+  bne : 149
 Instruction category: OPI_IMN 
   ecall : 49
   ebreak : 1
@@ -51,27 +51,27 @@ Instruction category: jump
   jal : 616
   jalr : 155
 Instruction category: load 
-  lb : 147
   lw : 599
+  lb : 147
   lh : 151
   lbu : 152
   lhu : 152
 Instruction category: store 
   sw : 5,812
-  sb : 146
   sh : 150
+  sb : 146
 Instruction category: shift 
-  srli : 147
   srai : 147
+  srli : 147
   slli : 178
-  srl : 147
-  sra : 147
   sll : 147
+  sra : 147
+  srl : 147
 Instruction category: compare 
-  sltiu : 147
   slti : 147
-  sltu : 147
   slt : 147
+  sltiu : 147
+  sltu : 147
 
 Other instructions (those not the focus of this suite)
   csrrs : 217

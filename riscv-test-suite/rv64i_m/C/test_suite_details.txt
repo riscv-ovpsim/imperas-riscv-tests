@@ -24,19 +24,19 @@ Architectural Test Suite Data for RV64C C Compressed Integer Instructions:
 
 Instruction category: arithmetic 
   c-lui : 2,537
-  c-add : 2,466
+  c-mv : 274
   c-li : 3,421
   c-addi : 2,713
   c-addiw : 1,224
   c-addw : 274
-  c-mv : 274
   c-sub : 275
   c-subw : 274
+  c-add : 2,466
 Instruction category: logical 
-  c-and : 274
   c-andi : 274
   c-or : 274
   c-xor : 274
+  c-and : 274
 Instruction category: branch 
   c-beqz : 274
   c-bnez : 274
@@ -54,8 +54,8 @@ Instruction category: store
   c-swsp : 274
 Instruction category: shift 
   c-slli : 4,801
-  c-srai : 274
   c-srli : 274
+  c-srai : 274
 
 Other instructions (those not the focus of this suite)
   addiw : 6,457
@@ -71,7 +71,7 @@ Other instructions (those not the focus of this suite)
   ecall : 33
   beq : 99
   jal : 496
-  lw : 274
   ld : 1,370
   sw : 310
+  lw : 274
 
