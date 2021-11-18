@@ -829,7 +829,7 @@ static RISCV_CSR_READFN(mstatushR) {
 //
 static RISCV_CSR_WRITEFN(mstatushW) {
 
-    Uns64 mask = RD_CSR_MASK64(riscv, mstatus) & 0xffffffff00000000ULL;
+    Uns64 mask = RD_CSR_MASK64(riscv, mstatus) & (-1ULL << 32);
 
     // update the CSR
     statusW(riscv, newValue<<32, mask);
@@ -4325,10 +4325,24 @@ inline static RISCV_CSR_PRESENTFN(mentropyP) {
 }
 
 //
-// Is sentropy register present?
+// Is sentropy register present at original location (0xDBF)?
 //
-inline static RISCV_CSR_PRESENTFN(sentropyP) {
-    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)>=RVKV_0_9_2);
+inline static RISCV_CSR_PRESENTFN(sentropyAP) {
+    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)==RVKV_0_9_2);
+}
+
+//
+// Is sentropy register present at new location (0x546)?
+//
+inline static RISCV_CSR_PRESENTFN(sentropyBP) {
+    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)==RVKV_1_0_0_RC1);
+}
+
+//
+// Is seed register present?
+//
+inline static RISCV_CSR_PRESENTFN(seedP) {
+    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)>=RVKV_1_0_0_RC5);
 }
 
 //
@@ -4346,20 +4360,243 @@ static RISCV_CSR_READFN(mentropyR) {
 }
 
 //
+// This defined required behavior of entropy-reading instructions
+//
+typedef enum entropyActionE {
+    EA_ENTROPY, // return entropy
+    EA_ILLEGAL, // take Illegal Instruction exception
+    EA_VIRTUAL, // take Virtual Instruction exception
+} entropyAction;
+
+//
+// Handle read of entropy or take an appropriate exception
+//
+static Uns64 readEntropy(
+    riscvP        riscv,
+    entropyAction action,
+    const char   *reason
+) {
+    Uns32 result = 0;
+
+    if(riscv->artifactAccess) {
+        // ignore value for artifact access
+    } else if(action==EA_ENTROPY) {
+        result = riscvPollEntropy(riscv);
+    } else if(action==EA_ILLEGAL) {
+        riscvIllegalInstructionMessage(riscv, reason);
+    } else if(action==EA_VIRTUAL) {
+        riscvVirtualInstructionMessage(riscv, reason);
+    }
+
+    return result;
+}
+
+//
 // Read sentropy
 //
 static RISCV_CSR_READFN(sentropyR) {
 
-    riscvMode mode   = getCurrentMode3(riscv);
-    Uns32     result = 0;
+    riscvMode     mode   = getCurrentMode5(riscv);
+    entropyAction action = EA_ENTROPY;
+    const char   *reason = 0;
+    Bool          SKES   = RD_CSR_FIELDC(riscv, mseccfg, USEED_SKES);
 
-    if((mode!=RISCV_MODE_M) && !RD_CSR_FIELDC(riscv, mseccfg, SKES)) {
-        riscvIllegalInstructionMessage(riscv, "access disabled by mseccfg.SKES");
-    } else {
-        result = riscvPollEntropy(riscv);
+    if(riscv->artifactAccess) {
+        // ignore value for artifact access
+    } else if(mode==RISCV_MODE_M) {
+        // access always allowed
+    } else if(inVMode(riscv)) {
+        reason = "illegal in Virtual mode";
+        action = EA_VIRTUAL;
+    } else if(!SKES)  {
+        reason = "access disabled by mseccfg.SKES";
+        action = EA_ILLEGAL;
     }
 
-    return result;
+    return readEntropy(riscv, action, reason);
+}
+
+//
+// Read seed
+//
+static RISCV_CSR_READFN(seedR) {
+
+    riscvMode     mode   = getCurrentMode5(riscv);
+    entropyAction action = EA_ENTROPY;
+    const char   *reason = 0;
+    Bool          SSEED  = RD_CSR_FIELDC(riscv, mseccfg, SSEED);
+    Bool          USEED  = RD_CSR_FIELDC(riscv, mseccfg, USEED_SKES);
+
+    if(riscv->artifactAccess) {
+        // ignore value for artifact access
+    } else if(mode==RISCV_MODE_M) {
+        // access always allowed
+    } else if(inVMode(riscv)) {
+        reason = "illegal in Virtual mode";
+        action = SSEED ? EA_VIRTUAL : EA_ILLEGAL;
+    } else if((mode==RISCV_MODE_S) && !SSEED) {
+        reason = "access disabled by mseccfg.SSEED";
+        action = EA_ILLEGAL;
+    } else if((mode==RISCV_MODE_U) && !USEED) {
+        reason = "access disabled by mseccfg.USEED";
+        action = EA_ILLEGAL;
+    }
+
+    return readEntropy(riscv, action, reason);
+}
+
+//
+// Write sentropy (ignored)
+//
+static RISCV_CSR_WRITEFN(sentropyW) {
+
+    return 0;
+}
+
+//
+// Read sentropy when not also written (invalid)
+//
+static RISCV_CSR_READFN(sentropyRInv) {
+
+    if(!riscv->artifactAccess) {
+        riscvIllegalInstructionMessage(riscv, "write required");
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SECURITY CONTROL REGISTERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Is mseccfg register present?
+//
+inline static RISCV_CSR_PRESENTFN(mseccfgP) {
+    return (
+        RISCV_SMEPMP_VERSION(riscv) ||
+        (cryptoP(attrs, riscv) && (getCryptoVersion(riscv)>=RVKV_0_9_2))
+    );
+}
+
+//
+// Write mseccfg
+//
+static RISCV_CSR_WRITEFN(mseccfgW) {
+
+    Uns64 oldValue = RD_CSR(riscv, mseccfg);
+    Uns64 wMask    = RD_CSR_MASK(riscv, mseccfg);
+
+    // some non-artifact updates are restricted
+    if(!riscv->artifactAccess) {
+
+        // disallow clearing sticky mseccfg.MML
+        if(RD_CSR_FIELDC(riscv, mseccfg, MML)) {
+            wMask &= ~WM_mseccfg_MML;
+        }
+
+        // disallow clearing sticky mseccfg.MMWP
+        if(RD_CSR_FIELDC(riscv, mseccfg, MMWP)) {
+            wMask &= ~WM_mseccfg_MMWP;
+        }
+
+        // mseccfg.RLB may not be set if there are locked PMP entries
+        if(
+            !RD_CSR_FIELDC(riscv, mseccfg, RLB) &&
+            (newValue & wMask & WM_mseccfg_RLB) &&
+            riscvVMAnyPMPLocked(riscv)
+        ) {
+            wMask &= ~WM_mseccfg_RLB;
+        }
+    }
+
+    // get new value using writable bit mask
+    newValue = ((newValue & wMask) | (oldValue & ~wMask));
+
+    // if PMP security controls have changed, unmap all PMP entries
+    if((oldValue&WM_mseccfg_MML_MMWP) != (newValue&WM_mseccfg_MML_MMWP)) {
+        riscvVMUnmapAllPMP(riscv);
+    }
+
+    // update the CSR
+    WR_CSR(riscv, mseccfg, newValue);
+
+    return RD_CSR(riscv, mseccfg);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ENVIRONMENT CONFIGURATION REGISTERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Write senvcfg
+//
+static RISCV_CSR_WRITEFN(senvcfgW) {
+
+    Uns64 oldValue = RD_CSR(riscv, senvcfg);
+    Uns32 oldCBIE  = RD_CSR_FIELD(riscv, senvcfg, CBIE);
+    Uns64 wMask    = RD_CSR_MASK(riscv, senvcfg);
+
+    // get new value using writable bit mask
+    newValue = ((newValue & wMask) | (oldValue & ~wMask));
+
+    // update the CSR
+    WR_CSR(riscv, senvcfg, newValue);
+
+    // handle reserved CBIE field by value reversion
+    if(RD_CSR_FIELD(riscv, senvcfg, CBIE)==2) {
+        WR_CSR_FIELD(riscv, senvcfg, CBIE, oldCBIE);
+    }
+
+    return RD_CSR(riscv, senvcfg);
+}
+
+//
+// Write menvcfg
+//
+static RISCV_CSR_WRITEFN(menvcfgW) {
+
+    Uns64 oldValue = RD_CSR(riscv, menvcfg);
+    Uns32 oldCBIE  = RD_CSR_FIELD(riscv, menvcfg, CBIE);
+    Uns64 wMask    = RD_CSR_MASK(riscv, menvcfg);
+
+    // get new value using writable bit mask
+    newValue = ((newValue & wMask) | (oldValue & ~wMask));
+
+    // update the CSR
+    WR_CSR(riscv, menvcfg, newValue);
+
+    // handle reserved CBIE field by value reversion
+    if(RD_CSR_FIELD(riscv, menvcfg, CBIE)==2) {
+        WR_CSR_FIELD(riscv, menvcfg, CBIE, oldCBIE);
+    }
+
+    return RD_CSR(riscv, menvcfg);
+}
+
+//
+// Write henvcfg
+//
+static RISCV_CSR_WRITEFN(henvcfgW) {
+
+    Uns64 oldValue = RD_CSR(riscv, henvcfg);
+    Uns32 oldCBIE  = RD_CSR_FIELD(riscv, henvcfg, CBIE);
+    Uns64 wMask    = RD_CSR_MASK(riscv, henvcfg);
+
+    // get new value using writable bit mask
+    newValue = ((newValue & wMask) | (oldValue & ~wMask));
+
+    // update the CSR
+    WR_CSR(riscv, henvcfg, newValue);
+
+    // handle reserved CBIE field by value reversion
+    if(RD_CSR_FIELD(riscv, henvcfg, CBIE)==2) {
+        WR_CSR_FIELD(riscv, henvcfg, CBIE, oldCBIE);
+    }
+
+    return RD_CSR(riscv, henvcfg);
 }
 
 
@@ -4480,6 +4717,35 @@ static RISCV_CSR_READFN(sentropyR) {
 }
 
 //
+// Implemented using vmiReg, constant write mask, high half
+//
+#define CSR_ATTR_TCH( \
+    _ID, _NUM, _ARCH, _ACCESS, _VERSION,            \
+    _ENDB,_TMODE,_TVMT,_WRD,_NOSR,_V, _DESC,        \
+    _PRESENT                                        \
+) [CSR_ID(_ID##h)] = { \
+    name          : #_ID"h",                        \
+    desc          : _DESC,                          \
+    csrNum        : _NUM,                           \
+    arch          : _ARCH|ISA_XLEN_32|ISA_and,      \
+    access        : _ACCESS,                        \
+    version       : RVPV_##_VERSION,                \
+    wEndBlock     : _ENDB,                          \
+    noSaveRestore : _NOSR,                          \
+    noTraceChange : _TMODE,                         \
+    TVMT          : _TVMT,                          \
+    aliasV        : _V,                             \
+    writeRd       : _WRD,                           \
+    presentCB     : _PRESENT,                       \
+    readCB        : 0,                              \
+    readWriteCB   : 0,                              \
+    writeCB       : 0,                              \
+    wstateCB      : 0,                              \
+    reg           : CSR_REGH_MT(_ID),               \
+    writeMaskC32  : (WM64_##_ID>>32)                \
+}
+
+//
 // Implemented using vmiReg and optional callbacks, variable write mask
 //
 #define CSR_ATTR_TV_( \
@@ -4506,6 +4772,35 @@ static RISCV_CSR_READFN(sentropyR) {
     wstateCB      : _WSTATE,                        \
     reg           : CSR_REG_MT(_ID),                \
     writeMaskV    : CSR_MASK_MT(_ID)                \
+}
+
+//
+// Implemented using vmiReg, variable write mask, high half
+//
+#define CSR_ATTR_TVH( \
+    _ID, _NUM, _ARCH, _ACCESS, _VERSION,            \
+    _ENDB,_TMODE,_TVMT,_WRD,_NOSR,_V, _DESC,        \
+    _PRESENT                                        \
+) [CSR_ID(_ID##h)] = { \
+    name          : #_ID"h",                        \
+    desc          : _DESC,                          \
+    csrNum        : _NUM,                           \
+    arch          : _ARCH|ISA_XLEN_32|ISA_and,      \
+    access        : _ACCESS,                        \
+    version       : RVPV_##_VERSION,                \
+    wEndBlock     : _ENDB,                          \
+    noSaveRestore : _NOSR,                          \
+    noTraceChange : _TMODE,                         \
+    TVMT          : _TVMT,                          \
+    aliasV        : _V,                             \
+    writeRd       : _WRD,                           \
+    presentCB     : _PRESENT,                       \
+    readCB        : 0,                              \
+    readWriteCB   : 0,                              \
+    writeCB       : 0,                              \
+    wstateCB      : 0,                              \
+    reg           : CSR_REGH_MT(_ID),               \
+    writeMaskV    : CSR_MASKH_MT(_ID)               \
 }
 
 //
@@ -4653,6 +4948,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TC_     (vxsat,        0x009, ISA_VP,      ISA_FSandV, 1_10,   0,0,0,0,0,0, "Fixed-Point Saturate Flag",                             vxsatP,      riscvWFSVS,  vxsatR,       0,        vxsatW        ),
     CSR_ATTR_TC_     (vxrm,         0x00A, ISA_V,       ISA_FSandV, 1_10,   0,0,0,0,0,0, "Fixed-Point Rounding Mode",                             0,           riscvWFSVS,  0,            0,        vxrmW         ),
     CSR_ATTR_T__     (vcsr,         0x00F, ISA_V,       0,          1_10,   1,0,0,0,0,0, "Vector Control and Status",                             vcsrP,       riscvWVCSR,  vcsrR,        0,        vcsrW         ),
+    CSR_ATTR_P__     (seed,         0x015, ISA_K,       0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          seedP,       0,           sentropyRInv, seedR,    sentropyW     ),
     CSR_ATTR_T__     (uscratch,     0x040, ISA_N,       0,          1_10,   0,0,0,0,0,0, "User Scratch",                                          0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (uepc,         0x041, ISA_N,       0,          1_10,   0,0,0,0,0,0, "User Exception Program Counter",                        0,           0,           uepcR,        0,        0             ),
     CSR_ATTR_T__     (ucause,       0x042, ISA_N,       0,          1_10,   0,0,0,0,0,0, "User Cause",                                            0,           0,           ucauseR,      0,        ucauseW       ),
@@ -4684,6 +4980,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (stvec,        0x105, ISA_S,       0,          1_10,   0,0,0,0,0,1, "Supervisor Trap-Vector Base-Address",                   0,           0,           0,            0,        stvecW        ),
     CSR_ATTR_TV_     (scounteren,   0x106, ISA_S,       0,          1_10,   0,0,0,0,0,0, "Supervisor Counter Enable",                             0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (stvt,         0x107, ISA_S,       0,          1_10,   0,0,0,0,0,0, "Supervisor CLIC Trap-Vector Base-Address",              clicTVTP,    0,           0,            0,        stvtW         ),
+    CSR_ATTR_TV_     (senvcfg,      0x10A, ISA_S,       0,          1_12,   0,0,0,0,0,0, "Supervisor Environment Configuration",                  0,           0,           0,            0,        senvcfgW      ),
     CSR_ATTR_T__     (sscratch,     0x140, ISA_S,       0,          1_10,   0,0,0,0,0,1, "Supervisor Scratch",                                    0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (sepc,         0x141, ISA_S,       0,          1_10,   0,0,0,0,0,1, "Supervisor Exception Program Counter",                  0,           0,           sepcR,        0,        0             ),
     CSR_ATTR_T__     (scause,       0x142, ISA_S,       0,          1_10,   0,0,0,0,0,1, "Supervisor Cause",                                      0,           0,           scauseR,      0,        scauseW       ),
@@ -4695,7 +4992,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (sscratchcsw,  0x148, ISA_S,       0,          1_10,   0,0,0,1,1,0, "Supervisor Conditional Scratch Swap, Priv",             clicSWP,     0,           sscratchcswR, 0,        sscratchcswW  ),
     CSR_ATTR_P__     (sscratchcswl, 0x149, ISA_S,       0,          1_10,   0,0,0,1,1,0, "Supervisor Conditional Scratch Swap, Level",            clicSWP,     0,           sscratchcswlR,0,        sscratchcswlW ),
     CSR_ATTR_T__     (satp,         0x180, ISA_S,       0,          1_10,   0,0,1,0,0,1, "Supervisor Address Translation and Protection",         0,           0,           0,            0,        satpW         ),
-    CSR_ATTR_P__     (sentropy,     0xDBF, ISA_SandK,   0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          sentropyP,   0,           sentropyR,    0,        0             ),
+    CSR_ATTR_PS_     (sentropy,A,   0xDBF, ISA_SandK,   0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          sentropyAP,  0,           sentropyR,    0,        0             ),
+    CSR_ATTR_PS_     (sentropy,B,   0x546, ISA_SandK,   0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          sentropyBP,  0,           sentropyRInv, sentropyR,sentropyW     ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_T__     (hstatus,      0x600, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Status",                                     0,           0,           0,            0,        hstatusW      ),
@@ -4705,6 +5003,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (htimedelta,   0x605, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Time Delta",                                 0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (hcounteren,   0x606, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Counter Enable",                             0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (hgeie,        0x607, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Guest External Interrupt Enable",            0,           0,           0,            0,        hgeieW        ),
+    CSR_ATTR_TV_     (henvcfg,      0x60A, ISA_H,       0,          1_12,   0,0,0,0,0,0, "Hypervisor Environment Configuration",                  0,           0,           0,            0,        henvcfgW      ),
+    CSR_ATTR_TVH     (henvcfg,      0x61A, ISA_H,       0,          1_12,   0,0,0,0,0,0, "Hypervisor Environment Configuration High",             0                                                               ),
     CSR_ATTR_TH_     (htimedelta,   0x615, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Time Delta High",                            0                                                               ),
     CSR_ATTR_T__     (htval,        0x643, ISA_H,       0,          1_10,   0,0,0,0,0,0, "Hypervisor Trap Value",                                 0,           0,           0,            0,        0             ),
     CSR_ATTR_P__     (hip,          0x644, ISA_H,       0,          1_10,   1,0,0,0,1,0, "Hypervisor Interrupt Pending",                          0,           0,           hipR,         hipRW,    hipW          ),
@@ -4729,6 +5029,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (marchid,      0xF12, 0,           0,          1_10,   0,0,0,0,0,0, "Architecture ID",                                       0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mimpid,       0xF13, 0,           0,          1_10,   0,0,0,0,0,0, "Implementation ID",                                     0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (mhartid,      0xF14, 0,           0,          1_10,   0,0,0,0,0,0, "Hardware Thread ID",                                    0,           0,           0,            0,        0             ),
+    CSR_ATTR_T__     (mconfigptr,   0xF15, 0,           0,          1_12,   0,0,0,0,0,0, "Configuration Data Structure",                          0,           0,           0,            0,        0             ),
     CSR_ATTR_P__     (mentropy,     0xF15, ISA_K,       0,          1_10,   0,1,0,0,1,0, "Poll Entropy",                                          mentropyP,   0,           mentropyR,    0,        0             ),
     CSR_ATTR_TV_     (mstatus,      0x300, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Status",                                        0,           riscvRstFS,  mstatusR,     0,        mstatusW      ),
     CSR_ATTR_T__     (misa,         0x301, 0,           0,          1_10,   1,0,0,0,0,0, "ISA and Extensions",                                    0,           0,           misaR,        0,        misaW         ),
@@ -4738,7 +5039,9 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (mtvec,        0x305, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Trap-Vector Base-Address",                      0,           0,           0,            0,        mtvecW        ),
     CSR_ATTR_TV_     (mcounteren,   0x306, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Counter Enable",                                mcounterenP, 0,           0,            0,        0             ),
     CSR_ATTR_TV_     (mtvt,         0x307, 0,           0,          1_10,   0,0,0,0,0,0, "Machine CLIC Trap-Vector Base-Address",                 clicTVTP,    0,           0,            0,        mtvtW         ),
+    CSR_ATTR_TV_     (menvcfg,      0x30A, ISA_U,       0,          1_12,   0,0,0,0,0,0, "Machine Environment Configuration",                     0,           0,           0,            0,        menvcfgW      ),
     CSR_ATTR_P__     (mstatush,     0x310, ISA_XLEN_32, 0,          1_12,   0,0,0,0,0,0, "Machine Status High",                                   0,           0,           mstatushR,    0,        mstatushW     ),
+    CSR_ATTR_TVH     (menvcfg,      0x31A, ISA_U,       0,          1_12,   0,0,0,0,0,0, "Machine Environment Configuration High",                0                                                               ),
     CSR_ATTR_TV_     (mcountinhibit,0x320, 0,           0,          1_11,   0,0,0,0,0,0, "Machine Counter Inhibit",                               0,           0,           0,            0,        mcountinhibitW),
     CSR_ATTR_T__     (mscratch,     0x340, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Scratch",                                       0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (mepc,         0x341, 0,           0,          1_10,   0,0,0,0,0,0, "Machine Exception Program Counter",                     0,           0,           mepcR,        0,        0             ),
@@ -4757,7 +5060,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TV_     (mnepc,        0x351, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Program Counter",                          rnmiP,       0,           mnepcR,       0,        0             ),
     CSR_ATTR_T__     (mncause,      0x352, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Cause",                                    rnmiP,       0,           0,            0,        mncauseW      ),
     CSR_ATTR_T__     (mnstatus,     0x353, 0,           0,          1_10,   0,0,0,0,0,0, "Machine RNMI Status",                                   rnmiP,       0,           0,            0,        mnstatusW     ),
-    CSR_ATTR_TC_     (mseccfg,      0x747, ISA_K,       0,          1_10,   0,0,0,0,0,0, "Machine Secure Configuration",                          sentropyP,   0,           0,            0,        0             ),
+    CSR_ATTR_TV_     (mseccfg,      0x747, 0,           0,          1_12,   0,0,0,0,0,0, "Machine Secure Configuration",                          mseccfgP,    0,           0,            0,        mseccfgW      ),
+    CSR_ATTR_TVH     (mseccfg,      0x757, 0,           0,          1_12,   0,0,0,0,0,0, "Machine Secure Configuration High",                     mseccfgP                                                        ),
     CSR_ATTR_TC_     (mnoise,       0x7A9, ISA_K,       0,          1_10,   0,0,0,0,0,0, "GetNoise Test Interface",                               mnoiseP,     0,           0,            0,        0             ),
 
     //                name          num    arch         access      version    attrs     description                                              present      wState       rCB           rwCB      wCB
@@ -5503,6 +5807,11 @@ void riscvCSRReset(riscvP riscv) {
     // reset PMP unit
     riscvVMResetPMP(riscv);
 
+    // reset ePMP state
+    WR_CSR_FIELDC(riscv, mseccfg, MML,  0);
+    WR_CSR_FIELDC(riscv, mseccfg, MMWP, 0);
+    WR_CSR_FIELDC(riscv, mseccfg, RLB,  0);
+
     // do fundamental reset of misa and mstatus
     resetMisaMStatus(riscv);
 
@@ -5526,7 +5835,7 @@ void riscvCSRReset(riscvP riscv) {
     dcsrWInt(riscv, RISCV_MODE_M + ebreak_mask, True);
 
     // clear exclusive tag
-    riscv->exclusiveTag = RISCV_NO_TAG;
+    clearEA(riscv);
 }
 
 //
@@ -5586,7 +5895,7 @@ static Uns64 getInterruptMask(riscvException code) {
 //
 // Initialize CSR state
 //
-void riscvCSRInit(riscvP riscv, Uns32 index) {
+void riscvCSRInit(riscvP riscv) {
 
     riscvConfigP      cfg         = &riscv->configInfo;
     riscvArchitecture arch        = cfg->arch;
@@ -5618,14 +5927,15 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     riscvCSRInitialReset(riscv);
 
     //--------------------------------------------------------------------------
-    // mvendorid, marchid, mimpid, mhartid, mclicbase values
+    // mvendorid, marchid, mimpid, mhartid, mconfigptr, mclicbase values
     //--------------------------------------------------------------------------
 
-    WR_CSR_M(riscv, mvendorid, cfg->csr.mvendorid.u64.bits);
-    WR_CSR_M(riscv, marchid,   cfg->csr.marchid.u64.bits);
-    WR_CSR_M(riscv, mimpid,    cfg->csr.mimpid.u64.bits);
-    WR_CSR_M(riscv, mhartid,   cfg->csr.mhartid.u64.bits+index);
-    WR_CSR_M(riscv, mclicbase, cfg->csr.mclicbase.u64.bits & ~0xfffULL);
+    WR_CSR_M(riscv, mvendorid,  cfg->csr.mvendorid.u64.bits);
+    WR_CSR_M(riscv, marchid,    cfg->csr.marchid.u64.bits);
+    WR_CSR_M(riscv, mimpid,     cfg->csr.mimpid.u64.bits);
+    WR_CSR_M(riscv, mhartid,    cfg->csr.mhartid.u64.bits);
+    WR_CSR_M(riscv, mconfigptr, cfg->csr.mconfigptr.u64.bits);
+    WR_CSR_M(riscv, mclicbase,  cfg->csr.mclicbase.u64.bits & ~0xfffULL);
 
     //--------------------------------------------------------------------------
     // misa mask
@@ -6206,6 +6516,28 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
     WR_CSR_MASKC(riscv, scontext, getAddressMask(cfg->scontext_bits));
 
     //--------------------------------------------------------------------------
+    // menvcfg, senvcfg and henvcfg write masks
+    //--------------------------------------------------------------------------
+
+    // handle writable fields in envcfg masks when Zicbom is implemented
+    if(cfg->Zicbom) {
+        cfg->csrMask.envcfg.u64.fields.CBIE  = -1;
+        cfg->csrMask.envcfg.u64.fields.CBCFE = -1;
+    }
+
+    // handle writable fields in envcfg masks when Zicboz is implemented
+    if(cfg->Zicboz) {
+        cfg->csrMask.envcfg.u64.fields.CBZE = -1;
+    }
+
+    WR_CSR_MASKC(riscv, menvcfg, cfg->csrMask.envcfg.u64.bits);
+    WR_CSR_MASKC(riscv, senvcfg, cfg->csrMask.envcfg.u64.bits);
+    WR_CSR_MASKC(riscv, henvcfg, cfg->csrMask.envcfg.u64.bits);
+
+    // senvcfg.STCE is always zero
+    WR_CSR_MASK_FIELDC(riscv, senvcfg, STCE, 0);
+
+    //--------------------------------------------------------------------------
     // dcsr mask and read-only fields
     //--------------------------------------------------------------------------
 
@@ -6241,6 +6573,37 @@ void riscvCSRInit(riscvP riscv, Uns32 index) {
 
     // initialize dcsr read-only fields
     WR_CSR_FIELDC(riscv, dcsr, xdebugver, 4);
+
+    //--------------------------------------------------------------------------
+    // mseccfg write mask
+    //--------------------------------------------------------------------------
+
+    if(RISCV_CRYPTO_VERSION(riscv)<RVKV_1_0_0_RC5) {
+
+        // mseccfg contains SKES if Supervisor mode present
+        if(arch&ISA_S) {
+            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
+        }
+
+    } else {
+
+        // mseccfg contains USEED if User mode present
+        if(arch&ISA_U) {
+            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
+        }
+
+        // mseccfg contains SSEED if Supervisor mode present
+        if(arch&ISA_S) {
+            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, SSEED);
+        }
+    }
+
+    // mseccfg contains MML, MMWP and RLB if User mode and PMP present
+    if(RISCV_SMEPMP_VERSION(riscv) && (arch&ISA_U) && cfg->PMP_registers) {
+        WR_CSR_MASK_FIELDC_1(riscv, mseccfg, MML);
+        WR_CSR_MASK_FIELDC_1(riscv, mseccfg, MMWP);
+        WR_CSR_MASK_FIELDC_1(riscv, mseccfg, RLB);
+    }
 }
 
 //

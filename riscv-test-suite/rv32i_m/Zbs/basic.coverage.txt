@@ -1,7 +1,7 @@
 Imperas RISC-V Instruction Coverage Report
 
 Extension : Zbs, instructions: 8
-    sbclr          
+    bclr           
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -110,8 +110,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sbclr 96/96 : 100.00%
-    sbclri         
+    bclr 96/96 : 100.00%
+    bclri          
         imm            
             sign           
                 neg          0/1 :   0.00% ZERO
@@ -190,8 +190,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs1 32/32 : 100.00%
-    sbclri 65/66 :  98.48%
-    sbext          
+    bclri 65/66 :  98.48%
+    bext           
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -300,8 +300,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sbext 96/96 : 100.00%
-    sbexti         
+    bext 96/96 : 100.00%
+    bexti          
         imm            
             sign           
                 neg          0/1 :   0.00% ZERO
@@ -380,8 +380,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs1 32/32 : 100.00%
-    sbexti 65/66 :  98.48%
-    sbinv          
+    bexti 65/66 :  98.48%
+    binv           
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -490,8 +490,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sbinv 96/96 : 100.00%
-    sbinvi         
+    binv 96/96 : 100.00%
+    binvi          
         imm            
             sign           
                 neg          0/1 :   0.00% ZERO
@@ -570,8 +570,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs1 32/32 : 100.00%
-    sbinvi 65/66 :  98.48%
-    sbset          
+    binvi 65/66 :  98.48%
+    bset           
         rd             
             gpr            
                 a0           5/1 : 100.00%
@@ -680,8 +680,8 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs2 32/32 : 100.00%
-    sbset 96/96 : 100.00%
-    sbseti         
+    bset 96/96 : 100.00%
+    bseti          
         imm            
             sign           
                 neg          0/1 :   0.00% ZERO
@@ -760,12 +760,12 @@ Extension : Zbs, instructions: 8
                 zero         1/1 : 100.00%
             gpr 32/32 : 100.00%
         rs1 32/32 : 100.00%
-    sbseti 65/66 :  98.48%
+    bseti 65/66 :  98.48%
 Coverage points missed:
-  sbclri/imm/sign/neg
-  sbexti/imm/sign/neg
-  sbinvi/imm/sign/neg
-  sbseti/imm/sign/neg
+  bclri/imm/sign/neg
+  bexti/imm/sign/neg
+  binvi/imm/sign/neg
+  bseti/imm/sign/neg
 Coverage points missed: 4/648
 
 Info TOTAL INSTRUCTION COVERAGE : Zbs

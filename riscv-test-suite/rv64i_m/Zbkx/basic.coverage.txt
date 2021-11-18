@@ -1,0 +1,423 @@
+Imperas RISC-V Instruction Coverage Report
+
+Extension : Zbkx, instructions: 2
+    xperm4         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+        rs1            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs1 0/32 :   0.00%
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs2 0/32 :   0.00%
+    xperm4 0/96 :   0.00%
+    xperm8         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+        rs1            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs1 0/32 :   0.00%
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs2 0/32 :   0.00%
+    xperm8 0/96 :   0.00%
+Coverage points missed:
+  xperm4/rd/gpr/a0
+  xperm4/rd/gpr/a1
+  xperm4/rd/gpr/a2
+  xperm4/rd/gpr/a3
+  xperm4/rd/gpr/a4
+  xperm4/rd/gpr/a5
+  xperm4/rd/gpr/a6
+  xperm4/rd/gpr/a7
+  xperm4/rd/gpr/gp
+  xperm4/rd/gpr/ra
+  xperm4/rd/gpr/s0
+  xperm4/rd/gpr/s1
+  xperm4/rd/gpr/s10
+  xperm4/rd/gpr/s11
+  xperm4/rd/gpr/s2
+  xperm4/rd/gpr/s3
+  xperm4/rd/gpr/s4
+  xperm4/rd/gpr/s5
+  xperm4/rd/gpr/s6
+  xperm4/rd/gpr/s7
+  xperm4/rd/gpr/s8
+  xperm4/rd/gpr/s9
+  xperm4/rd/gpr/sp
+  xperm4/rd/gpr/t0
+  xperm4/rd/gpr/t1
+  xperm4/rd/gpr/t2
+  xperm4/rd/gpr/t3
+  xperm4/rd/gpr/t4
+  xperm4/rd/gpr/t5
+  xperm4/rd/gpr/t6
+  xperm4/rd/gpr/tp
+  xperm4/rd/gpr/zero
+  xperm4/rs1/gpr/a0
+  xperm4/rs1/gpr/a1
+  xperm4/rs1/gpr/a2
+  xperm4/rs1/gpr/a3
+  xperm4/rs1/gpr/a4
+  xperm4/rs1/gpr/a5
+  xperm4/rs1/gpr/a6
+  xperm4/rs1/gpr/a7
+  xperm4/rs1/gpr/gp
+  xperm4/rs1/gpr/ra
+  xperm4/rs1/gpr/s0
+  xperm4/rs1/gpr/s1
+  xperm4/rs1/gpr/s10
+  xperm4/rs1/gpr/s11
+  xperm4/rs1/gpr/s2
+  xperm4/rs1/gpr/s3
+  xperm4/rs1/gpr/s4
+  xperm4/rs1/gpr/s5
+  xperm4/rs1/gpr/s6
+  xperm4/rs1/gpr/s7
+  xperm4/rs1/gpr/s8
+  xperm4/rs1/gpr/s9
+  xperm4/rs1/gpr/sp
+  xperm4/rs1/gpr/t0
+  xperm4/rs1/gpr/t1
+  xperm4/rs1/gpr/t2
+  xperm4/rs1/gpr/t3
+  xperm4/rs1/gpr/t4
+  xperm4/rs1/gpr/t5
+  xperm4/rs1/gpr/t6
+  xperm4/rs1/gpr/tp
+  xperm4/rs1/gpr/zero
+  xperm4/rs2/gpr/a0
+  xperm4/rs2/gpr/a1
+  xperm4/rs2/gpr/a2
+  xperm4/rs2/gpr/a3
+  xperm4/rs2/gpr/a4
+  xperm4/rs2/gpr/a5
+  xperm4/rs2/gpr/a6
+  xperm4/rs2/gpr/a7
+  xperm4/rs2/gpr/gp
+  xperm4/rs2/gpr/ra
+  xperm4/rs2/gpr/s0
+  xperm4/rs2/gpr/s1
+  xperm4/rs2/gpr/s10
+  xperm4/rs2/gpr/s11
+  xperm4/rs2/gpr/s2
+  xperm4/rs2/gpr/s3
+  xperm4/rs2/gpr/s4
+  xperm4/rs2/gpr/s5
+  xperm4/rs2/gpr/s6
+  xperm4/rs2/gpr/s7
+  xperm4/rs2/gpr/s8
+  xperm4/rs2/gpr/s9
+  xperm4/rs2/gpr/sp
+  xperm4/rs2/gpr/t0
+  xperm4/rs2/gpr/t1
+  xperm4/rs2/gpr/t2
+  xperm4/rs2/gpr/t3
+  xperm4/rs2/gpr/t4
+  xperm4/rs2/gpr/t5
+  xperm4/rs2/gpr/t6
+  xperm4/rs2/gpr/tp
+  xperm4/rs2/gpr/zero
+  xperm8/rd/gpr/a0
+  xperm8/rd/gpr/a1
+  xperm8/rd/gpr/a2
+  xperm8/rd/gpr/a3
+  xperm8/rd/gpr/a4
+  xperm8/rd/gpr/a5
+  xperm8/rd/gpr/a6
+  xperm8/rd/gpr/a7
+  xperm8/rd/gpr/gp
+  xperm8/rd/gpr/ra
+  xperm8/rd/gpr/s0
+  xperm8/rd/gpr/s1
+  xperm8/rd/gpr/s10
+  xperm8/rd/gpr/s11
+  xperm8/rd/gpr/s2
+  xperm8/rd/gpr/s3
+  xperm8/rd/gpr/s4
+  xperm8/rd/gpr/s5
+  xperm8/rd/gpr/s6
+  xperm8/rd/gpr/s7
+  xperm8/rd/gpr/s8
+  xperm8/rd/gpr/s9
+  xperm8/rd/gpr/sp
+  xperm8/rd/gpr/t0
+  xperm8/rd/gpr/t1
+  xperm8/rd/gpr/t2
+  xperm8/rd/gpr/t3
+  xperm8/rd/gpr/t4
+  xperm8/rd/gpr/t5
+  xperm8/rd/gpr/t6
+  xperm8/rd/gpr/tp
+  xperm8/rd/gpr/zero
+  xperm8/rs1/gpr/a0
+  xperm8/rs1/gpr/a1
+  xperm8/rs1/gpr/a2
+  xperm8/rs1/gpr/a3
+  xperm8/rs1/gpr/a4
+  xperm8/rs1/gpr/a5
+  xperm8/rs1/gpr/a6
+  xperm8/rs1/gpr/a7
+  xperm8/rs1/gpr/gp
+  xperm8/rs1/gpr/ra
+  xperm8/rs1/gpr/s0
+  xperm8/rs1/gpr/s1
+  xperm8/rs1/gpr/s10
+  xperm8/rs1/gpr/s11
+  xperm8/rs1/gpr/s2
+  xperm8/rs1/gpr/s3
+  xperm8/rs1/gpr/s4
+  xperm8/rs1/gpr/s5
+  xperm8/rs1/gpr/s6
+  xperm8/rs1/gpr/s7
+  xperm8/rs1/gpr/s8
+  xperm8/rs1/gpr/s9
+  xperm8/rs1/gpr/sp
+  xperm8/rs1/gpr/t0
+  xperm8/rs1/gpr/t1
+  xperm8/rs1/gpr/t2
+  xperm8/rs1/gpr/t3
+  xperm8/rs1/gpr/t4
+  xperm8/rs1/gpr/t5
+  xperm8/rs1/gpr/t6
+  xperm8/rs1/gpr/tp
+  xperm8/rs1/gpr/zero
+  xperm8/rs2/gpr/a0
+  xperm8/rs2/gpr/a1
+  xperm8/rs2/gpr/a2
+  xperm8/rs2/gpr/a3
+  xperm8/rs2/gpr/a4
+  xperm8/rs2/gpr/a5
+  xperm8/rs2/gpr/a6
+  xperm8/rs2/gpr/a7
+  xperm8/rs2/gpr/gp
+  xperm8/rs2/gpr/ra
+  xperm8/rs2/gpr/s0
+  xperm8/rs2/gpr/s1
+  xperm8/rs2/gpr/s10
+  xperm8/rs2/gpr/s11
+  xperm8/rs2/gpr/s2
+  xperm8/rs2/gpr/s3
+  xperm8/rs2/gpr/s4
+  xperm8/rs2/gpr/s5
+  xperm8/rs2/gpr/s6
+  xperm8/rs2/gpr/s7
+  xperm8/rs2/gpr/s8
+  xperm8/rs2/gpr/s9
+  xperm8/rs2/gpr/sp
+  xperm8/rs2/gpr/t0
+  xperm8/rs2/gpr/t1
+  xperm8/rs2/gpr/t2
+  xperm8/rs2/gpr/t3
+  xperm8/rs2/gpr/t4
+  xperm8/rs2/gpr/t5
+  xperm8/rs2/gpr/t6
+  xperm8/rs2/gpr/tp
+  xperm8/rs2/gpr/zero
+Coverage points missed: 192/192
+
+Info TOTAL INSTRUCTION COVERAGE : Zbkx
+Info   Threshold             : 1
+Info   Instructions counted  : 0
+Info   Unique instructions   : 0/2 :   0.00%
+Info   Coverage points hit   : 0/192 :   0.00%

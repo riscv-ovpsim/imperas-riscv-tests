@@ -174,7 +174,7 @@ inline static Bool getInt(riscvCLINTP clint, Uns32 intNum) {
 //
 // Read msip[i]
 //
-static Bool readMSIP(riscvCLINTP clint) {
+Bool riscvReadCLINTMSIP(riscvCLINTP clint) {
 
     return getInt(clint, msipInt());
 }
@@ -182,7 +182,7 @@ static Bool readMSIP(riscvCLINTP clint) {
 //
 // Write msip[i]
 //
-static void writeMSIP(riscvCLINTP clint, Bool value) {
+void riscvWriteCLINTMSIP(riscvCLINTP clint, Bool value) {
 
     riscvUpdateInterrupt(clint->hart, msipInt(), value);
 }
@@ -190,37 +190,51 @@ static void writeMSIP(riscvCLINTP clint, Bool value) {
 //
 // Read mtime (common to all harts)
 //
-static Uns64 readMTIME(riscvCLINTP clint) {
+Uns64 riscvReadCLINTMTIME(riscvCLINTP clint) {
 
-    Uns64 count = vmirtGetModelTimerCurrentCount(clint->mtime, True);
+    riscvP hart  = clint->hart;
+    Uns64  mtime = clint->mtimebase;
 
-    return clint->mtimebase + count;
+    if(!hart->inSaveRestore) {
+        mtime += vmirtGetModelTimerCurrentCount(clint->mtime, True);
+    }
+
+    return mtime;
 }
 
 //
 // Write mtime (common to all harts)
 //
-static void writeMTIME(riscvCLINTP clint, Uns64 value) {
+void riscvWriteCLINTMTIME(riscvCLINTP clint, Uns64 value) {
 
-    riscvP root     = getCLINTRoot(clint->hart);
-    Uns32  numHarts = getNumHarts(root);
-    Uns32  i;
+    riscvP hart = clint->hart;
 
-    for(i=0; i<numHarts; i++) {
+    if(hart->inSaveRestore) {
 
-        riscvCLINTP this  = root->clint+i;
-        Uns64       count = vmirtGetModelTimerCurrentCount(this->mtime, True);
+        clint->mtimebase = value;
 
-        this->mtimebase = value - count + 1;
+    } else {
 
-        refreshMTIP(this);
+        riscvP root     = getCLINTRoot(clint->hart);
+        Uns32  numHarts = getNumHarts(root);
+        Uns32  i;
+
+        for(i=0; i<numHarts; i++) {
+
+            riscvCLINTP this  = root->clint+i;
+            Uns64       count = vmirtGetModelTimerCurrentCount(this->mtime, True);
+
+            this->mtimebase = value - count + 1;
+
+            refreshMTIP(this);
+        }
     }
 }
 
 //
 // Read mtimecmp[i]
 //
-static Uns64 readMTIMECMP(riscvCLINTP clint) {
+Uns64 riscvReadCLINTMTIMECMP(riscvCLINTP clint) {
 
     return clint->mtimecmp;
 }
@@ -228,7 +242,7 @@ static Uns64 readMTIMECMP(riscvCLINTP clint) {
 //
 // Write mtimecmp
 //
-static void writeMTIMECMP(riscvCLINTP clint, Uns64 value) {
+void riscvWriteCLINTMTIMECMP(riscvCLINTP clint, Uns64 value) {
 
     clint->mtimecmp = value;
 
@@ -242,8 +256,8 @@ static void refreshMTIP(riscvCLINTP clint) {
 
     Uns32 intNum   = mtipInt();
     Bool  oldValue = getInt(clint, intNum);
-    Uns64 mtime    = readMTIME(clint);
-    Uns64 mtimecmp = readMTIMECMP(clint);
+    Uns64 mtime    = riscvReadCLINTMTIME(clint);
+    Uns64 mtimecmp = riscvReadCLINTMTIMECMP(clint);
     Bool  newValue = (mtime>=mtimecmp);
     Uns64 timeout  = !newValue ? (mtimecmp-mtime) : -mtime;
 
@@ -341,11 +355,11 @@ static Uns64 readCLINTInt(
 
     // get register value
     if(this->type==CLINTR_msip) {
-        result = readMSIP(clint);
+        result = riscvReadCLINTMSIP(clint);
     } else if(this->type==CLINTR_mtimecmp) {
-        result = readMTIMECMP(clint);
+        result = riscvReadCLINTMTIMECMP(clint);
     } else {
-        result = readMTIME(getCLINTForContext(root, context));
+        result = riscvReadCLINTMTIME(getCLINTForContext(root, context));
     }
 
     // debug access if required
@@ -359,24 +373,24 @@ static Uns64 readCLINTInt(
 //
 // Read an entire CLINT register
 //
-static void writeCLINTInt(riscvP root, CLINTRegDecodeP this, Uns64 result) {
+static void writeCLINTInt(riscvP root, CLINTRegDecodeP this, Uns64 value) {
 
     riscvCLINTP clint = root->clint+this->hart;
 
     // update register value
     if(this->type==CLINTR_msip) {
-        writeMSIP(clint, result&1);
+        riscvWriteCLINTMSIP(clint, value&1);
     } else if(this->type==CLINTR_mtimecmp) {
-        writeMTIMECMP(clint, result);
+        riscvWriteCLINTMTIMECMP(clint, value);
     } else if(this->type==CLINTR_mtime) {
-        writeMTIME(clint, result);
+        riscvWriteCLINTMTIME(clint, value);
     } else {
         return; // illegal register write - ignored here
     }
 
     // debug access if required
     if(RISCV_DEBUG_EXCEPT(root)) {
-        debugCLINTAccess(this, result, "WRITE");
+        debugCLINTAccess(this, value, "WRITE");
     }
 }
 
@@ -607,7 +621,7 @@ void riscvResetCLINT(riscvP riscv) {
     riscvCLINTP clint = riscv->clint;
 
     if(clint) {
-        writeMSIP(clint, 0);
+        riscvWriteCLINTMSIP(clint, 0);
         refreshMTIP(clint);
     }
 }
@@ -620,31 +634,19 @@ void riscvResetCLINT(riscvP riscv) {
 //
 // Save/restore field keys
 //
-#define RV_CLINT_MTIMECMP   "clint.mtimecmp"
-#define RV_CLINT_MTIMEBASE  "clint.mtimebase"
-#define RV_CLINT_MTIME      "clint.mtime"
+#define RV_CLINT_MTIME "clint.mtime"
 
 //
 // Save CLINT state not covered by register read/write API
 //
 void riscvSaveCLINT(riscvP riscv, vmiSaveContextP cxt) {
-
-    riscvCLINTP clint = riscv->clint;
-
-    VMIRT_SAVE_REG     (cxt, RV_CLINT_MTIMECMP,  &clint->mtimecmp);
-    VMIRT_SAVE_REG     (cxt, RV_CLINT_MTIMEBASE, &clint->mtimebase);
-    vmirtSaveModelTimer(cxt, RV_CLINT_MTIME,      clint->mtime);
+    vmirtSaveModelTimer(cxt, RV_CLINT_MTIME, riscv->clint->mtime);
 }
 
 //
 // Restore CLINT state not covered by register read/write API
 //
 void riscvRestoreCLINT(riscvP riscv, vmiRestoreContextP cxt) {
-
-    riscvCLINTP clint = riscv->clint;
-
-    VMIRT_RESTORE_REG     (cxt, RV_CLINT_MTIMECMP,  &clint->mtimecmp);
-    VMIRT_RESTORE_REG     (cxt, RV_CLINT_MTIMEBASE, &clint->mtimebase);
-    vmirtRestoreModelTimer(cxt, RV_CLINT_MTIME,      clint->mtime);
+    vmirtRestoreModelTimer(cxt, RV_CLINT_MTIME, riscv->clint->mtime);
 }
 

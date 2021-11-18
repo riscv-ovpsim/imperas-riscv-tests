@@ -26,6 +26,7 @@
 
 // model header files
 #include "riscvBus.h"
+#include "riscvCluster.h"
 #include "riscvFunctions.h"
 #include "riscvStructure.h"
 #include "riscvUtils.h"
@@ -38,6 +39,21 @@ typedef struct riscvBusPortS {
     vmiBusPort    desc;
     riscvBusPortP next;
 } riscvBusPort;
+
+//
+// Return any child of the passed processor
+//
+inline static riscvP getChild(riscvP riscv) {
+    return (riscvP)vmirtGetSMPChild((vmiProcessorP)riscv);
+}
+
+//
+// Get bus port context processor for the given root (either the root itself,
+// if the first child if the root is a cluster)
+//
+static riscvP getBusPortContext(riscvP root) {
+    return riscvIsCluster(root) ? getChild(root) : root;
+}
 
 //
 // Allocate a new port and append to the tail of the list
@@ -82,7 +98,8 @@ static riscvBusPortP newBusPort(
 void riscvNewRootBusPorts(riscvP riscv) {
 
     riscvBusPortPP tail  = &riscv->busPorts;
-    Uns32          xlen  = riscvGetXlenArch(riscv);
+    riscvP         cxt   = getBusPortContext(riscv);
+    Uns32          xlen  = riscvGetXlenArch(cxt);
     Uns32          min   = 32;
     Uns32          unset = (xlen==32) ? RISCV_PMP_BITS_32 : RISCV_PMP_BITS_64;
     Uns32          max   = (xlen==32) ? RISCV_PMP_BITS_32 : 64;

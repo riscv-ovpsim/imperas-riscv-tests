@@ -22,13 +22,12 @@ export RISCV_TEST         ?=
 # set this to a string which needs to be passed to your target Makefile.include files
 export RISCV_TARGET_FLAGS ?= 
 
-# set this if you want to enable assertions on the test-suites. Currently no tests support
-# assertions.
+# set this if you want to enable assertions on the test-suites. 1-full 2-fail
 export RISCV_ASSERT       ?= 0
 
 # set the number of parallel jobs (along with any other arguments) you would like to execute. Note that the target needs to ensure
 # that no common files across jobs are created/overwritten leading to unknown behavior
-JOBS                      ?= -j1
+JOBS                      ?= -j8
 
 
 

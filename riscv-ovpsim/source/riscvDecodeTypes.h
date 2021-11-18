@@ -34,6 +34,9 @@
 //
 typedef enum riscvITypeE {
 
+    // NOP pseudo-instruction
+    RV_IT_NOP,
+
     // move pseudo-instructions (register and constant source)
     RV_IT_MV_R,
     RV_IT_MV_C,
@@ -134,7 +137,8 @@ typedef enum riscvITypeE {
     RV_IT_FABS_R,
     RV_IT_FADD_R,
     RV_IT_FCLASS_R,
-    RV_IT_FCVT_R,
+    RV_IT_FCVTX_R,
+    RV_IT_FCVTF_R,
     RV_IT_FDIV_R,
     RV_IT_FEQ_R,
     RV_IT_FLE_R,
@@ -704,6 +708,12 @@ typedef enum riscvITypeE {
     RV_IT_POP,
     RV_IT_DECBNEZ,
 
+    // Zicbom/Zicboz instructions
+    RV_IT_CBO_CLEAN,
+    RV_IT_CBO_FLUSH,
+    RV_IT_CBO_INVAL,
+    RV_IT_CBO_ZERO,
+
     // KEEP LAST
     RV_IT_LAST
 
@@ -881,6 +891,17 @@ typedef enum riscvRetValDescE {
 } riscvRetValDesc;
 
 //
+// This is used to describe XPERM disassembly format
+//
+typedef enum riscvXPERMDescE {
+
+    RV_XP_NA,       // not an XPERM instruction
+    RV_XP_NBHW,     // use n/b/h/w suffix
+    RV_XP_BITS,     // use bits suffix
+
+} riscvXPERMDesc;
+
+//
 // This defines the maximum number of argument registers
 //
 #define RV_MAX_AREGS 4
@@ -919,6 +940,7 @@ typedef struct riscvInstrInfoS {
     riscvRListDesc    rlist;            // register list (Zcea push/pop)
     riscvAListDesc    alist;            // argument register list (Zcea push)
     riscvRetValDesc   retval;           // return value (Zcea pop)
+    riscvXPERMDesc    xperm;            // XPER descriptor
     Uns32             csr;              // CSR index
     Uns8              nf;               // nf value
     Uns8              eewDiv;           // explicit EEW divisor
@@ -935,6 +957,7 @@ typedef struct riscvInstrInfoS {
     Bool              csrInOp;          // whether to emit CSR as part of opcode
     Bool              isFF;             // is this a first-fault instruction?
     Bool              doRet;            // do return (Zcea pop)
+    Bool              Zmmul;            // whether affected by Zmmul
 
 } riscvInstrInfo;
 

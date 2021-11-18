@@ -34,6 +34,7 @@
 #include "riscvCLINT.h"
 #include "riscvCSR.h"
 #include "riscvDecode.h"
+#include "riscvDecodeTypes.h"
 #include "riscvExceptions.h"
 #include "riscvExceptionDefinitions.h"
 #include "riscvFunctions.h"
@@ -207,13 +208,6 @@ inline static void setPCxRET(riscvP riscv, Uns64 newPC) {
 //
 inline static void doSynchronousInterrupt(riscvP riscv) {
     vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
-}
-
-//
-// Clear any active exclusive access
-//
-inline static void clearEA(riscvP riscv) {
-    riscv->exclusiveTag = RISCV_NO_TAG;
 }
 
 //
@@ -878,8 +872,10 @@ void riscvTakeException(
             riscv->AFErrorOut = riscv_AFault_None;
         }
 
-        // clear any active exclusive access
-        clearEA(riscv);
+        // clear any active exclusive access if required
+        if(!riscv->configInfo.trap_preserves_lr) {
+            clearEA(riscv);
+        }
 
         // get exception target mode (X)
         if(!cxt.isInt) {
@@ -1099,6 +1095,200 @@ static Bool suppressMemExcept(riscvP riscv, riscvException exception) {
 }
 
 //
+// Map load size in bits to decode value
+//
+static Uns32 mapMemBits(Uns32 memBits) {
+
+    Uns32 result = 0;
+
+    while(memBits>8) {
+        result++;
+        memBits >>= 1;
+    }
+
+    return result;
+}
+
+//
+// Fill syndrome for load exception
+//
+static Uns32 fillSyndromeLoad(riscvInstrInfoP info, Uns32 offset) {
+
+    // union for load instruction composition
+    typedef union ldSyndromeU {
+        struct {
+            Uns32 opcode :  7;
+            Uns32 rd     :  5;
+            Uns32 funct3 :  3;
+            Uns32 offset :  5;
+            Uns32 _u1    : 12;
+        } f;
+        Uns32 u32;
+    } ldSyndrome;
+
+    ldSyndrome   u1  = {{0}};
+    riscvRegDesc rd  = info->r[0];
+    Bool         isF = isFReg(rd);
+
+    // fill instruction fields
+    u1.f.opcode = (isF ? 0x06 : 0x02) + (info->bytes==4);
+    u1.f.rd     = getRIndex(rd);
+    u1.f.funct3 = mapMemBits(info->memBits) + (info->unsExt*4);
+    u1.f.offset = offset;
+
+    // extract result
+    Uns32 result = u1.u32;
+
+    // sanity check composed result if a 32-bit instruction
+    if(info->bytes==4) {
+
+        ldSyndrome u2 = {u32:info->instruction};
+
+        // clear offset fields that will not match
+        u1.f._u1    = 0;
+        u2.f._u1    = 0;
+        u1.f.offset = 0;
+        u2.f.offset = 0;
+
+        VMI_ASSERT(
+            u2.u32==u1.u32,
+            "incorrect load syndrome: expected 0x%08x, actual 0x%08x",
+            u2.u32, u1.u32
+        );
+    }
+
+    // return composed value
+    return result;
+}
+
+//
+// Fill syndrome for store exception
+//
+static Uns32 fillSyndromeStore(riscvInstrInfoP info, Uns32 offset) {
+
+    // union for store instruction composition
+    typedef union stSyndromeU {
+        struct {
+            Uns32 opcode : 7;
+            Uns32 _u1    : 5;
+            Uns32 funct3 : 3;
+            Uns32 offset : 5;
+            Uns32 rs2    : 5;
+            Uns32 _u2    : 7;
+        } f;
+        Uns32 u32;
+    } stSyndrome;
+
+    stSyndrome   u1  = {{0}};
+    riscvRegDesc rs2 = info->r[0];
+    Bool         isF = isFReg(rs2);
+
+    // fill instruction fields
+    u1.f.opcode = (isF ? 0x26 : 0x22) + (info->bytes==4);
+    u1.f.rs2    = getRIndex(rs2);
+    u1.f.funct3 = mapMemBits(info->memBits);
+    u1.f.offset = offset;
+
+    // extract result
+    Uns32 result = u1.u32;
+
+    // sanity check composed result if a 32-bit instruction
+    if(info->bytes==4) {
+
+        stSyndrome u2 = {u32:info->instruction};
+
+        // clear offset fields that will not match
+        u1.f._u1    = 0;
+        u2.f._u1    = 0;
+        u1.f._u2    = 0;
+        u2.f._u2    = 0;
+        u1.f.offset = 0;
+        u2.f.offset = 0;
+
+        VMI_ASSERT(
+            u2.u32==u1.u32,
+            "incorrect store syndrome: expected 0x%08x, actual 0x%08x",
+            u2.u32, u1.u32
+        );
+    }
+
+    // return composed value
+    return result;
+}
+
+//
+// Fill syndrome for generic 32-bit instruction that is reported unmodified,
+// except for offset in fields 19:15
+//
+static Uns32 fillSyndrome32Offset_19_15(riscvInstrInfoP info, Uns32 offset) {
+
+    // union for instruction composition
+    typedef union i32SyndromeU {
+        struct {
+            Uns32 _u1    : 15;
+            Uns32 offset :  5;
+            Uns32 _u2    : 12;
+        } f;
+        Uns32 u32;
+    } i32Syndrome;
+
+    // sanity check only 4-byte instructions are encountered
+    VMI_ASSERT(info->bytes==4, "unexpected instruction bytes %u", info->bytes);
+
+    // use raw 32-bit instruction pattern without modification
+    i32Syndrome u = {u32:info->instruction};
+
+    // update offset field
+    u.f.offset = offset;
+
+    // return composed value
+    return u.u32;
+}
+
+//
+// Fill syndrome for load/store/AMO exception if required
+//
+static Uns64 fillSyndrome(riscvP riscv, riscvException exception, Uns64 VA) {
+
+    Uns32 result = 0;
+
+    // create syndrome for load/store/AMO exception if required
+    if(!xtinstBasic(riscv) && riscvIsLoadStoreAMOFault(exception)) {
+
+        riscvInstrInfo info;
+
+        // decode the faulting instruction
+        riscvDecode(riscv, getPC(riscv), &info);
+
+        // calculate offset between faulting address and original virtual
+        // address (non-zero only for misaligned memory accesses)
+        Uns64 offset = VA-riscv->originalVA;
+
+        // sanity check offset is valid
+        VMI_ASSERT(
+            offset<32,
+            "Syndrome offset exceeds maximum 31 (original address 0x"FMT_Ax", "
+            "faulting address 0x"FMT_Ax")",
+            riscv->originalVA, VA
+        );
+
+        if(info.type==RV_IT_L_I) {
+            result = fillSyndromeLoad(&info, offset);
+        } else if(info.type==RV_IT_S_I) {
+            result = fillSyndromeStore(&info, offset);
+        } else if((info.type>=RV_IT_AMOADD_R) && (info.type<=RV_IT_SC_R)) {
+            result = fillSyndrome32Offset_19_15(&info, offset);
+        } else if((info.type>=RV_IT_HLV_R) && (info.type<=RV_IT_HSV_R)) {
+            result = fillSyndrome32Offset_19_15(&info, offset);
+        } else if((info.type>=RV_IT_CBO_CLEAN) && (info.type<=RV_IT_CBO_ZERO)) {
+            result = fillSyndrome32Offset_19_15(&info, offset);
+        }
+    }
+
+    return result;
+}
+
+//
 // Take processor exception because of memory access error which could be
 // suppressed for a fault-only-first instruction or other custom reason using
 // the given GVA value
@@ -1116,12 +1306,21 @@ void riscvTakeMemoryExceptionGVA(
     // overrides it
     if(!suppressMemExcept(riscv, exception)) {
 
+        // fill syndrome for load/store/AMO exception if required
+        if(!riscv->tinst && hypervisorPresent(riscv)) {
+            riscv->tinst = fillSyndrome(riscv, exception, tval);
+        }
+
         reportMemoryException(riscv, exception, tval);
 
         riscv->GVA = GVA;
         riscvTakeException(riscv, exception, tval);
         riscv->GVA = False;
     }
+
+    // clear down pending exception GPA and tinst
+    riscv->GPA   = 0;
+    riscv->tinst = 0;
 }
 
 //
@@ -1131,8 +1330,10 @@ void riscvTakeMemoryExceptionGVA(
 void riscvTakeMemoryException(
     riscvP         riscv,
     riscvException exception,
-    Uns64          tval
+    Uns64          VA
 ) {
+    Uns64 oldVA = riscv->originalVA;
+
     Bool GVA = (
         // GVA is set if executing in VU/VS mode
         inVMode(riscv) ||
@@ -1142,7 +1343,9 @@ void riscvTakeMemoryException(
         (modeIsVirtual(riscv->dataMode) && riscvIsLoadStoreAMOFault(exception))
     );
 
-    riscvTakeMemoryExceptionGVA(riscv, exception, tval, GVA);
+    riscv->originalVA = VA;
+    riscvTakeMemoryExceptionGVA(riscv, exception, VA, GVA);
+    riscv->originalVA = oldVA;
 }
 
 //
@@ -1280,7 +1483,7 @@ static riscvMode getERETMode(riscvP riscv, riscvMode newMode, riscvMode minMode)
 // is less privileged than M-mode
 //
 static void clearMPRV(riscvP riscv, riscvMode newMode) {
-    if((RISCV_PRIV_VERSION(riscv)>RVPV_20190405) && (newMode!=RISCV_MODE_M)) {
+    if((RISCV_PRIV_VERSION(riscv)>=RVPV_1_12) && (newMode!=RISCV_MODE_M)) {
         WR_CSR_FIELDC(riscv, mstatus, MPRV, 0);
     }
 }
@@ -2553,7 +2756,8 @@ static Bool getPendingAndEnabledNMI(riscvP riscv) {
     return (
         RD_CSR_FIELDC(riscv, dcsr, nmip) &&
         !inDebugMode(riscv) &&
-        RD_CSR_FIELDC(riscv, mnstatus, MIE)
+        RD_CSR_FIELDC(riscv, mnstatus, MIE) &&
+        !riscv->netValue.deferint
     );
 }
 
@@ -2918,7 +3122,7 @@ VMI_EXCEPTION_INFO_FN(riscvExceptionInfo) {
     riscvP             riscv = (riscvP)processor;
     vmiExceptionInfoCP this  = prev ? prev+1 : getExceptions(riscv);
 
-    return this->name ? this : 0;
+    return this->name && isHart(riscv) ? this : 0;
 }
 
 //

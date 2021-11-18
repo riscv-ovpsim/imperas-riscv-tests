@@ -21,10 +21,13 @@ RISCV_DEVICE_OPT = $(subst $(space),$(pipe),$(RISCV_DEVICE_ALL))
 
 RISCV_DEVICE_ALL := $(filter-out Makefile.include,$(RISCV_DEVICE_ALL))
 
-ifeq ($(RISCV_DEVICE),)
+ifeq ($(strip $(RISCV_DEVICE)),)
     DEFAULT_TARGET=all_variant
+    # If make target is specified use this as default
+    DEFAULT_CLEAN_TARGET=all_clean
 else
     DEFAULT_TARGET=variant
+    DEFAULT_CLEAN_TARGET=one_clean
 endif
 export SUITEDIR   = $(ROOTDIR)/riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)
 
@@ -90,13 +93,6 @@ ifeq ($(RISCV_TARGET),spike)
 endif
 ifeq ($(PARALLEL),0)
     JOBS =
-else
-    ifeq ($(RISCV_TARGET),riscvOVPsim)
-        JOBS ?= -j8 --max-load=4
-    endif
-    ifeq ($(RISCV_TARGET),riscvOVPsimPlus)
-        JOBS ?= -j8 --max-load=4
-    endif
 endif
 
 default: $(DEFAULT_TARGET)
@@ -158,6 +154,8 @@ else
 		RISCV_PREFIX=$(RISCV_PREFIX)
 endif
 
+clean: $(DEFAULT_CLEAN_TARGET)
+
 all_clean:
 	for isa in $(RISCV_DEVICE_ALL); do \
 		$(MAKE) $(JOBS) RISCV_TARGET=$(RISCV_TARGET) RISCV_BASE=$(RISCV_BASE) RISCV_DEVICE=$$isa clean; \
@@ -167,7 +165,7 @@ all_clean:
 			fi \
 	done
 
-clean:
+one_clean:
 ifeq ($(wildcard $(SUITEDIR)/Makefile),)
 	@echo "# Ignore riscv-test-suite/rv$(XLEN)$(RISCV_BASE)_m/$(RISCV_DEVICE)"
 else
@@ -193,9 +191,9 @@ help:
 	@echo "    "
 	@echo "  Makefile targets available"
 	@echo "     -- build: To compile all the tests within the RISCV_DEVICE suite and generate the elfs. Note this will default to running on the I extension alone if RISCV_DEVICE is empty"
-	@echo "     -- run: To run compiled tests on the target model and generate signatures. Note this will default to running on the I extension alone if RISCV_DEVICE is empty"
+	@echo "     -- run: To run compiled tests on the target model and generate signatures. Note this will default to run aning on the I extension alone if RISCV_DEVICE is empty"
 	@echo "     -- verify: To verify if the generated signatures match the corresponding reference signatures. Note this will default to running on the I extension alone if RISCV_DEVICE is empty"
-	@echo "     -- postverify: To execute a target specifiv verify script. Note this will default to running on the I extension alone if RISCV_DEVICE is empty"
+	@echo "     -- postverify: To execute a target specific verify script. Note this will default to running on the I extension alone if RISCV_DEVICE is empty"
 	@echo "     -- clean : removes the working directory from the root folder and also from the respective device folders of the target"
 	@echo "     -- default: build, run, and verify on all devices enabled"
 

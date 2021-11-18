@@ -1,6 +1,6 @@
 # Imperas RISC-V Architecture Tests for VP
-V Vector Extension, Version 0.8 0.8
-VP Vector Permutation Instructions (Chapter 17)
+V Vector Extension, Version 1.0 1.0-rc1-20210608
+VP Vector Permutation Instructions (Chapter 16)
 ELEN:32, VLEN:256, SLEN:256, FP16:IEEE754
 
 This directory contains information an Imperas test suite.

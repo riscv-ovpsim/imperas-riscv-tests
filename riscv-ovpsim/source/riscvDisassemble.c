@@ -106,6 +106,13 @@ static void putUncookedKey(char **result, const char *key, Bool uncooked) {
 #define OP_WIDTH 7
 
 //
+// Return mask for the given number of bits
+//
+inline static Uns64 getMask(Uns32 bits) {
+    return (bits==64) ? -1 : ((1ULL<<bits)-1);
+}
+
+//
 // Emit instruction format if required
 //
 static void putInstruction(riscvInstrInfoP info, char **result) {
@@ -122,7 +129,7 @@ static void putInstruction(riscvInstrInfoP info, char **result) {
     // mask raw instruction pattern to instruction byte size (prevents
     // misleading disassembly when compressed instruction encountered by
     // processor that does not support such instructions)
-    Uns64 instruction = info->instruction & ((1ULL<<(info->bytes*8))-1);
+    Uns64 instruction = info->instruction & getMask(info->bytes*8);
 
     // emit basic opcode string
     *result += sprintf(*result, fmt, instruction);
@@ -440,6 +447,34 @@ static riscvRegDesc putType(
 }
 
 //
+// Convert from bits to character/string index
+//
+static Uns32 bitsToIndex(Uns32 bits) {
+
+    Uns32 index = -1;
+
+    switch(bits) {
+        case 4:   index = 0; break;
+        case 8:   index = 1; break;
+        case 16:  index = 2; break;
+        case 32:  index = 3; break;
+        case 64:  index = 4; break;
+        case 128: index = 5; break;
+        case -1:  index = 6; break;
+        default:  VMI_ABORT("Unexpected bits %u", bits); // LCOV_EXCL_LINE
+    }
+
+    return index;
+}
+
+//
+// Put standard character corresponding to the given bits
+//
+static void putBitsChar(char **result, Uns32 bits) {
+    putChar(result, "nbhwdqe"[bitsToIndex(bits)]);
+}
+
+//
 // Add opcode string to result
 //
 static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
@@ -498,15 +533,10 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
             if(info->memBits<=0) {putChar(result, 'i');}
             putD(result, info->eew);
 
-        } else switch(info->memBits) {
+        } else if(info->memBits) {
 
             // standard memBits
-            case 8:   putChar(result, 'b'); break;
-            case 16:  putChar(result, 'h'); break;
-            case 32:  putChar(result, 'w'); break;
-            case 64:  putChar(result, 'd'); break;
-            case 128: putChar(result, 'q'); break;
-            case -1:  putChar(result, 'e'); break;
+            putBitsChar(result, info->memBits);
         }
     }
 
@@ -640,6 +670,14 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     // emit acquire/release modifier
     VMI_ASSERT(info->aqrl<NUM_MEMBERS(aqrlDescs), "bad aqrl (%u)", info->aqrl);
     putString(result, aqrlDescs[info->aqrl]);
+
+    // emit xperm size modifier
+    if(info->xperm==RV_XP_NBHW) {
+        putChar(result, '.');
+        putBitsChar(result, info->c);
+    } else if(info->xperm==RV_XP_BITS) {
+        putD(result, info->c);
+    }
 }
 
 //

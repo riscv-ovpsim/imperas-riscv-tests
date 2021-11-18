@@ -104,7 +104,7 @@ typedef RISCV_GET_TMODE_FN((*riscvGetTModeFn));
 typedef RISCV_GET_DATA_ENDIAN_FN((*riscvGetDataEndianFn));
 
 //
-// Read a CSR in the base model given its number
+// Read a CSR given its number
 //
 #define RISCV_READ_CSR_NUM_FN(_NAME) Uns64 _NAME( \
     riscvP riscv,               \
@@ -113,7 +113,7 @@ typedef RISCV_GET_DATA_ENDIAN_FN((*riscvGetDataEndianFn));
 typedef RISCV_READ_CSR_NUM_FN((*riscvReadCSRNumFn));
 
 //
-// Write a CSR in the base model given its number
+// Write a CSR given its number
 //
 #define RISCV_WRITE_CSR_NUM_FN(_NAME) Uns64 _NAME( \
     riscvP riscv,               \

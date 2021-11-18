@@ -1,6 +1,6 @@
 # Imperas RISC-V Architecture Tests for VX
-V Vector Extension, Version 0.8 0.8
-VX Fixed-Point Arithmetic Instructions (Chapter 13)
+V Vector Extension, Version 1.0 1.0-rc1-20210608
+VX Fixed-Point Arithmetic Instructions (Chapter 12)
 ELEN:32, VLEN:256, SLEN:256, FP16:IEEE754
 
 This directory contains information an Imperas test suite.

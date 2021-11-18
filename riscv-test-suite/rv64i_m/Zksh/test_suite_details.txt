@@ -1,0 +1,51 @@
+#
+# Copyright (c) 2021 Imperas Software Ltd., www.imperas.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied.
+#
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+
+
+Architectural Test Suite Data for RV64ZKSH K Crypto/Scalar:
+    2 test source files
+    1 different instruction categories
+    21 different instructions
+    3,040 total instructions
+
+Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
+  sm3p0 : 274
+  sm3p1 : 274
+
+Other instructions (those not the focus of this suite)
+  c-j : 2
+  c-lui : 50
+  addiw : 360
+  csrrs : 6
+  auipc : 120
+  addi : 418
+  csrrw : 4
+  mret : 2
+  lui : 198
+  slli : 172
+  c-slli : 340
+  sd : 528
+  c-li : 54
+  c-sdsp : 20
+  c-addiw : 76
+  c-addi : 132
+  fence : 2
+  ecall : 2
+  beq : 6
+

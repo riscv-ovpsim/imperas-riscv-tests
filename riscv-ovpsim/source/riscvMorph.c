@@ -205,6 +205,7 @@ typedef struct riscvMorphAttrS {
     Bool                  implicitTZ : 1;   // is top part implicitly set?
     Bool                  virtual    : 1;   // virtual machine operation?
     Bool                  execute    : 1;   // virtual machine execute operation?
+    Bool                  ZfhminOK   : 1;   // compatible with Zfhmin?
 } riscvMorphAttr;
 
 //
@@ -675,18 +676,41 @@ static void emitCustomAbsent() {
 }
 
 //
-// Take Illegal Instruction exception when subset is absent
+// Take Illegal Instruction exception when subset is in the given state
 //
-static void illegalInstructionAbsentSubset(riscvP riscv, const char *name) {
-
+static void illegalInstructionSubset(
+    riscvP      riscv,
+    const char *name,
+    const char *state
+) {
     char reason[64];
 
     if(riscv->verbose) {
-        snprintf(SNPRINTF_TGT(reason), "%s absent", name);
+        snprintf(SNPRINTF_TGT(reason), "%s %s", name, state);
     }
 
     // take Illegal Instruction exception
     riscvIllegalInstructionMessage(riscv, reason);
+}
+
+//
+// Take Illegal Instruction exception when subset is absent
+//
+inline static void illegalInstructionAbsentSubset(
+    riscvP      riscv,
+    const char *name
+) {
+    illegalInstructionSubset(riscv, name, "absent");
+}
+
+//
+// Take Illegal Instruction exception when subset is present
+//
+inline static void illegalInstructionPresentSubset(
+    riscvP      riscv,
+    const char *name
+) {
+    illegalInstructionSubset(riscv, name, "present");
 }
 
 //
@@ -697,6 +721,16 @@ void riscvEmitIllegalInstructionAbsentSubset(const char *name) {
     vmimtArgProcessor();
     vmimtArgNatAddress(name);
     vmimtCallAttrs((vmiCallFn)illegalInstructionAbsentSubset, VMCA_EXCEPTION);
+}
+
+//
+// Emit code to take Illegal Instruction exception when a feature subset is
+// present
+//
+void riscvEmitIllegalInstructionPresentSubset(const char *name) {
+    vmimtArgProcessor();
+    vmimtArgNatAddress(name);
+    vmimtCallAttrs((vmiCallFn)illegalInstructionPresentSubset, VMCA_EXCEPTION);
 }
 
 //
@@ -1415,13 +1449,19 @@ static Bool supportedFBitsMT(riscvP riscv, Uns32 bits) {
 
     Bool ok = False;
 
-    if((bits==16) && !riscv->configInfo.fp16_version) {
+    if(bits==128) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "NFP128", "quadruple-precision floating point is absent"
+        );
+    } else if(bits!=16) {
+        ok = True;
+    } else if(!riscv->configInfo.fp16_version) {
         ILLEGAL_INSTRUCTION_MESSAGE(
             riscv, "NFP16", "half-precision floating point is absent"
         );
-    } else if(bits==128) {
+    } else if(riscv->configInfo.Zfhmin && !riscv->blockState->ZfhminOK) {
         ILLEGAL_INSTRUCTION_MESSAGE(
-            riscv, "NFP128", "quadruple-precision floating point is absent"
+            riscv, "ZFHMIN", "Zfhmin present"
         );
     } else {
         ok = True;
@@ -3429,7 +3469,7 @@ static vmiLabelP validateEA(
 //
 // Do actions required to terminate exclusive access
 //
-static void clearEA(riscvMorphStateP state) {
+static void clearEAMT(riscvMorphStateP state) {
 
     // exclusiveTag becomes RISCV_NO_TAG to indicate no active access
     vmimtMoveRC(getEABits(state), RISCV_EA_TAG, RISCV_NO_TAG);
@@ -3451,7 +3491,7 @@ static void endEA(
     vmimtInsertLabel(done);
 
     // terminate exclusive access
-    clearEA(state);
+    clearEAMT(state);
 }
 
 //
@@ -5697,6 +5737,26 @@ static RISCV_MORPH_FN(emit3264RRCR) {
     vmimtCallResultAttrs(cb, bits, rd.r, VMCA_PURE);
 
     writeUnpacked(rd);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// M EXTENSION UTILITIES
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Validate that the Zmmul subset is supported if required and take an Illegal
+// Instruction exception if not
+//
+static Bool validateMExtSubset(riscvP riscv, Bool noZmmul) {
+
+    // detect absent subset
+    if(noZmmul && riscv->configInfo.Zmmul) {
+        riscvEmitIllegalInstructionPresentSubset("Zmmul");
+        return False;
+    }
+
+    return True;
 }
 
 
@@ -13125,14 +13185,14 @@ static RISCV_MORPH_FN(emitZUNPKD8) {
 //
 static RISCV_MORPH_FN(emitSWAP) {
 
-    unpackedRegX  rd  = unpackRXxD(state, 0);
-    unpackedRegX  rs1 = unpackRXxS(state, 1);
-    elemInfo      ei  = getElemInfoX(state, rd);
-    vmiReg        r[] = {rd.r.r, rs1.r.r};
-    vmiReg        tmp = newTmp(state);
-    vmiReg        tL  = tmp;
-    vmiReg        tH  = VMI_REG_DELTA(tmp, ei.eBytes);
-    Uns32         i;
+    unpackedRegX rd  = unpackRXxD(state, 0);
+    unpackedRegX rs1 = unpackRXxS(state, 1);
+    elemInfo     ei  = getElemInfoX(state, rd);
+    vmiReg       r[] = {rd.r.r, rs1.r.r};
+    vmiReg       tmp = newTmp(state);
+    vmiReg       tL  = tmp;
+    vmiReg       tH  = VMI_REG_DELTA(tmp, ei.eBytes);
+    Uns32        i;
 
     // process SIMD elements
     for(i=0; i<ei.num/2; i++) {
@@ -13192,6 +13252,189 @@ static RISCV_MORPH_FN(emitWEXTI) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// CBO EXTENSION
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// CBO usage check operation
+//
+#define CBO_CHECK_FN(_NAME) void _NAME(riscvP riscv)
+typedef CBO_CHECK_FN((*cboCheckFn));
+
+//
+// Get size of cache block for management and prefetch instructions
+//
+inline static Int32 getCMOMPBytes(riscvMorphStateP state) {
+    return state->riscv->configInfo.cmomp_bytes;
+}
+
+//
+// Get size of cache block for zero instructions
+//
+inline static Int32 getCMOZBytes(riscvMorphStateP state) {
+    return state->riscv->configInfo.cmoz_bytes;
+}
+
+//
+// Validate CSR access controls for CBO instruction and raise Illegal Instruction
+// or Virtual Instruction exception if required
+//
+static void checkCBO(riscvP riscv, Uns32 shift, const char *field) {
+
+    riscvMode   mode    = getCurrentMode5(riscv);
+    riscvMode   ill     = 0;
+    Uns32       mask    = 1<<shift;
+    Bool        mok     = RD_CSR(riscv, menvcfg) & mask;
+    Bool        sok     = RD_CSR(riscv, senvcfg) & mask;
+    Bool        hok     = RD_CSR(riscv, henvcfg) & mask;
+    const char *reasonP = 0;
+    char        pfx     = 0;
+    char        reason[32];
+
+    // determine whether access is disabled by any envcfg CSR
+    if(!mok) {
+        ill = RISCV_MODE_M;
+        pfx = 'm';
+    } else if(!sok && supervisorPresent(riscv) && (mode==RISCV_MODE_U)) {
+        ill = RISCV_MODE_S;
+        pfx = 's';
+    } else if(!hok && ((mode==RISCV_MODE_VS) || (mode==RISCV_MODE_VU))) {
+        ill = RISCV_MODE_H;
+        pfx = 'h';
+    } else if(!sok && (mode==RISCV_MODE_VU)) {
+        ill = RISCV_MODE_H;
+        pfx = 's';
+    }
+
+    // manufacture reason string for failure if required
+    if(ill && riscv->verbose) {
+        sprintf(reason, "%cenvcfg.%s=0", pfx, field);
+        reasonP = &reason[0];
+    }
+
+    // trigger Illegal Instruction or Virtual Instruction exception if required
+    if(ill==RISCV_MODE_H) {
+        riscvVirtualInstructionMessage(riscv, reasonP);
+    } else if(ill) {
+        riscvIllegalInstructionMessage(riscv, reasonP);
+    }
+}
+
+//
+// Do CBO.CLEAN/CBO.FLUSH usage check
+//
+static CBO_CHECK_FN(checkCBCFE) {
+    checkCBO(riscv, shift_envcfg_CBCFE, "CBCFE");
+}
+
+//
+// Do CBO.INVAL usage check
+//
+static CBO_CHECK_FN(checkCBIE) {
+    checkCBO(riscv, shift_envcfg_CBIE, "CBIE");
+}
+
+//
+// Do CBO.ZERO usage check
+//
+static CBO_CHECK_FN(checkCBZE) {
+    checkCBO(riscv, shift_envcfg_CBZE, "CBZE");
+}
+
+//
+// Emit call to CBO usage check function
+//
+static void emitCBOCheck(riscvMorphStateP state, cboCheckFn checkCB) {
+
+    if(getCurrentMode3(state->riscv) != RISCV_MODE_M) {
+        vmimtArgProcessor();
+        vmimtCallAttrs((vmiCallFn)checkCB, VMCA_NA);
+        vmimtEndBlock();
+    }
+}
+
+//
+// Emit code to implement try-write associated with CBO operation
+//
+static void emitCBOTryWriteOrZero(
+    riscvMorphStateP state,
+    Int32            bytes,
+    Bool             zero
+) {
+    riscvP        riscv      = state->riscv;
+    unpackedReg   ra         = unpackRX(state, 0);
+    Uns32         raBits     = ra.bits;
+    vmiReg        tmp        = newTmp(state);
+    Uns32         bits       = bytes*8;
+    memEndian     endian     = MEM_ENDIAN_LITTLE;
+    memConstraint constraint = MEM_CONSTRAINT_NONE;
+
+    // manufacture cache-aligned address
+    vmimtBinopRRC(raBits, vmi_AND, tmp, ra.r, -bytes, 0);
+
+    // set addres mask for following operation
+    setAddressMaskMT(riscv);
+
+    // do try-write or zero of entire cache line
+    if(zero) {
+        vmimtStoreRCO(bits, 0, tmp, 0, endian, constraint);
+    } else {
+        vmimtTryStoreRC(bits, 0, tmp, constraint);
+    }
+
+    freeTmp(state);
+}
+
+//
+// Implement CBO.CLEAN
+//
+static RISCV_MORPH_FN(emitCBOCLEAN) {
+
+    // check CBO operation usage
+    emitCBOCheck(state, checkCBCFE);
+
+    // emit try-write
+    emitCBOTryWriteOrZero(state, getCMOMPBytes(state), False);
+}
+
+//
+// Implement CBO.FLUSH
+//
+static RISCV_MORPH_FN(emitCBOFLUSH) {
+
+    // check CBO operation usage
+    emitCBOCheck(state, checkCBCFE);
+
+    // emit try-write
+    emitCBOTryWriteOrZero(state, getCMOMPBytes(state), False);
+}
+
+//
+// Implement CBO.INVAL
+//
+static RISCV_MORPH_FN(emitCBOINVAL) {
+
+    // check CBO operation usage
+    emitCBOCheck(state, checkCBIE);
+
+    // emit try-write
+    emitCBOTryWriteOrZero(state, getCMOMPBytes(state), False);
+}
+
+//
+// Implement CBO.ZERO
+//
+static RISCV_MORPH_FN(emitCBOZERO) {
+
+    // check CBO operation usage
+    emitCBOCheck(state, checkCBZE);
+
+    // emit try-write
+    emitCBOTryWriteOrZero(state, getCMOZBytes(state), True);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // INSTRUCTION TABLE
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -13200,8 +13443,11 @@ static RISCV_MORPH_FN(emitWEXTI) {
 //
 const static riscvMorphAttr dispatchTable[] = {
 
+    // NOP pseudo-instruction
+    [RV_IT_NOP]              = {morph:emitNOP},
+
     // move pseudo-instructions (register and constant source)
-    [RV_IT_MV_R]             = {morph:emitMoveRR},
+    [RV_IT_MV_R]             = {morph:emitMoveRR,    ZfhminOK:1},
     [RV_IT_MV_C]             = {morph:emitMoveRC},
 
     // base R-type instructions
@@ -13240,8 +13486,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_XORI_I]           = {morph:emitBinopRRC,  binop:vmi_XOR,    iClass:OCL_IC_INTEGER},
 
     // base I-type instructions for load and store
-    [RV_IT_L_I]              = {morph:emitLoad },
-    [RV_IT_S_I]              = {morph:emitStore},
+    [RV_IT_L_I]              = {morph:emitLoad,  ZfhminOK:1},
+    [RV_IT_S_I]              = {morph:emitStore, ZfhminOK:1},
 
     // base I-type instructions for CSR access (register)
     [RV_IT_CSRR_I]           = {morph:emitCSRR,   iClass:OCL_IC_SYSREG  },
@@ -13300,7 +13546,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_FABS_R]           = {fpConfig:RVFP_NORMAL, morph:emitFUnop,    fpUnop  : vmi_FQABS                         },
     [RV_IT_FADD_R]           = {fpConfig:RVFP_NORMAL, morph:emitFBinop,   fpBinop : vmi_FADD                          },
     [RV_IT_FCLASS_R]         = {fpConfig:RVFP_NORMAL, morph:emitFClass,                                               },
-    [RV_IT_FCVT_R]           = {fpConfig:RVFP_NORMAL, morph:emitFConvert                                              },
+    [RV_IT_FCVTX_R]          = {fpConfig:RVFP_NORMAL, morph:emitFConvert                                              },
+    [RV_IT_FCVTF_R]          = {fpConfig:RVFP_NORMAL, morph:emitFConvert, ZfhminOK:1                                  },
     [RV_IT_FDIV_R]           = {fpConfig:RVFP_NORMAL, morph:emitFBinop,   fpBinop : vmi_FDIV,   iClass:OCL_IC_DIVIDE  },
     [RV_IT_FEQ_R]            = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_EQ                         },
     [RV_IT_FLE_R]            = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_LE                         },
@@ -13872,6 +14119,12 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_POP]              = {morph:emitPOP},
     [RV_IT_DECBNEZ]          = {morph:emitDECBNEZ},
 
+    // Zicbom-extension instructions (RV32 and RV64)
+    [RV_IT_CBO_CLEAN]        = {morph:emitCBOCLEAN, iClass:OCL_IC_DCACHE},
+    [RV_IT_CBO_FLUSH]        = {morph:emitCBOFLUSH, iClass:OCL_IC_DCACHE},
+    [RV_IT_CBO_INVAL]        = {morph:emitCBOINVAL, iClass:OCL_IC_DCACHE},
+    [RV_IT_CBO_ZERO]         = {morph:emitCBOZERO,  iClass:OCL_IC_DCACHE},
+
     // KEEP LAST
     [RV_IT_LAST]             = {0}
 };
@@ -14050,6 +14303,10 @@ VMI_MORPH_FN(riscvMorph) {
 
         // K-extension feature subset not present
 
+    } else if(!validateMExtSubset(riscv, state.info.Zmmul)) {
+
+        // K-extension feature subset not present
+
     } else if(state.attrs->morph) {
 
         // call derived model preMorph functions if required
@@ -14058,9 +14315,13 @@ VMI_MORPH_FN(riscvMorph) {
             extCB->preMorph(riscv, extCB->clientData);
         )
 
-        // translate the instruction
+        // give information about instruction class
         vmimtInstructionClassAdd(state.attrs->iClass);
+
+        // translate the instruction with Zfhmin context
+        riscv->blockState->ZfhminOK = state.attrs->ZfhminOK;
         state.attrs->morph(&state);
+        riscv->blockState->ZfhminOK = False;
 
         // call derived model postMorph functions if required
         ITER_EXT_CB(

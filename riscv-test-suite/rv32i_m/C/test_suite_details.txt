@@ -17,52 +17,53 @@
 
 
 Architectural Test Suite Data for RV32C C Compressed Integer Instructions:
-    24 test source files
+    27 test source files
     8 different instruction categories
-    33 different instructions
-    19,854 total instructions
+    34 different instructions
+    21,499 total instructions
 
 Instruction category: arithmetic 
-  c-lui : 1,503
+  c-lui : 1,658
+  c-addi : 1,334
+  c-li : 1,082
   c-add : 730
-  c-li : 1,049
-  c-addi : 962
   c-mv : 146
   c-sub : 147
 Instruction category: logical 
-  c-and : 146
   c-or : 146
-  c-xor : 146
+  c-and : 146
   c-andi : 146
+  c-xor : 146
 Instruction category: branch 
-  c-bnez : 146
   c-beqz : 146
+  c-bnez : 146
 Instruction category: OPI_IMN 
   c-ebreak : 1
 Instruction category: jump 
-  c-j : 170
+  c-j : 173
+  c-jal : 146
   c-jr : 146
   c-jalr : 146
 Instruction category: load 
   c-lwsp : 146
 Instruction category: store 
-  c-swsp : 305
+  c-swsp : 363
 Instruction category: shift 
   c-slli : 146
-  c-srai : 146
   c-srli : 146
+  c-srai : 146
 
 Other instructions (those not the focus of this suite)
-  addi : 5,194
-  csrrs : 74
-  auipc : 1,522
-  csrrw : 51
-  mret : 25
-  lui : 2,054
-  sw : 3,235
-  fence : 24
-  ecall : 24
-  beq : 72
-  jal : 376
+  addi : 5,485
+  csrrs : 83
+  auipc : 1,475
+  csrrw : 57
+  mret : 28
+  lui : 2,331
+  sw : 3,615
+  fence : 27
+  ecall : 27
+  beq : 81
+  jal : 320
   lw : 438
 

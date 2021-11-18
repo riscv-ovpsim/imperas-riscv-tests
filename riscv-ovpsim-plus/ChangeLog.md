@@ -11,6 +11,57 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- The ratified specifications are enabled in riscvOVPsim for B (bitmanip), K (crypto) and V (vector) extensions.
+
+- The  processor(s) in the riscvOVPsim fixed platform now have verbose output enabled by default.
+  To disable add  _--override riscvOVPsim/cpu/verbose=F_  to the command line. Use  _--showoverrides_  to find all processors.
+
+- Extension Svpbmt is now implemented and enabled using the Svpbmt parameter if
+  required.
+- Extension Svnapot is now implemented with intermediate page sizes specified
+  using the Svnapot_page_mask parameter if required.
+- Extension Zicbom is now implemented and enabled using the Zicbom parameter if
+  required.
+- Extension Zicbop is now implemented and enabled using the Zicbop parameter if
+  required.
+- Extension Zicboz is now implemented and enabled using the Zicboz parameter if
+  required.
+- Extension Zmmul is now implemented and enabled using the Zmmul parameter if
+  required.
+- Extension Zfhmin is now implemented and enabled using the Zfhmin parameter if
+  required.
+- Extension Smepmp version 0.9.5 is now implemented and enabled using the
+  Smepmp_version parameter if required.
+- Syndromes are now reported in mtinst and htinst for all access and alignment
+  faults; previously, only page faults caused syndromes to be reported.  
+- New User Architecture version 20191213 has been added. This is identical to
+  previously-existing version 20190305, but has a name conforming to the
+  ratified version of the User Architecture specification.
+- New Privileged Architecture version 20190608 has been added. This is identical
+  to previously-existing version 20190405, but has a name conforming to the
+  ratified version of the Privileged Architecture specification.
+- The master Privileged Architecture version now supports these new CSRs:
+  - mconfigptr  (always implemented)
+  - mseccfg     (when Cryptographic Extension 0.9.2 or later also selected)
+  - menvcfg     (always implemented)
+  - menvcfgh    (when RV32)
+  - senvcfg     (when Supervisor mode implemented)
+  - henvcfg     (when Hypervisor mode implemented)
+  - henvcfgh    (when RV32 Hypervisor mode implemented)
+- For K extension 1.0.0-rc1 and later, a bug has been fixed which caused
+  sha256sum0, sha256sum1, sha256sig0 and sha256sig1 to generate Illegal
+  Instruction exceptions.
+- New parameter trap_preserves_lr defines whether an active LR/SC transaction is
+  preserved on a trap (if False, any active LR/SC is aborted when a trap is
+  taken).
+- An issue has been corrected that could cause the htinst address offset to
+  be incorrectly filled for a guest page fault (when Hypervisor mode is
+  implemented).
+
+Date 2021-October-20
+Release 20211019.0
+===
+
 - An issue has been corrected that prevented pending interrupts being
   immediately taken after transition from CLIC mode to non-CLIC mode.
 - DSP (P) Extension versions 0.5.2 and 0.9.6 are implemented.

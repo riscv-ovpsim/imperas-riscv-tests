@@ -1,0 +1,57 @@
+#
+# Copyright (c) 2021 Imperas Software Ltd., www.imperas.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied.
+#
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+
+
+Architectural Test Suite Data for RV64ZKNH K Crypto/Scalar:
+    8 test source files
+    1 different instruction categories
+    27 different instructions
+    12,160 total instructions
+
+Instruction category: OPK_Zknh NIST Suite Hash Function instructions
+  sha256sig0 : 274
+  sha256sum1 : 274
+  sha512sig1 : 274
+  sha512sig0 : 274
+  sha256sig1 : 274
+  sha256sum0 : 274
+  sha512sum1 : 274
+  sha512sum0 : 274
+
+Other instructions (those not the focus of this suite)
+  c-j : 8
+  c-lui : 200
+  addiw : 1,440
+  csrrs : 24
+  auipc : 480
+  addi : 1,672
+  csrrw : 16
+  mret : 8
+  lui : 792
+  slli : 688
+  c-slli : 1,360
+  sd : 2,112
+  c-li : 216
+  c-sdsp : 80
+  c-addiw : 304
+  c-addi : 528
+  fence : 8
+  ecall : 8
+  beq : 24
+

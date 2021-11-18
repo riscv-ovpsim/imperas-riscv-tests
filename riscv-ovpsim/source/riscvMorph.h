@@ -116,6 +116,12 @@ void riscvEmitIllegalOperandMessageDesc(
 void riscvEmitIllegalInstructionAbsentSubset(const char *name);
 
 //
+// Emit code to take Illegal Instruction exception when a feature subset is
+// present
+//
+void riscvEmitIllegalInstructionPresentSubset(const char *name);
+
+//
 // Validate that the given required feature is present and enabled (using
 // blockMask if necessary)
 //

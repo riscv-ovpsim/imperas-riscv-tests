@@ -1,5 +1,5 @@
 # Imperas RISC-V Architecture Tests for ZBB
-B Bit Manipulation 0.92
+B Bit Manipulation (Version 1.0.0) 1.0
 
 This directory contains an Imperas test suite.
 The focus of these tests is to check the device under test complies with the RISC-V specifications.

@@ -1,0 +1,48 @@
+#
+# Copyright (c) 2021 Imperas Software Ltd., www.imperas.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+# either express or implied.
+#
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+
+
+Architectural Test Suite Data for RV64ZKSED K Crypto/Scalar:
+    4 test source files
+    1 different instruction categories
+    18 different instructions
+    10,444 total instructions
+
+Instruction category: OPK_Zkse 
+  sm4ed : 530
+  sm4ks : 530
+
+Other instructions (those not the focus of this suite)
+  c-j : 4
+  c-lui : 4
+  addiw : 1,398
+  csrrs : 12
+  auipc : 234
+  addi : 2,948
+  csrrw : 8
+  mret : 4
+  lui : 1,240
+  slli : 2,440
+  sd : 1,020
+  c-sdsp : 40
+  fence : 4
+  ecall : 4
+  c-li : 12
+  beq : 12
+

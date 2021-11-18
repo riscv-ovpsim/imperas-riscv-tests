@@ -633,10 +633,12 @@ typedef struct opAttrsS {
     eewDivSpec        eewDiv   :  1;    // EEW divisor specification
     Bool              shN      :  1;    // shN prefix specification
     Bool              csrInOp  :  1;    // whether to emit CSR as part of opcode
+    Bool              isXPERM  :  1;    // whether to emit bits as part of opcode
     Bool              xQuiet   :  1;    // are X registers type-quiet?
     Bool              notZfinx :  1;    // absent if Zfinx?
     Bool              higher64 :  1;    // higher-priority RV64 decode?
     Bool              unsPfx   :  1;    // show unsigned as z/s prefix
+    Bool              Zmmul    :  1;    // affected by Zmmul
 } opAttrs;
 
 typedef const struct opAttrsS *opAttrsCP;
@@ -745,6 +747,8 @@ typedef enum riscvIType32E {
 
     // system fence I-type instruction
     IT32_FENCE_I,
+    IT32_FENCE_TSO_I,
+    IT32_PAUSE_I,
 
     // system fence R-type instruction
     IT32_SFENCE_VMA_R,
@@ -1187,6 +1191,7 @@ typedef enum riscvIType32E {
     IT32_VMV_X_S,
     IT32_VEXT_X_V,
     IT32_VPOPC_M,
+    IT32_VCPOP_M,
     IT32_VFIRST_M,
     IT32_VMSBF_M,
     IT32_VMSOF_M,
@@ -1195,10 +1200,12 @@ typedef enum riscvIType32E {
     IT32_VID_V,
     IT32_VCOMPRESS_VM,
     IT32_VMANDNOT_MM,
+    IT32_VMANDN_MM,
     IT32_VMAND_MM,
     IT32_VMOR_MM,
     IT32_VMXOR_MM,
     IT32_VMORNOT_MM,
+    IT32_VMORN_MM,
     IT32_VMNAND_MM,
     IT32_VMNOR_MM,
     IT32_VMXNOR_MM,
@@ -1578,6 +1585,17 @@ typedef enum riscvIType32E {
     IT32_SDGP,
     IT32_DECBNEZ,
 
+    // Zicbom/Zicboz instructions
+    IT32_CBO_CLEAN,
+    IT32_CBO_FLUSH,
+    IT32_CBO_INVAL,
+    IT32_CBO_ZERO,
+
+    // Zicbop instructions
+    IT32_PREFETCH_I,
+    IT32_PREFETCH_R,
+    IT32_PREFETCH_W,
+
     // KEEP LAST
     IT32_LAST
 
@@ -1712,6 +1730,8 @@ const static decodeEntry32 decodeCommon32[] = {
     // system fence I-type instruction
     //                               |  fm|pred|succ|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(        FENCE_I, "|....|....|....|.....|000|.....|0001111|"),
+    DECODE32_ENTRY(    FENCE_TSO_I, "|1000|0011|0011|00000|000|00000|0001111|"),
+    DECODE32_ENTRY(        PAUSE_I, "|0000|0001|0000|00000|000|00000|0001111|"),
 
     // system fence R-type instruction
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
@@ -2011,11 +2031,9 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(     VREDMAX_VS, "|000111|.|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(       VMAND_MM, "|011001|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(      VMNAND_MM, "|011101|1|.....|.....|010|.....|1010111|"),
-    DECODE32_ENTRY(    VMANDNOT_MM, "|011000|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(       VMXOR_MM, "|011011|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(        VMOR_MM, "|011010|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(       VMNOR_MM, "|011110|1|.....|.....|010|.....|1010111|"),
-    DECODE32_ENTRY(     VMORNOT_MM, "|011100|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(      VMXNOR_MM, "|011111|1|.....|.....|010|.....|1010111|"),
     DECODE32_ENTRY(   VCOMPRESS_VM, "|010111|1|.....|.....|010|.....|1010111|"),
 
@@ -2501,12 +2519,11 @@ const static decodeEntry32 decodeBPartialKPreV090[] = {
 //
 // This specifies decodes for 32-bit opcodes for Vector Extension version 0.8
 //
-const static decodeEntry32 decodeVV08[] = {
+const static decodeEntry32 decodeVPost071[] = {
 
     // V-extension MVV-type instructions
     //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
     DECODE32_ENTRY(        VMV_X_S, "|010000|1|.....|00000|010|.....|1010111|"),
-    DECODE32_ENTRY(        VPOPC_M, "|010000|.|.....|10000|010|.....|1010111|"),
     DECODE32_ENTRY(       VFIRST_M, "|010000|.|.....|10001|010|.....|1010111|"),
     DECODE32_ENTRY(        VMSBF_M, "|010100|.|.....|00001|010|.....|1010111|"),
     DECODE32_ENTRY(        VMSOF_M, "|010100|.|.....|00010|010|.....|1010111|"),
@@ -2525,6 +2542,20 @@ const static decodeEntry32 decodeVV08[] = {
     // V-extension MVX-type instructions
     //                               |funct6|m|  vs2|  vs1|MVX|  vs3| opcode|
     DECODE32_ENTRY(        VMV_S_X, "|010000|1|00000|.....|110|.....|1010111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes from Vector Extension version 0.8
+// *until* 8 June 2021
+//
+const static decodeEntry32 decodeVPost071Pre1_0_20210608[] = {
+
+    // V-extension MVV-type instructions
+    //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
+    DECODE32_ENTRY(        VPOPC_M, "|010000|.|.....|10000|010|.....|1010111|"),
 
     // table termination entry
     {0}
@@ -2624,7 +2655,8 @@ const static decodeEntry32 decodeVPre20190906[] = {
 };
 
 //
-// This specifies Vector Extension decodes for version 20191004 only (deleted thereafter)
+// This specifies Vector Extension decodes for version 20191004 only (deleted
+// thereafter)
 //
 const static decodeEntry32 decodeV20191004[] = {
 
@@ -3038,6 +3070,35 @@ const static decodeEntry32 decodeVPost1_0_20210130[] = {
     //                               |funct6|m|  vs2|  vs1|FVV|  vs3| opcode|
     DECODE32_ENTRY(   VFREDUSUM_VS, "|000001|.|.....|.....|001|.....|1010111|"),
     DECODE32_ENTRY(  VFWREDUSUM_VS, "|110001|.|.....|.....|001|.....|1010111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Vector Extension decodes *until* version 1.0-rc1-20210608
+//
+const static decodeEntry32 decodeVPre1_0_20210608[] = {
+
+    // V-extension MVV-type instructions
+    //                               |funct6|m|  vs2|  vs1|FVV|  vs3| opcode|
+    DECODE32_ENTRY(    VMANDNOT_MM, "|011000|1|.....|.....|010|.....|1010111|"),
+    DECODE32_ENTRY(     VMORNOT_MM, "|011100|1|.....|.....|010|.....|1010111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Vector Extension decodes *after* version 1.0-rc1-20210608
+//
+const static decodeEntry32 decodeVPost1_0_20210608[] = {
+
+    // V-extension MVV-type instructions
+    //                               |funct6|m|  vs2|  vs1|FVV|  vs3| opcode|
+    DECODE32_ENTRY(        VCPOP_M, "|010000|.|.....|10000|010|.....|1010111|"),
+    DECODE32_ENTRY(      VMANDN_MM, "|011000|1|.....|.....|010|.....|1010111|"),
+    DECODE32_ENTRY(       VMORN_MM, "|011100|1|.....|.....|010|.....|1010111|"),
 
     // table termination entry
     {0}
@@ -3638,6 +3699,49 @@ const static decodeEntry32 decodeP096[] = {
 };
 
 //
+// This specifies Zicbom Extension decodes
+//
+const static decodeEntry32 decodeZicbom[] = {
+
+    // Zicbom-extension instructions (RV32 and RV64)
+    //                           | funct12    | rs1 |CBO|     | opcode|
+    DECODE32_ENTRY ( CBO_CLEAN, "|000000000001|.....|010|00000|0001111|"),
+    DECODE32_ENTRY ( CBO_FLUSH, "|000000000010|.....|010|00000|0001111|"),
+    DECODE32_ENTRY ( CBO_INVAL, "|000000000000|.....|010|00000|0001111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Zicbop Extension decodes
+//
+const static decodeEntry32 decodeZicbop[] = {
+
+    // Zicbop-extension instructions (RV32 and RV64)
+    //                            | offset| op  | rs1 |ORI|     | opcode|
+    DECODE32_ENTRY ( PREFETCH_I, "|.......|00000|.....|110|00000|0010011|"),
+    DECODE32_ENTRY ( PREFETCH_R, "|.......|00001|.....|110|00000|0010011|"),
+    DECODE32_ENTRY ( PREFETCH_W, "|.......|00011|.....|110|00000|0010011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Zicboz Extension decodes
+//
+const static decodeEntry32 decodeZicboz[] = {
+
+    // Zicboz-extension instructions (RV32 and RV64)
+    //                           | funct12    | rs1 |CBO|     | opcode|
+    DECODE32_ENTRY ( CBO_ZERO,  "|000000000100|.....|010|00000|0001111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies attributes for each 32-bit opcode
 //
 const static opAttrs attrsArray32[] = {
@@ -3659,14 +3763,14 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2           (          XOR_R,           XOR_R, RVANY,   "xor" ),
 
     // M-extension R-type
-    ATTR32_RD_RS1_RS2           (          DIV_R,           DIV_R, RVANYM,  "div"   ),
-    ATTR32_RD_RS1_RS2           (         DIVU_R,          DIVU_R, RVANYM,  "divu"  ),
+    ATTR32_RD_RS1_RS2_ZMMUL     (          DIV_R,           DIV_R, RVANYM,  "div"   ),
+    ATTR32_RD_RS1_RS2_ZMMUL     (         DIVU_R,          DIVU_R, RVANYM,  "divu"  ),
     ATTR32_RD_RS1_RS2           (          MUL_R,           MUL_R, RVANYM,  "mul"   ),
     ATTR32_RD_RS1_RS2           (         MULH_R,          MULH_R, RVANYM,  "mulh"  ),
     ATTR32_RD_RS1_RS2           (       MULHSU_R,        MULHSU_R, RVANYM,  "mulhsu"),
     ATTR32_RD_RS1_RS2           (        MULHU_R,         MULHU_R, RVANYM,  "mulhu" ),
-    ATTR32_RD_RS1_RS2           (          REM_R,           REM_R, RVANYM,  "rem"   ),
-    ATTR32_RD_RS1_RS2           (         REMU_R,          REMU_R, RVANYM,  "remu"  ),
+    ATTR32_RD_RS1_RS2_ZMMUL     (          REM_R,           REM_R, RVANYM,  "rem"   ),
+    ATTR32_RD_RS1_RS2_ZMMUL     (         REMU_R,          REMU_R, RVANYM,  "remu"  ),
 
     // base I-type
     ATTR32_RD_RS1_SI            (         ADDI_I,          ADDI_I, RVANY,   "addi" ),
@@ -3735,7 +3839,9 @@ const static opAttrs attrsArray32[] = {
     ATTR32_NOP                  (          WFI_I,           WFI_I, RVANY,   "wfi"    ),
 
     // system fence I-type instruction
-    ATTR32_FENCE                (        FENCE_I,         FENCE_I, RVANY,   "fence"),
+    ATTR32_FENCE                (        FENCE_I,         FENCE_I, RVANY,   "fence"    ),
+    ATTR32_NOP                  (    FENCE_TSO_I,         FENCE_I, RVANY,   "fence.tso"),
+    ATTR32_NOP                  (        PAUSE_I,         FENCE_I, RVANY,   "pause"    ),
 
     // system fence R-type instruction
     ATTR32_FENCE_VMA            (   SFENCE_VMA_R,    SFENCE_VMA_R, RVANY,   "sfence.vma" ),
@@ -3780,9 +3886,9 @@ const static opAttrs attrsArray32[] = {
     // F-extension and D-extension R-type instructions
     ATTR32_FD_FS1_FS2_R         (         FADD_R,          FADD_R, RVANY,   "fadd"  ),
     ATTR32_RD_FS1               (       FCLASS_R,        FCLASS_R, RVANY,   "fclass"),
-    ATTR32_FCVT_F_X             (     FCVT_F_X_R,          FCVT_R, RVANY,   "fcvt", F,   XWL),
-    ATTR32_FCVT_F_X             (     FCVT_X_F_R,          FCVT_R, RVANY,   "fcvt", XWL, F  ),
-    ATTR32_FCVT_F_F             (     FCVT_F_F_R,          FCVT_R, RVANY,   "fcvt"  ),
+    ATTR32_FCVT_F_X             (     FCVT_F_X_R,         FCVTX_R, RVANY,   "fcvt", F,   XWL),
+    ATTR32_FCVT_F_X             (     FCVT_X_F_R,         FCVTX_R, RVANY,   "fcvt", XWL, F  ),
+    ATTR32_FCVT_F_F             (     FCVT_F_F_R,         FCVTF_R, RVANY,   "fcvt"  ),
     ATTR32_FD_FS1_FS2_R         (         FDIV_R,          FDIV_R, RVANY,   "fdiv"  ),
     ATTR32_RD_FS1_FS2           (          FEQ_R,           FEQ_R, RVANY,   "feq"   ),
     ATTR32_RD_FS1_FS2           (          FLE_R,           FLE_R, RVANY,   "fle"   ),
@@ -3881,10 +3987,10 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_RS1_RS2_SHN       (        SHADD_R,         SHADD_R, RVANYB,  "add"        ),
     ATTR32_RD_RS1_RS2_SHN       (     SHADDU_W_R,         SHADD_R, RVANYB,  "addu."      ),
     ATTR32_RD_RS1_RS2_SHN       (     SHADD_UW_R,         SHADD_R, RVANYB,  "add.u"      ),
-    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_N_R,         XPERM_R, RVANYBK, "xperm.n"    ),
-    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_B_R,         XPERM_R, RVANYBK, "xperm.b"    ),
-    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_H_R,         XPERM_R, RVANYB,  "xperm.h"    ),
-    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_W_R,         XPERM_R, RV64B,   "xperm.w"    ),
+    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_N_R,         XPERM_R, RVANYBK, "xperm"      ),
+    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_B_R,         XPERM_R, RVANYBK, "xperm"      ),
+    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_H_R,         XPERM_R, RVANYB,  "xperm"      ),
+    ATTR32_RD_RS1_RS2_XPERM     (      XPERM_W_R,         XPERM_R, RV64B,   "xperm"      ),
 
     // B-extension I-type instructions
     ATTR32_RD_RS1_SSHIFT        (         SLOI_I,          SLOI_I, RVANYB,  "sloi"    ),
@@ -4206,13 +4312,16 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_VS2_M_VS      (     VREDMAX_VS,      VREDMAX_VS, RVANYV,  "vredmax"  ),
     ATTR32_VD_VS1_VS2_MM        (       VMAND_MM,        VMAND_MM, RVANYV,  "vmand"    ),
     ATTR32_VD_VS1_VS2_MM        (      VMNAND_MM,       VMNAND_MM, RVANYV,  "vmnand"   ),
-    ATTR32_VD_VS1_VS2_MM        (    VMANDNOT_MM,     VMANDNOT_MM, RVANYV,  "vmandn"   ),
+    ATTR32_VD_VS1_VS2_MM        (    VMANDNOT_MM,     VMANDNOT_MM, RVANYV,  "vmandnot" ),
+    ATTR32_VD_VS1_VS2_MM        (      VMANDN_MM,     VMANDNOT_MM, RVANYV,  "vmandn"   ),
     ATTR32_VD_VS1_VS2_MM        (       VMXOR_MM,        VMXOR_MM, RVANYV,  "vmxor"    ),
     ATTR32_VD_VS1_VS2_MM        (        VMOR_MM,         VMOR_MM, RVANYV,  "vmor"     ),
     ATTR32_VD_VS1_VS2_MM        (       VMNOR_MM,        VMNOR_MM, RVANYV,  "vmnor"    ),
-    ATTR32_VD_VS1_VS2_MM        (     VMORNOT_MM,      VMORNOT_MM, RVANYV,  "vmorn"    ),
+    ATTR32_VD_VS1_VS2_MM        (     VMORNOT_MM,      VMORNOT_MM, RVANYV,  "vmornot"  ),
+    ATTR32_VD_VS1_VS2_MM        (       VMORN_MM,      VMORNOT_MM, RVANYV,  "vmorn"    ),
     ATTR32_VD_VS1_VS2_MM        (      VMXNOR_MM,       VMXNOR_MM, RVANYV,  "vmxnor"   ),
-    ATTR32_RD_VS1_M_M           (        VPOPC_M,         VPOPC_M, RVANYV,  "vcpop"    ),
+    ATTR32_RD_VS1_M_M           (        VPOPC_M,         VPOPC_M, RVANYV,  "vpopc"    ),
+    ATTR32_RD_VS1_M_M           (        VCPOP_M,         VPOPC_M, RVANYV,  "vcpop"    ),
     ATTR32_RD_VS1_M_M           (       VFIRST_M,        VFIRST_M, RVANYV,  "vfirst"   ),
     ATTR32_VD_VS1_M_M           (        VMSBF_M,         VMSBF_M, RVANYV,  "vmsbf"    ),
     ATTR32_VD_VS1_M_M           (        VMSIF_M,         VMSIF_M, RVANYV,  "vmsif"    ),
@@ -4571,6 +4680,17 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RS2D_MEM_GP_ZC       (           SDGP,             S_I, RV64,    "s",       Zceb),
     ATTR32_DECBNEZ_ZC           (        DECBNEZ,         DECBNEZ, RVANY,   "decbnez", Zceb),
 
+    // Zicbom/Zicboz instructions
+    ATTR32_CBO_CLEAN            (      CBO_CLEAN,       CBO_CLEAN, RVANY,   "cbo.clean"  ),
+    ATTR32_CBO_CLEAN            (      CBO_FLUSH,       CBO_FLUSH, RVANY,   "cbo.flush"  ),
+    ATTR32_CBO_CLEAN            (      CBO_INVAL,       CBO_INVAL, RVANY,   "cbo.inval"  ),
+    ATTR32_CBO_CLEAN            (       CBO_ZERO,        CBO_ZERO, RVANY,   "cbo.zero"   ),
+
+    // Zicbop instructions
+    ATTR32_PREFETCH             (     PREFETCH_I,             NOP, RVANY,   "prefetch.i" ),
+    ATTR32_PREFETCH             (     PREFETCH_R,             NOP, RVANY,   "prefetch.r" ),
+    ATTR32_PREFETCH             (     PREFETCH_W,             NOP, RVANY,   "prefetch.w" ),
+
     // dummy entry for undecoded instruction
     ATTR32_LAST                 (           LAST,            LAST,          "undef"      )
 };
@@ -4646,7 +4766,10 @@ typedef union decodeKey32U {
         Bool             K                :  1;
         Bool             P                :  1;
         Bool             Zceb             :  1;
-        Uns32            _unused          : 13;
+        Bool             Zicbom           :  1;
+        Bool             Zicbop           :  1;
+        Bool             Zicboz           :  1;
+        Uns32            _unused          : 10;
     } f;
 
 } decodeKey32;
@@ -4793,9 +4916,14 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // insert vector-extension-dependent table entries before/after 0.7.1
     if(key.f.vect_version>RVVV_0_7_1) {
-        insertEntries32(table, &decodeVV08[0]);
+        insertEntries32(table, &decodeVPost071[0]);
     } else {
         insertEntries32(table, &decodeVV071[0]);
+    }
+
+    // insert vector-extension-dependent table entries after 0.7.1 until 20210608
+    if((key.f.vect_version>RVVV_0_7_1) && (key.f.vect_version<=RVVV_1_0_20210608)) {
+        insertEntries32(table, &decodeVPost071Pre1_0_20210608[0]);
     }
 
     // insert vector-extension-dependent table entries after 0.7.1+
@@ -4853,6 +4981,32 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeVPre1_0_20210130[0]);
     }
 
+    // insert vector-extension-dependent table entries before/after 1.0-20210608
+    if(key.f.vect_version>RVVV_1_0_20210608) {
+        insertEntries32(table, &decodeVPost1_0_20210608[0]);
+    } else {
+        insertEntries32(table, &decodeVPre1_0_20210608[0]);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CBO EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle Zicbom extension instructions
+    if(key.f.Zicbom) {
+        insertEntries32(table, &decodeZicbom[0]);
+    }
+
+    // handle Zicbop extension instructions
+    if(key.f.Zicbop) {
+        insertEntries32(table, &decodeZicbop[0]);
+    }
+
+    // handle Zicboz extension instructions
+    if(key.f.Zicboz) {
+        insertEntries32(table, &decodeZicboz[0]);
+    }
+
     return table;
 }
 
@@ -4906,6 +5060,9 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
             K                : cryptoPresent(riscv),
             P                : DSPPresent(riscv),
             Zceb             : Zceb(riscv),
+            Zicbom           : riscv->configInfo.Zicbom,
+            Zicbop           : riscv->configInfo.Zicbop,
+            Zicboz           : riscv->configInfo.Zicboz,
         }
     };
 
@@ -5498,10 +5655,10 @@ static void setMinXLEN(riscvInstrInfoP info, Uns32 minXLEN) {
 //
 // Force register width to 32 (when XLEN is 64 only)
 //
-static riscvRegDesc forceWidth32(riscvInstrInfoP info, Bool explicitW) {
+static riscvRegDesc forceWidth32(riscvInstrInfoP info) {
 
     info->arch     &= ~ISA_XLEN_32;
-    info->explicitW = explicitW;
+    info->explicitW = True;
 
     return RV_RD_32;
 }
@@ -5535,11 +5692,9 @@ static riscvRegDesc getXWidth(riscvP riscv, riscvInstrInfoP info, wxSpec w) {
         case WX_NA:
             result = current;
             break;
-        case WX_3: {
-            Bool currentW = !U_3(instr) || isCustom(instr);
-            result = currentW ? current : forceWidth32(info, True);
+        case WX_3:
+            result = !U_3(instr) || isCustom(instr) ? current : forceWidth32(info);
             break;
-        }
         case WX_12:
             result = U_12(instr) ? RV_RD_64 : RV_RD_32;
             // explicitly show operand types
@@ -5562,11 +5717,11 @@ static riscvRegDesc getXWidth(riscvP riscv, riscvInstrInfoP info, wxSpec w) {
             info->explicitType = 1;
             break;
         case WX_W1:
-            result = forceWidth32(info, True);
+            result = forceWidth32(info);
             break;
         case WX_W1_KV_1_0_0_RC1: {
             Bool currentW = riscv->configInfo.crypto_version<RVKV_1_0_0_RC1;
-            result = currentW ? current : forceWidth32(info, False);
+            result = currentW ? current : RV_RD_32;
             break;
         }
         case WX_W1_RV32:
@@ -6831,6 +6986,24 @@ static Bool getReturn(riscvInstrInfoP info, retSpec ret) {
 }
 
 //
+// Return xperm specification encoded in the instruction
+//
+static riscvXPERMDesc getXPERM(riscvP riscv, Bool isXPERM) {
+
+    riscvXPERMDesc result = RV_XP_NA;
+
+    if(!isXPERM) {
+        // no action
+    } else if(riscv->configInfo.bitmanip_version<RVBV_1_0_0) {
+        result = RV_XP_NBHW;
+    } else {
+        result = RV_XP_BITS;
+    }
+
+    return result;
+}
+
+//
 // Fix instructions that cannot be determined by decode alone
 //
 static void fixPseudoInstructions(riscvP riscv, riscvInstrInfoP info) {
@@ -6955,6 +7128,7 @@ static void interpretInstruction(
     info->format = attrs->format;
     info->arch   = attrs->arch;
     info->Zc     = attrs->Zc;
+    info->Zmmul  = attrs->Zmmul;
     info->unsPfx = attrs->unsPfx;
 
     // indicate whether operand types should be explicitly listed
@@ -7005,6 +7179,7 @@ static void interpretInstruction(
     info->alist     = getAList(info, attrs->alist);
     info->retval    = getRetVal(info, attrs->retval);
     info->doRet     = getReturn(info, attrs->ret);
+    info->xperm     = getXPERM(riscv, attrs->isXPERM);
 
     // don't use rd<csr> form for undefined CSRs
     if(info->csrInOp && !riscvGetCSRName(riscv, info->csr)) {
@@ -7046,7 +7221,6 @@ void riscvDecode(
     riscvAddr       thisPC,
     riscvInstrInfoP info
 ) {
-    info->type        = RV_IT_LAST;
     info->thisPC      = thisPC;
     info->instruction = riscvFetchInstruction(riscv, info->thisPC, &info->bytes);
 
@@ -7055,6 +7229,8 @@ void riscvDecode(
         decode16(riscv, info);
     } else if(info->bytes==4) {
         decode32(riscv, info);
+    } else {
+        interpretInstruction(riscv, info, &attrsArray32[IT32_LAST]);
     }
 
     // fix up pseudo-instructions

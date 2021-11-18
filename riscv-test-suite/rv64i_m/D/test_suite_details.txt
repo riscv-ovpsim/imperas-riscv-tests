@@ -42,20 +42,20 @@ Instruction category: OPD_DCM Double-Precision Floating-Point Conversion and Mov
   fcvt.d.l : 310
   fcvt.d.lu : 310
   fcvt.d.s : 31
-  fcvt.d.wu : 31
   fcvt.l.d : 310
   fcvt.d.w : 31
+  fcvt.d.wu : 31
   fcvt.lu.d : 310
   fcvt.s.d : 310
   fcvt.w.d : 310
   fcvt.wu.d : 310
   fsgnj.d : 31
-  fsgnjn.d : 31
   fsgnjx.d : 31
+  fsgnjn.d : 31
 Instruction category: OPD_DCP Double-Precision Floating-Point Compare
   fle.d : 31
-  feq.d : 31
   flt.d : 31
+  feq.d : 31
 Instruction category: OPD_DLS Double-Precision Floating-Point Load and Store
   fsd : 4,061
   fld : 31

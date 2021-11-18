@@ -98,6 +98,7 @@ typedef struct riscvBlockStateS {
     Bool             VStartZeroMt;  // vstart known to be zero?
     Bool             updateFFlags;  // whether to update fflags from fflags_i
     Bool             doLSTrig;      // whether load/store triggers enabled
+    Bool             ZfhminOK;      // whether allowed by Zfhmin
 
 } riscvBlockState;
 

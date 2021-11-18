@@ -1,32 +1,24 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd. All Rights Reserved.
     #
-    # The contents of this file are provided under the Software License
-    # Agreement that you accepted before downloading this file.
+    # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
+    # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
+    # EXCEPT AS MAY BE PROVIDED FOR IN A WRITTEN AGREEMENT WITH IMPERAS SOFTWARE LTD.
     #
-    # This source forms part of the Software and can be used for educational,
-    # training, and demonstration purposes but cannot be used for derivative
-    # works except in cases where the derivative works require OVP technology
-    # to run.
     #
-    # For open source models released under licenses that you can use for
-    # derivative works, please visit www.OVPworld.org or www.imperas.com
-    # for the location of the open source models.
-    #
-    
 
 
 Architectural Test Suite Data for RV32VR RISC-V "V" Vector Extension:
     292 test source files
     2 different instruction categories
-    30 different instructions
-    183,472 total instructions
+    34 different instructions
+    183,600 total instructions
 
 Instruction category: OPV_IRED integer reduction arithmetic
   vfredmax.vs : 426
   vfredmin.vs : 426
   vfredosum.vs : 426
-  vfredsum.vs : 426
+  vfredusum.vs : 426
   vredand.vs : 639
   vredmax.vs : 639
   vredmaxu.vs : 639
@@ -37,23 +29,27 @@ Instruction category: OPV_IRED integer reduction arithmetic
   vredxor.vs : 639
 Instruction category: OPV_IWRED integer widening reduction arithmetic
   vfwredosum.vs : 150
-  vfwredsum.vs : 150
+  vfwredusum.vs : 150
   vwredsum.vs : 300
   vwredsumu.vs : 300
 
 Other instructions (those not the focus of this suite)
   jal : 292
   lui : 9,052
-  addi : 61,412
+  addi : 61,540
   csrrs : 1,168
   auipc : 9,024
   csrrw : 876
   mret : 292
   vsetvli : 26,800
-  vle.v : 26,800
+  vle16.v : 9,920
   add : 30,864
-  vse.v : 7,716
+  vse16.v : 2,856
   fence : 292
   ecall : 292
   beq : 876
+  vle32.v : 10,960
+  vse32.v : 3,156
+  vle8.v : 5,920
+  vse8.v : 1,704
 

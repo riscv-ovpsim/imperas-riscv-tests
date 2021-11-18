@@ -29,7 +29,6 @@
 
 // model header files
 #include "riscvCluster.h"
-#include "riscvDoc.h"
 #include "riscvFunctions.h"
 #include "riscvParameters.h"
 #include "riscvStructure.h"
@@ -137,7 +136,7 @@ static void addDocSExt(
             "sign-extended from the most-significant writable bit. In this "
             "variant, \"%s\" is True, indicating that \"%s\" is sign-extended "
             "from bit %u.",
-            pname, rname, pname, rname, sext
+            pname, rname, pname, rname, 64-sext-1
         );
 
     } else {
@@ -191,12 +190,16 @@ static void addBFeature(
     const char      *name,
     const char      *desc
 ) {
+    Bool ignored_1_0_0 = feature & ~RVBS_1_0_0;
     snprintf(
         string, stringLen,
         "Parameter %s is used to specify that %s instructions are present. "
         "By default, %s is set to %u in this variant. Updates to this "
-        "parameter require a commercial product license.",
-        name, desc, name, !(cfg->bitmanip_absent & feature)
+        "parameter require a commercial product license.%s",
+        name, desc, name, !(cfg->bitmanip_absent & feature),
+        ignored_1_0_0 ?
+        " This parameter is ignored for version 1.0.0, which does not "
+        "implement that subset." : ""
     );
     vmidocAddText(Parameters, string);
 }
@@ -405,47 +408,6 @@ static const char *concat(
 }
 
 //
-// Emit documentation for an AMP cluster
-//
-static vmiDocNodeP docAMP(riscvP ampRoot) {
-
-    vmiDocNodeP  root     = vmidocAddSection(0, "Root");
-    vmiDocNodeP  desc     = vmidocAddSection(root, "Description");
-    Uns32        numAMP   = ampRoot->configInfo.numHarts;
-    const char **variants = ampRoot->configInfo.members;
-    char         string[1024];
-
-    ////////////////////////////////////////////////////////////////////////////
-    // DESCRIPTION
-    ////////////////////////////////////////////////////////////////////////////
-
-    static const char *sep[] = {", ", " and "};
-    char               variantsString[concatLength(variants, sep, numAMP)];
-    snprintf(
-        SNPRINTF_TGT(string),
-        "This model implements an AMP RISC-V system containing %s members.",
-        concat(variantsString, variants, sep, numAMP)
-    );
-    vmidocAddText(desc, string);
-
-    ////////////////////////////////////////////////////////////////////////////
-    // LICENSING
-    ////////////////////////////////////////////////////////////////////////////
-
-    vmiDocNodeP lic = vmidocAddSection(root, "Licensing");
-
-    // refer to cluster documentation for details
-    vmidocAddText(
-        lic,
-        "This document describes the interface to the MultiCluster only. "
-        "Refer to documentation of individual clusters for information "
-        "regarding implemented features, licensing and limitations."
-    );
-
-    return root;
-}
-
-//
 // Document extension with matching field in configuration
 //
 #define DOC_EXTENSION(_RISCV, _PARAMS, _STRING, _NAME) \
@@ -470,6 +432,467 @@ static vmiDocNodeP docAMP(riscvP ampRoot) {
         _RISCV->configInfo.vect_profile==RVVS_##_NAME                       \
     );                                                                      \
     vmidocAddText(_PARAMS, _STRING)
+
+//
+// Document CLIC if required
+//
+static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
+
+    riscvConfigCP cfg = &riscv->configInfo;
+    char string[1024];
+
+    if(riscv->parent) {
+
+        // document at root level only
+
+    } else if(!cfg->CLICLEVELS) {
+
+        vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
+
+        vmidocAddText(
+            CLIC,
+            "The model can be configured to implement a Core Local Interrupt "
+            "Controller (CLIC) using parameter \"CLICLEVELS\"; when non-zero, "
+            "the CLIC is present with the specified number of interrupt "
+            "levels (2-256), as described in the RISC-V Core-Local Interrupt "
+            "Controller specification, and further parameters are made "
+            "available to configure other aspects of the CLIC. \"CLICLEVELS\" "
+            "is zero in this variant, indicating that a CLIC is not "
+            "implemented."
+        );
+
+    } else {
+
+        vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "This model implements a Core Local Interrupt Controller (CLIC) "
+            "with %u levels. Parameter \"CLICLEVELS\" can be used to specify "
+            "a different number of interrupt levels (2-256), as described in "
+            "the RISC-V Core-Local Interrupt Controller specification (see "
+            "references). Set \"CLICLEVELS\" to zero to indicate the CLIC "
+            "is not implemented.",
+            cfg->CLICLEVELS
+        );
+        vmidocAddText(CLIC, string);
+
+        vmidocAddText(
+            CLIC,
+            "The model can configured either to use an internal CLIC model "
+            "(if parameter \"externalCLIC\" is False) or to present a net "
+            "interface to allow the CLIC to be implemented externally in a "
+            "platform component (if parameter \"externalCLIC\" is True). "
+            "When the CLIC is implemented internally, net ports for standard "
+            "interrupts and additional local interrupts are available. When "
+            "the CLIC is implemented externally, a net port interface allowing "
+            "the highest-priority pending interrupt to be delivered is instead "
+            "present. This is described below."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC COMMON PARAMETERS
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                CLIC, "CLIC Common Parameters"
+            );
+
+            vmidocAddText(
+                Parameters,
+                "This section describes parameters applicable whether the CLIC "
+                "is implemented internally or externally. These are:"
+            );
+
+            // document CLICANDBASIC
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICANDBASIC\": this Boolean parameter indicates whether "
+                "both CLIC and basic interrupt controller are present (if "
+                "True) or whether only the CLIC is present (if False). The "
+                "default value in this variant is %s.",
+                riscv->configInfo.CLICANDBASIC ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document CLICXNXTI
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICXNXTI\": this Boolean parameter indicates whether xnxti "
+                "CSRs are implemented (if True) or unimplemented (if False). "
+                "The default value in this variant is %s.",
+                riscv->configInfo.CLICXNXTI ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document CLICXCSW
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICXCSW\": this Boolean parameter indicates whether "
+                "xscratchcsw and xscratchcswl CSRs registers are implemented "
+                "(if True) or unimplemented (if False). The default value in "
+                "this variant is %s.",
+                riscv->configInfo.CLICXCSW ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document mclicbase
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"mclicbase\": this parameter specifies the CLIC base address "
+                "in physical memory. The default value in this variant is 0x"
+                FMT_Ax".",
+                cfg->csr.mclicbase.u64.bits
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tvt_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"tvt_undefined\": this Boolean parameter indicates whether "
+                "xtvt CSRs registers are implemented (if True) or unimplemented "
+                "(if False). If the registers are unimplemented then the model "
+                "will use basic mode vectored interrupt semantics based on the "
+                "xtvec CSRs instead of Selective Hardware Vectoring semantics "
+                "described in the specification. The default value in this "
+                "variant is %s.",
+                riscv->configInfo.tvt_undefined ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document intthresh_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"intthresh_undefined\": this Boolean parameter indicates "
+                "whether xintthresh CSRs registers are implemented (if True) "
+                "or unimplemented (if False). The default value in this "
+                "variant is %s.",
+                riscv->configInfo.intthresh_undefined ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document mclicbase_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"mclicbase_undefined\": this Boolean parameter indicates "
+                "whether the mclicbase CSR register is implemented (if True) "
+                "or unimplemented (if False). The default value in this "
+                "variant is %s.",
+                riscv->configInfo.mclicbase_undefined ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC INTERNAL-IMPLEMENTATION PARAMETERS
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                CLIC, "CLIC Internal-Implementation Parameters"
+            );
+
+            vmidocAddText(
+                Parameters,
+                "This section describes parameters applicable only when the "
+                "CLIC is implemented internally. These are:"
+            );
+
+            // document CLIC_version
+            vmidocAddText(
+                Parameters,
+                "\"CLIC_version\": this defines the version of the CLIC "
+                "specification that is implemented. See the References section "
+                "of this document for more information."
+            );
+
+            // document CLICCFGMBITS
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICCFGMBITS\": this Uns32 parameter indicates the number "
+                "of bits implemented in cliccfg.nmbits, and also indirectly "
+                "defines CLICPRIVMODES. For cores which implement only Machine "
+                "mode, or which implement Machine and User modes but not the N "
+                "extension, the parameter is absent (\"CLICCFGMBITS\" must be "
+                "zero in these cases). The default value in this variant is %u.",
+                riscv->configInfo.CLICCFGMBITS
+            );
+            vmidocAddText(Parameters, string);
+
+            // document CLICCFGLBITS
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICCFGLBITS\": this Uns32 parameter indicates the number "
+                "of bits implemented in cliccfg.nlbits. The default value in "
+                "this variant is %u.",
+                riscv->configInfo.CLICCFGLBITS
+            );
+            vmidocAddText(Parameters, string);
+
+            // document CLICSELHVEC
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CLICSELHVEC\": this Boolean parameter indicates whether "
+                "Selective Hardware Vectoring is supported (if True) or "
+                "unsupported (if False). The default value in this variant is "
+                "%s.",
+                riscv->configInfo.CLICSELHVEC ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document posedge_0_63
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"posedge_0_63\": this Uns64 parameter is a mask for "
+                "interrupts 0 to 63 indicating whether an interrupt is fixed "
+                "positive edge triggered. If the corresponding mask bit for "
+                "interrupt N is 1 then the trig value for that interrupt is "
+                "hard wired to 1. If the mask bit is zero, then the interrupt "
+                "is either fixed level triggered (see below) or may be "
+                "configured as either edge or level triggered. The default "
+                "value in this variant is 0x"FMT_Ax".",
+                riscv->configInfo.posedge_0_63
+            );
+            vmidocAddText(Parameters, string);
+
+            // document poslevel_0_63
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"poslevel_0_63\": this Uns64 parameter is a mask for "
+                "interrupts 0 to 63 indicating whether an interrupt is fixed "
+                "positive level triggered. If the corresponding mask bit for "
+                "interrupt N is 1 then the trig value for that interrupt is "
+                "hard wired to 0. If the mask bit is zero, then the interrupt "
+                "may be configured as either edge or level triggered. The "
+                "default value in this variant is 0x"FMT_Ax".",
+                riscv->configInfo.poslevel_0_63
+            );
+            vmidocAddText(Parameters, string);
+
+            // document posedge_other
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"posedge_other\": this Boolean parameter indicates whether "
+                "interrupts 64 and above are fixed positive edge triggered. If "
+                "True then the trig value for those interrupts is hard wired "
+                "to 1. If False, then those interrupts are either fixed level "
+                "triggered (see below) or may be configured as either edge or "
+                "level triggered. The default value in this variant is %s.",
+                riscv->configInfo.posedge_other ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document poslevel_other
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"poslevel_other\": this Boolean parameter indicates whether "
+                "interrupts 64 and above are fixed positive level triggered. "
+                "If True then the trig value for those interrupts is hard "
+                "wired to 0. If False, then those interrupts may be configured "
+                "as either edge or level triggered. The default value in this "
+                "variant is %s.",
+                riscv->configInfo.poslevel_other ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC EXTERNAL-IMPLEMENTATION NET PORT INTERFACE
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP External = vmidocAddSection(
+                CLIC, "CLIC External-Implementation Net Port Interface"
+            );
+
+            vmidocAddText(
+                External,
+                "When the CLIC is externally implemented, net ports are "
+                "present allowing the external CLIC model to supply the "
+                "highest-priority pending interrupt and to be notified when "
+                "interrupts are handled. These are:"
+            );
+            vmidocAddText(
+                External,
+                "\"irq_id_i\": this input should be written with the id of the "
+                "highest-priority pending interrupt."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_lev_i\": this input should be written with the "
+                "highest-priority interrupt level."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_sec_i\": this 2-bit input should be written with the "
+                "highest-priority interrupt security state (00:User, "
+                "01:Supervisor, 11:Machine)."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_shv_i\": this input port should be written to indicate "
+                "whether the highest-priority interrupt should be direct (0) "
+                "or vectored (1). If the \"tvt_undefined parameter\" is False, "
+                "vectored interrupts will use selective hardware vectoring, "
+                "as described in the CLIC specification. If \"tvt_undefined\" "
+                "is True, vectored interrupts will behave like basic mode "
+                "vectored interrupts."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_id_i\": this input should be written with the id of the "
+                "highest-priority pending interrupt."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_i\": this input should be written with 1 to indicate "
+                "that the external CLIC is presenting an interrupt, or 0 if "
+                "no interrupt is being presented."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_ack_o\": this output is written by the model on entry "
+                "to the interrupt handler (i.e. when the interrupt is taken). "
+                "It will be written as an instantaneous pulse (i.e. written to "
+                "1, then immediately 0)."
+            );
+            vmidocAddText(
+                External,
+                "\"irq_id_o\": this output is written by the model with the id "
+                "of the interrupt currently being handled. It is valid during "
+                "the instantaneous irq_ack_o pulse."
+            );
+            vmidocAddText(
+                External,
+                "\"sec_lvl_o\": this output signal indicates the current "
+                "secure status of the processor, as a 2-bit value (00=User, "
+                "01:Supervisor, 11=Machine)."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                CLIC, "CLIC Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "The CLIC specification has been under active development. "
+                "To enable simulation of hardware that may be based on an "
+                "older version of the specification, the model implements "
+                "behavior for a number of previous versions of the "
+                "specification. The differing features of these are listed "
+                "below, in chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION 20180831
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version 20180831"
+            );
+
+            vmidocAddText(
+                Version,
+                "Legacy version of August 31 2018, required for SiFive cores."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION 0.9-draft-20191208
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version 0.9-draft-20191208"
+            );
+
+            vmidocAddText(
+                Version,
+                "Stable 0.9 version of December 8 2019."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
+                RVCLC_MASTER_TAG"), with these changes compared to version "
+                "0.9-draft-20191208:"
+            );
+            vmidocAddText(
+                Version,
+                "- level-sensitive interrupts may no longer be set pending "
+                "by software;"
+            );
+            vmidocAddText(
+                Version,
+                "- if there is an access exception on table load when "
+                "Selective Hardware Vectoring is enabled, both xtval and xepc "
+                "hold the faulting address;"
+            );
+            vmidocAddText(
+                Version,
+                "- if the xinhv bit is set, the target address for an xret "
+                "instruction is obtained by a load from address xepc."
+            );
+        }
+    }
+}
+
+//
+// Document CLINT if required
+//
+static void docCLINT(riscvP riscv, vmiDocNodeP Root) {
+
+    riscvConfigCP cfg = &riscv->configInfo;
+    char string[1024];
+
+    if(riscv->parent) {
+
+        // document at root level only
+
+    } else if(cfg->CLINT_address) {
+
+        vmiDocNodeP CLINT = vmidocAddSection(
+            Root, "CLINT"
+        );
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "This model implements a SiFive-compatible Core Local Interruptor "
+            "(CLINT) block at address 0x"FMT_Ax". Use parameter "
+            "\"CLINT_address\" to specify a different address for this block, "
+            "or set it to zero to disable the CLINT",
+            cfg->CLINT_address
+        );
+        vmidocAddText(CLINT, string);
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "The tick timer in the CLINT (mtime) will increment at %gHz. Use "
+            "parameter \"mtime_Hz\" to specify a different timer frequency.",
+            cfg->mtime_Hz
+        );
+        vmidocAddText(CLINT, string);
+    }
+}
 
 //
 // Create processor documentation
@@ -1025,6 +1448,16 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(sub, string);
 
+            if(cfg->Smepmp_version) {
+                vmidocAddText(
+                    sub,
+                    "This variant implements the Smepmp extension with version "
+                    "specified in the References section of this document. "
+                    "Note that parameter \"Smepmp_version\" can be used to "
+                    "select the required version if required."
+                );
+            }
+
         } else {
 
             vmiDocNodeP sub = vmidocAddSection(Features, "PMP");
@@ -1235,6 +1668,153 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 riscvGetFSModeName(riscv)
             );
             vmidocAddText(Features, string);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // PRIVILEGED ARCHITECTURE
+    ////////////////////////////////////////////////////////////////////////////
+
+    {
+        vmiDocNodeP priv = vmidocAddSection(Root, "Privileged Architecture");
+
+        vmidocAddText(
+            priv,
+            "This variant implements the Privileged Architecture with version "
+            "specified in the References section of this document. Note that "
+            "parameter \"priv_version\" can be used to select the required "
+            "architecture version; see the following sections for detailed "
+            "information about differences between each supported version."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // PRIVILEGED ARCHITECTURE VERSION 1.10
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(priv, "Legacy Version 1.10");
+
+            vmidocAddText(
+                Version,
+                "1.10 version of May 7 2017."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // PRIVILEGED ARCHITECTURE VERSION 20190608
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(priv, "Version 20190608");
+
+            vmidocAddText(
+                Version,
+                "Stable 1.11 version of June 8 2019, with these changes "
+                "compared to version 1.10:"
+            );
+            vmidocAddText(
+                Version,
+                "- mcountinhibit CSR defined;"
+            );
+            vmidocAddText(
+                Version,
+                "- pages are never executable in Supervisor mode if page table "
+                "entry U bit is 1;"
+            );
+            vmidocAddText(
+                Version,
+                "- mstatus.TW is writable if any lower-level privilege mode is "
+                "implemented (previously, it was just if Supervisor mode was "
+                "implemented);"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // PRIVILEGED ARCHITECTURE VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(priv, "Version master");
+
+            vmidocAddText(
+                Version,
+                "Unstable master version corresponding to evolving 1.12 "
+                "specification, with these changes compared to version "
+                "20190608:"
+            );
+            vmidocAddText(
+                Version,
+                "- mstatush, mseccfg, mseccfgh, menvcfg, menvcfgh, senvcfg, "
+                "henvcfg, henvcfgh and mconfigptr CSRs defined;"
+            );
+            vmidocAddText(
+                Version,
+                "- xret instructions clear mstatus.MPRV when leaving Machine "
+                "mode if new mode is less privileged than M-mode;"
+            );
+            vmidocAddText(
+                Version,
+                "- maximum number of PMP registers increased to 64;"
+            );
+            vmidocAddText(
+                Version,
+                "- data endian is now configurable."
+            );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // UNPRIVILEGED ARCHITECTURE
+    ////////////////////////////////////////////////////////////////////////////
+
+    {
+        vmiDocNodeP isa = vmidocAddSection(Root, "Unprivileged Architecture");
+
+        vmidocAddText(
+            isa,
+            "This variant implements the Unprivileged Architecture with "
+            "version specified in the References section of this document. "
+            "Note that parameter \"user_version\" can be used to select the "
+            "required architecture version; see the following sections for "
+            "detailed information about differences between each supported "
+            "version."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // UNPRIVILEGED ARCHITECTURE VERSION 2.2
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(isa, "Legacy Version 2.2");
+
+            vmidocAddText(
+                Version,
+                "2.2 version of May 7 2017."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // UNPRIVILEGED ARCHITECTURE VERSION 20191213
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(isa, "Version 20191213");
+
+            vmidocAddText(
+                Version,
+                "Stable 20191213-Base-Ratified version of December 13 2019, "
+                "with these changes compared to version 2.2:"
+            );
+            vmidocAddText(
+                Version,
+                "- floating point fmin/fmax instruction behavior modified "
+                "to comply with IEEE 754-201x."
+            );
+            vmidocAddText(
+                Version,
+                "- numerous other optional behaviors can be separately "
+                "enabled using Z-prefixed parameters."
+            );
         }
     }
 
@@ -1526,8 +2106,17 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 Version,
-                "Unstable master version, currently identical to 1.0.0, except "
-                "that any subset may be enabled."
+                "Unstable master version, with these changes compared to "
+                "version 1.0.0:"
+            );
+            vmidocAddText(
+                Version,
+                "- any subset may be enabled;"
+            );
+            vmidocAddText(
+                Version,
+                "- xperm.n, xperm.b, xperm.h and xperm.w instructions "
+                "renamed xperm4, xperm8, xperm16 and xperm32."
             );
         }
     }
@@ -1786,7 +2375,11 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(
                 Version,
-                "- sentropy and mseccfg CSRs have been added."
+                "- read-only sentropy CSR has been added at address 0xDBF;"
+            );
+            vmidocAddText(
+                Version,
+                "- mseccfg CSR has been added containing SKES field."
             );
         }
 
@@ -1820,7 +2413,42 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- if the K extension is present, it is implicitly always "
-                "enabled and not subject to control by misa.K, which is zero."
+                "enabled and not subject to control by misa.K, which is zero;"
+            );
+            vmidocAddText(
+                Version,
+                "- sentropy CSR has been moved to address 0x546 and requires "
+                "accesses to be both read and write."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CRYPTOGRAPHIC EXTENSION VERSION 1.0.0-rc5
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extK, "Version 1.0.0-rc5");
+
+            vmidocAddText(
+                Version,
+                "Stable 1.0.0-rc5 version of October 8 2021, with these changes "
+                "compared to version 1.0.0-rc1:"
+            );
+
+            vmidocAddText(
+                Version,
+                "- sentropy CSR has been removed;"
+            );
+            vmidocAddText(
+                Version,
+                "- read/write seed CSR has been added at address 0x015, "
+                "requiring accesses to be both read and write;"
+            );
+            vmidocAddText(
+                Version,
+                "- mseccfg CSR has been modified to contain useed and sseed "
+                "fields controlling access to seed CSR in User and Supervisor "
+                "modes, respectively."
             );
         }
     }
@@ -2608,444 +3236,13 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     // CLIC
     ////////////////////////////////////////////////////////////////////////////
 
-    if(!cfg->CLICLEVELS) {
-
-        vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
-
-        vmidocAddText(
-            CLIC,
-            "The model can be configured to implement a Core Local Interrupt "
-            "Controller (CLIC) using parameter \"CLICLEVELS\"; when non-zero, "
-            "the CLIC is present with the specified number of interrupt "
-            "levels (2-256), as described in the RISC-V Core-Local Interrupt "
-            "Controller specification, and further parameters are made "
-            "available to configure other aspects of the CLIC. \"CLICLEVELS\" "
-            "is zero in this variant, indicating that a CLIC is not "
-            "implemented."
-        );
-
-    } else {
-
-        vmiDocNodeP CLIC = vmidocAddSection(Root, "CLIC");
-
-        snprintf(
-            SNPRINTF_TGT(string),
-            "This model implements a Core Local Interrupt Controller (CLIC) "
-            "with %u levels. Parameter \"CLICLEVELS\" can be used to specify "
-            "a different number of interrupt levels (2-256), as described in "
-            "the RISC-V Core-Local Interrupt Controller specification (see "
-            "references). Set \"CLICLEVELS\" to zero to indicate the CLIC "
-            "is not implemented.",
-            cfg->CLICLEVELS
-        );
-        vmidocAddText(CLIC, string);
-
-        vmidocAddText(
-            CLIC,
-            "The model can configured either to use an internal CLIC model "
-            "(if parameter \"externalCLIC\" is False) or to present a net "
-            "interface to allow the CLIC to be implemented externally in a "
-            "platform component (if parameter \"externalCLIC\" is True). "
-            "When the CLIC is implemented internally, net ports for standard "
-            "interrupts and additional local interrupts are available. When "
-            "the CLIC is implemented externally, a net port interface allowing "
-            "the highest-priority pending interrupt to be delivered is instead "
-            "present. This is described below."
-        );
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC COMMON PARAMETERS
-        /////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Parameters = vmidocAddSection(
-                CLIC, "CLIC Common Parameters"
-            );
-
-            vmidocAddText(
-                Parameters,
-                "This section describes parameters applicable whether the CLIC "
-                "is implemented internally or externally. These are:"
-            );
-
-            // document CLICANDBASIC
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICANDBASIC\": this Boolean parameter indicates whether "
-                "both CLIC and basic interrupt controller are present (if "
-                "True) or whether only the CLIC is present (if False). The "
-                "default value in this variant is %s.",
-                riscv->configInfo.CLICANDBASIC ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document CLICXNXTI
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICXNXTI\": this Boolean parameter indicates whether xnxti "
-                "CSRs are implemented (if True) or unimplemented (if False). "
-                "The default value in this variant is %s.",
-                riscv->configInfo.CLICXNXTI ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document CLICXCSW
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICXCSW\": this Boolean parameter indicates whether "
-                "xscratchcsw and xscratchcswl CSRs registers are implemented "
-                "(if True) or unimplemented (if False). The default value in "
-                "this variant is %s.",
-                riscv->configInfo.CLICXCSW ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document mclicbase
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"mclicbase\": this parameter specifies the CLIC base address "
-                "in physical memory. The default value in this variant is 0x"
-                FMT_Ax".",
-                cfg->csr.mclicbase.u64.bits
-            );
-            vmidocAddText(Parameters, string);
-
-            // document tvt_undefined
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"tvt_undefined\": this Boolean parameter indicates whether "
-                "xtvt CSRs registers are implemented (if True) or unimplemented "
-                "(if False). If the registers are unimplemented then the model "
-                "will use basic mode vectored interrupt semantics based on the "
-                "xtvec CSRs instead of Selective Hardware Vectoring semantics "
-                "described in the specification. The default value in this "
-                "variant is %s.",
-                riscv->configInfo.tvt_undefined ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document intthresh_undefined
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"intthresh_undefined\": this Boolean parameter indicates "
-                "whether xintthresh CSRs registers are implemented (if True) "
-                "or unimplemented (if False). The default value in this "
-                "variant is %s.",
-                riscv->configInfo.intthresh_undefined ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document mclicbase_undefined
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"mclicbase_undefined\": this Boolean parameter indicates "
-                "whether the mclicbase CSR register is implemented (if True) "
-                "or unimplemented (if False). The default value in this "
-                "variant is %s.",
-                riscv->configInfo.mclicbase_undefined ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC INTERNAL-IMPLEMENTATION PARAMETERS
-        /////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Parameters = vmidocAddSection(
-                CLIC, "CLIC Internal-Implementation Parameters"
-            );
-
-            vmidocAddText(
-                Parameters,
-                "This section describes parameters applicable only when the "
-                "CLIC is implemented internally. These are:"
-            );
-
-            // document CLIC_version
-            vmidocAddText(
-                Parameters,
-                "\"CLIC_version\": this defines the version of the CLIC "
-                "specification that is implemented. See the References section "
-                "of this document for more information."
-            );
-
-            // document CLICCFGMBITS
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICCFGMBITS\": this Uns32 parameter indicates the number "
-                "of bits implemented in cliccfg.nmbits, and also indirectly "
-                "defines CLICPRIVMODES. For cores which implement only Machine "
-                "mode, or which implement Machine and User modes but not the N "
-                "extension, the parameter is absent (\"CLICCFGMBITS\" must be "
-                "zero in these cases). The default value in this variant is %u.",
-                riscv->configInfo.CLICCFGMBITS
-            );
-            vmidocAddText(Parameters, string);
-
-            // document CLICCFGLBITS
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICCFGLBITS\": this Uns32 parameter indicates the number "
-                "of bits implemented in cliccfg.nlbits. The default value in "
-                "this variant is %u.",
-                riscv->configInfo.CLICCFGLBITS
-            );
-            vmidocAddText(Parameters, string);
-
-            // document CLICSELHVEC
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"CLICSELHVEC\": this Boolean parameter indicates whether "
-                "Selective Hardware Vectoring is supported (if True) or "
-                "unsupported (if False). The default value in this variant is "
-                "%s.",
-                riscv->configInfo.CLICSELHVEC ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document posedge_0_63
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"posedge_0_63\": this Uns64 parameter is a mask for "
-                "interrupts 0 to 63 indicating whether an interrupt is fixed "
-                "positive edge triggered. If the corresponding mask bit for "
-                "interrupt N is 1 then the trig value for that interrupt is "
-                "hard wired to 1. If the mask bit is zero, then the interrupt "
-                "is either fixed level triggered (see below) or may be "
-                "configured as either edge or level triggered. The default "
-                "value in this variant is 0x"FMT_Ax".",
-                riscv->configInfo.posedge_0_63
-            );
-            vmidocAddText(Parameters, string);
-
-            // document poslevel_0_63
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"poslevel_0_63\": this Uns64 parameter is a mask for "
-                "interrupts 0 to 63 indicating whether an interrupt is fixed "
-                "positive level triggered. If the corresponding mask bit for "
-                "interrupt N is 1 then the trig value for that interrupt is "
-                "hard wired to 0. If the mask bit is zero, then the interrupt "
-                "may be configured as either edge or level triggered. The "
-                "default value in this variant is 0x"FMT_Ax".",
-                riscv->configInfo.poslevel_0_63
-            );
-            vmidocAddText(Parameters, string);
-
-            // document posedge_other
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"posedge_other\": this Boolean parameter indicates whether "
-                "interrupts 64 and above are fixed positive edge triggered. If "
-                "True then the trig value for those interrupts is hard wired "
-                "to 1. If False, then those interrupts are either fixed level "
-                "triggered (see below) or may be configured as either edge or "
-                "level triggered. The default value in this variant is %s.",
-                riscv->configInfo.posedge_other ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-
-            // document poslevel_other
-            snprintf(
-                SNPRINTF_TGT(string),
-                "\"poslevel_other\": this Boolean parameter indicates whether "
-                "interrupts 64 and above are fixed positive level triggered. "
-                "If True then the trig value for those interrupts is hard "
-                "wired to 0. If False, then those interrupts may be configured "
-                "as either edge or level triggered. The default value in this "
-                "variant is %s.",
-                riscv->configInfo.poslevel_other ? "True" : "False"
-            );
-            vmidocAddText(Parameters, string);
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC EXTERNAL-IMPLEMENTATION NET PORT INTERFACE
-        /////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP External = vmidocAddSection(
-                CLIC, "CLIC External-Implementation Net Port Interface"
-            );
-
-            vmidocAddText(
-                External,
-                "When the CLIC is externally implemented, net ports are "
-                "present allowing the external CLIC model to supply the "
-                "highest-priority pending interrupt and to be notified when "
-                "interrupts are handled. These are:"
-            );
-            vmidocAddText(
-                External,
-                "\"irq_id_i\": this input should be written with the id of the "
-                "highest-priority pending interrupt."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_lev_i\": this input should be written with the "
-                "highest-priority interrupt level."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_sec_i\": this 2-bit input should be written with the "
-                "highest-priority interrupt security state (00:User, "
-                "01:Supervisor, 11:Machine)."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_shv_i\": this input port should be written to indicate "
-                "whether the highest-priority interrupt should be direct (0) "
-                "or vectored (1). If the \"tvt_undefined parameter\" is False, "
-                "vectored interrupts will use selective hardware vectoring, "
-                "as described in the CLIC specification. If \"tvt_undefined\" "
-                "is True, vectored interrupts will behave like basic mode "
-                "vectored interrupts."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_id_i\": this input should be written with the id of the "
-                "highest-priority pending interrupt."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_i\": this input should be written with 1 to indicate "
-                "that the external CLIC is presenting an interrupt, or 0 if "
-                "no interrupt is being presented."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_ack_o\": this output is written by the model on entry "
-                "to the interrupt handler (i.e. when the interrupt is taken). "
-                "It will be written as an instantaneous pulse (i.e. written to "
-                "1, then immediately 0)."
-            );
-            vmidocAddText(
-                External,
-                "\"irq_id_o\": this output is written by the model with the id "
-                "of the interrupt currently being handled. It is valid during "
-                "the instantaneous irq_ack_o pulse."
-            );
-            vmidocAddText(
-                External,
-                "\"sec_lvl_o\": this output signal indicates the current "
-                "secure status of the processor, as a 2-bit value (00=User, "
-                "01:Supervisor, 11=Machine)."
-            );
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSIONS
-        ////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Versions = vmidocAddSection(
-                CLIC, "CLIC Versions"
-            );
-
-            vmidocAddText(
-                Versions,
-                "The CLIC specification has been under active development. "
-                "To enable simulation of hardware that may be based on an "
-                "older version of the specification, the model implements "
-                "behavior for a number of previous versions of the "
-                "specification. The differing features of these are listed "
-                "below, in chronological order."
-            );
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSION 20180831
-        ////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Version = vmidocAddSection(
-                CLIC, "Version 20180831"
-            );
-
-            vmidocAddText(
-                Version,
-                "Legacy version of August 31 2018, required for SiFive cores."
-            );
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSION 0.9-draft-20191208
-        ////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Version = vmidocAddSection(
-                CLIC, "Version 0.9-draft-20191208"
-            );
-
-            vmidocAddText(
-                Version,
-                "Stable 0.9 version of December 8 2019."
-            );
-        }
-
-        ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSION master
-        ////////////////////////////////////////////////////////////////////////
-
-        {
-            vmiDocNodeP Version = vmidocAddSection(
-                CLIC, "Version master"
-            );
-
-            vmidocAddText(
-                Version,
-                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
-                RVCLC_MASTER_TAG"), with these changes compared to version "
-                "0.9-draft-20191208:"
-            );
-            vmidocAddText(
-                Version,
-                "- level-sensitive interrupts may no longer be set pending "
-                "by software;"
-            );
-            vmidocAddText(
-                Version,
-                "- if there is an access exception on table load when "
-                "Selective Hardware Vectoring is enabled, both xtval and xepc "
-                "hold the faulting address;"
-            );
-            vmidocAddText(
-                Version,
-                "- if the xinhv bit is set, the target address for an xret "
-                "instruction is obtained by a load from address xepc."
-            );
-        }
-    }
+    docCLIC(riscv, Root);
 
     ////////////////////////////////////////////////////////////////////////////
     // CLINT
     ////////////////////////////////////////////////////////////////////////////
 
-    if(cfg->CLINT_address) {
-
-        vmiDocNodeP CLINT = vmidocAddSection(
-            Root, "CLINT"
-        );
-
-        snprintf(
-            SNPRINTF_TGT(string),
-            "This model implements a SiFive-compatible Core Local Interruptor "
-            "(CLINT) block at address 0x"FMT_Ax". Use parameter "
-            "\"CLINT_address\" to specify a different address for this block, "
-            "or set it to zero to disable the CLINT",
-            cfg->CLINT_address
-        );
-        vmidocAddText(CLINT, string);
-
-        snprintf(
-            SNPRINTF_TGT(string),
-            "The tick timer in the CLINT (mtime) will increment at %gHz. Use "
-            "parameter \"mtime_Hz\" to specify a different timer frequency.",
-            cfg->mtime_Hz
-        );
-        vmidocAddText(CLINT, string);
-    }
+    docCLINT(riscv, Root);
 
     ////////////////////////////////////////////////////////////////////////////
     // LR/SC LOCKING
@@ -4004,6 +4201,16 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(References, string);
         }
 
+        if(cfg->Smepmp_version) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V Enhancements for memory access and execution "
+                "prevention on Machine mode (%s)",
+                riscvGetSmepmpVersionName(riscv)
+            );
+            vmidocAddText(References, string);
+        }
+
         // add custom references if required
         addOptDocList(References, cfg->specificDocs);
     }
@@ -4012,20 +4219,84 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 }
 
 //
+// Emit documentation for an AMP cluster
+//
+static vmiDocNodeP docAMP(riscvP ampRoot) {
+
+    vmiDocNodeP  Root     = vmidocAddSection(0, "Root");
+    vmiDocNodeP  desc     = vmidocAddSection(Root, "Description");
+    Uns32        numAMP   = riscvGetClusterNumMembers(ampRoot);
+    const char **variants = riscvGetClusterMembers(ampRoot);
+    char         string[1024];
+
+    ////////////////////////////////////////////////////////////////////////////
+    // DESCRIPTION
+    ////////////////////////////////////////////////////////////////////////////
+
+    static const char *sepText[]  = {", ", " and "};
+    static const char *sepParam[] = {",", ","};
+    char               clusterText [concatLength(variants, sepText,  numAMP)];
+    char               clusterParam[concatLength(variants, sepParam, numAMP)];
+    snprintf(
+        SNPRINTF_TGT(string),
+        "This model implements an AMP RISC-V system containing %s members, but "
+        "this can be changed using parameter \"clusterVariants\". This "
+        "parameter is a comma-separated list of cluster components (e.g. "
+        "\"%s\").",
+        concat(clusterText,  variants, sepText,  numAMP),
+        concat(clusterParam, variants, sepParam, numAMP)
+    );
+    vmidocAddText(desc, string);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // LICENSING
+    ////////////////////////////////////////////////////////////////////////////
+
+    vmiDocNodeP lic = vmidocAddSection(Root, "Licensing");
+
+    // refer to cluster documentation for details
+    vmidocAddText(
+        lic,
+        "This document describes the interface to the MultiCluster only. "
+        "Refer to documentation of individual clusters for information "
+        "regarding implemented features, licensing and limitations."
+    );
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CLIC
+    ////////////////////////////////////////////////////////////////////////////
+
+    docCLIC(ampRoot, Root);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CLINT
+    ////////////////////////////////////////////////////////////////////////////
+
+    docCLINT(ampRoot, Root);
+
+    return Root;
+}
+
+//
 // Create processor documentation
 //
-void riscvDoc(riscvP riscv) {
+VMI_DOC_FN(riscvDoc) {
 
-    vmiDocNodeP root;
+    // only document from root level
+    if(!vmirtGetSMPParent(processor)) {
 
-    // emit AMP or SMP variants
-    if(riscvIsCluster(riscv)) {
-        root = docAMP(riscv);
-    } else {
-        root = docSMP(riscv);
+        riscvP      riscv = (riscvP)processor;
+        vmiDocNodeP root;
+
+        // emit AMP or SMP variants
+        if(riscvIsCluster(riscv)) {
+            root = docAMP(riscv);
+        } else {
+            root = docSMP(riscv);
+        }
+
+        // add documenation to root
+        vmidocProcessor(processor, root);
     }
-
-    // add documenation to root
-    vmidocProcessor((vmiProcessorP)riscv, root);
 }
 

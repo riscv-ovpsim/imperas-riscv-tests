@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 20 Oct 2021
+Date      : 17 Nov 2021
 
-Version   : 20211019.0
+Version   : 20211117.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -26,13 +26,15 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
 ## RISC-V Specifications currently supported in this riscvOVPsimPlus product
 - RISC-V - Instruction Set Manual, Volume I: User-Level ISA (user_version)
     - Version 2.2 : User Architecture Version 2.2
-    - Version 2.3 : Deprecated and equivalent to 20190305
-    - Version 20190305 : User Architecture Version 20190305-Base-Ratification
+    - Version 2.3 : Deprecated and equivalent to 20191213
+    - Version 20190305 : Deprecated and equivalent to 20191213
+    - Version 20191213 : User Architecture Version 20191213
 
 - RISC-V - Instruction Set Manual, Volume II: Privileged Architecture (priv_version)
     - Version 1.10 : Privileged Architecture Version 1.10
-    - Version 1.11 : Deprecated and equivalent to 20190405
-    - Version 20190405 : Privileged Architecture Version 20190405-Priv-MSU-Ratification
+    - Version 1.11 : Deprecated and equivalent to 20190608
+    - Version 20190405 : Deprecated and equivalent to 20190608
+    - Version 20190608 : Privileged Architecture Version Ratified-IMFDQC-and-Priv-v1.11
     - Version master : Privileged Architecture Master Branch (1.12 draft)
 
 - RISC-V I Base ISA
@@ -66,7 +68,7 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 0.93 : Bit Manipulation Architecture Version v0.93-20210110
     - Version 0.94 : Bit Manipulation Architecture Version v0.94-20210120
     - Version 1.0.0 : Bit Manipulation Architecture Version 1.0.0
-    - Version master : Bit Manipulation Master Branch as of commit c1bd8ee (this is subject to change)
+    - Version master : Bit Manipulation Master Branch as of commit 1f56afe (this is subject to change)
 
 - RISC-V K Cryptographic Extension (crypto_version)
     - Version 0.7.2 : Cryptographic Architecture Version 0.7.2
@@ -74,6 +76,7 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 0.9.0 : Cryptographic Architecture Version 0.9.0
     - Version 0.9.2 : Cryptographic Architecture Version 0.9.2
     - Version 1.0.0-rc1 : Cryptographic Architecture Version 1.0.0-rc1
+    - Version 1.0.0-rc5 : Cryptographic Architecture Version 1.0.0-rc5
 
 - RISC-V P DSP/SIMD Extension (dsp_version)
     - Version 0.5.2 : DSP Architecture Version 0.5.2

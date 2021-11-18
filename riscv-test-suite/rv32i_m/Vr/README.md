@@ -1,6 +1,6 @@
 # Imperas RISC-V Architecture Tests for VR
-V Vector Extension, Version 0.8 0.8
-VR Vector Reduction Instructions (Chapter 15)
+V Vector Extension, Version 1.0 1.0-rc1-20210608
+VR Vector Reduction Instructions (Chapter 14)
 ELEN:32, VLEN:256, SLEN:256, FP16:IEEE754
 
 This directory contains information an Imperas test suite.

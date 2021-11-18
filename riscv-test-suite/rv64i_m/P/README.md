@@ -1,5 +1,5 @@
 # Imperas RISC-V Architecture Tests for P
-P DSP 0.5.2
+P DSP (0.5.2) 0.5.2
 
 This directory contains an Imperas test suite.
 The focus of these tests is to check the device under test complies with the RISC-V specifications.

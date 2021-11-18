@@ -37,7 +37,6 @@
 #include "riscvDebug.h"
 #include "riscvDecode.h"
 #include "riscvDisassemble.h"
-#include "riscvDoc.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
 #include "riscvKExtension.h"
@@ -142,7 +141,7 @@ static riscvConfigCP getConfigVariantArg(riscvP riscv, riscvParamValuesP params)
 
     if(riscvIsClusterMember(riscv)) {
 
-        match = riscvGetNamedConfig(cfgList, riscvGetClusterVariant(riscv));
+        match = riscvGetNamedConfig(cfgList, riscvGetMemberVariant(riscv));
 
     } else {
 
@@ -198,11 +197,14 @@ VMI_SMP_NAME_FN(riscvGetSMPName) {
     const char   *baseName = vmirtProcessorName(parent);
     riscvP        rvParent = (riscvP)parent;
     riscvConfigCP cfg      = &rvParent->configInfo;
+    Uns32         index;
 
-    if(riscvIsCluster(rvParent)) {
-        sprintf(name, "%s_%s", baseName, cfg->members[smpIndex]);
-    } else {
+    if(!riscvIsCluster(rvParent)) {
         sprintf(name, "%s_hart%u", baseName, cfg->csr.mhartid.u32.bits+smpIndex);
+    } else if((index=rvParent->uniqueIndices[smpIndex])) {
+        sprintf(name, "%s_%s_%u", baseName, cfg->members[smpIndex], index-1);
+    } else {
+        sprintf(name, "%s_%s", baseName, cfg->members[smpIndex]);
     }
 }
 
@@ -430,11 +432,115 @@ static void setVProfile(riscvP riscv, riscvParamValuesP params) {
 }
 
 //
-// Apply parameters applicable to SMP member
+// Apply parameters applicable at root level
 //
-static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
+static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
 
     riscvConfigP cfg = &riscv->configInfo;
+
+    // get uninterpreted architectural configuration parameters
+    cfg->CLIC_version        = params->CLIC_version;
+    cfg->CLICLEVELS          = params->CLICLEVELS;
+    cfg->CLICANDBASIC        = params->CLICANDBASIC;
+    cfg->CLICVERSION         = params->CLICVERSION;
+    cfg->CLICINTCTLBITS      = params->CLICINTCTLBITS;
+    cfg->CLICCFGMBITS        = params->CLICCFGMBITS;
+    cfg->CLICCFGLBITS        = params->CLICCFGLBITS;
+    cfg->CLICSELHVEC         = params->CLICSELHVEC;
+    cfg->CLICXNXTI           = params->CLICXNXTI;
+    cfg->CLICXCSW            = params->CLICXCSW;
+    cfg->externalCLIC        = params->externalCLIC;
+    cfg->tvt_undefined       = params->tvt_undefined;
+    cfg->intthresh_undefined = params->intthresh_undefined;
+    cfg->mclicbase_undefined = params->mclicbase_undefined;
+    cfg->posedge_0_63        = params->posedge_0_63;
+    cfg->poslevel_0_63       = params->poslevel_0_63;
+    cfg->posedge_other       = params->posedge_other;
+    cfg->poslevel_other      = params->poslevel_other;
+    cfg->CLINT_address       = params->CLINT_address;
+    cfg->mtime_Hz            = params->mtime_Hz;
+
+    // get uninterpreted CSR configuration parameters
+    cfg->csr.mclicbase.u64.bits = params->mclicbase;
+
+    // get uninterpreted CSR mask configuration parameters
+    cfg->csrMask.mtvt.u64.bits = params->mtvt_mask;
+    cfg->csrMask.stvt.u64.bits = params->stvt_mask;
+    cfg->csrMask.utvt.u64.bits = params->utvt_mask;
+
+    // get implied CSR sign extension configuration parameters
+    cfg->mtvec_sext = params->mtvec_sext;
+    cfg->stvec_sext = params->stvec_sext;
+    cfg->utvec_sext = params->utvec_sext;
+    cfg->mtvt_sext  = params->mtvt_sext;
+    cfg->stvt_sext  = params->stvt_sext;
+    cfg->utvt_sext  = params->utvt_sext;
+}
+
+//
+// Copy root configuration options from parent
+//
+static void copyParentConfig(riscvP riscv) {
+
+    riscvConfigP dst = &riscv->configInfo;
+    riscvConfigP src = &riscv->parent->configInfo;
+
+    // get uninterpreted architectural configuration parameters
+    dst->CLIC_version        = src->CLIC_version;
+    dst->CLICLEVELS          = src->CLICLEVELS;
+    dst->CLICANDBASIC        = src->CLICANDBASIC;
+    dst->CLICVERSION         = src->CLICVERSION;
+    dst->CLICINTCTLBITS      = src->CLICINTCTLBITS;
+    dst->CLICCFGMBITS        = src->CLICCFGMBITS;
+    dst->CLICCFGLBITS        = src->CLICCFGLBITS;
+    dst->CLICSELHVEC         = src->CLICSELHVEC;
+    dst->CLICXNXTI           = src->CLICXNXTI;
+    dst->CLICXCSW            = src->CLICXCSW;
+    dst->externalCLIC        = src->externalCLIC;
+    dst->tvt_undefined       = src->tvt_undefined;
+    dst->intthresh_undefined = src->intthresh_undefined;
+    dst->mclicbase_undefined = src->mclicbase_undefined;
+    dst->posedge_0_63        = src->posedge_0_63;
+    dst->poslevel_0_63       = src->poslevel_0_63;
+    dst->posedge_other       = src->posedge_other;
+    dst->poslevel_other      = src->poslevel_other;
+    dst->CLINT_address       = src->CLINT_address;
+    dst->mtime_Hz            = src->mtime_Hz;
+
+    // get uninterpreted CSR configuration parameters
+    dst->csr.mclicbase.u64.bits = src->csr.mclicbase.u64.bits;
+
+    // get uninterpreted CSR mask configuration parameters
+    dst->csrMask.mtvt.u64.bits = src->csrMask.mtvt.u64.bits;
+    dst->csrMask.stvt.u64.bits = src->csrMask.stvt.u64.bits;
+    dst->csrMask.utvt.u64.bits = src->csrMask.utvt.u64.bits;
+
+    // get implied CSR sign extension configuration parameters
+    dst->mtvec_sext = src->mtvec_sext;
+    dst->stvec_sext = src->stvec_sext;
+    dst->utvec_sext = src->utvec_sext;
+    dst->mtvt_sext  = src->mtvt_sext;
+    dst->stvt_sext  = src->stvt_sext;
+    dst->utvt_sext  = src->utvt_sext;
+}
+
+//
+// Apply parameters applicable to SMP member
+//
+static void applyParamsSMP(
+    riscvP            riscv,
+    riscvParamValuesP params,
+    Uns64             mhartid
+) {
+    riscvConfigP cfg = &riscv->configInfo;
+
+    // either apply parameters applicable at root level or copy root-level
+    // parameter values from parent
+    if(!riscv->parent) {
+        applyParamsRoot(riscv, params);
+    } else {
+        copyParentConfig(riscv);
+    }
 
     // set simulation controls
     riscv->verbose       = params->verbose;
@@ -446,35 +552,35 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     // get architectural configuration parameters
     Int32 lr_sc_grain = params->lr_sc_grain;
 
+    // use specified hartid
+    cfg->csr.mhartid.u64.bits = mhartid;
+
     // get uninterpreted CSR configuration parameters
     cfg->csr.mvendorid.u64.bits    = params->mvendorid;
     cfg->csr.marchid.u64.bits      = params->marchid;
     cfg->csr.mimpid.u64.bits       = params->mimpid;
-    cfg->csr.mhartid.u64.bits      = params->mhartid;
+    cfg->csr.mconfigptr.u64.bits   = params->mconfigptr;
     cfg->csr.mtvec.u64.bits        = params->mtvec;
     cfg->csr.mstatus.u32.fields.FS = params->mstatus_FS;
-    cfg->csr.mclicbase.u64.bits    = params->mclicbase;
 
     // get uninterpreted CSR mask configuration parameters
     cfg->csrMask.mtvec.u64.bits  = params->mtvec_mask;
     cfg->csrMask.stvec.u64.bits  = params->stvec_mask;
     cfg->csrMask.utvec.u64.bits  = params->utvec_mask;
-    cfg->csrMask.mtvt.u64.bits   = params->mtvt_mask;
-    cfg->csrMask.stvt.u64.bits   = params->stvt_mask;
-    cfg->csrMask.utvt.u64.bits   = params->utvt_mask;
     cfg->csrMask.tdata1.u64.bits = params->tdata1_mask;
     cfg->csrMask.mip.u64.bits    = params->mip_mask;
     cfg->csrMask.sip.u64.bits    = params->sip_mask;
     cfg->csrMask.uip.u64.bits    = params->uip_mask;
     cfg->csrMask.hip.u64.bits    = params->hip_mask;
+    cfg->csrMask.envcfg.u64.bits = params->envcfg_mask;
 
     // get implied CSR sign extension configuration parameters
-    cfg->mtvec_sext = getSExtendBits(params->mtvec_sext, params->mtvec_mask);
-    cfg->stvec_sext = getSExtendBits(params->stvec_sext, params->stvec_mask);
-    cfg->utvec_sext = getSExtendBits(params->utvec_sext, params->utvec_mask);
-    cfg->mtvt_sext  = getSExtendBits(params->mtvt_sext,  params->mtvt_mask);
-    cfg->stvt_sext  = getSExtendBits(params->stvt_sext,  params->stvt_mask);
-    cfg->utvt_sext  = getSExtendBits(params->utvt_sext,  params->utvt_mask);
+    cfg->mtvec_sext = getSExtendBits(params->mtvec_sext, cfg->csrMask.mtvec.u64.bits);
+    cfg->stvec_sext = getSExtendBits(params->stvec_sext, cfg->csrMask.stvec.u64.bits);
+    cfg->utvec_sext = getSExtendBits(params->utvec_sext, cfg->csrMask.utvec.u64.bits);
+    cfg->mtvt_sext  = getSExtendBits(params->mtvt_sext,  cfg->csrMask.mtvt.u64.bits);
+    cfg->stvt_sext  = getSExtendBits(params->stvt_sext,  cfg->csrMask.stvt.u64.bits);
+    cfg->utvt_sext  = getSExtendBits(params->utvt_sext,  cfg->csrMask.utvt.u64.bits);
 
     // handle parameters that are overridden only if explicitly set (affects
     // disassembly of instructions for extensions that are not configured)
@@ -482,11 +588,15 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     EXPLICIT_PARAM(cfg, params, bitmanip_version, bitmanip_version);
     EXPLICIT_PARAM(cfg, params, crypto_version,   crypto_version);
 
-    // handle alias parameters fp16_version and Zfh
-    EXPLICIT_PARAM(cfg, params, fp16_version, Zfh);
-    EXPLICIT_PARAM(cfg, params, fp16_version, fp16_version);
+    // handle specification of half-precision format
+    if(params->SETBIT(fp16_version)) {
+        cfg->fp16_version = params->fp16_version;
+    } else if((params->Zfh || params->Zfhmin) && !cfg->fp16_version) {
+        cfg->fp16_version = RVFP16_IEEE754;
+    }
 
     // get uninterpreted architectural configuration parameters
+    cfg->enable_expanded     = params->enable_expanded;
     cfg->endianFixed         = params->endianFixed;
     cfg->ABI_d               = params->ABI_d;
     cfg->user_version        = params->user_version;
@@ -495,7 +605,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->dsp_version         = params->dsp_version;
     cfg->dbg_version         = params->debug_version;
     cfg->rnmi_version        = params->rnmi_version;
-    cfg->CLIC_version        = params->CLIC_version;
+    cfg->Smepmp_version      = params->Smepmp_version;
     cfg->Zfinx_version       = params->Zfinx_version;
     cfg->Zcea_version        = params->Zcea_version;
     cfg->Zceb_version        = params->Zceb_version;
@@ -509,8 +619,6 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->reset_address       = params->reset_address;
     cfg->nmi_address         = params->nmi_address;
     cfg->nmiexc_address      = params->nmiexc_address;
-    cfg->CLINT_address       = params->CLINT_address;
-    cfg->mtime_Hz            = params->mtime_Hz;
     cfg->ASID_cache_size     = params->ASID_cache_size;
     cfg->ASID_bits           = params->ASID_bits;
     cfg->VMID_bits           = params->VMID_bits;
@@ -526,7 +634,10 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->PMP_registers       = params->PMP_registers;
     cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");
     cfg->PMP_decompose       = params->PMP_decompose;
+    cfg->cmomp_bytes         = powerOfTwo(params->cmomp_bytes, "cmomp_bytes");
+    cfg->cmoz_bytes          = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
     cfg->Sv_modes            = params->Sv_modes | RISCV_VMM_BARE;
+    cfg->Svpbmt              = params->Svpbmt;
     cfg->local_int_num       = params->local_int_num;
     cfg->unimp_int_mask      = params->unimp_int_mask;
     cfg->ecode_mask          = params->ecode_mask;
@@ -571,6 +682,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->enable_CSR_bus      = params->enable_CSR_bus;
     cfg->d_requires_f        = params->d_requires_f;
     cfg->enable_fflags_i     = params->enable_fflags_i;
+    cfg->trap_preserves_lr   = params->trap_preserves_lr;
     cfg->xret_preserves_lr   = params->xret_preserves_lr;
     cfg->require_vstart0     = params->require_vstart0;
     cfg->align_whole         = params->align_whole;
@@ -580,38 +692,42 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
     cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN,      "VLEN");
     cfg->EEW_index           = powerOfTwo(params->EEW_index, "EEW_index");
     cfg->SEW_min             = powerOfTwo(params->SEW_min,   "SEW_min");
+    cfg->Zmmul               = params->Zmmul;
+    cfg->Zfhmin              = params->Zfhmin;
     cfg->Zvlsseg             = params->Zvlsseg;
     cfg->Zvamo               = params->Zvamo;
     cfg->Zvediv              = params->Zvediv;
-    cfg->CLICLEVELS          = params->CLICLEVELS;
-    cfg->CLICANDBASIC        = params->CLICANDBASIC;
-    cfg->CLICVERSION         = params->CLICVERSION;
-    cfg->CLICINTCTLBITS      = params->CLICINTCTLBITS;
-    cfg->CLICCFGMBITS        = params->CLICCFGMBITS;
-    cfg->CLICCFGLBITS        = params->CLICCFGLBITS;
-    cfg->CLICSELHVEC         = params->CLICSELHVEC;
-    cfg->CLICXNXTI           = params->CLICXNXTI;
-    cfg->CLICXCSW            = params->CLICXCSW;
-    cfg->externalCLIC        = params->externalCLIC;
-    cfg->tvt_undefined       = params->tvt_undefined;
-    cfg->intthresh_undefined = params->intthresh_undefined;
-    cfg->mclicbase_undefined = params->mclicbase_undefined;
-    cfg->posedge_0_63        = params->posedge_0_63;
-    cfg->poslevel_0_63       = params->poslevel_0_63;
-    cfg->posedge_other       = params->posedge_other;
-    cfg->poslevel_other      = params->poslevel_other;
     cfg->GEILEN              = params->GEILEN;
     cfg->xtinst_basic        = params->xtinst_basic;
     cfg->noZicsr             = !params->Zicsr;
     cfg->noZifencei          = !params->Zifencei;
+    cfg->Zicbom              = params->Zicbom;
+    cfg->Zicbop              = params->Zicbop;
+    cfg->Zicboz              = params->Zicboz;
+    cfg->Svnapot_page_mask   = params->Svnapot_page_mask;
 
     ////////////////////////////////////////////////////////////////////////////
     // FUNDAMENTAL CONFIGURATION
     ////////////////////////////////////////////////////////////////////////////
 
+    Uns32 memberNumHarts;
+
     // set number of children
-    Bool isSMPMember = riscv->parent && !riscvIsCluster(riscv->parent);
-    cfg->numHarts = isSMPMember ? 0 : params->numHarts;
+    if(riscv->parent && !riscvIsCluster(riscv->parent)) {
+
+        // SMP member has no children
+        cfg->numHarts = 0;
+
+    } else if(params->SETBIT(numHarts) || !riscvIsClusterMember(riscv)) {
+
+        // if numHarts is set or not a cluster member, use parameter numHarts
+        cfg->numHarts = params->numHarts;
+
+    } else if((memberNumHarts=riscvGetMemberNumHarts(riscv))) {
+
+        // implied numHarts in member name
+        cfg->numHarts = memberNumHarts;
+    }
 
     // get specified MXL
     Uns32 misa_MXL = params->misa_MXL;
@@ -863,7 +979,7 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
 
     // for version 1.0.0, only Zba, Zbb, Zbc and Zbs may be configured
     if(cfg->bitmanip_version==RVBV_1_0_0) {
-        cfg->bitmanip_absent |= ~(RVBS_Zba|RVBS_Zbb|RVBS_Zbc|RVBS_Zbs);
+        cfg->bitmanip_absent |= ~RVBS_1_0_0;
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -912,16 +1028,49 @@ static void applyParamsSMP(riscvP riscv, riscvParamValuesP params) {
 //
 // Apply parameters applicable at root level
 //
-static void applyParams(riscvP riscv, riscvParamValuesP params) {
+static void applyParams(
+    riscvP            riscv,
+    riscvParamValuesP params,
+    Uns32             smpIndex
+) {
+    riscvConfigP cfg    = &riscv->configInfo;
+    riscvP       parent = riscv->parent;
+    Uns64        mhartid;
 
-    if(riscv->parent || riscv->parameters) {
+    if(riscvIsCluster(riscv)) {
 
-        // normal usage - copy configuration
-        riscv->configInfo = *getConfigVariantArg(riscv, params);
+        // cluster usage - allocate cluster variant string table
+        riscvNewClusterVariants(riscv, params->clusterVariants);
 
-        if(!riscvIsCluster(riscv)) {
-            applyParamsSMP(riscv, params);
+        // apply parameters applicable at root level
+        applyParamsRoot(riscv, params);
+
+    } else if(parent && !riscvIsCluster(parent)) {
+
+        // SMP member usage - copy parent configuration and apply parameters
+        *cfg = parent->configInfo;
+
+        // use container mhartid, plus SMP index
+        mhartid = cfg->csr.mhartid.u64.bits + smpIndex;
+
+        // apply parameters
+        applyParamsSMP(riscv, params, mhartid);
+
+    } else if(parent || riscv->parameters) {
+
+        // hart or SMP container usage - copy configuration
+        *cfg = *getConfigVariantArg(riscv, params);
+
+        // use mhartnum parameter if set, otherwise any non-zero mhartid in the
+        // configuration, otherwise the incrementing hart index
+        if(params->SETBIT(mhartid)) {
+            mhartid = params->mhartid;
+        } else if(!(mhartid=cfg->csr.mhartid.u64.bits)) {
+            mhartid = riscv->clusterRoot->numHarts;
         }
+
+        // apply parameters
+        applyParamsSMP(riscv, params, mhartid);
 
     } else {
 
@@ -960,7 +1109,7 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
     }
 
     // apply parameters
-    applyParams(riscv, paramValues);
+    applyParams(riscv, paramValues, smpContext->index);
 
     // if this is a container, get the number of children
     Uns32 numChildren = getNumChildren(riscv);
@@ -986,7 +1135,7 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         riscv->clic.sel.id  = RV_NO_INT;
 
         // indicate no LR/SC is active initially
-        riscv->exclusiveTag = RISCV_NO_TAG;
+        clearEA(riscv);
 
         // initialize mask of implemented exceptions
         riscvSetExceptionMask(riscv);
@@ -995,7 +1144,7 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         riscvVMNewPMP(riscv);
 
         // initialize CSR state
-        riscvCSRInit(riscv, smpContext->index);
+        riscvCSRInit(riscv);
 
         // initialize FPU
         riscvConfigureFPU(riscv);
@@ -1077,9 +1226,6 @@ VMI_POST_CONSTRUCTOR_FN(riscvPostConstructor) {
         // do initial reset of each hart
         vmirtIterAllProcessors(processor, initialReset, 0);
 
-        // install documentation
-        riscvDoc(root);
-
     } else {
 
         // do initial reset
@@ -1132,6 +1278,9 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free PMP structures
     riscvVMFreePMP(riscv);
+
+    // free cluster variant structures
+    riscvFreeClusterVariants(riscv);
 }
 
 

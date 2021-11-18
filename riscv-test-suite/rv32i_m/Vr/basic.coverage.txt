@@ -331,7 +331,7 @@ Extension : Vr, instructions: 16
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfredosum_vs 96/96 : 100.00%
-    vfredsum_vs    
+    vfredusum_vs   
         vd             
             vpr            
                 v0          22/1 : 100.00%
@@ -440,7 +440,7 @@ Extension : Vr, instructions: 16
                 v9           4/1 : 100.00%
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
-    vfredsum_vs 96/96 : 100.00%
+    vfredusum_vs 96/96 : 100.00%
     vfwredosum_vs  
         vd             
             vpr            
@@ -551,7 +551,7 @@ Extension : Vr, instructions: 16
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
     vfwredosum_vs 48/96 :  50.00%
-    vfwredsum_vs   
+    vfwredusum_vs  
         vd             
             vpr            
                 v0          10/1 : 100.00%
@@ -660,7 +660,7 @@ Extension : Vr, instructions: 16
                 v9           0/1 :   0.00% ZERO
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
-    vfwredsum_vs 48/96 :  50.00%
+    vfwredusum_vs 48/96 :  50.00%
     vredand_vs     
         vd             
             vpr            
@@ -1810,54 +1810,54 @@ Coverage points missed:
   vfwredosum_vs/vs2/vpr/v5
   vfwredosum_vs/vs2/vpr/v7
   vfwredosum_vs/vs2/vpr/v9
-  vfwredsum_vs/vd/vpr/v1
-  vfwredsum_vs/vd/vpr/v11
-  vfwredsum_vs/vd/vpr/v13
-  vfwredsum_vs/vd/vpr/v15
-  vfwredsum_vs/vd/vpr/v17
-  vfwredsum_vs/vd/vpr/v19
-  vfwredsum_vs/vd/vpr/v21
-  vfwredsum_vs/vd/vpr/v23
-  vfwredsum_vs/vd/vpr/v25
-  vfwredsum_vs/vd/vpr/v27
-  vfwredsum_vs/vd/vpr/v29
-  vfwredsum_vs/vd/vpr/v3
-  vfwredsum_vs/vd/vpr/v31
-  vfwredsum_vs/vd/vpr/v5
-  vfwredsum_vs/vd/vpr/v7
-  vfwredsum_vs/vd/vpr/v9
-  vfwredsum_vs/vs1/vpr/v1
-  vfwredsum_vs/vs1/vpr/v11
-  vfwredsum_vs/vs1/vpr/v13
-  vfwredsum_vs/vs1/vpr/v15
-  vfwredsum_vs/vs1/vpr/v17
-  vfwredsum_vs/vs1/vpr/v19
-  vfwredsum_vs/vs1/vpr/v21
-  vfwredsum_vs/vs1/vpr/v23
-  vfwredsum_vs/vs1/vpr/v25
-  vfwredsum_vs/vs1/vpr/v27
-  vfwredsum_vs/vs1/vpr/v29
-  vfwredsum_vs/vs1/vpr/v3
-  vfwredsum_vs/vs1/vpr/v31
-  vfwredsum_vs/vs1/vpr/v5
-  vfwredsum_vs/vs1/vpr/v7
-  vfwredsum_vs/vs1/vpr/v9
-  vfwredsum_vs/vs2/vpr/v1
-  vfwredsum_vs/vs2/vpr/v11
-  vfwredsum_vs/vs2/vpr/v13
-  vfwredsum_vs/vs2/vpr/v15
-  vfwredsum_vs/vs2/vpr/v17
-  vfwredsum_vs/vs2/vpr/v19
-  vfwredsum_vs/vs2/vpr/v21
-  vfwredsum_vs/vs2/vpr/v23
-  vfwredsum_vs/vs2/vpr/v25
-  vfwredsum_vs/vs2/vpr/v27
-  vfwredsum_vs/vs2/vpr/v29
-  vfwredsum_vs/vs2/vpr/v3
-  vfwredsum_vs/vs2/vpr/v31
-  vfwredsum_vs/vs2/vpr/v5
-  vfwredsum_vs/vs2/vpr/v7
-  vfwredsum_vs/vs2/vpr/v9
+  vfwredusum_vs/vd/vpr/v1
+  vfwredusum_vs/vd/vpr/v11
+  vfwredusum_vs/vd/vpr/v13
+  vfwredusum_vs/vd/vpr/v15
+  vfwredusum_vs/vd/vpr/v17
+  vfwredusum_vs/vd/vpr/v19
+  vfwredusum_vs/vd/vpr/v21
+  vfwredusum_vs/vd/vpr/v23
+  vfwredusum_vs/vd/vpr/v25
+  vfwredusum_vs/vd/vpr/v27
+  vfwredusum_vs/vd/vpr/v29
+  vfwredusum_vs/vd/vpr/v3
+  vfwredusum_vs/vd/vpr/v31
+  vfwredusum_vs/vd/vpr/v5
+  vfwredusum_vs/vd/vpr/v7
+  vfwredusum_vs/vd/vpr/v9
+  vfwredusum_vs/vs1/vpr/v1
+  vfwredusum_vs/vs1/vpr/v11
+  vfwredusum_vs/vs1/vpr/v13
+  vfwredusum_vs/vs1/vpr/v15
+  vfwredusum_vs/vs1/vpr/v17
+  vfwredusum_vs/vs1/vpr/v19
+  vfwredusum_vs/vs1/vpr/v21
+  vfwredusum_vs/vs1/vpr/v23
+  vfwredusum_vs/vs1/vpr/v25
+  vfwredusum_vs/vs1/vpr/v27
+  vfwredusum_vs/vs1/vpr/v29
+  vfwredusum_vs/vs1/vpr/v3
+  vfwredusum_vs/vs1/vpr/v31
+  vfwredusum_vs/vs1/vpr/v5
+  vfwredusum_vs/vs1/vpr/v7
+  vfwredusum_vs/vs1/vpr/v9
+  vfwredusum_vs/vs2/vpr/v1
+  vfwredusum_vs/vs2/vpr/v11
+  vfwredusum_vs/vs2/vpr/v13
+  vfwredusum_vs/vs2/vpr/v15
+  vfwredusum_vs/vs2/vpr/v17
+  vfwredusum_vs/vs2/vpr/v19
+  vfwredusum_vs/vs2/vpr/v21
+  vfwredusum_vs/vs2/vpr/v23
+  vfwredusum_vs/vs2/vpr/v25
+  vfwredusum_vs/vs2/vpr/v27
+  vfwredusum_vs/vs2/vpr/v29
+  vfwredusum_vs/vs2/vpr/v3
+  vfwredusum_vs/vs2/vpr/v31
+  vfwredusum_vs/vs2/vpr/v5
+  vfwredusum_vs/vs2/vpr/v7
+  vfwredusum_vs/vs2/vpr/v9
   vwredsum_vs/vd/vpr/v1
   vwredsum_vs/vd/vpr/v11
   vwredsum_vs/vd/vpr/v13

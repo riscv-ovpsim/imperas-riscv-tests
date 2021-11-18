@@ -38,6 +38,13 @@
 
 
 //
+// Is the RISC-V object a Hart (not a container)
+//
+inline static Bool isHart(riscvP riscv) {
+    return !vmirtGetSMPChild((vmiProcessorP)riscv);
+}
+
+//
 // Write a net port
 //
 inline static void writeNet(riscvP riscv, Uns32 handle, Uns32 value) {
@@ -293,7 +300,7 @@ riscvExtConfigCP riscvGetExtConfig(riscvP riscv, Uns32 id) {
 // Does the processor support configurable endianness?
 //
 Bool riscvSupportEndian(riscvP riscv) {
-    return (RISCV_PRIV_VERSION(riscv)>RVPV_20190405);
+    return (RISCV_PRIV_VERSION(riscv)>=RVPV_1_12);
 }
 
 //
@@ -683,23 +690,29 @@ riscvMode riscvGetMinMode(riscvP riscv) {
 //
 VMI_MODE_INFO_FN(riscvModeInfo) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP        riscv = (riscvP)processor;
+    vmiModeInfoCP this  = 0;
 
-    // on the first call, start with the first member of the table
-    if(!prev) {
-        prev = modes-1;
+    if(isHart(riscv)) {
+
+        // on the first call, start with the first member of the table
+        if(!prev) {
+            prev = modes-1;
+        }
+
+        // get the next member
+        this = prev+1;
+
+        // skip to the next implemented mode
+        while((this->name) && !riscvHasMode(riscv, this->code)) {
+            this++;
+        }
+
+        // return the next member, or NULL if at the end of the list
+        this = (this->name) ? this : 0;
     }
 
-    // get the next member
-    vmiModeInfoCP this = prev+1;
-
-    // skip to the next implemented mode
-    while((this->name) && !riscvHasMode(riscv, this->code)) {
-        this++;
-    }
-
-    // return the next member, or NULL if at the end of the list
-    return (this->name) ? this : 0;
+    return this;
 }
 
 //

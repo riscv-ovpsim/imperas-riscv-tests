@@ -7,8 +7,8 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2021-October-20
-Release 20211018.0
+Date 2021-November-18
+Release 20211117.0
 
 This releaase includes some refactorization to support multiple versions.
 Current default versions for extensions are:
@@ -17,10 +17,10 @@ Current default versions for extensions are:
 |:----------------------- |:---------:|:------- | 
 | Base instructions       | IMC       | v2.1    |
 | Floating Point          |  FD       | v2.2    |
-| Bitmanipulation         |   B       | v0.92   |
-| Crypto                  |   K       | v0.8.1  |
+| Bitmanip                |   B       | v1.0.0  |
+| Crypto                  |   K       | v1.0.0  |
+| Vector XLEN=32 VLEN=256 |   V       | v1.0    |
 | SIMD/DSP                |   P       | v0.5.2  |
-| VECTOR XLEN 32 VLEN 256 |   V       | v0.8    |
 
 Date 2021-July-02
 Release 20210701.0

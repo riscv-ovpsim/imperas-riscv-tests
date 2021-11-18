@@ -991,7 +991,7 @@ inst_141:
     TEST_IMM_OP(slli, x18, x14, 0xfffffffe, 0xffffffff, 0x1, x1, 0, x2)
 
 inst_142:
-    // Test 142:  Test with random values
+    // Test 142:  Test with marching zeros/ones
     // result rd:x19(0x80000000), rs1:x13(0xadea5195), imm:0x1f
     TEST_IMM_OP(slli, x19, x13, 0x80000000, 0xadea5195, 0x1f, x1, 4, x2)
 

@@ -30,6 +30,6 @@ ${TARGET_SIM} \
     --inputfiles ${WORK_DIR} \
     --outputfile ${WORK_DIR}/${COVERTYPE}.coverage.yaml \
     --reportfile ${WORK_DIR}/${COVERTYPE}.coverage.txt \
-        --override riscvOVPsim/cpu/bitmanip_version="0.92" \
+        --override riscvOVPsim/cpu/bitmanip_version="1.0" \
     --logfile ${WORK_DIR}/${COVERTYPE}.coverage.run.log
 

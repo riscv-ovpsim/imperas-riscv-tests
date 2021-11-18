@@ -55,6 +55,36 @@ void riscvFreeCLINT(riscvP riscv);
 void riscvResetCLINT(riscvP riscv);
 
 //
+// Read msip[i]
+//
+Bool riscvReadCLINTMSIP(riscvCLINTP clint);
+
+//
+// Write msip[i]
+//
+void riscvWriteCLINTMSIP(riscvCLINTP clint, Bool value);
+
+//
+// Read mtime (common to all harts)
+//
+Uns64 riscvReadCLINTMTIME(riscvCLINTP clint);
+
+//
+// Write mtime (common to all harts)
+//
+void riscvWriteCLINTMTIME(riscvCLINTP clint, Uns64 value);
+
+//
+// Read mtimecmp[i]
+//
+Uns64 riscvReadCLINTMTIMECMP(riscvCLINTP clint);
+
+//
+// Write mtimecmp
+//
+void riscvWriteCLINTMTIMECMP(riscvCLINTP clint, Uns64 value);
+
+//
 // Save CLINT state not covered by register read/write API
 //
 void riscvSaveCLINT(riscvP riscv, vmiSaveContextP cxt);

@@ -96,6 +96,7 @@
 #define FMT_R1_R2_XIMM_RM       EMIT_R1_S "," EMIT_R2_S "," EMIT_CX_S "," EMIT_RM_S
 #define FMT_R1_R2_MEM3          EMIT_R1_S "," EMIT_R2_S ",(" EMIT_R3_S ")"
 #define FMT_R1_OFF_R2           EMIT_R1_S "," EMIT_CS_S "(" EMIT_R2_S ")"
+#define FMT_OFF_R1              EMIT_CS_S "(" EMIT_R1_S ")"
 #define FMT_OFF_R2              EMIT_CS_S "(" EMIT_R2_S ")"
 #define FMT_R2                  EMIT_R2_S
 #define FMT_R1_UI               EMIT_R1_S "," EMIT_UI_S

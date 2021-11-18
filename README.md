@@ -56,7 +56,7 @@ The riscvOVPsim package only includes the RV32I suite, and the riscvOVPsimPlus p
 To review the tests suites view: [riscv-test-suite/README.md](riscv-test-suite/README.md).
 
 To view the details of the specific test suites, look in the test suite directories, 
-for example: [riscv-test-suite/rv32i/README.md](riscv-test-suite/rv32i/README.md)
+for example: [riscv-test-suite/rv32i_m/I/README.md](riscv-test-suite/rv32i_m/I/README.md)
 
 ### Using the test suites
 In the [riscv-target](riscv-target) is a directory for each target simulator/device.

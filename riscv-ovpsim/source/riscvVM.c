@@ -33,8 +33,6 @@
 // Model header files
 #include "riscvCLIC.h"
 #include "riscvCLINT.h"
-#include "riscvDecode.h"
-#include "riscvDecodeTypes.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
 #include "riscvMessage.h"
@@ -809,25 +807,32 @@ typedef enum pteErrorE {
     PTEE_D_NL,              // page table entry non-leaf and D!=0
     PTEE_A_NL,              // page table entry non-leaf and A!=0
     PTEE_U_NL,              // page table entry non-leaf and U!=0
+    PTEE_SVNAPOT,           // page table entry Svnapot invalid
     PTEE_CUSTOM,            // page table entry custom failure
 } pteError;
 
 //
-// Common control fields in table structure
+// Common page table entry type
 //
-typedef struct SvCtrlS {
-    Uns32 V    :  1;
-    Uns32 priv :  3;
-    Uns32 U    :  1;
-    Uns32 G    :  1;
-    Uns32 A    :  1;
-    Uns32 D    :  1;
-    Uns32 RSW  :  2;
-    Uns32 _u1  : 22;
-} SvCtrl;
+typedef union SvPTEU {
+    Uns64 raw;
+    struct {
+        Uns64 V    :  1;
+        Uns64 priv :  3;
+        Uns64 U    :  1;
+        Uns64 G    :  1;
+        Uns64 A    :  1;
+        Uns64 D    :  1;
+        Uns64 RSW  :  2;
+        Uns64 PPN  : 44;
+        Uns64 res0 :  7;
+        Uns64 PBMT :  2;
+        Uns64 N    :  1;
+    } fields;
+} SvPTE;
 
 //
-// Common physical adddress type
+// Common physical address type
 //
 typedef union SvPAU {
     Uns64 raw;
@@ -836,6 +841,23 @@ typedef union SvPAU {
         Uns64 PPN        : 52;
     } fields;
 } SvPA;
+
+//
+// Common virtual address type
+//
+typedef union SvVAU {
+    Uns64 raw;
+    struct {
+        Uns32 pageOffset : 12;
+        Uns64 VPN        : 52;
+    } fields;
+} SvVA;
+
+//
+// Sizes of VPN fileds for Sv32 and Sv39/Sv48/Sv57
+//
+#define VPN_SHIFT_SV32 10
+#define VPN_SHIFT_SV64  9
 
 //
 // Return number of virtual address bits for the given mode
@@ -882,27 +904,58 @@ static Uns32 getVAlevels(riscvVAMode vaMode) {
 }
 
 //
+// If the PTE is a Svnapot entry, return the encoded size
+//
+static Uns64 getSvnapotEntrySize(SvPTE PTE) {
+
+    Uns64 PPN    = PTE.fields.PPN;
+    Uns64 PPNlsb = PPN & -PPN;
+
+    return PPNlsb<<13;
+}
+
+//
+// Is the Svnapot entry size encoded in the PTE valid?
+//
+static Bool validSvnapotEntry(riscvP riscv, SvPTE PTE) {
+
+    Bool result = False;
+
+    // only allow leaf-level Svnapot entries currently
+    if(PTE.fields.priv) {
+
+        Uns64 bytes = getSvnapotEntrySize(PTE);
+
+        result = riscv->configInfo.Svnapot_page_mask & bytes;
+    }
+
+    return result;
+}
+
+//
 // Check page table entry for validity
 //
-static pteError checkTableEntry(riscvP riscv, SvCtrl ctrl, Bool res0) {
+static pteError checkTableEntry(riscvP riscv, SvPTE PTE) {
 
     pteError result = PTEE_LEAF;
 
     if(riscv->PTWBadAddr) {
         result = PTEE_READ;
-    } else if(res0) {
+    } else if(PTE.fields.res0 || PTE.fields.PBMT) {
         result = PTEE_RES0;
-    } else if(!ctrl.V) {
+    } else if(PTE.fields.N && !validSvnapotEntry(riscv, PTE)) {
+        result = PTEE_SVNAPOT;
+    } else if(!PTE.fields.V) {
         result = PTEE_V0;
-    } else if((ctrl.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
+    } else if((PTE.fields.priv&MEM_PRIV_RW) == MEM_PRIV_W) {
         result = PTEE_R0W1;
-    } else if(ctrl.priv) {
+    } else if(PTE.fields.priv) {
         result = PTEE_DONE;
-    } else if(ctrl.D) {
+    } else if(PTE.fields.D) {
         result = PTEE_D_NL;
-    } else if(ctrl.A) {
+    } else if(PTE.fields.A) {
         result = PTEE_A_NL;
-    } else if(ctrl.U) {
+    } else if(PTE.fields.U) {
         result = PTEE_U_NL;
     }
 
@@ -912,14 +965,14 @@ static pteError checkTableEntry(riscvP riscv, SvCtrl ctrl, Bool res0) {
 //
 // Do custom validity check on page table entry
 //
-static pteError checkEntryCustom(riscvP riscv, Uns64 PTE, riscvVAMode vaMode) {
+static pteError checkEntryCustom(riscvP riscv, SvPTE PTE, riscvVAMode vaMode) {
 
     Bool result = True;
 
     ITER_EXT_CB_WHILE(
         riscv, extCB, validPTE, result,
         result = extCB->validPTE(
-            riscv, riscv->activeTLB, vaMode, PTE, extCB->clientData
+            riscv, riscv->activeTLB, vaMode, PTE.raw, extCB->clientData
         );
     )
 
@@ -934,16 +987,29 @@ static pteError fillTLBEntry(
     riscvMode mode,
     tlbEntryP entry,
     memPriv   requiredPriv,
-    SvCtrl    ctrl,
+    SvPTE     PTE,
     Int32     i,
     Uns32     vpnShift
 ) {
-    // calculate entry size
-    Uns64 size = 1ULL << ((i*vpnShift) + RISCV_PAGE_SHIFT);
+    Uns64 size;
 
-    // return with page-fault exception if invalid page alignment
-    if(entry->PA & (size-1)) {
-        return PTEE_ALIGN;
+    if(PTE.fields.N) {
+
+        // Svnapot entry - get entry size
+        size = getSvnapotEntrySize(PTE);
+
+        // mask PA to Svnapot entry size
+        entry->PA &= -size;
+
+    } else {
+
+        // normal entry - calculate entry size
+        size = 1ULL << ((i*vpnShift) + RISCV_PAGE_SHIFT);
+
+        // return with page-fault exception if invalid page alignment
+        if(entry->PA & (size-1)) {
+            return PTEE_ALIGN;
+        }
     }
 
     // fill TLB entry virtual address range
@@ -952,12 +1018,12 @@ static pteError fillTLBEntry(
 
     // fill TLB entry attributes
     entry->tlb  = riscv->activeTLB;
-    entry->priv = ctrl.priv;
-    entry->V    = ctrl.V;
-    entry->U    = ctrl.U;
-    entry->G    = getG(riscv, ctrl.G);
-    entry->A    = ctrl.A;
-    entry->D    = ctrl.D;
+    entry->priv = PTE.fields.priv;
+    entry->V    = PTE.fields.V;
+    entry->U    = PTE.fields.U;
+    entry->G    = getG(riscv, PTE.fields.G);
+    entry->A    = PTE.fields.A;
+    entry->D    = PTE.fields.D;
 
     // return with page-fault exception if permissions are invalid
     if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
@@ -1113,6 +1179,7 @@ static riscvException getPTWException(
         [PTEE_D_NL]      = {1, PTX_PAGE,         "non-leaf and D!=0"        },
         [PTEE_A_NL]      = {1, PTX_PAGE,         "non-leaf and A!=0"        },
         [PTEE_U_NL]      = {1, PTX_PAGE,         "non-leaf and U!=0"        },
+        [PTEE_SVNAPOT]   = {1, PTX_PAGE,         "illegal Svnapot entry"    },
         [PTEE_CUSTOM]    = {1, PTX_PAGE,         "custom entry check failed"},
     };
 
@@ -1175,69 +1242,27 @@ static riscvException getPTWException(
     riscv, mode, entry, requiredPriv, PTEAddr, PTEE_##_CODE \
 )
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Sv32 PAGE TABLE WALK
-////////////////////////////////////////////////////////////////////////////////
-
 //
-// This is the VPN page size in bits
+// Look up any TLB entry for the passed address and mode and fill byref argument
+// 'entry' with the details.
 //
-#define SV32_VPN_SHIFT 10
-
-//
-// This is the VPN page mask
-//
-#define SV32_VPN_MASK ((1<<SV32_VPN_SHIFT)-1)
-
-//
-// Sv32 VA
-//
-typedef union Sv32VAU {
-    Uns32 raw;
-    struct {
-        Uns32 pageOffset : 12;
-        Uns32 VPN        : 20;
-    } fields;
-} Sv32VA;
-
-//
-// Sv32 entry
-//
-typedef union Sv32EntryU {
-    Uns32  raw;
-    SvCtrl ctrl;
-    struct {
-        Uns32 _u1 : 10;
-        Uns32 PPN : 22;
-    } fields;
-} Sv32Entry;
-
-//
-// Return Sv32 VPN[level]
-//
-static Uns32 getSv32VPNi(Sv32VA VA, Uns32 level) {
-    return (VA.fields.VPN >> (level*SV32_VPN_SHIFT)) & SV32_VPN_MASK;
-}
-
-//
-// Look up any TLB entry for the passed address using Sv32 mode and fill byref
-// argument 'entry' with the details.
-//
-static riscvException tlbLookupSv32(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
+static riscvException tlbLookupSvAny(
+    riscvP      riscv,
+    riscvMode   mode,
+    tlbEntryP   entry,
+    memPriv     requiredPriv,
+    riscvVAMode vaMode
 ) {
-    riscvVAMode vaMode = VAM_Sv32;
-    Sv32VA      VA     = {raw : entry->lowVA};
-    SvPA        PA;
-    Sv32Entry   PTE;
-    Addr        PTEAddr;
-    Addr        a;
-    Int32       i;
-    pteError    error;
+    Uns32    entryBytes = (vaMode==VAM_Sv32) ? 4 : 8;
+    Uns32    vpnShift   = (vaMode==VAM_Sv32) ? VPN_SHIFT_SV32 : VPN_SHIFT_SV64;
+    Uns32    vpnMask    = ((1<<vpnShift)-1);
+    SvVA     VA         = {raw : entry->lowVA};
+    SvPA     PA;
+    SvPTE    PTE;
+    Addr     PTEAddr;
+    Addr     a;
+    Int32    i;
+    pteError error;
 
     // clear page offset bits (not relevant for entry creation)
     VA.fields.pageOffset = 0;
@@ -1248,14 +1273,16 @@ static riscvException tlbLookupSv32(
         i>=0;
         i--, a=getPTETableAddress(PTE.fields.PPN)
     ) {
+        Uns32 offset = (VA.fields.VPN >> (i*vpnShift)) & vpnMask;
+
         // get next page table entry address
-        PTEAddr = a + getSv32VPNi(VA, i)*4;
+        PTEAddr = a + (offset*entryBytes);
 
         // read entry from memory
-        PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, 4, i);
+        PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, entryBytes, i);
 
         // validate PTE entry
-        error = checkTableEntry(riscv, PTE.ctrl, 0);
+        error = checkTableEntry(riscv, PTE);
 
         // terminate unless next level lookup required
         if(error!=PTEE_LEAF) {
@@ -1272,26 +1299,24 @@ static riscvException tlbLookupSv32(
         // fill TLB entry low physical address
         entry->PA = PA.raw;
 
-        error = fillTLBEntry(
-            riscv, mode, entry, requiredPriv, PTE.ctrl, i, SV32_VPN_SHIFT
-        );
+        error = fillTLBEntry(riscv, mode, entry, requiredPriv, PTE, i, vpnShift);
     }
 
     if(error) {
 
         // no action
 
-    } else if((error=checkEntryCustom(riscv, PTE.raw, vaMode))) {
+    } else if((error=checkEntryCustom(riscv, PTE, vaMode))) {
 
         // return with page-fault exception if custom entry check fails
 
-    } else if((PTE.ctrl.A != entry->A) || (PTE.ctrl.D != entry->D)) {
+    } else if((PTE.fields.A != entry->A) || (PTE.fields.D != entry->D)) {
 
         // write PTE if it has changed
-        PTE.ctrl.A = entry->A;
-        PTE.ctrl.D = entry->D;
+        PTE.fields.A = entry->A;
+        PTE.fields.D = entry->D;
 
-        writePageTableEntry(riscv, mode, PTEAddr, 4, PTE.raw, i);
+        writePageTableEntry(riscv, mode, PTEAddr, entryBytes, PTE.raw, i);
 
         // error if entry is not writable
         if(riscv->PTWBadAddr) {
@@ -1306,6 +1331,11 @@ static riscvException tlbLookupSv32(
         return 0;
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Sv32 PAGE TABLE WALK
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // Look up any TLB entry for the passed address using Sv32x4 mode and fill byref
@@ -1327,8 +1357,8 @@ static riscvException tlbLookupSv32x4(
     extraBits <<= vaBits;
 
     // use Sv32 lookup logic
-    riscvException exception = tlbLookupSv32(
-        riscv, mode, entry, requiredPriv
+    riscvException exception = tlbLookupSvAny(
+        riscv, mode, entry, requiredPriv, VAM_Sv32
     );
 
     // include additional Sv32x4 offset if lookup succeeded
@@ -1344,134 +1374,6 @@ static riscvException tlbLookupSv32x4(
 ////////////////////////////////////////////////////////////////////////////////
 // Sv39/Sv48/Sv57 PAGE TABLE WALK
 ////////////////////////////////////////////////////////////////////////////////
-
-//
-// This is the VPN page size in bits
-//
-#define SV64_VPN_SHIFT 9
-
-//
-// This is the VPN page mask
-//
-#define SV64_VPN_MASK ((1<<SV64_VPN_SHIFT)-1)
-
-//
-// Sv64 VA
-//
-typedef union Sv64VAU {
-    Uns64 raw;
-    struct {
-        Uns32 pageOffset : 12;
-        Uns64 VPN        : 52;
-    } fields;
-} Sv64VA;
-
-//
-// Sv64 entry
-//
-typedef union Sv64EntryU {
-    Uns64  raw;
-    SvCtrl ctrl;
-    struct {
-        Uns32 _u1  : 10;
-        Uns64 PPN  : 44;
-        Uns32 res0 : 10;
-    } fields;
-} Sv64Entry;
-
-//
-// Return Sv39/Sv48/Sv57 VPN[level]
-//
-static Uns32 getSv64VPNi(Sv64VA VA, Uns32 level) {
-    return (VA.fields.VPN >> (level*SV64_VPN_SHIFT)) & SV64_VPN_MASK;
-}
-
-//
-// Look up any TLB entry for the passed address using Sv39/Sv48/Sv57 mode and
-// fill byref argument 'entry' with the details.
-//
-static riscvException tlbLookupSv64(
-    riscvP      riscv,
-    riscvMode   mode,
-    tlbEntryP   entry,
-    memPriv     requiredPriv,
-    riscvVAMode vaMode
-) {
-    Sv64VA    VA      = {raw : entry->lowVA};
-    Addr      PTEAddr = 0;
-    SvPA      PA;
-    Sv64Entry PTE;
-    Addr      a;
-    Int32     i;
-    pteError  error;
-
-    // clear page offset bits (not relevant for entry creation)
-    VA.fields.pageOffset = 0;
-
-    // do table walk to find ultimate PTE
-    for(
-        i=getVAlevels(vaMode)-1, a=getRootTableAddress(riscv);
-        i>=0;
-        i--, a=getPTETableAddress(PTE.fields.PPN)
-    ) {
-        // get next page table entry address
-        PTEAddr = a + getSv64VPNi(VA, i)*8;
-
-        // read entry from memory
-        PTE.raw = readPageTableEntry(riscv, mode, PTEAddr, 8, i);
-
-        // validate PTE entry
-        error = checkTableEntry(riscv, PTE.ctrl, PTE.fields.res0);
-
-        // terminate unless next level lookup required
-        if(error!=PTEE_LEAF) {
-            break;
-        }
-    }
-
-    if(!error) {
-
-        // construct entry low PA
-        PA.fields.PPN        = PTE.fields.PPN;
-        PA.fields.pageOffset = 0;
-
-        // fill TLB entry low physical address
-        entry->PA = PA.raw;
-
-        error = fillTLBEntry(
-            riscv, mode, entry, requiredPriv, PTE.ctrl, i, SV64_VPN_SHIFT
-        );
-    }
-
-    if(error) {
-
-        // no action
-
-    } else if((error=checkEntryCustom(riscv, PTE.raw, vaMode))) {
-
-        // return with page-fault exception if custom entry check fails
-
-    } else if((PTE.ctrl.A != entry->A) || (PTE.ctrl.D != entry->D)) {
-
-        // write PTE if it has changed
-        PTE.ctrl.A = entry->A;
-        PTE.ctrl.D = entry->D;
-
-        writePageTableEntry(riscv, mode, PTEAddr, 8, PTE.raw, i);
-
-        // error if entry is not writable
-        if(riscv->PTWBadAddr) {
-            error = PTEE_WRITE;
-        }
-    }
-
-    // handle result
-    if(error) {
-        return getPTWException(riscv, mode, entry, requiredPriv, PTEAddr, error);
-    } else {
-        return 0;
-    }
-}
 
 //
 // Look up any TLB entry for the passed address using Sv39x4/Sv48x4/Sv57x4 mode
@@ -1500,7 +1402,7 @@ static riscvException tlbLookupSv64x4(
     entry->lowVA = extendVA >> shiftUp;
 
     // use Sv39/Sv48/Sv57 lookup logic
-    riscvException exception = tlbLookupSv64(
+    riscvException exception = tlbLookupSvAny(
         riscv, mode, entry, requiredPriv, vaMode
     );
 
@@ -2845,10 +2747,8 @@ static riscvException tlbLookupS1(
         result = getPageFault(riscv, mode, entry, requiredPriv, PTEE_VAEXTEND);
     } else if((result = trapDerived(riscv, entry, requiredPriv, id))) {
         // no further action if derived model lookup traps
-    } else if(vaMode==VAM_Sv32) {
-        result = tlbLookupSv32(riscv, mode, entry, requiredPriv);
     } else {
-        result = tlbLookupSv64(riscv, mode, entry, requiredPriv, vaMode);
+        result = tlbLookupSvAny(riscv, mode, entry, requiredPriv, vaMode);
     }
 
     return result;
@@ -2903,190 +2803,6 @@ static riscvException tlbLookup(
 }
 
 //
-// Map load size in bits to decode value
-//
-static Uns32 mapMemBits(Uns32 memBits) {
-
-    Uns32 result = 0;
-
-    while(memBits>8) {
-        result++;
-        memBits >>= 1;
-    }
-
-    return result;
-}
-
-//
-// Fill syndrome for load exception
-//
-static Uns32 fillSyndromeLoad(riscvInstrInfoP info, Uns32 offset) {
-
-    // union for load instruction composition
-    typedef union ldSyndromeU {
-        struct {
-            Uns32 opcode :  7;
-            Uns32 rd     :  5;
-            Uns32 funct3 :  3;
-            Uns32 offset :  5;
-            Uns32 _u1    : 12;
-        } f;
-        Uns32 u32;
-    } ldSyndrome;
-
-    ldSyndrome   u1  = {{0}};
-    riscvRegDesc rd  = info->r[0];
-    Bool         isF = isFReg(rd);
-
-    // fill instruction fields
-    u1.f.opcode = (isF ? 0x06 : 0x02) + (info->bytes==4);
-    u1.f.rd     = getRIndex(rd);
-    u1.f.funct3 = mapMemBits(info->memBits) + (info->unsExt*4);
-    u1.f.offset = offset;
-
-    // extract result
-    Uns32 result = u1.u32;
-
-    // sanity check composed result if a 32-bit instruction
-    if(info->bytes==4) {
-
-        ldSyndrome u2 = {u32:info->instruction};
-
-        // clear offset fields that will not match
-        u1.f._u1    = 0;
-        u2.f._u1    = 0;
-        u1.f.offset = 0;
-        u2.f.offset = 0;
-
-        VMI_ASSERT(
-            u2.u32==u1.u32,
-            "incorrect load syndrome: expected 0x%08x, actual 0x%08x",
-            u2.u32, u1.u32
-        );
-    }
-
-    // return composed value
-    return result;
-}
-
-//
-// Fill syndrome for store exception
-//
-static Uns32 fillSyndromeStore(riscvInstrInfoP info, Uns32 offset) {
-
-    // union for store instruction composition
-    typedef union stSyndromeU {
-        struct {
-            Uns32 opcode : 7;
-            Uns32 _u1    : 5;
-            Uns32 funct3 : 3;
-            Uns32 offset : 5;
-            Uns32 rs2    : 5;
-            Uns32 _u2    : 7;
-        } f;
-        Uns32 u32;
-    } stSyndrome;
-
-    stSyndrome   u1  = {{0}};
-    riscvRegDesc rs2 = info->r[0];
-    Bool         isF = isFReg(rs2);
-
-    // fill instruction fields
-    u1.f.opcode = (isF ? 0x26 : 0x22) + (info->bytes==4);
-    u1.f.rs2    = getRIndex(rs2);
-    u1.f.funct3 = mapMemBits(info->memBits);
-    u1.f.offset = offset;
-
-    // extract result
-    Uns32 result = u1.u32;
-
-    // sanity check composed result if a 32-bit instruction
-    if(info->bytes==4) {
-
-        stSyndrome u2 = {u32:info->instruction};
-
-        // clear offset fields that will not match
-        u1.f._u1    = 0;
-        u2.f._u1    = 0;
-        u1.f._u2    = 0;
-        u2.f._u2    = 0;
-        u1.f.offset = 0;
-        u2.f.offset = 0;
-
-        VMI_ASSERT(
-            u2.u32==u1.u32,
-            "incorrect store syndrome: expected 0x%08x, actual 0x%08x",
-            u2.u32, u1.u32
-        );
-    }
-
-    // return composed value
-    return result;
-}
-
-//
-// Fill syndrome for generic 32-bit instruction that is reported unmodified,
-// except for offset in fields 19:15
-//
-static Uns32 fillSyndrome32Offset_19_15(riscvInstrInfoP info, Uns32 offset) {
-
-    // union for instruction composition
-    typedef union i32SyndromeU {
-        struct {
-            Uns32 _u1    : 15;
-            Uns32 offset :  5;
-            Uns32 _u2    : 12;
-        } f;
-        Uns32 u32;
-    } i32Syndrome;
-
-    // sanity check only 4-byte instructions are encountered
-    VMI_ASSERT(info->bytes==4, "unexpected instruction bytes %u", info->bytes);
-
-    // use raw 32-bit instruction pattern without modification
-    i32Syndrome u = {u32:info->instruction};
-
-    // update offset field
-    u.f.offset = offset;
-
-    // return composed value
-    return u.u32;
-}
-
-//
-// Fill syndrome for load/store/AMO exception if required
-//
-static Uns64 fillSyndrome(riscvP riscv, riscvException exception, Uns64 VA) {
-
-    Uns32 result = 0;
-
-    // create syndrome for load/store/AMO exception if required
-    if(!xtinstBasic(riscv) && riscvIsLoadStoreAMOFault(exception)) {
-
-        riscvInstrInfo info;
-
-        // decode the faulting instruction
-        riscvDecode(riscv, getPC(riscv), &info);
-
-        // calculate offset between faulting address and original virtual
-        // address (non-zero only for misaligned memory accesses)
-        Uns32 offset = VA-riscv->originalVA;
-
-        if(info.type==RV_IT_L_I) {
-            result = fillSyndromeLoad(&info, offset);
-        } else if(info.type==RV_IT_S_I) {
-            result = fillSyndromeStore(&info, offset);
-        } else if((info.type>=RV_IT_AMOADD_R) && (info.type<=RV_IT_SC_R)) {
-            result = fillSyndrome32Offset_19_15(&info, offset);
-        } else if((info.type>=RV_IT_HLV_R) && (info.type<=RV_IT_HSV_R)) {
-            result = fillSyndrome32Offset_19_15(&info, offset);
-        }
-    }
-
-    return result;
-}
-
-//
 // Take exception on invalid access
 //
 static void handleInvalidAccess(
@@ -3102,21 +2818,9 @@ static void handleInvalidAccess(
             riscv->GPA = VA>>2;
         }
 
-        // report original failing VA
-        VA = riscv->s1VA;
-
-        // fill syndrome for load/store/AMO exception if required
-        if(!riscv->tinst && hypervisorPresent(riscv)) {
-            riscv->tinst = fillSyndrome(riscv, exception, VA);
-        }
-
         // take exception, indicating guest virtual address if required
         Bool GVA = activeTLBIsVirtual(riscv);
-        riscvTakeMemoryExceptionGVA(riscv, exception, VA, GVA);
-
-        // clear down pending exception GPA and tinst
-        riscv->GPA   = 0;
-        riscv->tinst = 0;
+        riscvTakeMemoryExceptionGVA(riscv, exception, riscv->s1VA, GVA);
     }
 }
 
@@ -3300,8 +3004,12 @@ inline static pmpcfgElem getPMPCFGElem(riscvP riscv, Uns8 index) {
 //
 // Is a PMP entry controlled by the given element locked?
 //
-inline static Bool pmpLocked(riscvP riscv, Uns8 index) {
-    return !riscv->artifactAccess && getPMPCFGElem(riscv,index).L;
+static Bool pmpLocked(riscvP riscv, Uns8 index) {
+    return (
+        !riscv->artifactAccess &&
+        !RD_CSR_FIELDC(riscv, mseccfg, RLB) &&
+        getPMPCFGElem(riscv,index).L
+    );
 }
 
 //
@@ -3538,9 +3246,114 @@ static void getPMPEntryBounds(
 }
 
 //
-// Are any lower-priority PMP entries than the indexed entry locked?
+// Is the PMP entry used in M mode?
 //
-static Bool lowerPriorityPMPEntryLocked(riscvP riscv, Uns32 index) {
+static Bool usePMPEntryMMode(riscvP riscv, pmpcfgElem e) {
+    return RD_CSR_FIELDC(riscv, mseccfg, MML) || e.L;
+}
+
+//
+// mseccfg.MML=1 privilege table, M-mode, pmpcfg.L=0
+//
+static const memPriv mapMML1ML0[] = {
+    [MEM_PRIV_NONE] = MEM_PRIV_NONE,
+    [MEM_PRIV_R]    = MEM_PRIV_NONE,
+    [MEM_PRIV_RW]   = MEM_PRIV_NONE,
+    [MEM_PRIV_RX]   = MEM_PRIV_NONE,
+    [MEM_PRIV_X]    = MEM_PRIV_NONE,
+    [MEM_PRIV_RWX]  = MEM_PRIV_NONE,
+    [MEM_PRIV_W]    = MEM_PRIV_RW,
+    [MEM_PRIV_WX]   = MEM_PRIV_RW,
+};
+
+//
+// mseccfg.MML=1 privilege table, M-mode, pmpcfg.L=1
+//
+static const memPriv mapMML1ML1[] = {
+    [MEM_PRIV_NONE] = MEM_PRIV_NONE,
+    [MEM_PRIV_R]    = MEM_PRIV_R,
+    [MEM_PRIV_RW]   = MEM_PRIV_RW,
+    [MEM_PRIV_RX]   = MEM_PRIV_RX,
+    [MEM_PRIV_X]    = MEM_PRIV_X,
+    [MEM_PRIV_RWX]  = MEM_PRIV_R,
+    [MEM_PRIV_W]    = MEM_PRIV_X,
+    [MEM_PRIV_WX]   = MEM_PRIV_RX,
+};
+
+//
+// mseccfg.MML=1 privilege table, S-mode, pmpcfg.L=0
+//
+static const memPriv mapMML1SL0[] = {
+    [MEM_PRIV_NONE] = MEM_PRIV_NONE,
+    [MEM_PRIV_R]    = MEM_PRIV_R,
+    [MEM_PRIV_RW]   = MEM_PRIV_RW,
+    [MEM_PRIV_RX]   = MEM_PRIV_RX,
+    [MEM_PRIV_X]    = MEM_PRIV_X,
+    [MEM_PRIV_RWX]  = MEM_PRIV_RWX,
+    [MEM_PRIV_W]    = MEM_PRIV_R,
+    [MEM_PRIV_WX]   = MEM_PRIV_RW,
+};
+
+//
+// mseccfg.MML=1 privilege table, S-mode, pmpcfg.L=1
+//
+static const memPriv mapMML1SL1[] = {
+    [MEM_PRIV_NONE] = MEM_PRIV_NONE,
+    [MEM_PRIV_R]    = MEM_PRIV_NONE,
+    [MEM_PRIV_RW]   = MEM_PRIV_NONE,
+    [MEM_PRIV_RX]   = MEM_PRIV_NONE,
+    [MEM_PRIV_X]    = MEM_PRIV_NONE,
+    [MEM_PRIV_RWX]  = MEM_PRIV_R,
+    [MEM_PRIV_W]    = MEM_PRIV_X,
+    [MEM_PRIV_WX]   = MEM_PRIV_X,
+};
+
+//
+// Return the access privilege of the PMP entry in the given mode
+//
+static memPriv getPMPEntryPriv(riscvP riscv, riscvMode mode, pmpcfgElem e) {
+
+    Bool    isM = (mode==RISCV_MODE_M);
+    memPriv priv;
+
+    if(!RD_CSR_FIELDC(riscv, mseccfg, MML)) {
+
+        // restrict privilege using PMP region constraints if required
+        priv = (!isM || e.L) ? e.priv : MEM_PRIV_RWX;
+
+        // combination R=0 and W=1 is reserved for future use
+        if(!(priv&MEM_PRIV_R)) {
+            priv &= ~MEM_PRIV_W;
+        }
+
+    } else if(isM && !e.L) {
+
+        // Machine mode access, pmpcfg.L=0
+        priv = mapMML1ML0[e.priv];
+
+    } else if(isM) {
+
+        // Machine mode access, pmpcfg.L=1
+        priv = mapMML1ML1[e.priv];
+
+    } else if(!e.L) {
+
+        // User/Supervisor mode access, pmpcfg.L=0
+        priv = mapMML1SL0[e.priv];
+
+    } else {
+
+        // User/Supervisor mode access, pmpcfg.L=1
+        priv = mapMML1SL1[e.priv];
+    }
+
+    return priv;
+}
+
+//
+// Are any lower-priority PMP entries than the indexed entry used in M mode?
+//
+static Bool useLowerPriorityPMPEntryMMode(riscvP riscv, Uns32 index) {
 
     Uns32 numRegs = getNumPMPs(riscv);
     Uns32 i;
@@ -3549,7 +3362,7 @@ static Bool lowerPriorityPMPEntryLocked(riscvP riscv, Uns32 index) {
 
         pmpcfgElem e = getPMPCFGElem(riscv, i);
 
-        if(e.L && (e.mode!=PMPM_OFF)) {
+        if((e.mode!=PMPM_OFF) && usePMPEntryMMode(riscv, e)) {
             return True;
         }
     }
@@ -3600,8 +3413,8 @@ static void invalidatePMPEntry(riscvP riscv, Uns32 index) {
             // (enabling or disabling this region may reveal or conceal that
             // region) or a derived model can refine PMP region privileges
             if(
-                e.L ||
-                lowerPriorityPMPEntryLocked(riscv, index) ||
+                usePMPEntryMMode(riscv, e) ||
+                useLowerPriorityPMPEntryMMode(riscv, index) ||
                 hasPMPPrivCB(riscv)
             ) {
                 updateM = PMPU_SET_PRIV;
@@ -3675,19 +3488,48 @@ Uns64 riscvVMWritePMPCFG(riscvP riscv, Uns32 index, Uns64 newValue) {
         union {Uns64 u64; Uns8 u8[8];} src = {u64 : newValue&WM64_pmpcfg&mask};
 
         // invalidate any modified entries in lowest-to-highest priority order
-        // (required so that lowerPriorityPMPEntryLocked always returns valid
+        // (required so that useLowerPriorityPMPEntryMMode always returns valid
         // results)
         for(i=entriesPerCFG-1; i>=0; i--) {
 
             Uns32 cfgIndex = (index*4)+i;
             Uns8 *dstP     = &riscv->pmpcfg.u8[cfgIndex];
+            Bool  resR0W1  = False;
 
             // get old and new values
             pmpcfgElem srcCFG = {u8:src.u8[i]};
             pmpcfgElem dstCFG = {u8:*dstP};
 
-            // combination R=0 and W=1 is reserved for future use
-            if(!(srcCFG.priv&MEM_PRIV_R)) {
+            if(!RISCV_SMEPMP_VERSION(riscv)) {
+
+                // combination R=0 and W=1 is reserved for future use if Smepmp
+                // is not implemented
+                resR0W1 = True;
+
+            } else if(riscv->artifactAccess) {
+
+                // allow all pmpcfg values to be written
+
+            } else if(!RD_CSR_FIELDC(riscv, mseccfg, MML)) {
+
+                // combination R=0 and W=1 is reserved for future use if
+                // mseccfg.MML=0
+                resR0W1 = True;
+
+            } else if(srcCFG.L && !RD_CSR_FIELDC(riscv, mseccfg, RLB)) {
+
+                // no new locked rules with executable privileges may be added
+                // unless mseccfg.RLB is set
+                memPriv priv = mapMML1ML1[srcCFG.priv];
+
+                // if executable, write is ignored, leaving pmpcfg unchanged
+                if(priv&MEM_PRIV_X) {
+                    srcCFG = dstCFG;
+                }
+            }
+
+            // reserved combination masks W bit if R bit is clear
+            if(resR0W1 && !(srcCFG.priv&MEM_PRIV_R)) {
                 srcCFG.priv &= ~MEM_PRIV_W;
             }
 
@@ -3778,6 +3620,31 @@ Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
 }
 
 //
+// Are any PMP entries locked?
+//
+Bool riscvVMAnyPMPLocked(riscvP riscv) {
+
+    Uns32 numRegs = getNumPMPs(riscv);
+    Uns32 i;
+
+    for(i=0; i<numRegs; i++) {
+        if(pmpLocked(riscv, i)) {
+            return True;
+        }
+    }
+
+    return False;
+}
+
+//
+// Unmap all PMP entries
+//
+void riscvVMUnmapAllPMP(riscvP riscv) {
+    setPMPPriv(riscv, RISCV_MODE_M, 0, -1, MEM_PRIV_NONE, PMPU_SET_PRIV);
+    setPMPPriv(riscv, RISCV_MODE_S, 0, -1, MEM_PRIV_NONE, PMPU_SET_PRIV);
+}
+
+//
 // Reset PMP unit
 //
 void riscvVMResetPMP(riscvP riscv) {
@@ -3843,16 +3710,12 @@ static void refinePMPRegionRange(
 
         } else if((lowPAEntry<=PA) && (PA<=highPAEntry)) {
 
-            memPriv priv = MEM_PRIV_RWX;
-
             // match in this region
             map->lowPA  = lowPAEntry;
             map->highPA = highPAEntry;
 
-            // refine privilege using PMP region constraints if required
-            if((mode!=RISCV_MODE_M) || e.L) {
-                priv = e.priv;
-            }
+            // get standard access privilege
+            memPriv priv = getPMPEntryPriv(riscv, mode, e);
 
             // refine privilege using derived model constraints if required
             ITER_EXT_CB(
@@ -3882,6 +3745,26 @@ static void refinePMPRegionRange(
 #define MAX_PMP_STRADDLE_NUM 3
 
 //
+// Return PMP privileges for regions with no match
+//
+static memPriv getPMPUnmatchedPriv(riscvP riscv, riscvMode mode) {
+
+    memPriv priv;
+
+    if(mode!=RISCV_MODE_M) {
+        priv = MEM_PRIV_NONE;
+    } else if(RD_CSR_FIELDC(riscv, mseccfg, MMWP)) {
+        priv = MEM_PRIV_NONE;
+    } else if(RD_CSR_FIELDC(riscv, mseccfg, MML)) {
+        priv = MEM_PRIV_RW;
+    } else {
+        priv = MEM_PRIV_RWX;
+    }
+
+    return priv;
+}
+
+//
 // Refresh physical mappings for the given physical address range and mode
 //
 static void mapPMP(
@@ -3897,7 +3780,7 @@ static void mapPMP(
 
         Uns64   thisPA  = lowPA;
         Uns64   maxPA   = getAddressMask(riscv->extBits);
-        memPriv priv    = (mode==RISCV_MODE_M) ? MEM_PRIV_RWX : MEM_PRIV_NONE;
+        memPriv priv    = getPMPUnmatchedPriv(riscv, mode);
         Bool    aligned = !(lowPA & (highPA-lowPA));
         Uns32   mapNum  = 0;
         Bool    mapDone = False;
@@ -4518,6 +4401,7 @@ Bool riscvVMMiss(
     Uns32          bytes,
     memAccessAttrs attrs
 ) {
+    Uns64     oldVA   = riscv->originalVA;
     Bool      oldHVLX = riscv->hlvxActive;
     Bool      oldAA   = riscv->artifactAccess;
     Bool      oldALS  = riscv->artifactLdSt;
@@ -4592,6 +4476,7 @@ Bool riscvVMMiss(
     }
 
     // restore hlvxActive and artifactAccess
+    riscv->originalVA     = oldVA;
     riscv->hlvxActive     = oldHVLX;
     riscv->artifactAccess = oldAA;
     riscv->artifactLdSt   = oldALS;

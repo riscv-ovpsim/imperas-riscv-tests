@@ -49,6 +49,21 @@
 }
 
 //
+// Rd, Rs1, Rs2 (affected by Zmmul)
+//
+#define ATTR32_RD_RS1_RS2_ZMMUL(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_11_7,           \
+    r2       : RS_X_19_15,          \
+    r3       : RS_X_24_20,          \
+    wX       : WX_3,                \
+    Zmmul    : True,                \
+}
+
+//
 // Rd, Rs1 (WX=1)
 //
 #define ATTR32_RD_RS1_WX1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -247,6 +262,7 @@
     r3       : RS_X_24_20,          \
     wX       : WX_3,                \
     cs       : CS_XPERM_14_13,      \
+    isXPERM  : True,                \
 }
 
 //
@@ -2553,6 +2569,29 @@
     retval   : RV_21_20,                \
     cs       : CS_PSTKA_11_7,           \
     Zc       : RVCS_##_ZC,              \
+}
+
+//
+// CBO.CLEAN (Zicbom)
+//
+#define ATTR32_CBO_CLEAN(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1,              \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_19_15,          \
+}
+
+//
+// PREFETCH (Zicbop)
+//
+#define ATTR32_PREFETCH(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_OFF_R1,          \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_X_19_15,          \
+    cs       : CS_S_31_25_11_7,     \
 }
 
 //

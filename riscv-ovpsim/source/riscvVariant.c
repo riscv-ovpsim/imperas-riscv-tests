@@ -17,12 +17,34 @@
  *
  */
 
+// standard header files
+#include <string.h>
+
 // model header files
 #include "riscvVariant.h"
 
 // model header files
 #include "riscvStructure.h"
 
+
+//
+// Get any configuration with the given variant name
+//
+riscvConfigCP riscvGetNamedConfig(riscvConfigCP list, const char *variant) {
+
+    riscvConfigCP cfg = 0;
+
+    // scan for any configuration matching the given name
+    if(variant) {
+        for(cfg=list; cfg->name; cfg++) {
+            if(!strcmp(cfg->name, variant)) {
+                break;
+            }
+        }
+    }
+
+    return (cfg && cfg->name) ? cfg : 0;
+}
 
 //
 // Is the indicated feature supported?

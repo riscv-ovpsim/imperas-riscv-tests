@@ -225,7 +225,8 @@ typedef enum riscvUserVerE {
     RVUV_2_2,                           // version 2.2
     RVUV_2_3,                           // version 2.3 (legacy naming)
     RVUV_20190305,                      // version 20190305
-    RVUV_DEFAULT = RVUV_20190305,       // default version
+    RVUV_20191213,                      // version 20191213
+    RVUV_DEFAULT = RVUV_20191213,       // default version
 } riscvUserVer;
 
 //
@@ -235,9 +236,10 @@ typedef enum riscvPrivVerE {
     RVPV_1_10,                          // version 1.10
     RVPV_1_11,                          // version 1.11 (legacy naming)
     RVPV_20190405,                      // version 20190405
+    RVPV_20190608,                      // version 20190608
     RVPV_1_12,                          // version 1.12 (placeholder)
     RVPV_MASTER  = RVPV_1_12,           // master branch
-    RVPV_DEFAULT = RVPV_20190405,       // default version
+    RVPV_DEFAULT = RVPV_20190608,       // default version
 } riscvPrivVer;
 
 //
@@ -290,8 +292,8 @@ typedef enum riscvVectorSetE {
 //
 // Date and tag of Bit Manipulation Architecture master version
 //
-#define RVBV_MASTER_DATE    "26 August 2020"
-#define RVBV_MASTER_TAG     "c1bd8ee"
+#define RVBV_MASTER_DATE    "30 July 2021"
+#define RVBV_MASTER_TAG     "1f56afe"
 
 //
 // Supported Bit Manipulation Architecture versions
@@ -306,7 +308,7 @@ typedef enum riscvBitManipVerE {
     RVBV_1_0_0,                         // version 1.0.0
     RVBV_MASTER,                        // master branch
     RVBV_LAST,                          // for sizing
-    RVBV_DEFAULT = RVBV_0_94,           // default version
+    RVBV_DEFAULT = RVBV_1_0_0,          // default version
 } riscvBitManipVer;
 
 //
@@ -334,6 +336,9 @@ typedef enum riscvBitManipSetE {
     RVBS_Zbefp   = RVBS_Zbe|RVBS_Zbf|RVBS_Zbp,
     RVBS_Zbbefmp = RVBS_Zbb|RVBS_Zbe|RVBS_Zbf|RVBS_Zbm|RVBS_Zbp,
     RVBS_Zbbefp  = RVBS_Zbb|RVBS_Zbe|RVBS_Zbf|RVBS_Zbp,
+
+    // VERSION 1.0.0 COMBINATION
+    RVBS_1_0_0   = RVBS_Zba|RVBS_Zbb|RVBS_Zbc|RVBS_Zbs,
 
 } riscvBitManipSet;
 
@@ -385,8 +390,9 @@ typedef enum riscvCryptoVerE {
     RVKV_0_9_0,                         // version 0.9.0
     RVKV_0_9_2,                         // version 0.9.2
     RVKV_1_0_0_RC1,                     // version 1.0.0-rc1
+    RVKV_1_0_0_RC5,                     // version 1.0.0-rc5
     RVKV_LAST,                          // for sizing
-    RVKV_DEFAULT = RVKV_1_0_0_RC1,      // default version
+    RVKV_DEFAULT = RVKV_1_0_0_RC5,      // default version
 } riscvCryptoVer;
 
 //
@@ -526,6 +532,15 @@ typedef enum riscvRNMIVerE {
     RNMI_0_2_1,                         // RNMI version 0.2.1
 } riscvRNMIVer;
 
+//
+// Supported Smepmp versions
+//
+typedef enum riscvSmepmpVerE {
+    RVSP_NONE,                          // Smepmp not implemented
+    RVSP_0_9_5,                         // version 0.9.5
+    RVSP_DEFAULT = RVSP_0_9_5,          // default version
+} riscvSmepmpVer;
+
 // macro returning User Architecture version
 #define RISCV_USER_VERSION(_P)      ((_P)->configInfo.user_version)
 
@@ -571,6 +586,9 @@ typedef enum riscvRNMIVerE {
 // macro returning 16-bit floating point version
 #define RISCV_FP16_VERSION(_P)      ((_P)->configInfo.fp16_version)
 
+// macro returning Smepmp version
+#define RISCV_SMEPMP_VERSION(_P)    ((_P)->configInfo.Smepmp_version)
+
 // macro returning 16-bit floating point version
 #define RISCV_FS_MODE(_P)           ((_P)->configInfo.mstatus_fs_mode)
 
@@ -610,6 +628,11 @@ typedef enum riscvVFeatureE {
     RVVF_VLM_VSM,           // use vlm/vsm syntax?
     RVVF_LAST,              // for sizing
 } riscvVFeature;
+
+//
+// Get any configuration with the given variant name
+//
+riscvConfigCP riscvGetNamedConfig(riscvConfigCP list, const char *variant);
 
 //
 // Is the indicated feature supported?

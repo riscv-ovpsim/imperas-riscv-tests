@@ -20,17 +20,17 @@ Architectural Test Suite Data for RV32I Base Integer Instruction Set:
     48 test source files
     10 different instruction categories
     44 different instructions
-    37,641 total instructions
+    37,933 total instructions
 
 Instruction category: arithmetic 
   lui : 6,758
-  addi : 13,992
+  addi : 14,138
   auipc : 3,166
-  sub : 294
+  sub : 440
   add : 1,358
 Instruction category: logical 
-  ori : 147
   andi : 170
+  ori : 147
   xori : 147
   xor : 147
   and : 147
@@ -38,10 +38,10 @@ Instruction category: logical
 Instruction category: branch 
   beq : 293
   bltu : 149
-  blt : 180
   bne : 149
-  bge : 149
   bgeu : 149
+  bge : 149
+  blt : 180
 Instruction category: OPI_IMN 
   ecall : 49
   ebreak : 1
@@ -52,8 +52,8 @@ Instruction category: jump
   jalr : 155
 Instruction category: load 
   lb : 147
-  lh : 151
   lw : 599
+  lh : 151
   lbu : 152
   lhu : 152
 Instruction category: store 
@@ -61,17 +61,17 @@ Instruction category: store
   sb : 146
   sh : 150
 Instruction category: shift 
-  slli : 178
   srli : 147
   srai : 147
+  slli : 178
   srl : 147
-  sll : 147
   sra : 147
+  sll : 147
 Instruction category: compare 
   sltiu : 147
   slti : 147
-  slt : 147
   sltu : 147
+  slt : 147
 
 Other instructions (those not the focus of this suite)
   csrrs : 217

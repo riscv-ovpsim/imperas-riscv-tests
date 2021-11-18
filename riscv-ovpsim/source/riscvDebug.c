@@ -31,6 +31,7 @@
 #include "vmi/vmiRt.h"
 
 // model header files
+#include "riscvCLINT.h"
 #include "riscvCluster.h"
 #include "riscvCSR.h"
 #include "riscvCSRTypes.h"
@@ -59,6 +60,7 @@ typedef enum riscvRegGroupIdE {
     RV_RG_S_CSR,        // Supervisor mode CSR register group
     RV_RG_H_CSR,        // Hypervisor mode CSR register group
     RV_RG_M_CSR,        // Machine mode CSR register group
+    RV_RG_CLINT,        // CLINT register group
     RV_RG_INTEGRATION,  // integration support registers
     RV_RG_LAST          // KEEP LAST: for sizing
 } riscvRegGroupId;
@@ -74,6 +76,7 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
     [RV_RG_S_CSR]       = {name: "Supervisor_Control_and_Status"},
     [RV_RG_H_CSR]       = {name: "Hypervisor_Control_and_Status"},
     [RV_RG_M_CSR]       = {name: "Machine_Control_and_Status"},
+    [RV_RG_CLINT]       = {name: "CLINT"},
     [RV_RG_INTEGRATION] = {name: "Integration_support"},
 };
 
@@ -95,7 +98,7 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
 //
 // This is the index of the first ISR
 //
-#define RISCV_ISR0_INDEX        0x1100
+#define RISCV_SUP0_INDEX        0x1100
 
 //
 // This is the index of the first vector register
@@ -104,21 +107,21 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// INTEGRATION SUPPORT REGISTER ITERATION
+// SUPPLEMENTAL REGISTER ITERATION
 ////////////////////////////////////////////////////////////////////////////////
 
-DEFINE_CS(isrDetails);
+DEFINE_CS(supDetails);
 
 //
 // Function type indicating ISR presence
 //
-#define ISR_PRESENT_FN(_NAME) Bool _NAME(riscvP riscv, isrDetailsCP this)
+#define ISR_PRESENT_FN(_NAME) Bool _NAME(riscvP riscv, supDetailsCP this)
 typedef ISR_PRESENT_FN((*isrPresentFn));
 
 //
-// Structure providing details of integration support registers
+// Structure providing details of supplemental registers
 //
-typedef struct isrDetailsS {
+typedef struct supDetailsS {
     const char       *name;
     const char       *desc;
     riscvArchitecture arch;
@@ -128,11 +131,12 @@ typedef struct isrDetailsS {
     vmiRegReadFn      readCB;
     vmiRegWriteFn     writeCB;
     vmiRegAccess      access;
+    vmiRegGroupCP     group;
     Bool              noTraceChange;
     Bool              noSaveRestore;
     Bool              instrAttrIgnore;
     isrPresentFn      present;
-} isrDetails;
+} supDetails;
 
 //
 // Is DM artifact register present?
@@ -153,6 +157,13 @@ static ISR_PRESENT_FN(presentDMStall) {
 //
 static ISR_PRESENT_FN(presentFFlagsI) {
     return perInstructionFFlags(riscv);
+}
+
+//
+// Is CLINT register present?
+//
+static ISR_PRESENT_FN(presentCLINT) {
+    return riscv->clint;
 }
 
 //
@@ -246,27 +257,111 @@ static VMI_REG_READ_FN(readFFlagsI) {
 }
 
 //
-// List of integration support registers
+// Read CLINT msip
 //
-static const isrDetails isRegs[] = {
+static VMI_REG_READ_FN(readMSIP) {
 
-    {"LRSCAddress",  "LR/SC active lock address",               ISA_A,  0,  0, RISCV_EA_TAG,     0,                0,            vmi_RA_RW, 0, 0, 0, 0             },
-    {"DM",           "Debug mode active",                       0,      1,  8, RISCV_DM,         0,                writeDM,      vmi_RA_RW, 0, 0, 0, presentDM     },
-    {"DMStall",      "Debug mode stalled",                      0,      2,  8, RISCV_DM_STALL,   0,                writeDMStall, vmi_RA_RW, 0, 0, 0, presentDMStall},
-    {"commercial",   "Commercial feature in use",               0,      3,  8, RISCV_COMMERCIAL, 0,                0,            vmi_RA_R,  0, 0, 0, 0             },
-    {"PTWStage",     "PTW active stage (0:none 1:HS 2:VS 3:G)", ISA_S,  4,  8, VMI_NOREG,        readPTWStage,     0,            vmi_RA_R,  1, 1, 0, 0             },
-    {"PTWInputAddr", "PTW input address",                       ISA_S,  5, 64, VMI_NOREG,        readPTWInputAddr, 0,            vmi_RA_R,  1, 1, 0, 0             },
-    {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,            vmi_RA_R,  1, 1, 0, 0             },
-    {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,            vmi_RA_R,  0, 0, 1, presentFFlagsI},
+    riscvP riscv = (riscvP)processor;
+    Uns8  *msipP = buffer;
+
+    *msipP = riscvReadCLINTMSIP(riscv->clint);
+
+    return True;
+}
+
+//
+// Write CLINT msip
+//
+static VMI_REG_WRITE_FN(writeMSIP) {
+
+    riscvP      riscv = (riscvP)processor;
+    const Uns8 *msipP = buffer;
+    Uns8        msip  = *msipP;
+
+    riscvWriteCLINTMSIP(riscv->clint, msip&1);
+
+    return True;
+}
+
+//
+// Read CLINT mtimecmp
+//
+static VMI_REG_READ_FN(readMTIMECMP) {
+
+    riscvP riscv     = (riscvP)processor;
+    Uns64 *mtimecmpP = buffer;
+
+    *mtimecmpP = riscvReadCLINTMTIMECMP(riscv->clint);
+
+    return True;
+}
+
+//
+// Write CLINT mtimecmp
+//
+static VMI_REG_WRITE_FN(writeMTIMECMP) {
+
+    riscvP       riscv     = (riscvP)processor;
+    const Uns64 *mtimecmpP = buffer;
+    Uns64        mtimecmp  = *mtimecmpP;
+
+    riscvWriteCLINTMTIMECMP(riscv->clint, mtimecmp);
+
+    return True;
+}
+
+//
+// Read CLINT mtime
+//
+static VMI_REG_READ_FN(readMTIME) {
+
+    riscvP riscv  = (riscvP)processor;
+    Uns64 *mtimeP = buffer;
+
+    *mtimeP = riscvReadCLINTMTIME(riscv->clint);
+
+    return True;
+}
+
+//
+// Write CLINT mtime
+//
+static VMI_REG_WRITE_FN(writeMTIME) {
+
+    riscvP       riscv  = (riscvP)processor;
+    const Uns64 *mtimeP = buffer;
+    Uns64        mtime  = *mtimeP;
+
+    riscvWriteCLINTMTIME(riscv->clint, mtime);
+
+    return True;
+}
+
+//
+// List of supplemental registers
+//
+static const supDetails supRegs[] = {
+
+    {"LRSCAddress",  "LR/SC active lock address",               ISA_A,  0,  0, RISCV_EA_TAG,     0,                0,             vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, 0             },
+    {"DM",           "Debug mode active",                       0,      1,  8, RISCV_DM,         0,                writeDM,       vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, presentDM     },
+    {"DMStall",      "Debug mode stalled",                      0,      2,  8, RISCV_DM_STALL,   0,                writeDMStall,  vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, presentDMStall},
+    {"commercial",   "Commercial feature in use",               0,      3,  8, RISCV_COMMERCIAL, 0,                0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 0, 0             },
+    {"PTWStage",     "PTW active stage (0:none 1:HS 2:VS 3:G)", ISA_S,  4,  8, VMI_NOREG,        readPTWStage,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
+    {"PTWInputAddr", "PTW input address",                       ISA_S,  5, 64, VMI_NOREG,        readPTWInputAddr, 0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
+    {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
+    {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 1, presentFFlagsI},
+    {"msip",         "CLINT msip",                              0,     16,  8, VMI_NOREG,        readMSIP,         writeMSIP,     vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, presentCLINT  },
+    {"mtimecmp",     "CLINT mtimecmp",                          0,     17, 64, VMI_NOREG,        readMTIMECMP,     writeMTIMECMP, vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, presentCLINT  },
+    {"mtime",        "CLINT mtime",                             0,     18, 64, VMI_NOREG,        readMTIME,        writeMTIME,    vmi_RA_RW, RV_GROUP(CLINT),       1, 0, 0, presentCLINT  },
 
     // KEEP LAST
     {0}
 };
 
 //
-// Is the ISR present?
+// Is the supplemental register present?
 //
-static Bool isISRPresent(riscvP riscv, isrDetailsCP this) {
+static Bool isSupPresent(riscvP riscv, supDetailsCP this) {
 
     riscvArchitecture required = this->arch;
     riscvArchitecture actual   = riscv->configInfo.arch;
@@ -287,30 +382,32 @@ static Bool isISRPresent(riscvP riscv, isrDetailsCP this) {
 }
 
 //
-// Given the previous integration support register, return the next one for this
+// Given the previous supplemental register, return the next one for this
 // variant. Note that no integration support registers are returned in the
 // client debug interface view (RSP 'g' and 'p' packets), indicated by 'normal'
 // being False.
 //
-static isrDetailsCP getNextISRDetails(
+static supDetailsCP getNextSupDetails(
     riscvP       riscv,
-    isrDetailsCP prev,
+    supDetailsCP prev,
     Bool         normal
 ) {
-    if(normal) {
+    supDetailsCP this = prev ? prev+1 : supRegs;
 
-        isrDetailsCP this = prev ? prev+1 : isRegs;
-
-        while(this->name && !isISRPresent(riscv, this)) {
-            this++;
-        }
-
-        return this->name ? this : 0;
-
-    } else {
-
-        return 0;
+    while(
+        this->name &&
+        (
+            !isSupPresent(riscv, this) ||
+            (
+                !normal &&
+                (this->group==RV_GROUP(INTEGRATION))
+            )
+        )
+    ) {
+        this++;
     }
+
+    return this->name ? this : 0;
 }
 
 
@@ -457,7 +554,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         Uns32           regNum = 0;
         Uns32           csrNum;
         riscvCSRDetails csrDetails;
-        isrDetailsCP    isrDetails;
+        supDetailsCP    supDetails;
         vmiRegInfoP     dst;
         Uns32           i;
 
@@ -479,9 +576,9 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             regNum++;
         }
 
-        // count visible ISRs
-        isrDetails = 0;
-        while((isrDetails=getNextISRDetails(riscv, isrDetails, normal))) {
+        // count visible supplemental registers
+        supDetails = 0;
+        while((supDetails=getNextSupDetails(riscv, supDetails, normal))) {
             regNum++;
         }
 
@@ -555,21 +652,21 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst++;
         }
 
-        // fill visible ISRs
-        isrDetails = 0;
-        while((isrDetails=getNextISRDetails(riscv, isrDetails, normal))) {
-            dst->name            = isrDetails->name;
-            dst->description     = isrDetails->desc;
-            dst->group           = RV_GROUP(INTEGRATION);
-            dst->bits            = isrDetails->bits ? : XLEN;
-            dst->gdbIndex        = isrDetails->index+RISCV_ISR0_INDEX;
-            dst->access          = isrDetails->access;
-            dst->raw             = isrDetails->raw;
-            dst->readCB          = isrDetails->readCB;
-            dst->writeCB         = isrDetails->writeCB;
-            dst->noTraceChange   = isrDetails->noTraceChange;
-            dst->noSaveRestore   = isrDetails->noSaveRestore;
-            dst->instrAttrIgnore = isrDetails->instrAttrIgnore;
+        // fill visible supplemental registers
+        supDetails = 0;
+        while((supDetails=getNextSupDetails(riscv, supDetails, normal))) {
+            dst->name            = supDetails->name;
+            dst->description     = supDetails->desc;
+            dst->group           = supDetails->group;
+            dst->bits            = supDetails->bits ? : XLEN;
+            dst->gdbIndex        = supDetails->index+RISCV_SUP0_INDEX;
+            dst->access          = supDetails->access;
+            dst->raw             = supDetails->raw;
+            dst->readCB          = supDetails->readCB;
+            dst->writeCB         = supDetails->writeCB;
+            dst->noTraceChange   = supDetails->noTraceChange;
+            dst->noSaveRestore   = supDetails->noSaveRestore;
+            dst->instrAttrIgnore = supDetails->instrAttrIgnore;
             dst++;
         }
     }

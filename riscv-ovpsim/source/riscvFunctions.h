@@ -91,10 +91,15 @@ VMI_INT_RETURN_FN(riscvIntReturn);
 VMI_INT_RESULT_FN(riscvIntResult);
 VMI_INT_PAR_FN(riscvIntParCB);
 
-
 // processor information support
 VMI_PROC_INFO_FN(riscvProcInfo);
 
 // save/restore support
 VMI_SAVE_STATE_FN(riscvSaveState);
 VMI_RESTORE_STATE_FN(riscvRestoreState);
+
+// documentation callbacks
+VMI_DOC_FN(riscvDoc);
+
+
+

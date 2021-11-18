@@ -1,26 +1,18 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd. All Rights Reserved.
     #
-    # The contents of this file are provided under the Software License
-    # Agreement that you accepted before downloading this file.
+    # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
+    # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
+    # EXCEPT AS MAY BE PROVIDED FOR IN A WRITTEN AGREEMENT WITH IMPERAS SOFTWARE LTD.
     #
-    # This source forms part of the Software and can be used for educational,
-    # training, and demonstration purposes but cannot be used for derivative
-    # works except in cases where the derivative works require OVP technology
-    # to run.
     #
-    # For open source models released under licenses that you can use for
-    # derivative works, please visit www.OVPworld.org or www.imperas.com
-    # for the location of the open source models.
-    #
-    
 
 
 Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
-    2,520 test source files
-    13 different instruction categories
-    147 different instructions
-    1,577,940 total instructions
+    2,552 test source files
+    12 different instruction categories
+    155 different instructions
+    1,599,220 total instructions
 
 Instruction category: OPV_IA integer arithmetic
   vadc.vim : 303
@@ -63,6 +55,10 @@ Instruction category: OPV_IA integer arithmetic
   vxor.vi : 639
   vxor.vv : 639
   vxor.vx : 639
+  vzext.vf2 : 300
+  vzext.vf4 : 88
+  vsext.vf2 : 300
+  vsext.vf4 : 88
 Instruction category: OPV_ID integer divide
   vdiv.vv : 639
   vdiv.vx : 639
@@ -135,7 +131,6 @@ Instruction category: OPV_IAN narrowing integer arithmetic
   vnsrl.wi : 300
   vnsrl.wv : 300
   vnsrl.wx : 300
-Instruction category: OPV_CONFIG config
 Instruction category: OPV_IAW widening integer arithmetic
   vwadd.vv : 300
   vwadd.vx : 300
@@ -170,18 +165,22 @@ Instruction category: OPV_IWMU widening integer multiply
   vwmulu.vx : 300
 
 Other instructions (those not the focus of this suite)
-  jal : 2,520
-  lui : 89,484
-  addi : 555,311
-  csrrs : 10,080
-  auipc : 78,410
-  csrrw : 7,560
-  mret : 2,520
-  vsetvli : 231,160
-  vle.v : 190,315
-  add : 265,320
-  vse.v : 66,330
-  fence : 2,520
-  ecall : 2,520
-  beq : 7,560
+  jal : 2,552
+  lui : 90,476
+  addi : 564,983
+  csrrs : 10,208
+  auipc : 79,322
+  csrrw : 7,656
+  mret : 2,552
+  vsetvli : 233,848
+  vle8.v : 53,205
+  add : 268,424
+  vse8.v : 19,510
+  fence : 2,552
+  ecall : 2,552
+  beq : 7,656
+  vle16.v : 69,295
+  vse16.v : 24,160
+  vle32.v : 69,727
+  vse32.v : 23,436
 

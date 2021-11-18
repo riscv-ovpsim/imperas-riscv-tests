@@ -1,5 +1,5 @@
 # Imperas RISC-V Architecture Tests for VB
-V Vector Extension, Version 0.8 0.8
+V Vector Extension, Version 1.0 1.0-rc1-20210608
 VB Base Instructions
 ELEN:32, VLEN:256, SLEN:256, FP16:IEEE754
 

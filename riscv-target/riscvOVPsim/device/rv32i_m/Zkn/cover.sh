@@ -30,6 +30,6 @@ ${TARGET_SIM} \
     --inputfiles ${WORK_DIR} \
     --outputfile ${WORK_DIR}/${COVERTYPE}.coverage.yaml \
     --reportfile ${WORK_DIR}/${COVERTYPE}.coverage.txt \
-        --override riscvOVPsim/cpu/crypto_version="0.8.1" \
+        --override riscvOVPsim/cpu/crypto_version="1.0.0-rc1" \
     --logfile ${WORK_DIR}/${COVERTYPE}.coverage.run.log
 

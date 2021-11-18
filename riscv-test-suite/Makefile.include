@@ -56,5 +56,5 @@ run: $(target_log)
 # Clean up
 
 clean:
-	rm -rf $(work_dir)
+	rm -rf $(work_dir_isa)
 

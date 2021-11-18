@@ -860,6 +860,7 @@ typedef struct opDescS {
     [RVKV_0_9_0]     = OPENTRY_S(_S),               \
     [RVKV_0_9_2]     = OPENTRY_S(_S),               \
     [RVKV_1_0_0_RC1] = OPENTRY_S(_S),               \
+    [RVKV_1_0_0_RC5] = OPENTRY_S(_S),               \
 }
 
 //
@@ -871,6 +872,7 @@ typedef struct opDescS {
     [RVKV_0_9_0]     = OPENTRY_S_CB(_S, _CB),       \
     [RVKV_0_9_2]     = OPENTRY_S_CB(_S, _CB),       \
     [RVKV_1_0_0_RC1] = OPENTRY_S_CB(_S, _CB),       \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB(_S, _CB),       \
 }
 
 //
@@ -882,6 +884,7 @@ typedef struct opDescS {
     [RVKV_0_9_0]     = OPENTRY_S_CB32(_S, _CB32),   \
     [RVKV_0_9_2]     = OPENTRY_S_CB32(_S, _CB32),   \
     [RVKV_1_0_0_RC1] = OPENTRY_S_CB32(_S, _CB32),   \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB32(_S, _CB32),   \
 }
 
 //
@@ -893,6 +896,7 @@ typedef struct opDescS {
     [RVKV_0_9_0]     = OPENTRY_S_CB64(_S, _CB64),   \
     [RVKV_0_9_2]     = OPENTRY_S_CB64(_S, _CB64),   \
     [RVKV_1_0_0_RC1] = OPENTRY_S_CB64(_S, _CB64),   \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB64(_S, _CB64),   \
 }
 
 //

@@ -80,7 +80,7 @@ void riscvTakeMemoryExceptionGVA(
 void riscvTakeMemoryException(
     riscvP         riscv,
     riscvException exception,
-    Uns64          tval
+    Uns64          VA
 );
 
 //

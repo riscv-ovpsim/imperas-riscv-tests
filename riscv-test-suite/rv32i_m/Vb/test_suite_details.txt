@@ -1,58 +1,81 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2021 Imperas Software Ltd. All Rights Reserved.
     #
-    # The contents of this file are provided under the Software License
-    # Agreement that you accepted before downloading this file.
+    # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
+    # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
+    # EXCEPT AS MAY BE PROVIDED FOR IN A WRITTEN AGREEMENT WITH IMPERAS SOFTWARE LTD.
     #
-    # This source forms part of the Software and can be used for educational,
-    # training, and demonstration purposes but cannot be used for derivative
-    # works except in cases where the derivative works require OVP technology
-    # to run.
     #
-    # For open source models released under licenses that you can use for
-    # derivative works, please visit www.OVPworld.org or www.imperas.com
-    # for the location of the open source models.
-    #
-    
 
 
 Architectural Test Suite Data for RV32VB RISC-V "V" Vector Extension:
-    338 test source files
-    3 different instruction categories
-    35 different instructions
-    305,580 total instructions
+    547 test source files
+    2 different instruction categories
+    60 different instructions
+    642,990 total instructions
 
-Instruction category: OPV_CONFIG config
-  vs1r.v : 32
-  vl1r.v : 32
-Instruction category: OPV_STRI unit-strided load store
-  vle.v : 16,914
-  vlb.v : 639
-  vse.v : 9,682
-  vlbu.v : 639
-  vlh.v : 426
-  vlhu.v : 426
-  vlw.v : 213
-  vlwu.v : 213
-  vsb.v : 639
-  vsh.v : 426
-  vsw.v : 213
+Instruction category: OPV1_LDST load / store
+  vle8.v : 7,529
+  vse8.v : 4,068
+  vle16.v : 10,066
+  vse16.v : 5,292
+  vle32.v : 12,367
+  vse32.v : 6,412
+  vl1re16.v : 32
+  vl1re32.v : 32
+  vl1re8.v : 32
+  vl2re16.v : 32
+  vl2re32.v : 32
+  vl4re16.v : 32
+  vl2re8.v : 32
+  vl4re32.v : 32
+  vl4re8.v : 32
+  vl8re32.v : 16
+  vl8re8.v : 16
+  vle16ff.v : 426
+  vle32ff.v : 213
+  vle8ff.v : 639
+  vlse16.v : 426
+  vlse32.v : 213
+  vlse8.v : 639
+  vluxei8.v : 639
+  vluxei16.v : 576
+  vluxei32.v : 451
+  vloxei8.v : 639
+  vloxei16.v : 576
+  vloxei32.v : 451
+  vsse16.v : 426
+  vsse32.v : 213
+  vsse8.v : 639
+  vsuxei16.v : 576
+  vsuxei32.v : 451
+  vsuxei8.v : 639
+  vsoxei16.v : 576
+  vsoxei32.v : 451
+  vsoxei8.v : 639
 Instruction category: OPV1_CONFIG configuration
-  vsetvli : 30,732
+  vsetvli : 55,648
   vsetvl : 336
+  vsetivli : 336
 
 Other instructions (those not the focus of this suite)
-  jal : 338
-  lui : 10,478
-  addi : 133,381
-  csrrs : 1,352
-  auipc : 10,209
-  csrrw : 1,014
-  mret : 338
-  add : 34,223
-  fence : 338
-  ecall : 338
-  beq : 1,014
-  lw : 47,128
-  vadd.vi : 672
+  jal : 547
+  lui : 16,957
+  addi : 283,762
+  csrrs : 2,188
+  auipc : 16,245
+  csrrw : 1,641
+  mret : 547
+  add : 51,976
+  vadd.vi : 1,008
+  fence : 547
+  ecall : 547
+  beq : 1,641
+  vid.v : 6,664
+  vmul.vx : 6,664
+  vs2re8.v : 32
+  lw : 139,072
+  vs4re8.v : 32
+  vs8re8.v : 16
+  vs1re8.v : 32
 

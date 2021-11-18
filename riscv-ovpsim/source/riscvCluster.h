@@ -38,4 +38,35 @@ Bool riscvIsClusterMember(riscvP riscv);
 //
 // Return the processor variant to use for the given member of an AMP cluster
 //
-const char *riscvGetClusterVariant(riscvP member);
+const char *riscvGetMemberVariant(riscvP member);
+
+//
+// Return the numHarts override to use for the given member of an AMP cluster
+//
+Uns32 riscvGetMemberNumHarts(riscvP member);
+
+//
+// If this is a cluster variant, return the members
+//
+const char **riscvGetClusterMembers(riscvP riscv);
+
+//
+// If this is a cluster variant, return the number of members
+//
+Uns32 riscvGetClusterNumMembers(riscvP riscv);
+
+//
+// Create comma-separated list of variants from cluster list
+//
+const char *riscvNewClusterVariantString(riscvP riscv);
+
+//
+// Allocate cluster variant string table
+//
+void riscvNewClusterVariants(riscvP cluster, const char *clusterVariants);
+
+//
+// Free cluster variant list, if allocated
+//
+void riscvFreeClusterVariants(riscvP cluster);
+

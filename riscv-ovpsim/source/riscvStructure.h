@@ -316,7 +316,12 @@ typedef struct riscvS {
 
     // Parameters
     vmiEnumParameterP  variantList;     // supported variants
-    vmiParameterP      parameters;      // parameter definition
+    vmiParameterP      parameters;      // parameter definitions
+
+    // Cluster variants
+    const char        *clusterVariants; // comma-separated cluster members
+    Uns32             *uniqueIndices;   // unique indices of same-type members
+    Uns32             *memberNumHarts;  // numHarts overrides for members
 
     // Ports
     riscvBusPortP      busPorts;        // bus ports
@@ -410,6 +415,13 @@ typedef struct riscvS {
 // This tag value is used to specify that there is no active LR/SC
 //
 #define RISCV_NO_TAG -1
+
+//
+// Clear any active exclusive access
+//
+inline static void clearEA(riscvP riscv) {
+    riscv->exclusiveTag = RISCV_NO_TAG;
+}
 
 //
 // Return current 5-state riscvMode (M, HS, HU, VS or VU)

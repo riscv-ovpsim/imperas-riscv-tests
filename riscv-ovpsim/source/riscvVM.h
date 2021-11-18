@@ -132,6 +132,16 @@ Uns64 riscvVMReadPMPAddr(riscvP riscv, Uns32 index);
 Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue);
 
 //
+// Are any PMP entries locked?
+//
+Bool riscvVMAnyPMPLocked(riscvP riscv);
+
+//
+// Unmap all PMP entries
+//
+void riscvVMUnmapAllPMP(riscvP riscv);
+
+//
 // Allocate PMP structures
 //
 void riscvVMNewPMP(riscvP riscv);

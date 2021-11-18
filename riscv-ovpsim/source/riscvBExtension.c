@@ -839,6 +839,9 @@ static const char *getBSubsetDesc(riscvBitManipSet requiredSet) {
         case RVBS_Zbefp  : description = "Zbe, Zbf and Zbp";           break;
         case RVBS_Zbbefmp: description = "Zbb, Zbe, Zbf, Zbm and Zbp"; break;
         case RVBS_Zbbefp : description = "Zbb, Zbe, Zbf and Zbp";      break;
+
+        // VERSION 1.0.0 COMBINATION
+        case RVBS_1_0_0: break; // LCOV_EXCL_LINE
     }
 
     // sanity check known subset
@@ -866,6 +869,7 @@ static const char *getBSubsetDesc(riscvBitManipSet requiredSet) {
     [RVKV_0_9_0]     = OPENTRYK(_S),    \
     [RVKV_0_9_2]     = OPENTRYK(_S),    \
     [RVKV_1_0_0_RC1] = OPENTRYK(_S),    \
+    [RVKV_1_0_0_RC5] = OPENTRYK(_S),    \
 }
 
 //
@@ -877,6 +881,7 @@ static const char *getBSubsetDesc(riscvBitManipSet requiredSet) {
     [RVKV_0_9_0]     = OPENTRYK(_S090), \
     [RVKV_0_9_2]     = OPENTRYK(_S092), \
     [RVKV_1_0_0_RC1] = OPENTRYK(_S092), \
+    [RVKV_1_0_0_RC5] = OPENTRYK(_S092), \
 }
 
 //

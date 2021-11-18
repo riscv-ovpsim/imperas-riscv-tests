@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : Vf, instructions: 83
+Extension : Vf, instructions: 91
     vfadd_vf       
         fs1            
             fpr            
@@ -443,6 +443,154 @@ Extension : Vf, instructions: 83
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfcvt_f_xu_v 64/64 : 100.00%
+    vfcvt_rtz_x_f_v
+        vd             
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         44/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          28/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          12/1 : 100.00%
+                v7           4/1 : 100.00%
+                v8          44/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vd 32/32 : 100.00%
+        vs2            
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         52/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          36/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          16/1 : 100.00%
+                v7           6/1 : 100.00%
+                v8          22/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vs2 32/32 : 100.00%
+    vfcvt_rtz_x_f_v 64/64 : 100.00%
+    vfcvt_rtz_xu_f_v
+        vd             
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         44/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          28/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          12/1 : 100.00%
+                v7           4/1 : 100.00%
+                v8          44/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vd 32/32 : 100.00%
+        vs2            
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         52/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          36/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          16/1 : 100.00%
+                v7           6/1 : 100.00%
+                v8          22/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vs2 32/32 : 100.00%
+    vfcvt_rtz_xu_f_v 64/64 : 100.00%
     vfcvt_x_f_v    
         vd             
             vpr            
@@ -2831,6 +2979,154 @@ Extension : Vf, instructions: 83
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
     vfncvt_rod_f_f_w 32/64 :  50.00%
+    vfncvt_rtz_x_f_w
+        vd             
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         20/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          12/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           4/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          20/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vd 16/32 :  50.00%
+        vs2            
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         24/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          16/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           6/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          10/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vs2 16/32 :  50.00%
+    vfncvt_rtz_x_f_w 32/64 :  50.00%
+    vfncvt_rtz_xu_f_w
+        vd             
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         20/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          12/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           4/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          20/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vd 16/32 :  50.00%
+        vs2            
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         24/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          16/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           6/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          10/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vs2 16/32 :  50.00%
+    vfncvt_rtz_xu_f_w 32/64 :  50.00%
     vfncvt_x_f_w   
         vd             
             vpr            
@@ -3969,6 +4265,154 @@ Extension : Vf, instructions: 83
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfrdiv_vf 96/96 : 100.00%
+    vfrec7_v       
+        vd             
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         44/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          28/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          12/1 : 100.00%
+                v7           4/1 : 100.00%
+                v8          44/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vd 32/32 : 100.00%
+        vs2            
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         52/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          36/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          16/1 : 100.00%
+                v7           6/1 : 100.00%
+                v8          22/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vs2 32/32 : 100.00%
+    vfrec7_v 64/64 : 100.00%
+    vfrsqrt7_v     
+        vd             
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         44/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          28/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          12/1 : 100.00%
+                v7           4/1 : 100.00%
+                v8          44/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vd 32/32 : 100.00%
+        vs2            
+            vpr            
+                v0          22/1 : 100.00%
+                v1           4/1 : 100.00%
+                v10         12/1 : 100.00%
+                v11          4/1 : 100.00%
+                v12         28/1 : 100.00%
+                v13          4/1 : 100.00%
+                v14         12/1 : 100.00%
+                v15          4/1 : 100.00%
+                v16         44/1 : 100.00%
+                v17          4/1 : 100.00%
+                v18         12/1 : 100.00%
+                v19          4/1 : 100.00%
+                v2          12/1 : 100.00%
+                v20         28/1 : 100.00%
+                v21          4/1 : 100.00%
+                v22         12/1 : 100.00%
+                v23          4/1 : 100.00%
+                v24         52/1 : 100.00%
+                v25          4/1 : 100.00%
+                v26         12/1 : 100.00%
+                v27          4/1 : 100.00%
+                v28         28/1 : 100.00%
+                v29          4/1 : 100.00%
+                v3           4/1 : 100.00%
+                v30         12/1 : 100.00%
+                v31          4/1 : 100.00%
+                v4          36/1 : 100.00%
+                v5           4/1 : 100.00%
+                v6          16/1 : 100.00%
+                v7           6/1 : 100.00%
+                v8          22/1 : 100.00%
+                v9           4/1 : 100.00%
+            vpr 32/32 : 100.00%
+        vs2 32/32 : 100.00%
+    vfrsqrt7_v 64/64 : 100.00%
     vfrsub_vf      
         fs1            
             fpr            
@@ -5695,6 +6139,154 @@ Extension : Vf, instructions: 83
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
     vfwcvt_f_xu_v 32/64 :  50.00%
+    vfwcvt_rtz_x_f_v
+        vd             
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         20/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          12/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           4/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          20/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vd 16/32 :  50.00%
+        vs2            
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         24/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          16/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           6/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          10/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vs2 16/32 :  50.00%
+    vfwcvt_rtz_x_f_v 32/64 :  50.00%
+    vfwcvt_rtz_xu_f_v
+        vd             
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         20/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          12/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           4/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          20/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vd 16/32 :  50.00%
+        vs2            
+            vpr            
+                v0          10/1 : 100.00%
+                v1           0/1 :   0.00% ZERO
+                v10          4/1 : 100.00%
+                v11          0/1 :   0.00% ZERO
+                v12         12/1 : 100.00%
+                v13          0/1 :   0.00% ZERO
+                v14          4/1 : 100.00%
+                v15          0/1 :   0.00% ZERO
+                v16         20/1 : 100.00%
+                v17          0/1 :   0.00% ZERO
+                v18          4/1 : 100.00%
+                v19          0/1 :   0.00% ZERO
+                v2           4/1 : 100.00%
+                v20         12/1 : 100.00%
+                v21          0/1 :   0.00% ZERO
+                v22          4/1 : 100.00%
+                v23          0/1 :   0.00% ZERO
+                v24         24/1 : 100.00%
+                v25          0/1 :   0.00% ZERO
+                v26          4/1 : 100.00%
+                v27          0/1 :   0.00% ZERO
+                v28         12/1 : 100.00%
+                v29          0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v30          4/1 : 100.00%
+                v31          0/1 :   0.00% ZERO
+                v4          16/1 : 100.00%
+                v5           0/1 :   0.00% ZERO
+                v6           6/1 : 100.00%
+                v7           0/1 :   0.00% ZERO
+                v8          10/1 : 100.00%
+                v9           0/1 :   0.00% ZERO
+            vpr 16/32 :  50.00%
+        vs2 16/32 :  50.00%
+    vfwcvt_rtz_xu_f_v 32/64 :  50.00%
     vfwcvt_x_f_v   
         vd             
             vpr            
@@ -8616,6 +9208,70 @@ Coverage points missed:
   vfncvt_rod_f_f_w/vs2/vpr/v5
   vfncvt_rod_f_f_w/vs2/vpr/v7
   vfncvt_rod_f_f_w/vs2/vpr/v9
+  vfncvt_rtz_x_f_w/vd/vpr/v1
+  vfncvt_rtz_x_f_w/vd/vpr/v11
+  vfncvt_rtz_x_f_w/vd/vpr/v13
+  vfncvt_rtz_x_f_w/vd/vpr/v15
+  vfncvt_rtz_x_f_w/vd/vpr/v17
+  vfncvt_rtz_x_f_w/vd/vpr/v19
+  vfncvt_rtz_x_f_w/vd/vpr/v21
+  vfncvt_rtz_x_f_w/vd/vpr/v23
+  vfncvt_rtz_x_f_w/vd/vpr/v25
+  vfncvt_rtz_x_f_w/vd/vpr/v27
+  vfncvt_rtz_x_f_w/vd/vpr/v29
+  vfncvt_rtz_x_f_w/vd/vpr/v3
+  vfncvt_rtz_x_f_w/vd/vpr/v31
+  vfncvt_rtz_x_f_w/vd/vpr/v5
+  vfncvt_rtz_x_f_w/vd/vpr/v7
+  vfncvt_rtz_x_f_w/vd/vpr/v9
+  vfncvt_rtz_x_f_w/vs2/vpr/v1
+  vfncvt_rtz_x_f_w/vs2/vpr/v11
+  vfncvt_rtz_x_f_w/vs2/vpr/v13
+  vfncvt_rtz_x_f_w/vs2/vpr/v15
+  vfncvt_rtz_x_f_w/vs2/vpr/v17
+  vfncvt_rtz_x_f_w/vs2/vpr/v19
+  vfncvt_rtz_x_f_w/vs2/vpr/v21
+  vfncvt_rtz_x_f_w/vs2/vpr/v23
+  vfncvt_rtz_x_f_w/vs2/vpr/v25
+  vfncvt_rtz_x_f_w/vs2/vpr/v27
+  vfncvt_rtz_x_f_w/vs2/vpr/v29
+  vfncvt_rtz_x_f_w/vs2/vpr/v3
+  vfncvt_rtz_x_f_w/vs2/vpr/v31
+  vfncvt_rtz_x_f_w/vs2/vpr/v5
+  vfncvt_rtz_x_f_w/vs2/vpr/v7
+  vfncvt_rtz_x_f_w/vs2/vpr/v9
+  vfncvt_rtz_xu_f_w/vd/vpr/v1
+  vfncvt_rtz_xu_f_w/vd/vpr/v11
+  vfncvt_rtz_xu_f_w/vd/vpr/v13
+  vfncvt_rtz_xu_f_w/vd/vpr/v15
+  vfncvt_rtz_xu_f_w/vd/vpr/v17
+  vfncvt_rtz_xu_f_w/vd/vpr/v19
+  vfncvt_rtz_xu_f_w/vd/vpr/v21
+  vfncvt_rtz_xu_f_w/vd/vpr/v23
+  vfncvt_rtz_xu_f_w/vd/vpr/v25
+  vfncvt_rtz_xu_f_w/vd/vpr/v27
+  vfncvt_rtz_xu_f_w/vd/vpr/v29
+  vfncvt_rtz_xu_f_w/vd/vpr/v3
+  vfncvt_rtz_xu_f_w/vd/vpr/v31
+  vfncvt_rtz_xu_f_w/vd/vpr/v5
+  vfncvt_rtz_xu_f_w/vd/vpr/v7
+  vfncvt_rtz_xu_f_w/vd/vpr/v9
+  vfncvt_rtz_xu_f_w/vs2/vpr/v1
+  vfncvt_rtz_xu_f_w/vs2/vpr/v11
+  vfncvt_rtz_xu_f_w/vs2/vpr/v13
+  vfncvt_rtz_xu_f_w/vs2/vpr/v15
+  vfncvt_rtz_xu_f_w/vs2/vpr/v17
+  vfncvt_rtz_xu_f_w/vs2/vpr/v19
+  vfncvt_rtz_xu_f_w/vs2/vpr/v21
+  vfncvt_rtz_xu_f_w/vs2/vpr/v23
+  vfncvt_rtz_xu_f_w/vs2/vpr/v25
+  vfncvt_rtz_xu_f_w/vs2/vpr/v27
+  vfncvt_rtz_xu_f_w/vs2/vpr/v29
+  vfncvt_rtz_xu_f_w/vs2/vpr/v3
+  vfncvt_rtz_xu_f_w/vs2/vpr/v31
+  vfncvt_rtz_xu_f_w/vs2/vpr/v5
+  vfncvt_rtz_xu_f_w/vs2/vpr/v7
+  vfncvt_rtz_xu_f_w/vs2/vpr/v9
   vfncvt_x_f_w/vd/vpr/v1
   vfncvt_x_f_w/vd/vpr/v11
   vfncvt_x_f_w/vd/vpr/v13
@@ -8936,6 +9592,70 @@ Coverage points missed:
   vfwcvt_f_xu_v/vs2/vpr/v5
   vfwcvt_f_xu_v/vs2/vpr/v7
   vfwcvt_f_xu_v/vs2/vpr/v9
+  vfwcvt_rtz_x_f_v/vd/vpr/v1
+  vfwcvt_rtz_x_f_v/vd/vpr/v11
+  vfwcvt_rtz_x_f_v/vd/vpr/v13
+  vfwcvt_rtz_x_f_v/vd/vpr/v15
+  vfwcvt_rtz_x_f_v/vd/vpr/v17
+  vfwcvt_rtz_x_f_v/vd/vpr/v19
+  vfwcvt_rtz_x_f_v/vd/vpr/v21
+  vfwcvt_rtz_x_f_v/vd/vpr/v23
+  vfwcvt_rtz_x_f_v/vd/vpr/v25
+  vfwcvt_rtz_x_f_v/vd/vpr/v27
+  vfwcvt_rtz_x_f_v/vd/vpr/v29
+  vfwcvt_rtz_x_f_v/vd/vpr/v3
+  vfwcvt_rtz_x_f_v/vd/vpr/v31
+  vfwcvt_rtz_x_f_v/vd/vpr/v5
+  vfwcvt_rtz_x_f_v/vd/vpr/v7
+  vfwcvt_rtz_x_f_v/vd/vpr/v9
+  vfwcvt_rtz_x_f_v/vs2/vpr/v1
+  vfwcvt_rtz_x_f_v/vs2/vpr/v11
+  vfwcvt_rtz_x_f_v/vs2/vpr/v13
+  vfwcvt_rtz_x_f_v/vs2/vpr/v15
+  vfwcvt_rtz_x_f_v/vs2/vpr/v17
+  vfwcvt_rtz_x_f_v/vs2/vpr/v19
+  vfwcvt_rtz_x_f_v/vs2/vpr/v21
+  vfwcvt_rtz_x_f_v/vs2/vpr/v23
+  vfwcvt_rtz_x_f_v/vs2/vpr/v25
+  vfwcvt_rtz_x_f_v/vs2/vpr/v27
+  vfwcvt_rtz_x_f_v/vs2/vpr/v29
+  vfwcvt_rtz_x_f_v/vs2/vpr/v3
+  vfwcvt_rtz_x_f_v/vs2/vpr/v31
+  vfwcvt_rtz_x_f_v/vs2/vpr/v5
+  vfwcvt_rtz_x_f_v/vs2/vpr/v7
+  vfwcvt_rtz_x_f_v/vs2/vpr/v9
+  vfwcvt_rtz_xu_f_v/vd/vpr/v1
+  vfwcvt_rtz_xu_f_v/vd/vpr/v11
+  vfwcvt_rtz_xu_f_v/vd/vpr/v13
+  vfwcvt_rtz_xu_f_v/vd/vpr/v15
+  vfwcvt_rtz_xu_f_v/vd/vpr/v17
+  vfwcvt_rtz_xu_f_v/vd/vpr/v19
+  vfwcvt_rtz_xu_f_v/vd/vpr/v21
+  vfwcvt_rtz_xu_f_v/vd/vpr/v23
+  vfwcvt_rtz_xu_f_v/vd/vpr/v25
+  vfwcvt_rtz_xu_f_v/vd/vpr/v27
+  vfwcvt_rtz_xu_f_v/vd/vpr/v29
+  vfwcvt_rtz_xu_f_v/vd/vpr/v3
+  vfwcvt_rtz_xu_f_v/vd/vpr/v31
+  vfwcvt_rtz_xu_f_v/vd/vpr/v5
+  vfwcvt_rtz_xu_f_v/vd/vpr/v7
+  vfwcvt_rtz_xu_f_v/vd/vpr/v9
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v1
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v11
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v13
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v15
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v17
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v19
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v21
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v23
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v25
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v27
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v29
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v3
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v31
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v5
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v7
+  vfwcvt_rtz_xu_f_v/vs2/vpr/v9
   vfwcvt_x_f_v/vd/vpr/v1
   vfwcvt_x_f_v/vd/vpr/v11
   vfwcvt_x_f_v/vd/vpr/v13
@@ -9560,10 +10280,10 @@ Coverage points missed:
   vfwsub_wv/vs2/vpr/v5
   vfwsub_wv/vs2/vpr/v7
   vfwsub_wv/vs2/vpr/v9
-Coverage points missed: 1076/7392
+Coverage points missed: 1204/7904
 
 Info TOTAL INSTRUCTION COVERAGE : Vf
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 83/83 : 100.00%
-Info   Coverage points hit   : 6316/7392 :  85.44%
+Info   Unique instructions   : 91/91 : 100.00%
+Info   Coverage points hit   : 6700/7904 :  84.77%

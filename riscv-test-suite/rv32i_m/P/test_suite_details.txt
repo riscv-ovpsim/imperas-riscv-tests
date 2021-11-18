@@ -20,266 +20,266 @@ Architectural Test Suite Data for RV32P P DSP:
     247 test source files
     1 different instruction categories
     258 different instructions
-    254,570 total instructions
+    226,862 total instructions
 
 Instruction category: OPP_SIMD SIMD Instructions (P-DSP)
-  clrs16 : 146
   add8 : 146
-  add16 : 146
-  clrs8 : 146
-  clo8 : 146
-  bpick : 146
-  bitrev : 146
-  clz32 : 146
-  clo16 : 146
-  clz16 : 146
-  clz8 : 146
-  cmpeq8 : 146
-  ave : 146
   add64 : 274
   clrs32 : 146
+  bitrev : 146
+  add16 : 146
+  clrs8 : 146
   clo32 : 146
-  cmpeq16 : 146
-  cras16 : 146
+  clo16 : 146
+  clo8 : 146
+  clz8 : 146
+  cmpeq8 : 146
+  clz16 : 146
+  ave : 146
+  clz32 : 146
+  bpick : 146
+  clrs16 : 146
   crsa16 : 146
-  kabsw : 146
-  kadd64 : 274
-  kcras16 : 146
-  kadd8 : 146
-  insb : 146
-  kdmbt : 146
-  kcrsa16 : 146
-  kdmbb : 146
   kabs8 : 146
-  kadd16 : 146
-  kdmtt : 146
-  kdmabb : 146
   kabs16 : 146
+  kabsw : 146
   kaddh : 146
+  kadd8 : 146
+  cmpeq16 : 146
+  kadd64 : 274
   kaddw : 146
-  kdmabt : 146
-  kdmatt : 146
+  kadd16 : 146
+  insb : 146
+  cras16 : 146
+  kcras16 : 146
+  kcrsa16 : 146
+  kdmbt : 146
+  kdmbb : 146
   khm8 : 146
   khm16 : 146
+  kdmabb : 146
+  kdmabt : 146
+  khmtt : 146
   khmx8 : 146
+  kdmtt : 146
   khmbb : 146
-  khmx16 : 146
-  kmar64 : 274
   khmbt : 146
+  kdmatt : 146
+  khmx16 : 146
+  kmada : 146
+  kmatt : 146
   kmaxda : 146
+  kmabb : 146
   kmabt : 146
   kmadrs : 146
-  kmabb : 146
+  kmads : 146
+  kmar64 : 274
   kmda : 146
   kmmac : 146
   kmxda : 146
-  kmada : 146
-  kmads : 146
   kmmac.u : 146
-  kmatt : 146
-  khmtt : 146
-  kmaxds : 146
-  kmmawb : 146
-  kmmawb.u : 146
-  kmmawb2.u : 146
   kmmawb2 : 146
-  kmmawt2 : 146
+  kmmawb2.u : 146
+  kmmawb.u : 146
+  kmaxds : 146
   kmmawt : 146
   kmmawt.u : 146
-  kmmsb : 146
-  kmmwt2 : 146
+  kmmawt2 : 146
+  kmmawb : 146
   kmmawt2.u : 146
-  kmsxda : 146
+  kmmsb.u : 146
+  kmmwb2.u : 146
+  kmmsb : 146
   kmmwb2 : 146
   kmmwt2.u : 146
-  kmmsb.u : 146
-  kmsr64 : 274
   ksllw : 146
-  kmsda : 146
-  kmmwb2.u : 146
-  ksll8 : 146
-  kslli8 : 146
-  ksll16 : 146
+  kmmwt2 : 146
   kslliw : 146
+  kslli8 : 146
+  kmsda : 146
+  kmsr64 : 274
+  kmsxda : 146
+  ksll8 : 146
   kslra8 : 146
-  kslra16.u : 146
-  kslraw.u : 146
-  kslra16 : 146
-  kstas16 : 146
+  ksll16 : 146
   kslli16 : 146
-  kslraw : 146
   kslra8.u : 146
-  ksub64 : 274
-  ksubh : 146
-  ksub8 : 146
-  kstsa16 : 146
-  ksubw : 146
-  kwmmul : 146
-  kwmmul.u : 146
+  kslra16 : 146
+  kslra16.u : 146
+  kslraw : 146
+  kslraw.u : 146
+  kstas16 : 146
   ksub16 : 146
-  maxw : 146
+  ksub64 : 274
+  kstsa16 : 146
+  ksub8 : 146
   maddr32 : 146
+  kwmmul.u : 146
+  ksubw : 146
+  ksubh : 146
+  maxw : 146
+  kwmmul : 146
+  minw : 146
+  msubr32 : 146
   mulr64 : 274
   mulsr64 : 274
-  pktt16 : 146
+  pkbt16 : 146
+  pbsad : 146
   pbsada : 146
   pkbb16 : 146
-  minw : 146
-  pkbt16 : 146
-  msubr32 : 146
-  pbsad : 146
-  radd64 : 274
+  radd8 : 146
+  radd16 : 146
   raddw : 146
-  rcrsa16 : 146
   rcras16 : 146
   pktb16 : 146
-  radd16 : 146
-  radd8 : 146
+  rcrsa16 : 146
+  pktt16 : 146
+  radd64 : 274
+  rstas16 : 146
   rstsa16 : 146
   rsub8 : 146
-  rsub64 : 274
-  rstas16 : 146
-  rsubw : 146
-  scmple16 : 146
-  scmple8 : 146
-  sll16 : 146
-  slli8 : 146
   sclip8 : 146
   sclip16 : 146
   rsub16 : 146
-  sclip32 : 146
+  rsub64 : 274
+  scmple8 : 146
+  rsubw : 146
+  scmplt8 : 146
   scmplt16 : 146
+  sclip32 : 146
   sll8 : 146
+  slli8 : 146
+  scmple16 : 146
   slli16 : 146
+  sll16 : 146
   smal : 274
   smalbb : 274
-  scmplt8 : 146
-  smaltt : 274
   smalbt : 274
-  smaldrs : 274
-  smalda : 274
+  smaltt : 274
+  smalxda : 274
   smalds : 274
+  smalda : 274
+  smaldrs : 274
+  smar64 : 274
+  smaqa : 146
+  smalxds : 274
+  smax8 : 146
+  smax16 : 146
   smbb16 : 146
   smaqa.su : 146
-  smax8 : 146
-  smalxda : 274
   smtt16 : 146
   smds : 146
   smbt16 : 146
-  smalxds : 274
-  smax16 : 146
-  smar64 : 274
   smdrs : 146
-  smaqa : 146
   smxds : 146
-  smin16 : 146
-  smmwb.u : 146
-  smmul.u : 146
-  smmul : 146
-  smmwt.u : 146
   smin8 : 146
+  smin16 : 146
+  smmul : 146
+  smmul.u : 146
   smmwb : 146
-  smmwt : 146
-  smsr64 : 274
-  smslxda : 274
-  smulx16 : 274
+  smmwt.u : 146
   smslda : 274
-  sra.u : 146
-  srai.u : 146
-  smul16 : 274
-  sra8.u : 146
-  smulx8 : 274
-  srai8 : 146
+  smslxda : 274
+  smsr64 : 274
   smul8 : 274
-  srai8.u : 146
+  smmwt : 146
+  smmwb.u : 146
+  smulx16 : 274
+  smul16 : 274
+  sra.u : 146
+  smulx8 : 274
+  srai.u : 146
   sra8 : 146
+  sra8.u : 146
+  srai8 : 146
+  srai8.u : 146
   sra16 : 146
-  srai16 : 146
-  sra16.u : 146
-  srl8.u : 146
-  srli8 : 146
   srai16.u : 146
-  srli8.u : 146
+  sra16.u : 146
+  srai16 : 146
   srl8 : 146
-  srl16.u : 146
-  srli16 : 146
+  srl8.u : 146
   srl16 : 146
+  srli8.u : 146
+  srli16 : 146
+  srl16.u : 146
+  srli8 : 146
   stas16 : 146
-  srli16.u : 146
-  stsa16 : 146
-  sub64 : 274
-  sub16 : 146
-  sunpkd810 : 146
-  sunpkd830 : 146
   sub8 : 146
-  sunpkd831 : 146
+  srli16.u : 146
+  sub16 : 146
+  sub64 : 274
+  stsa16 : 146
+  sunpkd830 : 146
+  sunpkd810 : 146
   sunpkd820 : 146
-  swap16 : 146
-  sunpkd832 : 146
-  uclip16 : 146
   swap8 : 146
-  uclip32 : 146
+  swap16 : 146
   uclip8 : 146
-  ucmple8 : 146
-  ukadd8 : 146
+  uclip32 : 146
+  uclip16 : 146
+  sunpkd832 : 146
+  sunpkd831 : 146
   ucmplt8 : 146
   ucmple16 : 146
-  ukaddh : 146
-  ukaddw : 146
-  ucmplt16 : 146
+  ukadd8 : 146
   ukadd16 : 146
+  ucmple8 : 146
+  ucmplt16 : 146
+  ukadd64 : 274
+  ukaddh : 146
+  ukcras16 : 146
+  ukaddw : 146
   ukcrsa16 : 146
   ukmar64 : 274
-  ukcras16 : 146
-  ukadd64 : 274
-  uksub8 : 146
-  ukstas16 : 146
   ukmsr64 : 274
-  uksub16 : 146
-  uksub64 : 274
+  ukstas16 : 146
+  uksub8 : 146
   ukstsa16 : 146
+  uksub64 : 274
+  uksub16 : 146
   uksubh : 146
-  umar64 : 274
-  umax16 : 146
   uksubw : 146
-  umax8 : 146
   umaqa : 146
-  umin8 : 146
+  umax16 : 146
+  umar64 : 274
+  umax8 : 146
   umsr64 : 274
-  umul8 : 274
-  umin16 : 146
-  uradd16 : 146
-  umul16 : 274
-  urstas16 : 146
-  umulx16 : 274
+  umin8 : 146
   umulx8 : 274
-  urcras16 : 146
-  uradd8 : 146
-  urcrsa16 : 146
-  uradd64 : 274
+  umul16 : 274
+  umin16 : 146
+  umul8 : 274
+  umulx16 : 274
   uraddw : 146
+  uradd64 : 274
+  uradd8 : 146
+  uradd16 : 146
+  urstas16 : 146
+  urcras16 : 146
+  urcrsa16 : 146
+  ursub8 : 146
+  wexti : 274
+  ursub16 : 146
+  ursub64 : 274
+  wext : 274
   ursubw : 146
   urstsa16 : 146
-  wexti : 274
-  ursub64 : 274
-  ursub8 : 146
-  ursub16 : 146
-  wext : 274
   zunpkd810 : 146
-  zunpkd820 : 146
-  zunpkd831 : 146
   zunpkd830 : 146
   zunpkd832 : 146
+  zunpkd831 : 146
+  zunpkd820 : 146
 
 Other instructions (those not the focus of this suite)
   jal : 247
-  lui : 49,088
-  addi : 99,268
+  lui : 44,202
+  addi : 84,666
   csrrs : 741
   auipc : 9,670
   csrrw : 494
   mret : 247
-  sw : 52,270
+  sw : 44,050
   fence : 247
   ecall : 247
   beq : 741
