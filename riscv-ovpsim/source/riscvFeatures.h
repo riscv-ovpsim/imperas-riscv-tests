@@ -19,16 +19,18 @@
 
 #pragma once
 
-// basic types
-#include "hostapi/impTypes.h"
-
-// model header files
-#include "riscvConfig.h"
-#include "riscvTypeRefs.h"
+//
+// Use this to enable P extension
+//
+#define ENABLE_P_EXT 1
 
 //
-// Validate that the instruction subset is supported and enabled and take an
-// Illegal Instruction exception if not
+// Use this to enable memory trace attributes
 //
-Bool riscvValidateCExtSubset(riscvP riscv, riscvCompressSet Zc);
+#define ENABLE_MEM_TRACE_ATTRS 1
+
+//
+// Use this to enable Ssmpu extension (under development)
+//
+#define ENABLE_SSMPU 0
 

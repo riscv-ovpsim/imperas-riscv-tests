@@ -17,59 +17,59 @@
 
 
 Architectural Test Suite Data for RV32VP RISC-V "V" Vector Extension:
-    306 test source files
+    172 test source files
     4 different instruction categories
     44 different instructions
-    193,200 total instructions
+    110,680 total instructions
 
 Instruction category: OPV_GACO gather
   vcompress.vm : 336
-  vrgather.vi : 639
-  vrgather.vv : 639
-  vrgather.vx : 639
-  vrgatherei16.vv : 513
+  vrgather.vi : 303
+  vrgather.vv : 303
+  vrgather.vx : 303
+  vrgatherei16.vv : 241
 Instruction category: OPV_PERMU permutation
   vfmv.f.s : 224
   vfmv.s.f : 224
   vmv.s.x : 96
   vmv.x.s : 96
 Instruction category: OPV_SLIDE slide
-  vslide1down.vx : 639
-  vfslide1down.vf : 426
-  vslide1up.vx : 639
-  vfslide1up.vf : 426
-  vslidedown.vi : 639
-  vslidedown.vx : 639
-  vslideup.vi : 639
-  vslideup.vx : 639
+  vslide1down.vx : 303
+  vfslide1down.vf : 202
+  vslide1up.vx : 303
+  vfslide1up.vf : 202
+  vslidedown.vi : 303
+  vslidedown.vx : 303
+  vslideup.vi : 303
+  vslideup.vx : 303
 Instruction category: OPV_VMV whole vector register move
   vmv1r.v : 32
-  vmv4r.v : 32
   vmv2r.v : 32
   vmv8r.v : 16
+  vmv4r.v : 32
 
 Other instructions (those not the focus of this suite)
-  jal : 306
-  lui : 11,820
-  addi : 68,296
-  csrrs : 1,224
-  auipc : 9,054
-  csrrw : 918
-  mret : 306
-  vsetvli : 28,177
-  vle8.v : 5,726
-  add : 32,496
-  vse8.v : 2,211
-  fence : 306
-  ecall : 306
-  beq : 918
-  vle16.v : 7,273
-  vse16.v : 2,812
-  vle32.v : 7,340
-  vse32.v : 2,861
+  jal : 172
+  lui : 6,644
+  addi : 39,940
+  csrrs : 688
+  auipc : 8,130
+  csrrw : 516
+  mret : 172
+  vsetvli : 14,971
+  vle8.v : 2,944
+  add : 17,520
+  vse8.v : 1,123
+  fence : 172
+  ecall : 172
+  beq : 516
+  vle16.v : 3,861
+  vse16.v : 1,468
+  vle32.v : 4,008
+  vse32.v : 1,549
   fmv.x.s : 224
   sw : 320
-  fmv.s.x : 1,076
-  vid.v : 513
-  vadd.vx : 513
+  fmv.s.x : 628
+  vid.v : 241
+  vadd.vx : 241
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -125,6 +125,11 @@ typedef enum riscvArchitectureE {
     ISA_VS     = (ISA_S|ISA_H),             // virtual supervisor mode
     ISA_BK     = (ISA_B|ISA_K),             // either B or K extension
     ISA_VP     = (ISA_V|ISA_P),             // either V or P extension
+    ISA_32     = ISA_XLEN_32,               // supported for XLEN=32
+    ISA_64     = ISA_XLEN_64,               // supported for XLEN=64
+    ISA_Sand32 = (ISA_S|ISA_32|ISA_and),    // 32-bit S mode
+    ISA_Hand32 = (ISA_H|ISA_32|ISA_and),    // 32-bit H mode
+    ISA_Uand32 = (ISA_U|ISA_32|ISA_and),    // 32-bit U mode
 
     // FEATURES THAT VARY DYNAMICALLY (note that D, F and V features can be
     // enabled or disabled by mstatus.FS or mstatus.VS, so are included here
@@ -230,6 +235,12 @@ typedef enum riscvUserVerE {
 } riscvUserVer;
 
 //
+// Date and tag of Privileged Architecture master version
+//
+#define RVPV_MASTER_DATE    "10 January 2022"
+#define RVPV_MASTER_TAG     "6bdeb58"
+
+//
 // Supported Privileged Architecture versions
 //
 typedef enum riscvPrivVerE {
@@ -238,15 +249,16 @@ typedef enum riscvPrivVerE {
     RVPV_20190405,                      // version 20190405
     RVPV_20190608,                      // version 20190608
     RVPV_1_12,                          // version 1.12 (placeholder)
-    RVPV_MASTER  = RVPV_1_12,           // master branch
-    RVPV_DEFAULT = RVPV_20190608,       // default version
+    RVPV_20211203 = RVPV_1_12,          // version 20211203
+    RVPV_MASTER,                        // master branch
+    RVPV_DEFAULT = RVPV_20211203,       // default version
 } riscvPrivVer;
 
 //
 // Date and tag of Vector Architecture master version
 //
-#define RVVV_MASTER_DATE    "20 September 2021"
-#define RVVV_MASTER_TAG     "3570f99"
+#define RVVV_MASTER_DATE    "22 December 2021"
+#define RVVV_MASTER_TAG     "8cdce6c"
 
 //
 // Supported Vector Architecture versions
@@ -262,9 +274,10 @@ typedef enum riscvVectVerE {
     RVVV_0_9,                           // version 0.9
     RVVV_1_0_20210130,                  // version 1.0-draft-20210130
     RVVV_1_0_20210608,                  // version 1.0-rc1-20210608
+    RVVV_1_0,                           // version 1.0
     RVVV_MASTER,                        // master branch
     RVVV_LAST,                          // for sizing
-    RVVV_DEFAULT = RVVV_1_0_20210608,   // default version
+    RVVV_DEFAULT = RVVV_1_0,            // default version
 } riscvVectVer;
 
 //
@@ -619,6 +632,7 @@ typedef enum riscvVFeatureE {
     RVVF_AGNOSTIC,          // are agnostic bits implemented?
     RVVF_MLEN1,             // is MLEN always 1?
     RVVF_EEW_OVERLAP,       // use relaxed EEW overlap rules?
+    RVVF_EEW_SAME_SRC,      // one EEW per source register?
     RVVF_SLEN_IS_VLEN,      // is SLEN==VLEN?
     RVVF_ELEN_GT_VLEN,      // is ELEN>VLEN legal?
     RVVF_VLR_HINT,          // do VLR instructions encode hints?

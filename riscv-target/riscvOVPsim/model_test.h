@@ -188,15 +188,16 @@ reset_vector:                                                           \
 
 #ifdef  RVMODEL_ASSERT_SHORT
 
-#define RVMODEL_IO_ASSERT_GPR_EQ(_SP, _R, _I)                           \
-    LOCAL_IO_PUSH(_SP)                                                  \
-    mv          s0, _R;                                                 \
-    li          t0, _I;                                                 \
-    beq         s0, t0, 20002f;                                         \
-    LOCAL_IO_WRITE_STR("Assertion violation:\n");                 \
-    li TESTNUM, 100;                                                    \
-    j rvtest_code_end;                                                  \
-20002:                                                                  \
+#define RVMODEL_IO_ASSERT_GPR_EQ(_SP, _R, _I)                                    \
+    LOCAL_IO_PUSH(_SP)                                                           \
+    mv          s0, _R;                                                          \
+    li          t0, _I;                                                          \
+    beq         s0, t0, 20002f;                                                  \
+    LOCAL_IO_WRITE_STR("Assertion violation found with RISCV_ASSERT=2. ");       \
+    LOCAL_IO_WRITE_STR("Set RISCV_ASSERT=1 and rerun for full info.\n");   \
+    li TESTNUM, 100;                                                             \
+    call rvtest_code_end;                                                        \
+20002:                                                                           \
     LOCAL_IO_POP(_SP)
 
 #else
@@ -221,7 +222,7 @@ reset_vector:                                                           \
     LOCAL_IO_WRITE_STR(# _I);                                           \
     LOCAL_IO_WRITE_STR("\n");                                     \
     li TESTNUM, 100;                                                    \
-    j rvtest_code_end;                                                  \
+    call rvtest_code_end;                                               \
 20002:                                                                  \
     LOCAL_IO_POP(_SP)
 
@@ -245,7 +246,7 @@ reset_vector:                                                           \
     LOCAL_IO_WRITE_STR(# _I);                                           \
     LOCAL_IO_WRITE_STR("\n");                                     \
     li TESTNUM, 100;                                                    \
-    j rvtest_code_end;                                                  \
+    call rvtest_code_end;                                               \
 20003:
 
 // _D = DFPR
@@ -266,7 +267,7 @@ reset_vector:                                                           \
     LOCAL_IO_WRITE_STR(# _I);                                           \
     LOCAL_IO_WRITE_STR("\n");                                     \
     li TESTNUM, 100;                                                    \
-    j rvtest_code_end;                                                  \
+    call rvtest_code_end;                                               \
 20005:
 
 // _SP = (volatile register)

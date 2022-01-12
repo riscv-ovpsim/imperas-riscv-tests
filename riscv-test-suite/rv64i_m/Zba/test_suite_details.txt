@@ -29,9 +29,9 @@ Instruction category: OPB_ADDR Address Calculation
   sh1add : 274
   sh3add : 274
   sh2add : 274
-  sh1add.uw : 274
-  sh2add.uw : 274
   sh3add.uw : 274
+  sh2add.uw : 274
+  sh1add.uw : 274
 
 Other instructions (those not the focus of this suite)
   jal : 8

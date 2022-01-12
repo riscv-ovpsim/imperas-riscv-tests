@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@
 #include "riscvDecode.h"
 #include "riscvDecodeTypes.h"
 #include "riscvExceptions.h"
+#include "riscvFeatures.h"
 #include "riscvFunctions.h"
 #include "riscvKExtension.h"
 #include "riscvMessage.h"
@@ -399,17 +400,24 @@ inline static Bool vectorAgnostic(riscvP riscv) {
 }
 
 //
-// is MLEN always 1?
+// Is MLEN always 1?
 //
 inline static Bool vectorMLEN1(riscvP riscv) {
     return riscvVFSupport(riscv, RVVF_MLEN1);
 }
 
 //
-// are relaxed EEW overlap rules used?
+// Are relaxed EEW overlap rules used?
 //
 inline static Bool vectorEEWOverlap(riscvP riscv) {
     return riscvVFSupport(riscv, RVVF_EEW_OVERLAP);
+}
+
+//
+// Must vector source registers provide operands with one EEW only?
+//
+inline static Bool vectorEEWSameSource(riscvP riscv) {
+    return riscvVFSupport(riscv, RVVF_EEW_SAME_SRC);
 }
 
 //
@@ -572,18 +580,7 @@ void riscvEmitIllegalOperandMessageDesc(
 // Get description for the first feature identified by the given feature id
 //
 static const char *getFeatureDesc(riscvArchitecture feature) {
-
-    // get feature description
-    const char *description = riscvGetFeatureName(feature);
-
-    // sanity check description is valid
-    VMI_ASSERT(
-        description,
-        "require non-zero feature name (feature %c)",
-        riscvGetFeatureChar(feature)
-    );
-
-    return description;
+    return riscvGetFeatureName(feature, False);
 }
 
 //
@@ -3213,6 +3210,12 @@ static void emitAMOCommonInt(
     vmiReg        tmp2       = newTmp(state);
     Uns32         memBits    = state->info.memBits;
 
+    // allow derived model to validate atomic operation if required
+    ITER_EXT_CB(
+        riscv, extCB, AMOCheck,
+        extCB->AMOCheck(riscv, extCB->clientData);
+    )
+
     // emit operation atomic code
     emitAtomicCode(riscv, code);
 
@@ -3815,6 +3818,21 @@ static RISCV_MORPH_FN(emitHFENCE_GVMA) {
     } else {
         emitFENCECommon(state, True, fenceCBs);
     }
+}
+
+//
+// Implement SFENCE.W.INVAL or SFENCE.INVAL.IR instruction - no effect except
+// access check
+//
+static RISCV_MORPH_FN(emitSFENCE_INVAL) {
+
+    riscvP riscv = state->riscv;
+
+    // this instruction requires Supervisor mode to be implemented
+    checkHaveSModeMT(riscv);
+
+    // this instruction must be executed in Machine mode or Supervisor mode
+    requireModeMT(riscv, RISCV_MODE_S);
 }
 
 
@@ -5825,7 +5843,7 @@ static RISCV_MORPH_FN(emitBinopRRCW) {
 // For binops widening a half-width operand, is rs2 widened?
 //
 inline static Bool clearWRRRRS2(riscvMorphStateP state) {
-    return state->riscv->configInfo.bitmanip_version<=RVBV_0_93;
+    return state->riscv->configInfo.bitmanip_version<RVBV_0_93;
 }
 
 //
@@ -7490,7 +7508,7 @@ static vmiFType getSEWFType(riscvMorphStateP state, Uns32 SEW) {
 //
 // Is checking of register overlap required?
 //
-static Bool legalOverlap(riscvMorphStateP state, iterDescP id, Uns32 srcNum) {
+static Bool legalOverlapDS(riscvMorphStateP state, iterDescP id, Uns32 srcNum) {
 
     riscvSEWMt dstEEW = getEEW(id, 0);
     riscvSEWMt srcEEW = getEEW(id, srcNum);
@@ -7528,16 +7546,17 @@ static Bool legalOverlap(riscvMorphStateP state, iterDescP id, Uns32 srcNum) {
 }
 
 //
-// Validate destination does not overlap sources or mask if required
+// Validate vector register overlap constraints
 //
 static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
 
+    riscvP       riscv  = state->riscv;
     riscvVShape  vShape = state->attrs->vShape;
     riscvRegDesc rD     = getRVReg(state, 0);
 
+    // validate destination does not overlap sources or mask if required
     if(isR0Dst(vShape) && isVReg(rD) && !isScalarN(vShape, 0)) {
 
-        riscvP       riscv     = state->riscv;
         riscvRegDesc mask      = state->info.mask;
         Uns32        index     = getRIndex(rD);
         Uns32        dstRegNum = getEMULxNF(state, id, 0);
@@ -7595,7 +7614,7 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
 
                 Uns32 srcRegNum = getEMUL(id, srcNum);
 
-                if((ot&OT_S) || !legalOverlap(state, id, srcNum)) {
+                if((ot&OT_S) || !legalOverlapDS(state, id, srcNum)) {
 
                     Uns32 index = getRIndex(rA);
 
@@ -7611,6 +7630,61 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // validate vector source registers provide operands with one EEW only if
+    // required
+    if(vectorEEWSameSource(riscv)) {
+
+        riscvSEWMt vregEEW[VREG_NUM] = {0};
+        Uns32      srcNum;
+
+        for(srcNum=1; srcNum<RV_MAX_AREGS; srcNum++) {
+
+            riscvRegDesc rA = getRVReg(state, srcNum);
+
+            if(isVReg(rA)) {
+
+                riscvSEWMt   srcEEW    = getEEW(id, srcNum);
+                Uns32        srcRegNum = getEMUL(id, srcNum);
+                riscvRegDesc rS        = getRVReg(state, srcNum);
+                Uns32        index     = getRIndex(rS);
+                Uns32        i;
+
+                for(i=0; i<srcRegNum; i++) {
+
+                    Uns32 part = i+index;
+
+                    if(part<VREG_NUM) {
+
+                        riscvSEWMt prevEEW = vregEEW[part];
+
+                        if(prevEEW && (prevEEW!=srcEEW)) {
+                            ILLEGAL_OPERAND_MESSAGE(
+                                riscv, "IWDS", "has source EEW conflict", srcNum
+                            );
+                            return False;
+                        }
+
+                        vregEEW[part] = srcEEW;
+                    }
+                }
+            }
+        }
+
+        // validate overlap with mask if required
+        if(state->info.mask) {
+
+            Uns32      index   = getRIndex(state->info.mask);
+            riscvSEWMt prevEEW = vregEEW[index];
+
+            if(prevEEW && (prevEEW!=id->MLEN)) {
+                ILLEGAL_INSTRUCTION_MESSAGE(
+                    riscv, "IWDM", "Mask has source EEW conflict"
+                );
+                return False;
             }
         }
     }
@@ -12655,7 +12729,7 @@ static RISCV_MORPH_FN(emitKMAXDAS) {
         vmiBinop    op    = state->attrs->binop;
         vmiBinop    op2   = state->attrs->binop2;
         vmiBinop    acc   = state->attrs->acc;
-        vmiFlagsCP  f     = getBinopSatFlags(state, acc);
+        vmiFlagsCP  f     = getBinopSatFlags(state, op2);
         vmiReg      t1L   = tmp1;
         vmiReg      t1H   = VMI_REG_DELTA(t1L, ei.eBytes/2);
         vmiReg      t2L   = tmp2;
@@ -13993,8 +14067,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_KMMAW_Hx_Dx_Rx]   = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_ADDSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KMMSB_Rx]         = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_,                                  acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KMMW_Hx_Dx_Rx]    = {morph:emitMulQn_Sx,      binop:vmi_IMUL,    pAttrs:RVPS_N__W_, binop2:vmi_ADDSQ,                acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
-    [RV_IT_KMSDA]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
-    [RV_IT_KMSXDA]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSDA]            = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS____W_, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSXDA]           = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___XW_, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KMSR_Sx]          = {morph:emitKMASR,         binop:vmi_IMUL,    pAttrs:RVPS______, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KSLL_Sx]          = {morph:emitShiftopRRR_Sx, binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
     [RV_IT_KSLLI_Sx]         = {morph:emitBinopRRC_Sx,   binop:vmi_SHLSQ,                                                                           iClass:OCL_IC_INTEGER},
@@ -14097,8 +14171,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_KMADS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KMADRS_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUBSQ,                acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_KMAXDS_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUBSQ,               acc:vmi_ADCSQ,      iClass:OCL_IC_INTEGER},
-    [RV_IT_KMSDA_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
-    [RV_IT_KMSXDA_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_ADDSQ,                acc:vmi_SUBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSDA_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
+    [RV_IT_KMSXDA_Sx]        = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_ADDSQ,                acc:vmi_SBBSQ,      iClass:OCL_IC_INTEGER},
     [RV_IT_SMDS_Sx]          = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
     [RV_IT_SMDRS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUB,                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
     [RV_IT_SMXDS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
@@ -14124,6 +14198,9 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_CBO_FLUSH]        = {morph:emitCBOFLUSH, iClass:OCL_IC_DCACHE},
     [RV_IT_CBO_INVAL]        = {morph:emitCBOINVAL, iClass:OCL_IC_DCACHE},
     [RV_IT_CBO_ZERO]         = {morph:emitCBOZERO,  iClass:OCL_IC_DCACHE},
+
+    // Svinval-extension instructions (RV32 and RV64)
+    [RV_IT_SFENCE_INVAL]     = {morph:emitSFENCE_INVAL, iClass:OCL_IC_SYSTEM|OCL_IC_MMU},
 
     // KEEP LAST
     [RV_IT_LAST]             = {0}

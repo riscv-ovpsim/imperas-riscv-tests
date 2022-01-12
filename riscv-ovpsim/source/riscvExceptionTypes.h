@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,8 +50,11 @@ typedef enum riscvExceptionE {
     riscv_E_EnvironmentCallFromVSMode    = 10,
     riscv_E_EnvironmentCallFromMMode     = 11,
     riscv_E_InstructionPageFault         = 12,
+    riscv_E_InstructionMPUFault          = 12,
     riscv_E_LoadPageFault                = 13,
+    riscv_E_LoadMPUFault                 = 13,
     riscv_E_StoreAMOPageFault            = 15,
+    riscv_E_StoreAMOMPUFault             = 15,
     riscv_E_InstructionGuestPageFault    = 20,
     riscv_E_LoadGuestPageFault           = 21,
     riscv_E_VirtualInstruction           = 22,
@@ -150,10 +153,12 @@ typedef enum riscvAccessFaultS {
 //
 typedef enum riscvICModeE {
 
+    // discrete options
     riscv_int_Direct        = 0x0,  // direct interrupt mode
     riscv_int_Vectored      = 0x1,  // vectored interrupt mode
     riscv_int_CLIC          = 0x2,  // CLIC interrupt mode
 
+    // CLIC composite options
     riscv_int_CLIC_Direct   = (riscv_int_CLIC|riscv_int_Direct),
     riscv_int_CLIC_Vectored = (riscv_int_CLIC|riscv_int_Vectored),
 

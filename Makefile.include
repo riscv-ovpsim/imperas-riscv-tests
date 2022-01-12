@@ -29,5 +29,6 @@ export RISCV_ASSERT       ?= 0
 # that no common files across jobs are created/overwritten leading to unknown behavior
 JOBS                      ?= -j8
 
-
+# set this if you want to generate the objdump output for elf files
+export RISCV_GENERATE_OBJFILE   ?= 0
 

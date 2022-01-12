@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "vmi/vmiTypes.h"
 
 // model header files
+#include "riscvFeatures.h"
 #include "riscvMode.h"
 #include "riscvRegisters.h"
 #include "riscvTypeRefs.h"
@@ -79,6 +80,15 @@
     CSR_ID(_R##1),      \
     CSR_ID(_R##2),      \
     CSR_ID(_R##3)
+
+//
+// Construct enumeration member names from the given base and indices 0..3 + h
+//
+#define CSR_ID_0_3H(_R) \
+    CSR_ID(_R##0##h),   \
+    CSR_ID(_R##1##h),   \
+    CSR_ID(_R##2##h),   \
+    CSR_ID(_R##3##h)
 
 //
 // Construct enumeration member names from the given base and indices 0..15
@@ -156,6 +166,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (scounteren),   // 0x106
     CSR_ID      (stvt),         // 0x107
     CSR_ID      (senvcfg),      // 0x10A
+    CSR_ID_0_3  (sstateen),     // 0x10C-0x10F
     CSR_ID      (sscratch),     // 0x140
     CSR_ID      (sepc),         // 0x141
     CSR_ID      (scause),       // 0x142
@@ -167,6 +178,10 @@ typedef enum riscvCSRIdE {
     CSR_ID      (sscratchcsw),  // 0x148
     CSR_ID      (sscratchcswl), // 0x149
     CSR_ID      (satp),         // 0x180
+#if(ENABLE_SSMPU)
+    CSR_ID_0_15 (mpucfg),       // 0x1A0-0x1AF
+    CSR_ID_0_63 (mpuaddr),      // 0x1B0-0x1EF
+#endif
     CSR_ID      (sentropyA),    // 0xDBF
     CSR_ID      (sentropyB),    // 0x546
 
@@ -178,7 +193,9 @@ typedef enum riscvCSRIdE {
     CSR_ID      (hcounteren),   // 0x606
     CSR_ID      (hgeie),        // 0x607
     CSR_ID      (henvcfg),      // 0x60A
+    CSR_ID_0_3  (hstateen),     // 0x60C-0x60F
     CSR_ID      (henvcfgh),     // 0x61A
+    CSR_ID_0_3H (hstateen),     // 0x61C-0x61F
     CSR_ID      (htimedeltah),  // 0x615
     CSR_ID      (htval),        // 0x643
     CSR_ID      (hip),          // 0x644
@@ -212,8 +229,10 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mcounteren),   // 0x306
     CSR_ID      (mtvt),         // 0x307
     CSR_ID      (menvcfg),      // 0x30A
+    CSR_ID_0_3  (mstateen),     // 0x30C-0x30F
     CSR_ID      (mstatush),     // 0x310
     CSR_ID      (menvcfgh),     // 0x31A
+    CSR_ID_0_3H (mstateen),     // 0x31C-0x31F
     CSR_ID      (mcountinhibit),// 0x320
     CSR_ID      (mscratch),     // 0x340
     CSR_ID      (mepc),         // 0x341
@@ -477,6 +496,18 @@ Bool riscvInhibitCycle(riscvP riscv);
 // Is retired instruction count inhibited?
 //
 Bool riscvInhibitInstret(riscvP riscv);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// STATEEN SUPPORT
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Return a Boolean indicating if an access in the current mode to a feature
+// enabled by the given xstateen bit is valid (and optionally take an Undefined
+// Instruction or Virtual Instruction trap if not)
+//
+Bool riscvStateenFeatureEnabled(riscvP riscv, Uns32 bit, Bool nonV, Bool trap);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -758,7 +789,8 @@ typedef struct {
     Uns64 CBIE  :  2;       // Zicbom custom field
     Uns64 CBCFE :  1;       // Zicbom custom field
     Uns64 CBZE  :  1;       // Zicboz custom field
-    Uns64 _u2   : 55;
+    Uns64 _u2   : 54;
+    Uns64 PBMTE :  1;       // Svpbmt custom field
     Uns64 STCE  :  1;       // Sstc custom field
 } CSR_REG_TYPE_64(envcfg);
 
@@ -771,10 +803,34 @@ typedef CSR_REG_TYPE(envcfg) CSR_REG_TYPE(henvcfg);
 typedef CSR_REG_TYPE(envcfg) CSR_REG_TYPE(senvcfg);
 
 // define write masks and field shifts
-#define WM64_envcfg        0x80000000000000f1ULL
+#define shift_envcfg_FIOM  0
 #define shift_envcfg_CBIE  4
 #define shift_envcfg_CBCFE 6
 #define shift_envcfg_CBZE  7
+#define shift_envcfg_PBMTE 62
+#define shift_envcfg_STCE  63
+#define WM64_envcfg        ((1ULL<<shift_envcfg_STCE)+(1ULL<<shift_envcfg_FIOM))
+
+// -----------------------------------------------------------------------------
+// sstateen0-sstateen3 (id 0x10C-0x10F)
+// mstateen0-mstateen3 (id 0x30C-0x30F)
+// hstateen0-hstateen3 (id 0x60C-0x60F)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(sstateen);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mstateen);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hstateen);
+
+// define bit offsets
+#define bit_stateen_Zfinx     1
+#define bit_stateen_xcse      57
+#define bit_stateen_xenvcfg   62
+#define bit_stateen_xstateen  63
+#define WM64_stateen_Zfinx    (1ULL<<bit_stateen_Zfinx)
+#define WM64_stateen_xcse     (1ULL<<bit_stateen_xcse)
+#define WM64_stateen_xenvcfg  (1ULL<<bit_stateen_xenvcfg)
+#define WM64_stateen_xstateen (1ULL<<bit_stateen_xstateen)
 
 // -----------------------------------------------------------------------------
 // hstatus      (id 0x600)
@@ -1318,8 +1374,11 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mclicbase);
 #define WM64_pmpcfg 0x9f9f9f9f9f9f9f9fULL
 
 // -----------------------------------------------------------------------------
-// pmpaddr      (id 0x3B0-0x3BF)
+// mpucfg       (id 0x1A0-0x1A3?)
 // -----------------------------------------------------------------------------
+
+// define write masks
+#define WM64_mpucfg 0x9f9f9f9f9f9f9f9fULL
 
 // -----------------------------------------------------------------------------
 // satp         (id 0x180)
@@ -2053,6 +2112,11 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 #define CSR_RO_DECL(_N)     CSR_REG_TYPE(_N) _N##_RO
 
 //
+// Use this to define four register entries in riscvCSRs below
+//
+#define CSR_REG_DECLx4(_N)  CSR_REG_TYPE(_N) _N[4]
+
+//
 // This type defines the CSRs implemented as true registers in the processor
 // structure
 //
@@ -2084,6 +2148,7 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (scounteren);     // 0x106
     CSR_REG_DECL  (stvt);           // 0x107
     CSR_REG_DECL  (senvcfg);        // 0x10A
+    CSR_REG_DECLx4(sstateen);       // 0x10C-0x10F
     CSR_REG_DECL_V(sscratch);       // 0x140
     CSR_REG_DECL_V(sepc);           // 0x141
     CSR_REG_DECL_V(scause);         // 0x142
@@ -2099,6 +2164,7 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (hcounteren);     // 0x606
     CSR_REG_DECL  (hgeie);          // 0x607
     CSR_REG_DECL  (henvcfg);        // 0x60A
+    CSR_REG_DECLx4(hstateen);       // 0x60C-0x60F
     CSR_REG_DECL  (htval);          // 0x643
     CSR_REG_DECL  (htinst);         // 0x64A
     CSR_REG_DECL  (hgatp);          // 0x680
@@ -2122,6 +2188,7 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (mcounteren);     // 0x306
     CSR_REG_DECL  (mtvt);           // 0x307
     CSR_REG_DECL  (menvcfg);        // 0x30A
+    CSR_REG_DECLx4(mstateen);       // 0x30C-0x30F
     CSR_REG_DECL  (mcountinhibit);  // 0x320
     CSR_REG_DECL  (mscratch);       // 0x340
     CSR_REG_DECL  (mepc);           // 0x341
@@ -2181,6 +2248,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (stvt);           // 0x107
     CSR_REG_DECL  (scounteren);     // 0x106
     CSR_REG_DECL  (senvcfg);        // 0x10A
+    CSR_REG_DECLx4(sstateen);       // 0x10C-0x10F
     CSR_REG_DECL_V(sepc);           // 0x141
     CSR_REG_DECL  (scause);         // 0x142
     CSR_REG_DECL_V(stval);          // 0x143
@@ -2192,6 +2260,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (hideleg);        // 0x603
     CSR_REG_DECL  (hcounteren);     // 0x606
     CSR_REG_DECL  (henvcfg);        // 0x60A
+    CSR_REG_DECLx4(hstateen);       // 0x60C-0x60F
     CSR_REG_DECL  (hip);            // 0x644
     CSR_REG_DECL  (htinst);         // 0x64A
 
@@ -2205,6 +2274,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mtvt);           // 0x307
     CSR_REG_DECL  (mcounteren);     // 0x306
     CSR_REG_DECL  (menvcfg);        // 0x30A
+    CSR_REG_DECLx4(mstateen);       // 0x30C-0x30F
     CSR_REG_DECL  (mcountinhibit);  // 0x320
     CSR_REG_DECL  (mepc);           // 0x341
     CSR_REG_DECL  (mcause);         // 0x342

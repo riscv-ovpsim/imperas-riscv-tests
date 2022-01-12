@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,17 +140,17 @@ Bool riscvHasDMode(riscvP riscv, riscvDMode dMode);
 //
 // Return the indexed X register name
 //
-const char *riscvGetXRegName(Uns32 index);
+const char *riscvGetXRegName(riscvP riscv, Uns32 index);
 
 //
 // Return the indexed F register name
 //
-const char *riscvGetFRegName(Uns32 index);
+const char *riscvGetFRegName(riscvP riscv, Uns32 index);
 
 //
 // Return the indexed V register name
 //
-const char *riscvGetVRegName(Uns32 index);
+const char *riscvGetVRegName(riscvP riscv, Uns32 index);
 
 //
 // Utility function returning a vmiReg object to access the indexed vector
@@ -159,15 +159,9 @@ const char *riscvGetVRegName(Uns32 index);
 vmiReg riscvGetVReg(riscvP riscv, Uns32 index);
 
 //
-// Get character identifier for the first feature identified by the given
-// feature id
-//
-char riscvGetFeatureChar(riscvArchitecture feature);
-
-//
 // Get description for the first feature identified by the given feature id
 //
-const char *riscvGetFeatureName(riscvArchitecture feature);
+const char *riscvGetFeatureName(riscvArchitecture feature, Bool nullOK);
 
 //
 // Parse the extensions string

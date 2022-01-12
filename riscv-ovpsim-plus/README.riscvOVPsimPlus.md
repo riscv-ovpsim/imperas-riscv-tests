@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 17 Nov 2021
+Date      : 11 Jan 2022
 
-Version   : 20211117.0
+Version   : 20220111.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -35,7 +35,8 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 1.11 : Deprecated and equivalent to 20190608
     - Version 20190405 : Deprecated and equivalent to 20190608
     - Version 20190608 : Privileged Architecture Version Ratified-IMFDQC-and-Priv-v1.11
-    - Version master : Privileged Architecture Master Branch (1.12 draft)
+    - Version 20211203 : Privileged Architecture Version 20211203
+    - Version master : Privileged Architecture Master Branch as of commit 6bdeb58 (this is subject to change)
 
 - RISC-V I Base ISA
 - RISC-V E Embedded ISA
@@ -58,7 +59,8 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
     - Version 0.9 : Vector Architecture Version 0.9
     - Version 1.0-draft-20210130 : Vector Architecture Version 1.0-draft-20210130
     - Version 1.0-rc1-20210608 : Vector Architecture Version 1.0-rc1-20210608
-    - Version master : Vector Architecture Master Branch as of commit 3570f99 (this is subject to change)
+    - Version 1.0 : Vector Architecture Version 1.0 (frozen for public review)
+    - Version master : Vector Architecture Master Branch as of commit 8cdce6c (this is subject to change)
 
 - RISC-V B Bit Manipulation Extension (bitmanip_version)
     - Version 0.90 : Bit Manipulation Architecture Version v0.90-20190610
@@ -146,7 +148,7 @@ For example on Linux:
          $ ./RUN_RV32_fibonacci.sh
 
          CpuManagerFixedPlatform (64-bit) v20210324.0 Open Virtual Platform simulator from www.IMPERAS.com.
-         Copyright (c) 2005-2021 Imperas Software Ltd.  Contains Imperas Proprietary Information.
+         Copyright (c) 2005-2022 Imperas Software Ltd.  Contains Imperas Proprietary Information.
          Licensed Software, All Rights Reserved.
          Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "vmi/vmiParameters.h"
 
 // model header files
+#include "riscvFeatures.h"
 #include "riscvTypeRefs.h"
 
 
@@ -35,6 +36,7 @@ typedef struct riscvParamValuesS {
     // simulation controls
     VMI_ENUM_PARAM(variant);
     VMI_STRING_PARAM(clusterVariants);
+    VMI_BOOL_PARAM(use_hw_reg_names);
     VMI_BOOL_PARAM(ABI_d);
     VMI_BOOL_PARAM(verbose);
     VMI_BOOL_PARAM(traceVolatile);
@@ -115,6 +117,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(enable_fflags_i);
     VMI_BOOL_PARAM(trap_preserves_lr);
     VMI_BOOL_PARAM(xret_preserves_lr);
+    VMI_BOOL_PARAM(fence_g_preserves_vs);
     VMI_BOOL_PARAM(require_vstart0);
     VMI_BOOL_PARAM(align_whole);
     VMI_BOOL_PARAM(vill_trap);
@@ -128,6 +131,11 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(svalue_bits);
     VMI_UNS32_PARAM(mcontrol_maskmax);
     VMI_UNS32_PARAM(VMID_bits);
+#if(ENABLE_SSMPU)
+    VMI_UNS32_PARAM(MPU_grain);
+    VMI_UNS32_PARAM(MPU_registers);
+    VMI_BOOL_PARAM(MPU_decompose);
+#endif
     VMI_UNS32_PARAM(PMP_grain);
     VMI_UNS32_PARAM(PMP_registers);
     VMI_UNS32_PARAM(PMP_max_page);
@@ -135,7 +143,9 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(cmomp_bytes);
     VMI_UNS32_PARAM(cmoz_bytes);
     VMI_UNS32_PARAM(Sv_modes);
+    VMI_BOOL_PARAM(Smstateen);
     VMI_BOOL_PARAM(Svpbmt);
+    VMI_BOOL_PARAM(Svinval);
     VMI_UNS32_PARAM(lr_sc_grain);
     VMI_UNS64_PARAM(reset_address);
     VMI_UNS64_PARAM(nmi_address);

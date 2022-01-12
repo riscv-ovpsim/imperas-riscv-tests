@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -180,18 +180,23 @@ static void putTarget(char **result, Uns64 value) {
 //
 // Emit register argument
 //
-static void putReg(char **result, riscvRegDesc r, Bool opt, Bool uncooked) {
-
+static void putReg(
+    char       **result,
+    riscvP       riscv,
+    riscvRegDesc r,
+    Bool         opt,
+    Bool         uncooked
+) {
     Uns32 index = getRIndex(r);
 
     if(opt && !uncooked && !index && isXReg(r)) {
         // omit zero register
     } else if(isXReg(r) || isZfinxReg(r)) {
-        putString(result, riscvGetXRegName(index));
+        putString(result, riscvGetXRegName(riscv, index));
     } else if(isFReg(r)) {
-        putString(result, riscvGetFRegName(index));
+        putString(result, riscvGetFRegName(riscv, index));
     } else if(isVReg(r)) {
-        putString(result, riscvGetVRegName(index));
+        putString(result, riscvGetVRegName(riscv, index));
     } else {
         VMI_ABORT("Bad register specifier 0x%x", r); // LCOV_EXCL_LINE
     }
@@ -202,6 +207,7 @@ static void putReg(char **result, riscvRegDesc r, Bool opt, Bool uncooked) {
 //
 static void putOptMask(
     char       **result,
+    riscvP       riscv,
     riscvRegDesc mask,
     const char  *suffix,
     Bool         uncooked
@@ -210,7 +216,7 @@ static void putOptMask(
 
         putUncookedKey(result, " MASK", uncooked);
 
-        putString(result, riscvGetVRegName(getRIndex(mask)));
+        putString(result, riscvGetVRegName(riscv, getRIndex(mask)));
 
         if(!uncooked) {
             putString(result, suffix);
@@ -508,7 +514,12 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
         putChar(result, 'r');
 
         // emit version 1.0 EEW hint if required
-        if(info->eew && riscvVFSupport(riscv, RVVF_VLR_HINT)) {
+        if(info->type!=RV_IT_VL_I) {
+
+            // no action unless VL*R instruction
+
+        } else if(info->eew && riscvVFSupport(riscv, RVVF_VLR_HINT)) {
+
             putChar(result, 'e');
             putD(result, info->eew);
         }
@@ -735,19 +746,19 @@ static void disassembleFormat(
             switch(ch) {
                 case EMIT_R1:
                     putUncookedKey(result, " R1", uncooked);
-                    putReg(result, info->r[0], opt, uncooked);
+                    putReg(result, riscv, info->r[0], opt, uncooked);
                     break;
                 case EMIT_R2:
                     putUncookedKey(result, " R2", uncooked);
-                    putReg(result, info->r[1], opt, uncooked);
+                    putReg(result, riscv, info->r[1], opt, uncooked);
                     break;
                 case EMIT_R3:
                     putUncookedKey(result, " R3", uncooked);
-                    putReg(result, info->r[2], opt, uncooked);
+                    putReg(result, riscv, info->r[2], opt, uncooked);
                     break;
                 case EMIT_R4:
                     putUncookedKey(result, " R4", uncooked);
-                    putReg(result, info->r[3], opt, uncooked);
+                    putReg(result, riscv, info->r[3], opt, uncooked);
                     break;
                 case EMIT_CS:
                     putUncookedKey(result, " C", uncooked);
@@ -782,10 +793,10 @@ static void disassembleFormat(
                     putVType(result, riscv, info->vtype);
                     break;
                 case EMIT_RM:
-                    putOptMask(result, info->mask, ".t", uncooked);
+                    putOptMask(result, riscv, info->mask, ".t", uncooked);
                     break;
                 case EMIT_RMR:
-                    putOptMask(result, info->mask, "", uncooked);
+                    putOptMask(result, riscv, info->mask, "", uncooked);
                     break;
                 case EMIT_RLIST:
                     putUncookedKey(result, " RLIST", uncooked);

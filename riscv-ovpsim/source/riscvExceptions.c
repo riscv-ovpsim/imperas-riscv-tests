@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -406,6 +406,7 @@ typedef struct trapCxtS {
     Uns64       EPC;        // exception program counter
     Uns64       handlerPC;  // trap handler PC
     Uns64       base;       // trap base address
+    Uns64       tvt;        // tvt address (if CLIC present)
     riscvICMode mode;       // interrupt mode
     Uns32       ecodeMod;   // exception code
     Int32       level;      // interrupt level
@@ -455,7 +456,7 @@ static void trapU(riscvP riscv, trapCxtP cxt) {
         WR_CSR64(riscv, ucause, 0);
     }
 
-    // update cause register */
+    // update cause register
     WR_CSR_FIELDC (riscv, ucause, ExceptionCode, cxt->ecodeMod);
     WR_CSR_FIELD_U(riscv, ucause, Interrupt,     cxt->isInt);
     WR_CSR_FIELDC (riscv, ucause, pil,           IL);
@@ -470,6 +471,7 @@ static void trapU(riscvP riscv, trapCxtP cxt) {
     // get exception base address and mode
     cxt->base = getExceptBase(riscv, RD_CSR_FIELD_U(riscv, utvec, BASE));
     cxt->mode = getIMode(riscv->UIMode, RD_CSR_FIELD_U(riscv, utvec, MODE));
+    cxt->tvt  = RD_CSR_U(riscv, utvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -494,7 +496,7 @@ static void trapVU(riscvP riscv, trapCxtP cxt) {
         WR_CSR64(riscv, ucause, 0);
     }
 
-    // update ucause register */
+    // update ucause register
     WR_CSR_FIELDC  (riscv, ucause, ExceptionCode, cxt->ecodeMod);
     WR_CSR_FIELD_VU(riscv, ucause, Interrupt,     cxt->isInt);
 
@@ -548,6 +550,7 @@ static void trapHS(riscvP riscv, trapCxtP cxt) {
     // get exception base address and mode
     cxt->base = getExceptBase(riscv, RD_CSR_FIELD_S(riscv, stvec, BASE));
     cxt->mode = getIMode(riscv->SIMode, RD_CSR_FIELD_S(riscv, stvec, MODE));
+    cxt->tvt  = RD_CSR_S(riscv, stvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -639,6 +642,7 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
     // get exception base address and mode
     cxt->base = getExceptBase(riscv, RD_CSR_FIELD_M(riscv, mtvec, BASE));
     cxt->mode = getIMode(riscv->MIMode, RD_CSR_FIELD_M(riscv, mtvec, MODE));
+    cxt->tvt  = RD_CSR_M(riscv, mtvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -702,10 +706,10 @@ static Bool getCLICVPC(riscvP riscv, Uns64 address, Uns64 *handlerPCP) {
 //
 // Get CLIC vectored handler address given table address
 //
-static Bool getCLICVHandlerPC(riscvP riscv, trapCxtP cxt, Uns64 TBASE) {
+static Bool getCLICVHandlerPC(riscvP riscv, trapCxtP cxt) {
 
     Uns32 ptrBytes = riscvGetXlenMode(riscv)/8;
-    Uns64 address  = TBASE + (ptrBytes*cxt->ecodeMod);
+    Uns64 address  = cxt->tvt + (ptrBytes*cxt->ecodeMod);
 
     // get target PC from calculated address
     return getCLICVPC(riscv, address, &cxt->handlerPC);
@@ -726,6 +730,52 @@ static Bool accessFaultCode(riscvException exception) {
         default:
             return False;
     }
+}
+
+//
+// Custom handler PC action
+//
+typedef enum customHActionE {
+    CHA_NA,     // no custom handler function
+    CHA_OK,     // handler address returned
+    CHA_EXCEPT, // handler address calculation caused exception
+} customHAction;
+
+//
+// Get custom handler PC
+//
+static customHAction getCustomHandlerPC(
+    riscvP riscv,
+    Uns64  tvec,
+    Uns32  ecode,
+    Uns64 *handlerPCP
+) {
+    customHAction  action    = CHA_NA;
+    Bool           custom    = False;
+    riscvException exception = riscv->exception;
+
+    // clear exception indication (for derived exception detection)
+    riscv->exception = 0;
+
+    // do any derived model handler PC lookup
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, getHandlerPC, !custom,
+        custom = extCB->getHandlerPC(
+            riscv, tvec, exception, ecode, handlerPCP, extCB->clientData
+        );
+    )
+
+    // handle derived exception if custom handler is present
+    if(!custom) {
+        riscv->exception = exception;
+    } else if(riscv->exception) {
+        action = CHA_EXCEPT;
+    } else {
+        riscv->exception = exception;
+        action = CHA_OK;
+    }
+
+    return action;
 }
 
 //
@@ -946,42 +996,47 @@ void riscvTakeException(
         // switch to target mode
         riscvSetMode(riscv, cxt.modeX);
 
-        // handle NMI, direct or vectored exception
-        if(!(cxt.mode & riscv_int_Vectored) || !cxt.isInt) {
+        // perform any custom handler PC lookup
+        customHAction action = getCustomHandlerPC(
+            riscv, cxt.base, cxt.ecodeMod, &cxt.handlerPC
+        );
+
+        if(action==CHA_OK) {
+
+            // use custom handler address
+
+        } else if(action==CHA_EXCEPT) {
+
+            // custom handler address lookup itself caused exception
+            return;
+
+        } else if(!(cxt.mode & riscv_int_Vectored) || !cxt.isInt) {
 
             cxt.handlerPC = cxt.base;
 
         } else if(!(cxt.mode & riscv_int_CLIC)) {
 
-            cxt.handlerPC = cxt.base + (4 * ecode);
+            cxt.handlerPC = cxt.base + (4 * cxt.ecodeMod);
 
-        } else if(!shv) {
+        } else if(CLICPresent(riscv) && !shv) {
 
             cxt.handlerPC = cxt.base;
 
         } else if(riscv->configInfo.tvt_undefined) {
 
-            cxt.handlerPC = cxt.base + (4 * ecode);
+            cxt.handlerPC = cxt.base + (4 * cxt.ecodeMod);
 
         } else {
 
-            Bool ok;
+            // CLIC behavior when Hypervisor implemented is not fully
+            // defined (for example, what tvt CSRs are used)
+            VMI_ASSERT(!modeIsVirtual(cxt.modeX), "TODO: virtualized mode");
 
             // SHV interrupts are acknowledged automatically
-            riscvAcknowledgeCLICInt(riscv, ecode);
-
-            if(cxt.modeX==RISCV_MODE_U) {
-                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_U(riscv, utvt));
-            } else if(cxt.modeX==RISCV_MODE_S) {
-                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_S(riscv, stvt));
-            } else if(cxt.modeX==RISCV_MODE_M) {
-                ok = getCLICVHandlerPC(riscv, &cxt, RD_CSR_M(riscv, mtvt));
-            } else {                                    // LCOV_EXCL_LINE
-                VMI_ABORT("TODO: virtualized mode");    // LCOV_EXCL_LINE
-            }
+            riscvAcknowledgeCLICInt(riscv, cxt.ecodeMod);
 
             // abort further action if handler address lookup failed
-            if(!ok) {
+            if(!getCLICVHandlerPC(riscv, &cxt)) {
                 return;
             }
         }
@@ -2000,6 +2055,9 @@ static VMI_ICOUNT_FN(riscvStepExcept) {
 //
 void riscvSetStepBreakpoint(riscvP riscv) {
 
+    // reset any stale step request indication
+    riscv->netValue.stepreq = False;
+
     if(enableDebugStep(riscv)) {
         riscv->stepICount = getExecutedICount32(riscv);
         vmirtSetModelTimer(riscv->stepTimer, 1);
@@ -2161,9 +2219,10 @@ static Bool allowMisalignedStore(
 //
 VMI_RD_PRIV_EXCEPT_FN(riscvRdPrivExcept) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP  riscv = (riscvP)processor;
+    memPriv priv  = (attrs&MEM_AA_FETCH) ? MEM_PRIV_X : MEM_PRIV_R;
 
-    if(!riscvVMMiss(riscv, domain, MEM_PRIV_R, address, bytes, attrs)) {
+    if(!riscvVMMiss(riscv, domain, priv, address, bytes, attrs)) {
         *action = VMI_LOAD_STORE_CONTINUE;
     }
 }
@@ -2173,9 +2232,10 @@ VMI_RD_PRIV_EXCEPT_FN(riscvRdPrivExcept) {
 //
 VMI_WR_PRIV_EXCEPT_FN(riscvWrPrivExcept) {
 
-    riscvP riscv = (riscvP)processor;
+    riscvP  riscv = (riscvP)processor;
+    memPriv priv  = MEM_PRIV_W;
 
-    if(!riscvVMMiss(riscv, domain, MEM_PRIV_W, address, bytes, attrs)) {
+    if(!riscvVMMiss(riscv, domain, priv, address, bytes, attrs)) {
         *action = VMI_LOAD_STORE_CONTINUE;
     }
 }
@@ -2814,14 +2874,19 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
 
     if(riscv->netValue.triggerAfter && riscvTriggerAfter(riscv, complete)) {
 
-        // trigger after preceding instruction
+        // trigger after preceding instruction (priority 4)
 
     } else if(riscv->netValue.stepreq) {
 
-        // enter Debug mode on single-step after preceding instruction
+        // enter Debug mode after instruction single-step (priority 0) unless
+        // haltreq was also pending, in which case apply that the the preceding
+        // instruction (priority 1) - this is an odd case because normally
+        // haltreq is lower priority than address trap (priority 4), but if we
+        // are stepping an instruction then an address trap on the next
+        // instruction is expressly forbidden (section 4.4.1 Step Bit In Dcsr)
         if(complete) {
             riscv->netValue.stepreq = False;
-            enterDM(riscv, DMC_STEP);
+            enterDM(riscv, riscv->netValue.haltreq ? DMC_HALTREQ : DMC_STEP);
         }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4000,12 +4065,22 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
 
             } else {
 
+                typedef struct extIntDescS {
+                    const char *name;
+                    const char *desc;
+                } extIntDesc;
+
+                #define EXT_NT_DESC(_T, _N) \
+                    _T "ExternalInterruptID", \
+                    _N " external interrupt ID " \
+                    "(sampled if non-zero as interrupt taken to "_N" mode)"
+
                 // port names for each mode
-                static const char *map[] = {
-                    [RISCV_MODE_U] = "UExternalInterruptID",
-                    [RISCV_MODE_S] = "SExternalInterruptID",
-                    [RISCV_MODE_H] = "HExternalInterruptID",
-                    [RISCV_MODE_M] = "MExternalInterruptID",
+                static const extIntDesc map[] = {
+                    [RISCV_MODE_U] = {EXT_NT_DESC("U",  "User")},
+                    [RISCV_MODE_S] = {EXT_NT_DESC("S",  "Supervisor")},
+                    [RISCV_MODE_H] = {EXT_NT_DESC("VS", "Virtual supervisor")},
+                    [RISCV_MODE_M] = {EXT_NT_DESC("M",  "Machine")},
                 };
 
                 Uns32 offset = code-riscv_E_ExternalInterrupt;
@@ -4013,10 +4088,10 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
                 tail = newNetPort(
                     riscv,
                     tail,
-                    map[offset],
+                    map[offset].name,
                     vmi_NP_INPUT,
                     interruptIDPortCB,
-                    "External Interrupt ID",
+                    map[offset].desc,
                     offset,
                     0
                 );
@@ -4039,7 +4114,7 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
             char name[32];
             char desc[32];
             sprintf(name, "LocalInterrupt%u", i);
-            sprintf(desc, "Local Interrupt %u", i);
+            sprintf(desc, "Local interrupt %u", i);
 
             tail = newNetPort(
                 riscv,
@@ -4074,7 +4149,7 @@ static riscvNetPortPP addGuestExternaIInterruptNetPorts(
         char name[32];
         char desc[32];
         sprintf(name, "GuestExternalInterrupt%u", i);
-        sprintf(desc, "Guest External Interrupt %u", i);
+        sprintf(desc, "Guest external interrupt %u", i);
 
         tail = newNetPort(
             riscv,
@@ -4191,7 +4266,7 @@ VMI_NET_PORT_SPECS_FN(riscvNetPortSpecs) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Ceate new cycle timer
+// Create new cycle timer
 //
 inline static vmiModelTimerP newCycleTimer(riscvP riscv, vmiICountFn icountCB) {
     return vmirtCreateModelTimer((vmiProcessorP)riscv, icountCB, 1, 0);

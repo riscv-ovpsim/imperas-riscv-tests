@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@
 #include "riscvConfig.h"
 #include "riscvCSR.h"
 #include "riscvExceptionTypes.h"
+#include "riscvFeatures.h"
 #include "riscvMode.h"
 #include "riscvModelCallbacks.h"
 #include "riscvTypes.h"
@@ -136,9 +137,15 @@ typedef struct riscvNetPortS {
 } riscvNetPort;
 
 //
+// Set of domains, per processor base mode
+//
+typedef memDomainP riscvDomainSetBM[RISCV_MODE_LAST_BASE][2];
+typedef riscvDomainSetBM *riscvDomainSetBMP;
+
+//
 // Set of domains, per processor physical mode
 //
-typedef memDomainP riscvDomainSetPM[RISCV_MODE_LAST_BASE][2];
+typedef memDomainP riscvDomainSetPM[RISCV_MODE_LAST][2];
 typedef riscvDomainSetPM *riscvDomainSetPMP;
 
 //
@@ -350,8 +357,8 @@ typedef struct riscvS {
 
     // Memory management support
     memDomainP         extDomains[2];   // external domains (including CLIC)
-    riscvDomainSetPM   pmaDomains;      // pma domains (per physical mode)
-    riscvDomainSetPM   pmpDomains;      // pmp domains (per physical mode)
+    riscvDomainSetBM   pmaDomains;      // pma domains (per base mode)
+    riscvDomainSetBM   pmpDomains;      // pmp domains (per base mode)
     riscvDomainSetPM   physDomains;     // physical domains (per physical mode)
     riscvDomainSetVM   vmDomains;       // mapped domains (per virtual mode)
     memDomainP         guestPTWDomain;  // guest page table walk domain
@@ -360,6 +367,10 @@ typedef struct riscvS {
     memDomainP         CLICDomain;      // CLIC domain
     riscvPMPCFG        pmpcfg;          // pmpcfg registers
     Uns64             *pmpaddr;         // pmpaddr registers
+#if(ENABLE_SSMPU)
+    riscvPMPCFG        mpucfg;          // mpucfg registers
+    Uns64             *mpuaddr;         // mpuaddr registers
+#endif
     riscvTLBP          tlb[RISCV_TLB_LAST];// TLB caches
     memPriv            origPriv   : 8;  // original access privilege (table walk)
     Uns8               extBits    : 8;  // bit size of external domains

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 
 // model header files
 #include "riscvBlockState.h"
+#include "riscvCSR.h"
 #include "riscvDecode.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
@@ -68,6 +69,16 @@ Bool riscvModeIsXLEN64(riscvP riscv, riscvMode mode) {
 }
 
 //
+// Is Zfinx enabled in the current processor mode?
+//
+static Bool enableZfinx(riscvP riscv) {
+    return (
+        Zfinx(riscv) &&
+        riscvStateenFeatureEnabled(riscv, bit_stateen_Zfinx, False, False)
+    );
+}
+
+//
 // Update the currently-enabled architecture settings
 //
 void riscvSetCurrentArch(riscvP riscv) {
@@ -77,7 +88,7 @@ void riscvSetCurrentArch(riscvP riscv) {
     Bool      V     = inVMode(riscv);
     Bool      FS_HS = RD_CSR_FIELDC(riscv, mstatus,  FS);
     Bool      FS_VS = RD_CSR_FIELDC(riscv, vsstatus, FS) || !V;
-    Bool      FS    = Zfinx(riscv) || (FS_HS && FS_VS);
+    Bool      FS    = (FS_HS && FS_VS) || enableZfinx(riscv);
 
     // derive new architecture value based on misa value, preserving rounding
     // mode invalid setting
@@ -723,43 +734,57 @@ VMI_MODE_INFO_FN(riscvModeInfo) {
 //
 // Return the indexed X register name
 //
-const char *riscvGetXRegName(Uns32 index) {
+const char *riscvGetXRegName(riscvP riscv, Uns32 index) {
 
-    static const char *map[] = {
+    static const char *mapABI[] = {
         "zero", "ra",   "sp",   "gp",   "tp",   "t0",   "t1",   "t2",
         "s0",   "s1",   "a0",   "a1",   "a2",   "a3",   "a4",   "a5",
         "a6",   "a7",   "s2",   "s3",   "s4",   "s5",   "s6",   "s7",
         "s8",   "s9",   "s10",  "s11",  "t3",   "t4",   "t5",   "t6",
     };
 
-    // sanity check index is in range
-    VMI_ASSERT(index<NUM_MEMBERS(map), "Illegal index %u", index);
+    static const char *mapHW[] = {
+        "x0",   "x1",   "x2",   "x3",   "x4",   "x5",   "x6",   "x7",
+        "x8",   "x9",   "x10",  "x11",  "x12",  "x13",  "x14",  "x15",
+        "x16",  "x17",  "x18",  "x19",  "x20",  "x21",  "x22",  "x23",
+        "x24",  "x25",  "x26",  "x27",  "x28",  "x29",  "x30",  "x31",
+    };
 
-    return map[index];
+    // sanity check index is in range
+    VMI_ASSERT(index<NUM_MEMBERS(mapABI), "Illegal index %u", index);
+
+    return riscv->configInfo.use_hw_reg_names ? mapHW[index] : mapABI[index];
 }
 
 //
 // Return the indexed F register name
 //
-const char *riscvGetFRegName(Uns32 index) {
+const char *riscvGetFRegName(riscvP riscv, Uns32 index) {
 
-    static const char *map[] = {
+    static const char *mapABI[] = {
         "ft0",  "ft1",  "ft2",  "ft3",  "ft4",  "ft5",  "ft6",  "ft7",
         "fs0",  "fs1",  "fa0",  "fa1",  "fa2",  "fa3",  "fa4",  "fa5",
         "fa6",  "fa7",  "fs2",  "fs3",  "fs4",  "fs5",  "fs6",  "fs7",
         "fs8",  "fs9",  "fs10", "fs11", "ft8",  "ft9",  "ft10", "ft11",
     };
 
-    // sanity check index is in range
-    VMI_ASSERT(index<NUM_MEMBERS(map), "Illegal index %u", index);
+    static const char *mapHW[] = {
+        "f0",   "f1",   "f2",   "f3",   "f4",   "f5",   "f6",   "f7",
+        "f8",   "f9",   "f10",  "f11",  "f12",  "f13",  "f14",  "f15",
+        "f16",  "f17",  "f18",  "f19",  "f20",  "f21",  "f22",  "f23",
+        "f24",  "f25",  "f26",  "f27",  "f28",  "f29",  "f30",  "f31",
+    };
 
-    return map[index];
+    // sanity check index is in range
+    VMI_ASSERT(index<NUM_MEMBERS(mapABI), "Illegal index %u", index);
+
+    return riscv->configInfo.use_hw_reg_names ? mapHW[index] : mapABI[index];
 }
 
 //
 // Return the indexed V register name
 //
-const char *riscvGetVRegName(Uns32 index) {
+const char *riscvGetVRegName(riscvP riscv, Uns32 index) {
 
     static const char *map[] = {
         "v0",   "v1",   "v2",   "v3",   "v4",   "v5",   "v6",   "v7",
@@ -805,18 +830,9 @@ static Uns32 getFeatureIndex(riscvArchitecture feature) {
 }
 
 //
-// Get character identifier for the first feature identified by the given
-// feature id
-//
-char riscvGetFeatureChar(riscvArchitecture feature) {
-
-    return getFeatureIndex(feature)+'A';
-}
-
-//
 // Get description for the first feature identified by the given feature id
 //
-const char *riscvGetFeatureName(riscvArchitecture feature) {
+const char *riscvGetFeatureName(riscvArchitecture feature, Bool nullOK) {
 
     // table mapping to feature descriptions
     static const char *featureDescs[32] = {
@@ -841,8 +857,18 @@ const char *riscvGetFeatureName(riscvArchitecture feature) {
         [RISCV_FEATURE_INDEX('X')]          = "extension X (non-standard extensions present)"
     };
 
+    Uns32       index  = getFeatureIndex(feature);
+    const char *result = featureDescs[index];
+
+    // sanity check description is valid
+    VMI_ASSERT(
+        result || nullOK,
+        "require non-zero feature name (feature %c)",
+        index+'A'
+    );
+
     // get feature description
-    return featureDescs[getFeatureIndex(feature)];
+    return result;
 }
 
 //

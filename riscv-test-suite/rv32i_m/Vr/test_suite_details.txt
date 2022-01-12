@@ -17,47 +17,47 @@
 
 
 Architectural Test Suite Data for RV32VR RISC-V "V" Vector Extension:
-    292 test source files
+    146 test source files
     2 different instruction categories
     34 different instructions
-    183,600 total instructions
+    93,420 total instructions
 
 Instruction category: OPV_IRED integer reduction arithmetic
-  vfredmax.vs : 426
-  vfredmin.vs : 426
-  vfredosum.vs : 426
-  vfredusum.vs : 426
-  vredand.vs : 639
-  vredmax.vs : 639
-  vredmaxu.vs : 639
-  vredmin.vs : 639
-  vredminu.vs : 639
-  vredor.vs : 639
-  vredsum.vs : 639
-  vredxor.vs : 639
+  vfredmax.vs : 202
+  vfredmin.vs : 202
+  vfredosum.vs : 202
+  vfredusum.vs : 202
+  vredand.vs : 303
+  vredmax.vs : 303
+  vredmaxu.vs : 303
+  vredmin.vs : 303
+  vredminu.vs : 303
+  vredor.vs : 303
+  vredsum.vs : 303
+  vredxor.vs : 303
 Instruction category: OPV_IWRED integer widening reduction arithmetic
-  vfwredosum.vs : 150
-  vfwredusum.vs : 150
-  vwredsum.vs : 300
-  vwredsumu.vs : 300
+  vfwredusum.vs : 70
+  vfwredosum.vs : 70
+  vwredsum.vs : 140
+  vwredsumu.vs : 140
 
 Other instructions (those not the focus of this suite)
-  jal : 292
-  lui : 9,052
-  addi : 61,540
-  csrrs : 1,168
-  auipc : 9,024
-  csrrw : 876
-  mret : 292
-  vsetvli : 26,800
-  vle16.v : 9,920
-  add : 30,864
-  vse16.v : 2,856
-  fence : 292
-  ecall : 292
-  beq : 876
-  vle32.v : 10,960
-  vse32.v : 3,156
-  vle8.v : 5,920
-  vse8.v : 1,704
+  jal : 146
+  lui : 4,526
+  addi : 32,274
+  csrrs : 584
+  auipc : 7,132
+  csrrw : 438
+  mret : 146
+  vsetvli : 12,766
+  vle16.v : 4,726
+  add : 14,608
+  vse16.v : 1,352
+  fence : 146
+  ecall : 146
+  beq : 438
+  vle32.v : 5,216
+  vse32.v : 1,492
+  vle8.v : 2,824
+  vse8.v : 808
 

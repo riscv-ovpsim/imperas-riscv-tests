@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,14 @@
 #include "hostapi/impTypes.h"
 
 // model header files
+#include "riscvFeatures.h"
 #include "riscvModelCallbacks.h"
 #include "riscvTypeRefs.h"
+
+
+////////////////////////////////////////////////////////////////////////////////
+// LAZY MEMORY PRIVILEGE UPDATE
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // Try mapping memory at the passed address for the specified access type and
@@ -38,6 +44,16 @@ Bool riscvVMMiss(
     Uns32          bytes,
     memAccessAttrs attrs
 );
+
+//
+// Refresh the current data domain to reflect current mstatus.MPRV setting
+//
+void riscvVMRefreshMPRVDomain(riscvP riscv);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TLB MANAGEMENT
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // Free structures used for virtual memory management
@@ -110,6 +126,21 @@ void riscvVMInvalidateVAG(riscvP riscv, Uns64 GPAsh2);
 void riscvVMInvalidateVAVMIDG(riscvP riscv, Uns64 GPAsh2, Uns32 VMID);
 
 //
+// Create a new TLB entry
+//
+RISCV_NEW_TLB_ENTRY_FN(riscvVMNewTLBEntry);
+
+//
+// Free an old TLB entry
+//
+RISCV_FREE_TLB_ENTRY_FN(riscvVMFreeTLBEntry);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// PMP MANAGEMENT
+////////////////////////////////////////////////////////////////////////////////
+
+//
 // Read the indexed PMP configuration register
 //
 Uns64 riscvVMReadPMPCFG(riscvP riscv, Uns32 index);
@@ -161,20 +192,56 @@ void riscvVMResetPMP(riscvP riscv);
 //
 void riscvVMUnmapPMPRegion(riscvP riscv, Uns32 regionIndex);
 
-//
-// Refresh the current data domain to reflect current mstatus.MPRV setting
-//
-void riscvVMRefreshMPRVDomain(riscvP riscv);
+
+////////////////////////////////////////////////////////////////////////////////
+// MPU MANAGEMENT
+////////////////////////////////////////////////////////////////////////////////
+
+#if(ENABLE_SSMPU)
 
 //
-// Create a new TLB entry
+// Read the indexed MPU configuration register
 //
-RISCV_NEW_TLB_ENTRY_FN(riscvVMNewTLBEntry);
+Uns64 riscvVMReadMPUCFG(riscvP riscv, Uns32 index);
 
 //
-// Free an old TLB entry
+// Write the indexed MPU configuration register with the new value and return
+// the new effective value
 //
-RISCV_FREE_TLB_ENTRY_FN(riscvVMFreeTLBEntry);
+Uns64 riscvVMWriteMPUCFG(riscvP riscv, Uns32 index, Uns64 newValue);
+
+//
+// Read the indexed MPU address register
+//
+Uns64 riscvVMReadMPUAddr(riscvP riscv, Uns32 index);
+
+//
+// Write the indexed MPU address register with the new value and return
+// the new effective value
+//
+Uns64 riscvVMWriteMPUAddr(riscvP riscv, Uns32 index, Uns64 newValue);
+
+//
+// Allocate MPU structures
+//
+void riscvVMNewMPU(riscvP riscv);
+
+//
+// Free MPU structures
+//
+void riscvVMFreeMPU(riscvP riscv);
+
+//
+// Reset MPU unit
+//
+void riscvVMResetMPU(riscvP riscv);
+
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SAVE/RESTORE
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // Save VM state not covered by register read/write API

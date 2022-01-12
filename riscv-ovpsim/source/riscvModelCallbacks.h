@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ typedef RISCV_GET_XLEN_FN((*riscvGetXlenFn));
 //
 // Return the indexed register name
 //
-#define RISCV_GET_REG_NAME_FN(_NAME) const char *_NAME(Uns32 index)
+#define RISCV_GET_REG_NAME_FN(_NAME) const char *_NAME(riscvP riscv, Uns32 index)
 typedef RISCV_GET_REG_NAME_FN((*riscvGetRegNameFn));
 
 //
@@ -578,6 +578,19 @@ typedef RISCV_FIRST_EXCEPTION_FN((*riscvFirstExceptionFn));
 typedef RISCV_GET_INTERRUPT_PRI_FN((*riscvGetInterruptPriFn));
 
 //
+// Get custom exception/interrupt handler address
+//
+#define RISCV_GET_HANDLER_PC_FN(_NAME) Bool _NAME( \
+    riscvP         riscv,       \
+    Uns64          tvec,        \
+    riscvException exception,   \
+    Uns32          ecode,       \
+    Uns64         *handlerPCP,  \
+    void          *clientData   \
+)
+typedef RISCV_GET_HANDLER_PC_FN((*riscvGetHandlerPCFn));
+
+//
 // Called when core has either halted or restarted
 //
 #define RISCV_HR_NOTIFIER_FN(_NAME) void _NAME( \
@@ -829,6 +842,7 @@ typedef struct riscvExtCBS {
     riscvResetNotifierFn      resetNotifier;
     riscvFirstExceptionFn     firstException;
     riscvGetInterruptPriFn    getInterruptPri;
+    riscvGetHandlerPCFn       getHandlerPC;
 
     // halt/restart actions
     riscvHRNotifierFn         haltRestartNotifier;
@@ -837,6 +851,7 @@ typedef struct riscvExtCBS {
     // code generation actions
     riscvDerivedMorphFn       preMorph;
     riscvDerivedMorphFn       postMorph;
+    riscvDerivedMorphFn       AMOCheck;
     riscvDerivedMorphFn       AMOMorph;
 
     // transaction support actions
