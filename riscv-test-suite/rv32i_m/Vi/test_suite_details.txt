@@ -17,21 +17,21 @@
 
 
 Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
-    2,552 test source files
+    1,402 test source files
     12 different instruction categories
     155 different instructions
-    1,599,220 total instructions
+    902,264 total instructions
 
 Instruction category: OPV_IA integer arithmetic
   vadc.vim : 303
   vadc.vvm : 303
   vadc.vxm : 303
-  vadd.vi : 639
-  vadd.vv : 639
-  vadd.vx : 639
-  vand.vi : 639
-  vand.vv : 639
-  vand.vx : 639
+  vadd.vi : 303
+  vadd.vv : 303
+  vadd.vx : 303
+  vand.vi : 303
+  vand.vv : 303
+  vand.vx : 303
   vmadc.vim : 303
   vmadc.vvm : 303
   vmadc.vxm : 303
@@ -42,153 +42,153 @@ Instruction category: OPV_IA integer arithmetic
   vmsbc.vxm : 303
   vmsbc.vv : 336
   vmsbc.vx : 336
-  vor.vi : 639
-  vor.vv : 639
-  vor.vx : 639
-  vrsub.vi : 639
-  vrsub.vx : 639
+  vor.vi : 303
+  vor.vv : 303
+  vor.vx : 303
+  vrsub.vi : 303
+  vrsub.vx : 303
   vsbc.vvm : 303
   vsbc.vxm : 303
-  vsll.vi : 639
-  vsll.vv : 639
-  vsll.vx : 639
-  vsra.vi : 639
-  vsra.vv : 639
-  vsra.vx : 639
-  vsrl.vi : 639
-  vsrl.vv : 639
-  vsrl.vx : 639
-  vsub.vv : 639
-  vsub.vx : 639
-  vxor.vi : 639
-  vxor.vv : 639
-  vxor.vx : 639
-  vzext.vf2 : 300
-  vzext.vf4 : 88
-  vsext.vf2 : 300
-  vsext.vf4 : 88
+  vsll.vi : 303
+  vsll.vv : 303
+  vsll.vx : 303
+  vsra.vi : 303
+  vsra.vv : 303
+  vsra.vx : 303
+  vsrl.vi : 303
+  vsrl.vv : 303
+  vsrl.vx : 303
+  vsub.vv : 303
+  vsub.vx : 303
+  vxor.vi : 303
+  vxor.vv : 303
+  vxor.vx : 303
+  vzext.vf2 : 140
+  vzext.vf4 : 40
+  vsext.vf2 : 140
+  vsext.vf4 : 40
 Instruction category: OPV_ID integer divide
-  vdiv.vv : 639
-  vdiv.vx : 639
-  vdivu.vv : 639
-  vdivu.vx : 639
-  vrem.vv : 639
-  vrem.vx : 639
-  vremu.vv : 639
-  vremu.vx : 639
+  vdiv.vv : 303
+  vdiv.vx : 303
+  vdivu.vv : 303
+  vdivu.vx : 303
+  vrem.vv : 303
+  vrem.vx : 303
+  vremu.vv : 303
+  vremu.vx : 303
 Instruction category: OPV_IMA single-width integer multiply-add
-  vmacc.vv : 639
-  vmacc.vx : 639
-  vmadd.vv : 639
-  vmadd.vx : 639
-  vnmsac.vv : 639
-  vnmsac.vx : 639
-  vnmsub.vv : 639
-  vnmsub.vx : 639
+  vmacc.vv : 303
+  vmacc.vx : 303
+  vmadd.vv : 303
+  vmadd.vx : 303
+  vnmsac.vv : 303
+  vnmsac.vx : 303
+  vnmsub.vv : 303
+  vnmsub.vx : 303
 Instruction category: OPV_MM min/max
-  vmax.vv : 639
-  vmax.vx : 639
-  vmaxu.vv : 639
-  vmaxu.vx : 639
-  vmin.vv : 639
-  vmin.vx : 639
-  vminu.vv : 639
-  vminu.vx : 639
+  vmax.vv : 303
+  vmax.vx : 303
+  vmaxu.vv : 303
+  vmaxu.vx : 303
+  vmin.vv : 303
+  vmin.vx : 303
+  vminu.vv : 303
+  vminu.vx : 303
 Instruction category: OPV_IME integer merge
   vmerge.vim : 303
   vmerge.vvm : 303
   vmerge.vxm : 303
 Instruction category: OPV_IC integer comparison
-  vmseq.vi : 639
-  vmseq.vv : 639
-  vmseq.vx : 639
-  vmsgt.vi : 639
-  vmsgt.vx : 639
-  vmsgtu.vi : 639
-  vmsgtu.vx : 639
-  vmsle.vi : 639
-  vmsle.vv : 639
-  vmsle.vx : 639
-  vmsleu.vi : 639
-  vmsleu.vv : 639
-  vmsleu.vx : 639
-  vmslt.vv : 639
-  vmslt.vx : 639
-  vmsltu.vv : 639
-  vmsltu.vx : 639
-  vmsne.vi : 639
-  vmsne.vv : 639
-  vmsne.vx : 639
+  vmseq.vi : 303
+  vmseq.vv : 303
+  vmseq.vx : 303
+  vmsgt.vi : 303
+  vmsgt.vx : 303
+  vmsgtu.vi : 303
+  vmsgtu.vx : 303
+  vmsle.vi : 303
+  vmsle.vv : 303
+  vmsle.vx : 303
+  vmsleu.vi : 303
+  vmsleu.vv : 303
+  vmsleu.vx : 303
+  vmslt.vv : 303
+  vmslt.vx : 303
+  vmsltu.vv : 303
+  vmsltu.vx : 303
+  vmsne.vi : 303
+  vmsne.vv : 303
+  vmsne.vx : 303
 Instruction category: OPV_IMUL single-width integer multiply
-  vmul.vv : 639
-  vmul.vx : 639
-  vmulh.vv : 639
-  vmulh.vx : 639
-  vmulhsu.vv : 639
-  vmulhsu.vx : 639
-  vmulhu.vv : 639
-  vmulhu.vx : 639
+  vmul.vv : 303
+  vmul.vx : 303
+  vmulh.vv : 303
+  vmulh.vx : 303
+  vmulhsu.vv : 303
+  vmulhsu.vx : 303
+  vmulhu.vv : 303
+  vmulhu.vx : 303
 Instruction category: OPV_IMO integer move
   vmv.v.i : 336
   vmv.v.v : 336
   vmv.v.x : 336
 Instruction category: OPV_IAN narrowing integer arithmetic
-  vnsra.wi : 300
-  vnsra.wv : 300
-  vnsra.wx : 300
-  vnsrl.wi : 300
-  vnsrl.wv : 300
-  vnsrl.wx : 300
+  vnsra.wi : 140
+  vnsra.wv : 140
+  vnsra.wx : 140
+  vnsrl.wi : 140
+  vnsrl.wv : 140
+  vnsrl.wx : 140
 Instruction category: OPV_IAW widening integer arithmetic
-  vwadd.vv : 300
-  vwadd.vx : 300
-  vwadd.wv : 300
-  vwadd.wx : 300
-  vwaddu.vv : 300
-  vwaddu.vx : 300
-  vwaddu.wv : 300
-  vwaddu.wx : 300
-  vwsub.vv : 300
-  vwsub.vx : 300
-  vwsub.wv : 300
-  vwsub.wx : 300
-  vwsubu.vv : 300
-  vwsubu.vx : 300
-  vwsubu.wv : 300
-  vwsubu.wx : 300
+  vwadd.vv : 140
+  vwadd.vx : 140
+  vwadd.wv : 140
+  vwadd.wx : 140
+  vwaddu.vv : 140
+  vwaddu.vx : 140
+  vwaddu.wv : 140
+  vwaddu.wx : 140
+  vwsub.vv : 140
+  vwsub.vx : 140
+  vwsub.wv : 140
+  vwsub.wx : 140
+  vwsubu.vv : 140
+  vwsubu.vx : 140
+  vwsubu.wv : 140
+  vwsubu.wx : 140
 Instruction category: OPV_IWMA widening integer multiply-add
-  vwmacc.vv : 300
-  vwmacc.vx : 300
-  vwmaccsu.vv : 300
-  vwmaccsu.vx : 300
-  vwmaccu.vv : 300
-  vwmaccu.vx : 300
-  vwmaccus.vx : 300
+  vwmacc.vv : 140
+  vwmacc.vx : 140
+  vwmaccsu.vv : 140
+  vwmaccsu.vx : 140
+  vwmaccu.vv : 140
+  vwmaccu.vx : 140
+  vwmaccus.vx : 140
 Instruction category: OPV_IWMU widening integer multiply
-  vwmul.vv : 300
-  vwmul.vx : 300
-  vwmulsu.vv : 300
-  vwmulsu.vx : 300
-  vwmulu.vv : 300
-  vwmulu.vx : 300
+  vwmul.vv : 140
+  vwmul.vx : 140
+  vwmulsu.vv : 140
+  vwmulsu.vx : 140
+  vwmulu.vv : 140
+  vwmulu.vx : 140
 
 Other instructions (those not the focus of this suite)
-  jal : 2,552
-  lui : 90,476
-  addi : 564,983
-  csrrs : 10,208
-  auipc : 79,322
-  csrrw : 7,656
-  mret : 2,552
-  vsetvli : 233,848
-  vle16.v : 69,295
-  add : 268,424
-  vse16.v : 24,160
-  fence : 2,552
-  ecall : 2,552
-  beq : 7,656
-  vle8.v : 53,205
-  vse8.v : 19,510
-  vle32.v : 69,727
-  vse32.v : 23,436
+  jal : 1,402
+  lui : 49,648
+  addi : 327,116
+  csrrs : 5,608
+  auipc : 69,391
+  csrrw : 4,206
+  mret : 1,402
+  vsetvli : 123,773
+  vle8.v : 28,670
+  add : 140,872
+  vse8.v : 10,406
+  fence : 1,402
+  ecall : 1,402
+  beq : 4,206
+  vle16.v : 36,265
+  vse16.v : 12,576
+  vle32.v : 36,465
+  vse32.v : 12,236
 

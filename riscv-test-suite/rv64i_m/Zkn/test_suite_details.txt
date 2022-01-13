@@ -26,28 +26,28 @@ Architectural Test Suite Data for RV64ZKN K Crypto/Scalar:
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
   aes64dsm : 530
-  aes64im : 530
   aes64ds : 530
+  aes64im : 530
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes64esm : 530
-  aes64ks1i : 530
   aes64es : 530
+  aes64ks1i : 530
+  aes64esm : 530
   aes64ks2 : 530
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 274
   orn : 274
+  andn : 274
   xnor : 274
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 274
   clmul : 274
+  clmulh : 274
 Instruction category: OPB_PACK Packing
-  pack : 274
   packh : 274
+  pack : 274
   packw : 274
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rori : 274
   ror : 274
+  rori : 274
   rol : 274
   rolw : 274
   roriw : 274
@@ -56,11 +56,11 @@ Instruction category: OPK_Zknh NIST Suite Hash Function instructions
   sha256sig0 : 274
   sha256sig1 : 274
   sha256sum0 : 274
-  sha512sum0 : 274
   sha256sum1 : 274
-  sha512sum1 : 274
-  sha512sig0 : 274
   sha512sig1 : 274
+  sha512sig0 : 274
+  sha512sum0 : 274
+  sha512sum1 : 274
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

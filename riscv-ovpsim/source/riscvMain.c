@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -596,115 +596,124 @@ static void applyParamsSMP(
     }
 
     // get uninterpreted architectural configuration parameters
-    cfg->enable_expanded     = params->enable_expanded;
-    cfg->endianFixed         = params->endianFixed;
-    cfg->ABI_d               = params->ABI_d;
-    cfg->user_version        = params->user_version;
-    cfg->priv_version        = params->priv_version;
-    cfg->hyp_version         = params->hypervisor_version;
-    cfg->dsp_version         = params->dsp_version;
-    cfg->dbg_version         = params->debug_version;
-    cfg->rnmi_version        = params->rnmi_version;
-    cfg->Smepmp_version      = params->Smepmp_version;
-    cfg->Zfinx_version       = params->Zfinx_version;
-    cfg->Zcea_version        = params->Zcea_version;
-    cfg->Zceb_version        = params->Zceb_version;
-    cfg->Zcee_version        = params->Zcee_version;
-    cfg->mstatus_fs_mode     = params->mstatus_fs_mode;
-    cfg->agnostic_ones       = params->agnostic_ones;
-    cfg->MXL_writable        = params->MXL_writable;
-    cfg->SXL_writable        = params->SXL_writable;
-    cfg->UXL_writable        = params->UXL_writable;
-    cfg->VSXL_writable       = params->VSXL_writable;
-    cfg->reset_address       = params->reset_address;
-    cfg->nmi_address         = params->nmi_address;
-    cfg->nmiexc_address      = params->nmiexc_address;
-    cfg->ASID_cache_size     = params->ASID_cache_size;
-    cfg->ASID_bits           = params->ASID_bits;
-    cfg->VMID_bits           = params->VMID_bits;
-    cfg->trigger_num         = params->trigger_num;
-    cfg->tinfo               = params->tinfo;
-    cfg->mcontext_bits       = params->mcontext_bits;
-    cfg->scontext_bits       = params->scontext_bits;
-    cfg->mvalue_bits         = params->mvalue_bits;
-    cfg->svalue_bits         = params->svalue_bits;
-    cfg->mcontrol_maskmax    = params->mcontrol_maskmax;
-    cfg->dcsr_ebreak_mask    = params->dcsr_ebreak_mask;
-    cfg->PMP_grain           = params->PMP_grain;
-    cfg->PMP_registers       = params->PMP_registers;
-    cfg->PMP_max_page        = powerOfTwo(params->PMP_max_page, "PMP_max_page");
-    cfg->PMP_decompose       = params->PMP_decompose;
-    cfg->cmomp_bytes         = powerOfTwo(params->cmomp_bytes, "cmomp_bytes");
-    cfg->cmoz_bytes          = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
-    cfg->Sv_modes            = params->Sv_modes | RISCV_VMM_BARE;
-    cfg->Svpbmt              = params->Svpbmt;
-    cfg->local_int_num       = params->local_int_num;
-    cfg->unimp_int_mask      = params->unimp_int_mask;
-    cfg->ecode_mask          = params->ecode_mask;
-    cfg->ecode_nmi_mask      = params->ecode_nmi_mask;
-    cfg->ecode_nmi           = params->ecode_nmi;
-    cfg->external_int_id     = params->external_int_id;
-    cfg->force_mideleg       = params->force_mideleg;
-    cfg->force_sideleg       = params->force_sideleg;
-    cfg->no_ideleg           = params->no_ideleg;
-    cfg->no_edeleg           = params->no_edeleg;
-    cfg->lr_sc_grain         = powerOfTwo(lr_sc_grain, "lr_sc_grain");
-    cfg->debug_mode          = params->debug_mode;
-    cfg->debug_address       = params->debug_address;
-    cfg->dexc_address        = params->dexc_address;
-    cfg->debug_eret_mode     = params->debug_eret_mode;
-    cfg->updatePTEA          = params->updatePTEA;
-    cfg->updatePTED          = params->updatePTED;
-    cfg->unaligned           = params->unaligned;
-    cfg->unalignedAMO        = params->unalignedAMO;
-    cfg->wfi_is_nop          = params->wfi_is_nop;
-    cfg->mtvec_is_ro         = params->mtvec_is_ro;
-    cfg->counteren_mask      = params->counteren_mask;
-    cfg->noinhibit_mask      = params->noinhibit_mask;
-    cfg->tvec_align          = params->tvec_align;
-    cfg->tval_zero           = params->tval_zero;
-    cfg->tval_zero_ebreak    = params->tval_zero_ebreak;
-    cfg->tval_ii_code        = params->tval_ii_code;
-    cfg->cycle_undefined     = params->cycle_undefined;
-    cfg->time_undefined      = params->time_undefined;
-    cfg->instret_undefined   = params->instret_undefined;
-    cfg->hpmcounter_undefined= params->hpmcounter_undefined;
-    cfg->tinfo_undefined     = params->tinfo_undefined;
-    cfg->tcontrol_undefined  = params->tcontrol_undefined;
-    cfg->mcontext_undefined  = params->mcontext_undefined;
-    cfg->scontext_undefined  = params->scontext_undefined;
-    cfg->mscontext_undefined = params->mscontext_undefined;
-    cfg->hcontext_undefined  = params->hcontext_undefined;
-    cfg->mnoise_undefined    = params->mnoise_undefined;
-    cfg->amo_trigger         = params->amo_trigger;
-    cfg->no_hit              = params->no_hit;
-    cfg->no_sselect_2        = params->no_sselect_2;
-    cfg->enable_CSR_bus      = params->enable_CSR_bus;
-    cfg->d_requires_f        = params->d_requires_f;
-    cfg->enable_fflags_i     = params->enable_fflags_i;
-    cfg->trap_preserves_lr   = params->trap_preserves_lr;
-    cfg->xret_preserves_lr   = params->xret_preserves_lr;
-    cfg->require_vstart0     = params->require_vstart0;
-    cfg->align_whole         = params->align_whole;
-    cfg->vill_trap           = params->vill_trap;
-    cfg->mstatus_FS_zero     = params->mstatus_FS_zero;
-    cfg->ELEN                = powerOfTwo(params->ELEN,      "ELEN");
-    cfg->VLEN = cfg->SLEN    = powerOfTwo(params->VLEN,      "VLEN");
-    cfg->EEW_index           = powerOfTwo(params->EEW_index, "EEW_index");
-    cfg->SEW_min             = powerOfTwo(params->SEW_min,   "SEW_min");
-    cfg->Zmmul               = params->Zmmul;
-    cfg->Zfhmin              = params->Zfhmin;
-    cfg->Zvlsseg             = params->Zvlsseg;
-    cfg->Zvamo               = params->Zvamo;
-    cfg->Zvediv              = params->Zvediv;
-    cfg->GEILEN              = params->GEILEN;
-    cfg->xtinst_basic        = params->xtinst_basic;
-    cfg->noZicsr             = !params->Zicsr;
-    cfg->noZifencei          = !params->Zifencei;
-    cfg->Zicbom              = params->Zicbom;
-    cfg->Zicbop              = params->Zicbop;
-    cfg->Zicboz              = params->Zicboz;
-    cfg->Svnapot_page_mask   = params->Svnapot_page_mask;
+    cfg->enable_expanded      = params->enable_expanded;
+    cfg->endianFixed          = params->endianFixed;
+    cfg->use_hw_reg_names     = params->use_hw_reg_names;
+    cfg->ABI_d                = params->ABI_d;
+    cfg->user_version         = params->user_version;
+    cfg->priv_version         = params->priv_version;
+    cfg->hyp_version          = params->hypervisor_version;
+    cfg->dsp_version          = params->dsp_version;
+    cfg->dbg_version          = params->debug_version;
+    cfg->rnmi_version         = params->rnmi_version;
+    cfg->Smepmp_version       = params->Smepmp_version;
+    cfg->Zfinx_version        = params->Zfinx_version;
+    cfg->Zcea_version         = params->Zcea_version;
+    cfg->Zceb_version         = params->Zceb_version;
+    cfg->Zcee_version         = params->Zcee_version;
+    cfg->mstatus_fs_mode      = params->mstatus_fs_mode;
+    cfg->agnostic_ones        = params->agnostic_ones;
+    cfg->MXL_writable         = params->MXL_writable;
+    cfg->SXL_writable         = params->SXL_writable;
+    cfg->UXL_writable         = params->UXL_writable;
+    cfg->VSXL_writable        = params->VSXL_writable;
+    cfg->reset_address        = params->reset_address;
+    cfg->nmi_address          = params->nmi_address;
+    cfg->nmiexc_address       = params->nmiexc_address;
+    cfg->ASID_cache_size      = params->ASID_cache_size;
+    cfg->ASID_bits            = params->ASID_bits;
+    cfg->VMID_bits            = params->VMID_bits;
+    cfg->trigger_num          = params->trigger_num;
+    cfg->tinfo                = params->tinfo;
+    cfg->mcontext_bits        = params->mcontext_bits;
+    cfg->scontext_bits        = params->scontext_bits;
+    cfg->mvalue_bits          = params->mvalue_bits;
+    cfg->svalue_bits          = params->svalue_bits;
+    cfg->mcontrol_maskmax     = params->mcontrol_maskmax;
+    cfg->dcsr_ebreak_mask     = params->dcsr_ebreak_mask;
+#if(ENABLE_SSMPU)
+    cfg->MPU_grain            = params->MPU_grain;
+    cfg->MPU_registers        = params->MPU_registers;
+    cfg->MPU_decompose        = params->MPU_decompose;
+#endif
+    cfg->PMP_grain            = params->PMP_grain;
+    cfg->PMP_registers        = params->PMP_registers;
+    cfg->PMP_max_page         = powerOfTwo(params->PMP_max_page, "PMP_max_page");
+    cfg->PMP_decompose        = params->PMP_decompose;
+    cfg->cmomp_bytes          = powerOfTwo(params->cmomp_bytes, "cmomp_bytes");
+    cfg->cmoz_bytes           = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
+    cfg->Sv_modes             = params->Sv_modes | RISCV_VMM_BARE;
+    cfg->Smstateen            = params->Smstateen;
+    cfg->Svpbmt               = params->Svpbmt;
+    cfg->Svinval              = params->Svinval;
+    cfg->local_int_num        = params->local_int_num;
+    cfg->unimp_int_mask       = params->unimp_int_mask;
+    cfg->ecode_mask           = params->ecode_mask;
+    cfg->ecode_nmi_mask       = params->ecode_nmi_mask;
+    cfg->ecode_nmi            = params->ecode_nmi;
+    cfg->external_int_id      = params->external_int_id;
+    cfg->force_mideleg        = params->force_mideleg;
+    cfg->force_sideleg        = params->force_sideleg;
+    cfg->no_ideleg            = params->no_ideleg;
+    cfg->no_edeleg            = params->no_edeleg;
+    cfg->lr_sc_grain          = powerOfTwo(lr_sc_grain, "lr_sc_grain");
+    cfg->debug_mode           = params->debug_mode;
+    cfg->debug_address        = params->debug_address;
+    cfg->dexc_address         = params->dexc_address;
+    cfg->debug_eret_mode      = params->debug_eret_mode;
+    cfg->updatePTEA           = params->updatePTEA;
+    cfg->updatePTED           = params->updatePTED;
+    cfg->unaligned            = params->unaligned;
+    cfg->unalignedAMO         = params->unalignedAMO;
+    cfg->wfi_is_nop           = params->wfi_is_nop;
+    cfg->mtvec_is_ro          = params->mtvec_is_ro;
+    cfg->counteren_mask       = params->counteren_mask;
+    cfg->noinhibit_mask       = params->noinhibit_mask;
+    cfg->tvec_align           = params->tvec_align;
+    cfg->tval_zero            = params->tval_zero;
+    cfg->tval_zero_ebreak     = params->tval_zero_ebreak;
+    cfg->tval_ii_code         = params->tval_ii_code;
+    cfg->cycle_undefined      = params->cycle_undefined;
+    cfg->time_undefined       = params->time_undefined;
+    cfg->instret_undefined    = params->instret_undefined;
+    cfg->hpmcounter_undefined = params->hpmcounter_undefined;
+    cfg->tinfo_undefined      = params->tinfo_undefined;
+    cfg->tcontrol_undefined   = params->tcontrol_undefined;
+    cfg->mcontext_undefined   = params->mcontext_undefined;
+    cfg->scontext_undefined   = params->scontext_undefined;
+    cfg->mscontext_undefined  = params->mscontext_undefined;
+    cfg->hcontext_undefined   = params->hcontext_undefined;
+    cfg->mnoise_undefined     = params->mnoise_undefined;
+    cfg->amo_trigger          = params->amo_trigger;
+    cfg->no_hit               = params->no_hit;
+    cfg->no_sselect_2         = params->no_sselect_2;
+    cfg->enable_CSR_bus       = params->enable_CSR_bus;
+    cfg->d_requires_f         = params->d_requires_f;
+    cfg->enable_fflags_i      = params->enable_fflags_i;
+    cfg->trap_preserves_lr    = params->trap_preserves_lr;
+    cfg->xret_preserves_lr    = params->xret_preserves_lr;
+    cfg->fence_g_preserves_vs = params->fence_g_preserves_vs;
+    cfg->require_vstart0      = params->require_vstart0;
+    cfg->align_whole          = params->align_whole;
+    cfg->vill_trap            = params->vill_trap;
+    cfg->mstatus_FS_zero      = params->mstatus_FS_zero;
+    cfg->ELEN                 = powerOfTwo(params->ELEN,      "ELEN");
+    cfg->VLEN = cfg->SLEN     = powerOfTwo(params->VLEN,      "VLEN");
+    cfg->EEW_index            = powerOfTwo(params->EEW_index, "EEW_index");
+    cfg->SEW_min              = powerOfTwo(params->SEW_min,   "SEW_min");
+    cfg->Zmmul                = params->Zmmul;
+    cfg->Zfhmin               = params->Zfhmin;
+    cfg->Zvlsseg              = params->Zvlsseg;
+    cfg->Zvamo                = params->Zvamo;
+    cfg->Zvediv               = params->Zvediv;
+    cfg->GEILEN               = params->GEILEN;
+    cfg->xtinst_basic         = params->xtinst_basic;
+    cfg->noZicsr              = !params->Zicsr;
+    cfg->noZifencei           = !params->Zifencei;
+    cfg->Zicbom               = params->Zicbom;
+    cfg->Zicbop               = params->Zicbop;
+    cfg->Zicboz               = params->Zicboz;
+    cfg->Svnapot_page_mask    = params->Svnapot_page_mask;
 
     ////////////////////////////////////////////////////////////////////////////
     // FUNDAMENTAL CONFIGURATION
@@ -1143,6 +1152,10 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
         // allocate PMP structures
         riscvVMNewPMP(riscv);
 
+        // allocate MPU structures
+#if(ENABLE_SSMPU)
+        riscvVMNewMPU(riscv);
+#endif
         // initialize CSR state
         riscvCSRInit(riscv);
 
@@ -1278,6 +1291,11 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free PMP structures
     riscvVMFreePMP(riscv);
+
+    // free MPU structures
+#if(ENABLE_SSMPU)
+    riscvVMFreeMPU(riscv);
+#endif
 
     // free cluster variant structures
     riscvFreeClusterVariants(riscv);

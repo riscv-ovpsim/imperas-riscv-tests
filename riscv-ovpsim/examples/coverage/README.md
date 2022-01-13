@@ -22,7 +22,7 @@ Example run under Linux
 > $ RUN_RV32_coverage_basic.sh
 > 
 > CpuManagerFixedPlatform (64-Bit) 20200703.0 Open Virtual Platform simulator from www.IMPERAS.com.   
-> Copyright (c) 2005-2021 Imperas Software Ltd.  Contains Imperas Proprietary Information.  
+> Copyright (c) 2005-2022 Imperas Software Ltd.  Contains Imperas Proprietary Information.  
 > Licensed Software, All Rights Reserved.  
 > Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.  
 >   

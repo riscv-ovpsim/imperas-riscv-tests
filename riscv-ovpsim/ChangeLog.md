@@ -1,6 +1,6 @@
 riscvOVPsim Change Log
 ===
-Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the riscvOVPsim (and derivative) fixed platforms which include information of the OVP Simulator and RISCV processor model
 
@@ -11,6 +11,50 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+Date 2022-January-12
+Release 20220111.0
+===
+
+- New privileged version 20211203 has been introduced and is used by default in
+  riscv.ovpworld.org envelope model variants. This corresponds to the ratified
+  Privileged Specification of that date.
+- HLVX instruction behavior has been corrected to always check for read
+  permission on matching PMP entries (previously, execute permission was
+  checked instead in some cases).
+- The vector version master branch currently has these differences compared to
+  the previous 1.0 version:
+  - V-commit ef8b3a4: instruction encodings are reserved if the same vector
+    register would be read with two or more different EEWs.
+- New vector version 1.0 has been added, with these differences compared to the
+  previous 1.0-rc1-20210608 version:
+  - V-commit 8fab4e3: instruction vpopc.m renamed vcpop.m;
+  - V-commit c027517: instruction vmandnot.mm renamed vmandn.mm;
+  - V-commit c027517: instruction vmornot.mm renamed vmorn.mm.
+- Bit Manipulation version 0.93 only, instruction add.uw has been corrected to
+  zero extend argument rs1 instead of argument rs2.
+- When the Hypervisor is implemented, new parameter fence_g_preserves_vs
+  controls the effect of HFENCE.GVMA on cached VS-stage address translations:
+  - if fence_g_preserves_vs is False, all cached VS-stage address translations
+    with matching VMID specification are invalidated by HFENCE.GVMA;
+  - if fence_g_preserves_vs is True, cached VS-stage address translations are
+    not affected by HFENCE.GVMA.
+- Default model behavior has changed so that HFENCE.GVMA invalidates all cached
+  VS-stage address translations with matching VMID specification; previously,
+  VS-stage address translations were unaffected. Set parameter
+  fence_g_preserves_vs to True to revert to the previous behavior.
+- Some corner case behaviors for SIMD extension saturating instructions have
+  been corrected. Instructions affected are KMDA, KMSDA, KMSXDA, KMSDA32 and
+  KMSXDA32.
+- New parameter use_hw_reg_names enables use of hardware register names x0-x31
+  and f0-f31 instead of ABI register names. This affects tracing and all
+  register access by name via the OP API.
+- When the Hypervisor extension is implemented, only interrupts delegated by
+  mideleg are now visible in hideleg, hip and hie.
+
+Date 2021-November-18
+Release 20211117.0
+===
+
 - The ratified specifications are enabled in riscvOVPsim for B (bitmanip), K (crypto) and V (vector) extensions.
 
 - The  processor(s) in the riscvOVPsim fixed platform now have verbose output enabled by default.
@@ -18,6 +62,8 @@ NOTE: X-commit messages below refer to git commits in the following
 
 - Extension Svpbmt is now implemented and enabled using the Svpbmt parameter if
   required.
+- Extension Svinval is now implemented and enabled using the Svinval parameter 
+  if required.
 - Extension Svnapot is now implemented with intermediate page sizes specified
   using the Svnapot_page_mask parameter if required.
 - Extension Zicbom is now implemented and enabled using the Zicbom parameter if
@@ -32,6 +78,8 @@ NOTE: X-commit messages below refer to git commits in the following
   required.
 - Extension Smepmp version 0.9.5 is now implemented and enabled using the
   Smepmp_version parameter if required.
+- When the Hypervisor extension is implemented, custom interrupts may now be
+  delegated to VS mode using hideleg.
 - Syndromes are now reported in mtinst and htinst for all access and alignment
   faults; previously, only page faults caused syndromes to be reported.  
 - New User Architecture version 20191213 has been added. This is identical to

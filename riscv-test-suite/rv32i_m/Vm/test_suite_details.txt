@@ -17,45 +17,48 @@
 
 
 Architectural Test Suite Data for RV32VM RISC-V "V" Vector Extension:
-    264 test source files
+    180 test source files
     2 different instruction categories
     35 different instructions
-    196,068 total instructions
+    150,516 total instructions
 
 Instruction category: OPV_MASK mask
-  vfirst.m : 639
-  viota.m : 639
+  vfirst.m : 303
+  viota.m : 303
   vmand.mm : 336
   vmnand.mm : 336
   vmnor.mm : 336
   vmor.mm : 336
   vmxnor.mm : 336
   vmxor.mm : 336
-  vmsbf.m : 639
-  vmsif.m : 639
-  vmsof.m : 639
+  vmsbf.m : 303
+  vmsif.m : 303
+  vmsof.m : 303
 Instruction category: OPV_INDXEX index
-  vid.v : 639
+  vid.v : 303
 
 Other instructions (those not the focus of this suite)
-  jal : 264
-  lui : 9,462
-  addi : 75,075
-  csrrs : 1,056
-  auipc : 7,053
-  csrrw : 792
-  mret : 264
-  vsetvli : 23,064
-  add : 24,678
-  vle8.v : 5,738
-  sw : 1,278
-  fence : 264
-  ecall : 264
-  beq : 792
-  vle16.v : 5,738
-  vle32.v : 5,738
-  vse8.v : 1,961
-  vse16.v : 1,961
-  vse32.v : 1,961
+  jal : 180
+  lui : 6,186
+  addi : 59,139
+  csrrs : 720
+  auipc : 7,977
+  csrrw : 540
+  mret : 180
+  vsetvli : 15,183
+  add : 15,942
+  vle8.v : 4,149
+  sw : 606
+  fence : 180
+  ecall : 180
+  beq : 540
+  vle16.v : 4,149
+  vle32.v : 4,149
+  vse8.v : 1,401
+  vse16.v : 1,401
+  vse32.v : 1,401
   lw : 21,504
+  vmandnot.mm : 336
+  vmornot.mm : 336
+  vpopc.m : 303
 

@@ -25,8 +25,8 @@ Architectural Test Suite Data for RV32ZKS K Crypto/Scalar:
     15,954 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  orn : 146
   andn : 146
+  orn : 146
   xnor : 146
 Instruction category: OPB_CLML Carry-less Multiply
   clmul : 146
@@ -36,15 +36,15 @@ Instruction category: OPB_PACK Packing
   pack : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 146
-  ror : 146
   rori : 146
+  ror : 146
+  rol : 146
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p1 : 146
   sm3p0 : 146
+  sm3p1 : 146
 Instruction category: OPK_Zkse 
-  sm4ks : 402
   sm4ed : 402
+  sm4ks : 402
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

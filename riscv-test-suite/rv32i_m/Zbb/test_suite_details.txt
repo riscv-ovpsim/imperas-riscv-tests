@@ -32,17 +32,17 @@ Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
 Instruction category: OPB_CNTB Count Bits
   cpop : 146
 Instruction category: OPB_MNMX Min/Max
+  min : 146
   max : 146
   maxu : 146
-  min : 146
   minu : 146
 Instruction category: OPB_SEXT Sign Extend
   sext.h : 146
   sext.b : 146
 Instruction category: OPB_ROTS Rotations
   ror : 146
-  rori : 146
   rol : 146
+  rori : 146
 
 Other instructions (those not the focus of this suite)
   jal : 18

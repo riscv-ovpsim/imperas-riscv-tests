@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1596,6 +1596,13 @@ typedef enum riscvIType32E {
     IT32_PREFETCH_R,
     IT32_PREFETCH_W,
 
+    // Svinval instructions
+    IT32_SINVAL_VMA,
+    IT32_SFENCE_W_INVAL,
+    IT32_SFENCE_INVAL_IR,
+    IT32_HINVAL_VVMA,
+    IT32_HINVAL_GVMA,
+
     // KEEP LAST
     IT32_LAST
 
@@ -2419,19 +2426,6 @@ const static decodeEntry32 decodeBPostV093Draft[] = {
     //                               |       imm32|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(        BEXTI_I, "|010010......|.....|101|.....|0010011|"),
     DECODE32_ENTRY(      SLLI_UW_I, "|00001.......|.....|001|.....|0011011|"),
-
-    // table termination entry
-    {0}
-};
-
-//
-// This specifies decodes for 32-bit opcodes for Bit manipulation Extension
-// until version 0.93
-//
-const static decodeEntry32 decodeBUntilV093[] = {
-
-    // B-extension R-type instructions
-    //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
 
     // table termination entry
     {0}
@@ -3742,6 +3736,23 @@ const static decodeEntry32 decodeZicboz[] = {
 };
 
 //
+// This specifies Svinval Extension decodes
+//
+const static decodeEntry32 decodeSvinval[] = {
+
+    // Svinval-extension instructions (RV32 and RV64)
+    //                                | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(      SINVAL_VMA, "|0001011|.....|.....|000|00000|1110011|"),
+    DECODE32_ENTRY(  SFENCE_W_INVAL, "|0001100|00000|00000|000|00000|1110011|"),
+    DECODE32_ENTRY( SFENCE_INVAL_IR, "|0001100|00001|00000|000|00000|1110011|"),
+    DECODE32_ENTRY(     HINVAL_VVMA, "|0010011|.....|.....|000|00000|1110011|"),
+    DECODE32_ENTRY(     HINVAL_GVMA, "|0110011|.....|.....|000|00000|1110011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies attributes for each 32-bit opcode
 //
 const static opAttrs attrsArray32[] = {
@@ -4498,171 +4509,171 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_RS2_VS1_M_VX      (    VWMACCUS_VX,     VWMACCUS_VR, RVANYV,  "vwmaccus"   ),
 
     // P-extension instructions (RV32 and RV64)
-    ATTR32_RD_RS1_RS2_SZ1       (            ADD,             ADD, RVANYP,  "add"        ),
-    ATTR32_RD_RS1_RS2_WX0       (            AVE,             AVE, RVANYP,  "ave"        ),
-    ATTR32_RD_RS1_RS2_WX0       (         BITREV,          BITREV, RVANYP,  "bitrev"     ),
-    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi"    ),
-    ATTR32_RD_RS1_RS2_RS3_WX0   (       BPICK052,           BPICK, RVANYP,  "bpick"      ),
-    ATTR32_RD_RS1_RS2_RS3       (       BPICK096,           BPICK, RVANYP,  "bpick"      ),
-    ATTR32_RD_RS1_SZ2           (           CLRS,            CLRS, RVANYP,  "clrs"       ),
-    ATTR32_RD_RS1_SZ2           (            CLO,             CLO, RVANYP,  "clo"        ),
-    ATTR32_RD_RS1_SZ2           (            CLZ,             CLZ, RVANYP,  "clz"        ),
-    ATTR32_RD_RS1_RS2_SZ3       (          CMPEQ,           CMPEQ, RVANYP,  "cmpeq"      ),
-    ATTR32_RD_RS1_RS2_SZ13_CR   (             CR,              CR, RVANYP,  "cr"         ),
-    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi"    ),
-    ATTR32_RD_RS1_BYTE_WX0      (           INSB,            INSB, RVANYP,  "insb"       ),
-    ATTR32_RD_RS1_SZ4           (           KABS,            KABS, RVANYP,  "kabs"       ),
-    ATTR32_RD_RS1_WX1           (           KABSW,          KABSW, RVANYP,  "kabs"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (           KADD,            KADD, RVANYP,  "kadd"       ),
-    ATTR32_RD_RS1_RS2_HW        (           KADD,            KADD, RVANYP,  "kadd"       ),
-    ATTR32_RD_RS1_RS2_SZ13_CR   (            KCR,             KCR, RVANYP,  "kcr"        ),
-    ATTR32_RD_RS1_RS2_BT012_WX1 (            KDM,             KDM, RVANYP,  "kdm"        ),
-    ATTR32_RD_RS1_RS2_BT123_WX1 (           KDMA,            KDMA, RVANYP,  "kdma"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (            KHM,             KHM, RVANYP,  "khm"        ),
-    ATTR32_RD_RS1_RS2_BT012_WX1 (            KHM,             KHM, RVANYP,  "khm"        ),
-    ATTR32_RD_RS1_RS2_SZ1       (           KHMX,            KHMX, RVANYP,  "khmx"       ),
-    ATTR32_RD_RS1_RS2_BT123     (            KMA,             KMA, RVANYP,  "kma"        ),
-    ATTR32_RD_RS1_RS2_WX0       (          KMADA,           KMADA, RVANYP,  "kmada"      ),
-    ATTR32_RD_RS1_RS2_WX0       (         KMAXDA,          KMAXDA, RVANYP,  "kmaxda"     ),
-    ATTR32_RD_RS1_RS2_WX0       (          KMADS,           KMADS, RVANYP,  "kmads"      ),
-    ATTR32_RD_RS1_RS2_WX0       (         KMAXDS,          KMAXDS, RVANYP,  "kmaxds"     ),
-    ATTR32_RD_RS1_RS2_WX0       (         KMADRS,          KMADRS, RVANYP,  "kmadrs"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMAR,            KMAR, RVANYP,  "kmar"       ),
-    ATTR32_RD_RS1_RS2_WX0       (           KMDA,            KMDA, RVANYP,  "kmda"       ),
-    ATTR32_RD_RS1_RS2_WX0       (          KMXDA,           KMXDA, RVANYP,  "kmxda"      ),
-    ATTR32_RD_RS1_RS2_RND       (          KMMAC,           KMMAC, RVANYP,  "kmmac"      ),
-    ATTR32_RD_RS1_RS2_BT_DBL_RND(          KMMAW,           KMMAW, RVANYP,  "kmmaw"      ),
-    ATTR32_RD_RS1_RS2_RND       (          KMMSB,           KMMSB, RVANYP,  "kmmsb"      ),
-    ATTR32_RD_RS1_RS2_BT_DBL_RND(           KMMW,            KMMW, RVANYP,  "kmmw"       ),
-    ATTR32_RD_RS1_RS2_WX0       (          KMSDA,           KMSDA, RVANYP,  "kmsda"      ),
-    ATTR32_RD_RS1_RS2_WX0       (         KMSXDA,          KMSXDA, RVANYP,  "kmsxda"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMSR,            KMSR, RVANYP,  "kmsr"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (           KSLL,            KSLL, RVANYP,  "ksll"       ),
-    ATTR32_RD_RS1_IMM_WX0_SZ8   (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ16  (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ32  (          KSLLI,           KSLLI, RVANYP,  "kslli"      ),
-    ATTR32_RD_RS1_RS2_WX1       (          KSLLW,           KSLLW, RVANYP,  "ksll"       ),
-    ATTR32_RD_RS1_IMM5U_WX1     (         KSLLIW,          KSLLIW, RVANYP,  "kslli"      ),
-    ATTR32_RD_RS1_RS2_SZ1_RND   (          KSLRA,           KSLRA, RVANYP,  "kslra"      ),
-    ATTR32_RD_RS1_RS2_RND_WX1   (         KSLRAW,           KSLRA, RVANYP,  "kslra"      ),
-    ATTR32_RD_RS1_RS2_SZ26_CR   (            KST,             KST, RVANYP,  "kst"        ),
-    ATTR32_RD_RS1_RS2_SZ1       (           KSUB,            KSUB, RVANYP,  "ksub"       ),
-    ATTR32_RD_RS1_RS2_HW        (           KSUB,            KSUB, RVANYP,  "ksub"       ),
-    ATTR32_RD_RS1_RS2_RND       (         KWMMUL,          KWMMUL, RVANYP,  "kwmmul"     ),
-    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MADDR,           MADDR, RVANYP,  "maddr"      ),
-    ATTR32_RD_RS1_RS2_WX1       (           MAXW,            MAXW, RVANYP,  "max"        ),
-    ATTR32_RD_RS1_RS2_WX1       (           MINW,            MINW, RVANYP,  "min"        ),
-    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MSUBR,           MSUBR, RVANYP,  "msubr"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           MULR,            MULR, RVANYP,  "mulr"       ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (          MULSR,           MULSR, RVANYP,  "mulsr"      ),
-    ATTR32_RD_RS1_RS2_WX0       (          PBSAD,           PBSAD, RVANYP,  "pbsad"      ),
-    ATTR32_RD_RS1_RS2_WX0       (         PBSADA,          PBSADA, RVANYP,  "pbsada"     ),
-    ATTR32_RD_RS1_RS2_BT012_SZ  (             PK,              PK, RVANYP,  "pk"         ),
-    ATTR32_RD_RS1_RS2_SZ1       (           RADD,            RADD, RVANYP,  "radd"       ),
-    ATTR32_RD_RS1_RS2_WX1       (          RADDW,           RADDW, RVANYP,  "radd"       ),
-    ATTR32_RD_RS1_RS2_SZ13_CR   (            RCR,             RCR, RVANYP,  "rcr"        ),
-    ATTR32_RD_RS1_RS2_SZ26_CR   (            RST,             RST, RVANYP,  "rst"        ),
-    ATTR32_RD_RS1_RS2_SZ1       (           RSUB,            RSUB, RVANYP,  "rsub"       ),
-    ATTR32_RD_RS1_RS2_WX1       (          RSUBW,           RSUBW, RVANYP,  "rsub"       ),
-    ATTR32_RD_RS1_IMM_WX0_SZ8   (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ16  (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ32  (          SCLIP,           SCLIP, RVANYP,  "sclip"      ),
-    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLE,          SCMPLE, RVANYP,  "scmple"     ),
-    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLT,          SCMPLT, RVANYP,  "scmplt"     ),
-    ATTR32_RD_RS1_RS2_SZ1       (            SLL,             SLL, RVANYP,  "sll"        ),
-    ATTR32_RD_RS1_IMM_WX0_SZ8   (           SLLI,            SLLI, RVANYP,  "slli"       ),
-    ATTR32_RD_RS1_IMM_WX0_SZ16  (           SLLI,            SLLI, RVANYP,  "slli"       ),
-    ATTR32_RD_RS1_IMM_WX0_SZ32  (           SLLI,            SLLI, RVANYP,  "slli"       ),
-    ATTR32_RD_RS1_RS2_WX0       (           SMAL,            SMAL, RVANYP,  "smal"       ),
-    ATTR32_RD_RS1_RS2_BT012     (           SMAL,            SMAL, RVANYP,  "smal"       ),
-    ATTR32_RD_RS1_RS2_WX0       (         SMALDA,          SMALDA, RVANYP,  "smalda"     ),
-    ATTR32_RD_RS1_RS2_WX0       (        SMALXDA,         SMALXDA, RVANYP,  "smalxda"    ),
-    ATTR32_RD_RS1_RS2_WX0       (         SMALDS,          SMALDS, RVANYP,  "smalds"     ),
-    ATTR32_RD_RS1_RS2_WX0       (        SMALDRS,         SMALDRS, RVANYP,  "smaldrs"    ),
-    ATTR32_RD_RS1_RS2_WX0       (        SMALXDS,         SMALXDS, RVANYP,  "smalxds"    ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMAR,            SMAR, RVANYP,  "smar"       ),
-    ATTR32_RD_RS1_RS2_WX0       (          SMAQA,           SMAQA, RVANYP,  "smaqa"      ),
-    ATTR32_RD_RS1_RS2_WX0       (       SMAQA_SU,        SMAQA_SU, RVANYP,  "smaqa.su"   ),
-    ATTR32_RD_RS1_RS2_SZ1       (           SMAX,            SMAX, RVANYP,  "smax"       ),
-    ATTR32_RD_RS1_RS2_BT012_SZ  (             SM,              SM, RVANYP,  "sm"         ),
-    ATTR32_RD_RS1_RS2_WX0       (           SMDS,            SMDS, RVANYP,  "smds"       ),
-    ATTR32_RD_RS1_RS2_WX0       (          SMDRS,           SMDRS, RVANYP,  "smdrs"      ),
-    ATTR32_RD_RS1_RS2_WX0       (          SMXDS,           SMXDS, RVANYP,  "smxds"      ),
-    ATTR32_RD_RS1_RS2_SZ1       (           SMIN,            SMIN, RVANYP,  "smin"       ),
-    ATTR32_RD_RS1_RS2_RND       (          SMMUL,           SMMUL, RVANYP,  "smmul"      ),
-    ATTR32_RD_RS1_RS2_BT_DBL_RND(           SMMW,            SMMW, RVANYP,  "smmw"      ),
-    ATTR32_RD_RS1_RS2_WX0       (         SMSLDA,          SMSLDA, RVANYP,  "smslda"     ),
-    ATTR32_RD_RS1_RS2_WX0       (        SMSLXDA,         SMSLXDA, RVANYP,  "smslxda"    ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMSR,            SMSR, RVANYP,  "smsr"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (           SMUL,            SMUL, RVANYP,  "smul"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (          SMULX,           SMULX, RVANYP,  "smulx"      ),
-    ATTR32_RD_RS1_RS2_RNDU      (            SRA,             SRA, RVANYP,  "sra"        ),
-    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRA,             SRA, RVANYP,  "sra"        ),
-    ATTR32_RD_RS1_SSHIFT_RND    (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"       ),
-    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRL,             SRL, RVANYP,  "srl"        ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"       ),
-    ATTR32_RD_RS1_RS2_SZ26_CR   (             ST,              ST, RVANYP,  "st"         ),
-    ATTR32_RD_RS1_RS2_SZ1       (            SUB,             SUB, RVANYP,  "sub"        ),
-    ATTR32_RD_RS1_PACK          (         SUNPKD,          SUNPKD, RVANYP,  "sunpkd"     ),
-    ATTR32_RD_RS1_SZ4           (           SWAP,            SWAP, RVANYP,  "swap"       ),
-    ATTR32_RD_RS1_IMM_WX0_SZ8   (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ16  (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
-    ATTR32_RD_RS1_IMM_WX0_SZ32  (          UCLIP,           UCLIP, RVANYP,  "uclip"      ),
-    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLE,          UCMPLE, RVANYP,  "ucmple"     ),
-    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLT,          UCMPLT, RVANYP,  "ucmplt"     ),
-    ATTR32_RD_RS1_RS2_SZ1       (          UKADD,           UKADD, RVANYP,  "ukadd"      ),
-    ATTR32_RD_RS1_RS2_HW        (          UKADD,           UKADD, RVANYP,  "ukadd"      ),
-    ATTR32_RD_RS1_RS2_SZ13_CR   (           UKCR,            UKCR, RVANYP,  "ukcr"       ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMAR,           UKMAR, RVANYP,  "ukmar"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMSR,           UKMSR, RVANYP,  "ukmsr"      ),
-    ATTR32_RD_RS1_RS2_SZ26_CR   (           UKST,            UKST, RVANYP,  "ukst"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (          UKSUB,           UKSUB, RVANYP,  "uksub"      ),
-    ATTR32_RD_RS1_RS2_HW        (          UKSUB,           UKSUB, RVANYP,  "uksub"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMAR,            UMAR, RVANYP,  "umar"       ),
-    ATTR32_RD_RS1_RS2_WX0       (          UMAQA,           UMAQA, RVANYP,  "umaqa"      ),
-    ATTR32_RD_RS1_RS2_SZ1       (           UMAX,            UMAX, RVANYP,  "umax"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (           UMIN,            UMIN, RVANYP,  "umin"       ),
-    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMSR,            UMSR, RVANYP,  "umsr"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (           UMUL,            UMUL, RVANYP,  "umul"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (          UMULX,           UMULX, RVANYP,  "umulx"      ),
-    ATTR32_RD_RS1_RS2_SZ1       (          URADD,           URADD, RVANYP,  "uradd"      ),
-    ATTR32_RD_RS1_RS2_WX1       (         URADDW,          URADDW, RVANYP,  "uradd"      ),
-    ATTR32_RD_RS1_RS2_SZ13_CR   (           URCR,            URCR, RVANYP,  "urcr"       ),
-    ATTR32_RD_RS1_RS2_SZ26_CR   (           URST,            URST, RVANYP,  "urst"       ),
-    ATTR32_RD_RS1_RS2_SZ1       (          URSUB,           URSUB, RVANYP,  "ursub"      ),
-    ATTR32_RD_RS1_RS2_WX1       (         URSUBW,          URSUBW, RVANYP,  "ursub"      ),
-    ATTR32_RD_RS1_RS2_WX0       (           WEXT,            WEXT, RVANYP,  "wext"       ),
-    ATTR32_RD_RS1_IMM_WX0       (          WEXTI,           WEXTI, RVANYP,  "wexti"      ),
-    ATTR32_RD_RS1_PACK          (         ZUNPKD,          ZUNPKD, RVANYP,  "zunpkd"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (            ADD,             ADD, RVANYP,  "add"     ),
+    ATTR32_RD_RS1_RS2_WX0       (            AVE,             AVE, RVANYP,  "ave"     ),
+    ATTR32_RD_RS1_RS2_WX0       (         BITREV,          BITREV, RVANYP,  "bitrev"  ),
+    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi" ),
+    ATTR32_RD_RS1_RS2_RS3_WX0   (       BPICK052,           BPICK, RVANYP,  "bpick"   ),
+    ATTR32_RD_RS1_RS2_RS3       (       BPICK096,           BPICK, RVANYP,  "bpick"   ),
+    ATTR32_RD_RS1_SZ2           (           CLRS,            CLRS, RVANYP,  "clrs"    ),
+    ATTR32_RD_RS1_SZ2           (            CLO,             CLO, RVANYP,  "clo"     ),
+    ATTR32_RD_RS1_SZ2           (            CLZ,             CLZ, RVANYP,  "clz"     ),
+    ATTR32_RD_RS1_RS2_SZ3       (          CMPEQ,           CMPEQ, RVANYP,  "cmpeq"   ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (             CR,              CR, RVANYP,  "cr"      ),
+    ATTR32_RD_RS1_SSHIFT_WX0    (        BITREVI,         BITREVI, RVANYP,  "bitrevi" ),
+    ATTR32_RD_RS1_BYTE_WX0      (           INSB,            INSB, RVANYP,  "insb"    ),
+    ATTR32_RD_RS1_SZ4           (           KABS,            KABS, RVANYP,  "kabs"    ),
+    ATTR32_RD_RS1_WX1           (           KABSW,          KABSW, RVANYP,  "kabs"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KADD,            KADD, RVANYP,  "kadd"    ),
+    ATTR32_RD_RS1_RS2_HW        (           KADD,            KADD, RVANYP,  "kadd"    ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (            KCR,             KCR, RVANYP,  "kcr"     ),
+    ATTR32_RD_RS1_RS2_BT012_WX1 (            KDM,             KDM, RVANYP,  "kdm"     ),
+    ATTR32_RD_RS1_RS2_BT123_WX1 (           KDMA,            KDMA, RVANYP,  "kdma"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (            KHM,             KHM, RVANYP,  "khm"     ),
+    ATTR32_RD_RS1_RS2_BT012_WX1 (            KHM,             KHM, RVANYP,  "khm"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KHMX,            KHMX, RVANYP,  "khmx"    ),
+    ATTR32_RD_RS1_RS2_BT123     (            KMA,             KMA, RVANYP,  "kma"     ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMADA,           KMADA, RVANYP,  "kmada"   ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMAXDA,          KMAXDA, RVANYP,  "kmaxda"  ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMADS,           KMADS, RVANYP,  "kmads"   ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMAXDS,          KMAXDS, RVANYP,  "kmaxds"  ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMADRS,          KMADRS, RVANYP,  "kmadrs"  ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMAR,            KMAR, RVANYP,  "kmar"    ),
+    ATTR32_RD_RS1_RS2_WX0       (           KMDA,            KMDA, RVANYP,  "kmda"    ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMXDA,           KMXDA, RVANYP,  "kmxda"   ),
+    ATTR32_RD_RS1_RS2_RND       (          KMMAC,           KMMAC, RVANYP,  "kmmac"   ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(          KMMAW,           KMMAW, RVANYP,  "kmmaw"   ),
+    ATTR32_RD_RS1_RS2_RND       (          KMMSB,           KMMSB, RVANYP,  "kmmsb"   ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(           KMMW,            KMMW, RVANYP,  "kmmw"    ),
+    ATTR32_RD_RS1_RS2_WX0       (          KMSDA,           KMSDA, RVANYP,  "kmsda"   ),
+    ATTR32_RD_RS1_RS2_WX0       (         KMSXDA,          KMSXDA, RVANYP,  "kmsxda"  ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           KMSR,            KMSR, RVANYP,  "kmsr"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KSLL,            KSLL, RVANYP,  "ksll"    ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          KSLLI,           KSLLI, RVANYP,  "kslli"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          KSLLI,           KSLLI, RVANYP,  "kslli"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          KSLLI,           KSLLI, RVANYP,  "kslli"   ),
+    ATTR32_RD_RS1_RS2_WX1       (          KSLLW,           KSLLW, RVANYP,  "ksll"    ),
+    ATTR32_RD_RS1_IMM5U_WX1     (         KSLLIW,          KSLLIW, RVANYP,  "kslli"   ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (          KSLRA,           KSLRA, RVANYP,  "kslra"   ),
+    ATTR32_RD_RS1_RS2_RND_WX1   (         KSLRAW,           KSLRA, RVANYP,  "kslra"   ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (            KST,             KST, RVANYP,  "kst"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (           KSUB,            KSUB, RVANYP,  "ksub"    ),
+    ATTR32_RD_RS1_RS2_HW        (           KSUB,            KSUB, RVANYP,  "ksub"    ),
+    ATTR32_RD_RS1_RS2_RND       (         KWMMUL,          KWMMUL, RVANYP,  "kwmmul"  ),
+    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MADDR,           MADDR, RVANYP,  "maddr"   ),
+    ATTR32_RD_RS1_RS2_WX1       (           MAXW,            MAXW, RVANYP,  "max"     ),
+    ATTR32_RD_RS1_RS2_WX1       (           MINW,            MINW, RVANYP,  "min"     ),
+    ATTR32_RD_RS1_RS2_WX1_SZ32  (          MSUBR,           MSUBR, RVANYP,  "msubr"   ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           MULR,            MULR, RVANYP,  "mulr"    ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          MULSR,           MULSR, RVANYP,  "mulsr"   ),
+    ATTR32_RD_RS1_RS2_WX0       (          PBSAD,           PBSAD, RVANYP,  "pbsad"   ),
+    ATTR32_RD_RS1_RS2_WX0       (         PBSADA,          PBSADA, RVANYP,  "pbsada"  ),
+    ATTR32_RD_RS1_RS2_BT012_SZ  (             PK,              PK, RVANYP,  "pk"      ),
+    ATTR32_RD_RS1_RS2_SZ1       (           RADD,            RADD, RVANYP,  "radd"    ),
+    ATTR32_RD_RS1_RS2_WX1       (          RADDW,           RADDW, RVANYP,  "radd"    ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (            RCR,             RCR, RVANYP,  "rcr"     ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (            RST,             RST, RVANYP,  "rst"     ),
+    ATTR32_RD_RS1_RS2_SZ1       (           RSUB,            RSUB, RVANYP,  "rsub"    ),
+    ATTR32_RD_RS1_RS2_WX1       (          RSUBW,           RSUBW, RVANYP,  "rsub"    ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          SCLIP,           SCLIP, RVANYP,  "sclip"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          SCLIP,           SCLIP, RVANYP,  "sclip"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          SCLIP,           SCLIP, RVANYP,  "sclip"   ),
+    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLE,          SCMPLE, RVANYP,  "scmple"  ),
+    ATTR32_RD_RS1_RS2_SZ3       (         SCMPLT,          SCMPLT, RVANYP,  "scmplt"  ),
+    ATTR32_RD_RS1_RS2_SZ1       (            SLL,             SLL, RVANYP,  "sll"     ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (           SLLI,            SLLI, RVANYP,  "slli"    ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (           SLLI,            SLLI, RVANYP,  "slli"    ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (           SLLI,            SLLI, RVANYP,  "slli"    ),
+    ATTR32_RD_RS1_RS2_WX0       (           SMAL,            SMAL, RVANYP,  "smal"    ),
+    ATTR32_RD_RS1_RS2_BT012     (           SMAL,            SMAL, RVANYP,  "smal"    ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMALDA,          SMALDA, RVANYP,  "smalda"  ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALXDA,         SMALXDA, RVANYP,  "smalxda" ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMALDS,          SMALDS, RVANYP,  "smalds"  ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALDRS,         SMALDRS, RVANYP,  "smaldrs" ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMALXDS,         SMALXDS, RVANYP,  "smalxds" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMAR,            SMAR, RVANYP,  "smar"    ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMAQA,           SMAQA, RVANYP,  "smaqa"   ),
+    ATTR32_RD_RS1_RS2_WX0       (       SMAQA_SU,        SMAQA_SU, RVANYP,  "smaqa.su"),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMAX,            SMAX, RVANYP,  "smax"    ),
+    ATTR32_RD_RS1_RS2_BT012_SZ  (             SM,              SM, RVANYP,  "sm"      ),
+    ATTR32_RD_RS1_RS2_WX0       (           SMDS,            SMDS, RVANYP,  "smds"    ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMDRS,           SMDRS, RVANYP,  "smdrs"   ),
+    ATTR32_RD_RS1_RS2_WX0       (          SMXDS,           SMXDS, RVANYP,  "smxds"   ),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMIN,            SMIN, RVANYP,  "smin"    ),
+    ATTR32_RD_RS1_RS2_RND       (          SMMUL,           SMMUL, RVANYP,  "smmul"   ),
+    ATTR32_RD_RS1_RS2_BT_DBL_RND(           SMMW,            SMMW, RVANYP,  "smmw"    ),
+    ATTR32_RD_RS1_RS2_WX0       (         SMSLDA,          SMSLDA, RVANYP,  "smslda"  ),
+    ATTR32_RD_RS1_RS2_WX0       (        SMSLXDA,         SMSLXDA, RVANYP,  "smslxda" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           SMSR,            SMSR, RVANYP,  "smsr"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (           SMUL,            SMUL, RVANYP,  "smul"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (          SMULX,           SMULX, RVANYP,  "smulx"   ),
+    ATTR32_RD_RS1_RS2_RNDU      (            SRA,             SRA, RVANYP,  "sra"     ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRA,             SRA, RVANYP,  "sra"     ),
+    ATTR32_RD_RS1_SSHIFT_RND    (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRAI,            SRAI, RVANYP,  "srai"    ),
+    ATTR32_RD_RS1_RS2_SZ1_RND   (            SRL,             SRL, RVANYP,  "srl"     ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_IMM_RNDF_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ8  (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ16 (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_IMM_RNDT_SZ32 (           SRLI,            SRLI, RVANYP,  "srli"    ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (             ST,              ST, RVANYP,  "st"      ),
+    ATTR32_RD_RS1_RS2_SZ1       (            SUB,             SUB, RVANYP,  "sub"     ),
+    ATTR32_RD_RS1_PACK          (         SUNPKD,          SUNPKD, RVANYP,  "sunpkd"  ),
+    ATTR32_RD_RS1_SZ4           (           SWAP,            SWAP, RVANYP,  "swap"    ),
+    ATTR32_RD_RS1_IMM_WX0_SZ8   (          UCLIP,           UCLIP, RVANYP,  "uclip"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ16  (          UCLIP,           UCLIP, RVANYP,  "uclip"   ),
+    ATTR32_RD_RS1_IMM_WX0_SZ32  (          UCLIP,           UCLIP, RVANYP,  "uclip"   ),
+    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLE,          UCMPLE, RVANYP,  "ucmple"  ),
+    ATTR32_RD_RS1_RS2_SZ3       (         UCMPLT,          UCMPLT, RVANYP,  "ucmplt"  ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UKADD,           UKADD, RVANYP,  "ukadd"   ),
+    ATTR32_RD_RS1_RS2_HW        (          UKADD,           UKADD, RVANYP,  "ukadd"   ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (           UKCR,            UKCR, RVANYP,  "ukcr"    ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMAR,           UKMAR, RVANYP,  "ukmar"   ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (          UKMSR,           UKMSR, RVANYP,  "ukmsr"   ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (           UKST,            UKST, RVANYP,  "ukst"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UKSUB,           UKSUB, RVANYP,  "uksub"   ),
+    ATTR32_RD_RS1_RS2_HW        (          UKSUB,           UKSUB, RVANYP,  "uksub"   ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMAR,            UMAR, RVANYP,  "umar"    ),
+    ATTR32_RD_RS1_RS2_WX0       (          UMAQA,           UMAQA, RVANYP,  "umaqa"   ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMAX,            UMAX, RVANYP,  "umax"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMIN,            UMIN, RVANYP,  "umin"    ),
+    ATTR32_RD_RS1_RS2_WX0_SZ64  (           UMSR,            UMSR, RVANYP,  "umsr"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (           UMUL,            UMUL, RVANYP,  "umul"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (          UMULX,           UMULX, RVANYP,  "umulx"   ),
+    ATTR32_RD_RS1_RS2_SZ1       (          URADD,           URADD, RVANYP,  "uradd"   ),
+    ATTR32_RD_RS1_RS2_WX1       (         URADDW,          URADDW, RVANYP,  "uradd"   ),
+    ATTR32_RD_RS1_RS2_SZ13_CR   (           URCR,            URCR, RVANYP,  "urcr"    ),
+    ATTR32_RD_RS1_RS2_SZ26_CR   (           URST,            URST, RVANYP,  "urst"    ),
+    ATTR32_RD_RS1_RS2_SZ1       (          URSUB,           URSUB, RVANYP,  "ursub"   ),
+    ATTR32_RD_RS1_RS2_WX1       (         URSUBW,          URSUBW, RVANYP,  "ursub"   ),
+    ATTR32_RD_RS1_RS2_WX0       (           WEXT,            WEXT, RVANYP,  "wext"    ),
+    ATTR32_RD_RS1_IMM_WX0       (          WEXTI,           WEXTI, RVANYP,  "wexti"   ),
+    ATTR32_RD_RS1_PACK          (         ZUNPKD,          ZUNPKD, RVANYP,  "zunpkd"  ),
 
     // P-extension instructions (RV64 only)
-    ATTR32_RD_RS1_RS2_BT123_SZ  (            KDM,             KDM, RV64P,   "kdm"        ),
-    ATTR32_RD_RS1_RS2_BT123_SZ  (           KDMA,            KDMA, RV64P,   "kdma"       ),
-    ATTR32_RD_RS1_RS2_BT123_SZ  (            KHM,             KHM, RV64P,   "khm"        ),
-    ATTR32_RD_RS1_RS2_BT123_SZ  (            KMA,             KMA, RV64P,   "kma"        ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDA,          KMAXDA, RV64P,   "kmaxda"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (           KMDA,            KMDA, RV64P,   "kmda"       ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMXDA,           KMXDA, RV64P,   "kmxda"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMADS,           KMADS, RV64P,   "kmads"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDS,          KMAXDS, RV64P,   "kmaxds"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMADRS,          KMADRS, RV64P,   "kmadrs"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMSDA,           KMSDA, RV64P,   "kmsda"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMSXDA,          KMSXDA, RV64P,   "kmsxda"     ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (           SMDS,            SMDS, RV64P,   "smds"       ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMDRS,           SMDRS, RV64P,   "smdrs"      ),
-    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMXDS,           SMXDS, RV64P,   "smxds"      ),
-    ATTR32_RD_RS1_SSHIFT_RND_WX1(          SRAIW,            SRAI, RV64P,   "srai"       ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KDM,             KDM, RV64P,   "kdm"   ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (           KDMA,            KDMA, RV64P,   "kdma"  ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KHM,             KHM, RV64P,   "khm"   ),
+    ATTR32_RD_RS1_RS2_BT123_SZ  (            KMA,             KMA, RV64P,   "kma"   ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDA,          KMAXDA, RV64P,   "kmaxda"),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (           KMDA,            KMDA, RV64P,   "kmda"  ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMXDA,           KMXDA, RV64P,   "kmxda" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMADS,           KMADS, RV64P,   "kmads" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMAXDS,          KMAXDS, RV64P,   "kmaxds"),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMADRS,          KMADRS, RV64P,   "kmadrs"),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          KMSDA,           KMSDA, RV64P,   "kmsda" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (         KMSXDA,          KMSXDA, RV64P,   "kmsxda"),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (           SMDS,            SMDS, RV64P,   "smds"  ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMDRS,           SMDRS, RV64P,   "smdrs" ),
+    ATTR32_RD_RS1_RS2_WX0_SZ32  (          SMXDS,           SMXDS, RV64P,   "smxds" ),
+    ATTR32_RD_RS1_SSHIFT_RND_WX1(          SRAIW,            SRAI, RV64P,   "srai"  ),
 
     // Zcea instructions
     ATTR32_RD_RS1_SI_WX0_ZC     (         MULI_I,          MULI_I, RVANY,   "muli",  Zcea),
@@ -4681,18 +4692,25 @@ const static opAttrs attrsArray32[] = {
     ATTR32_DECBNEZ_ZC           (        DECBNEZ,         DECBNEZ, RVANY,   "decbnez", Zceb),
 
     // Zicbom/Zicboz instructions
-    ATTR32_CBO_CLEAN            (      CBO_CLEAN,       CBO_CLEAN, RVANY,   "cbo.clean"  ),
-    ATTR32_CBO_CLEAN            (      CBO_FLUSH,       CBO_FLUSH, RVANY,   "cbo.flush"  ),
-    ATTR32_CBO_CLEAN            (      CBO_INVAL,       CBO_INVAL, RVANY,   "cbo.inval"  ),
-    ATTR32_CBO_CLEAN            (       CBO_ZERO,        CBO_ZERO, RVANY,   "cbo.zero"   ),
+    ATTR32_CBO_CLEAN            (      CBO_CLEAN,       CBO_CLEAN, RVANY,   "cbo.clean"),
+    ATTR32_CBO_CLEAN            (      CBO_FLUSH,       CBO_FLUSH, RVANY,   "cbo.flush"),
+    ATTR32_CBO_CLEAN            (      CBO_INVAL,       CBO_INVAL, RVANY,   "cbo.inval"),
+    ATTR32_CBO_CLEAN            (       CBO_ZERO,        CBO_ZERO, RVANY,   "cbo.zero" ),
 
     // Zicbop instructions
-    ATTR32_PREFETCH             (     PREFETCH_I,             NOP, RVANY,   "prefetch.i" ),
-    ATTR32_PREFETCH             (     PREFETCH_R,             NOP, RVANY,   "prefetch.r" ),
-    ATTR32_PREFETCH             (     PREFETCH_W,             NOP, RVANY,   "prefetch.w" ),
+    ATTR32_PREFETCH             (     PREFETCH_I,             NOP, RVANY,   "prefetch.i"),
+    ATTR32_PREFETCH             (     PREFETCH_R,             NOP, RVANY,   "prefetch.r"),
+    ATTR32_PREFETCH             (     PREFETCH_W,             NOP, RVANY,   "prefetch.w"),
+
+    // Svinval instructions
+    ATTR32_FENCE_VMA            (     SINVAL_VMA,    SFENCE_VMA_R, RVANY,   "sinval.vma"     ),
+    ATTR32_NOP                  ( SFENCE_W_INVAL,    SFENCE_INVAL, RVANY,   "sfence.w.inval" ),
+    ATTR32_NOP                  (SFENCE_INVAL_IR,    SFENCE_INVAL, RVANY,   "sfence.inval.ir"),
+    ATTR32_FENCE_VMA            (    HINVAL_VVMA,   HFENCE_VVMA_R, RVANYH,  "hinval.vvma"    ),
+    ATTR32_FENCE_VMA            (    HINVAL_GVMA,   HFENCE_GVMA_R, RVANYH,  "hinval.gvma"    ),
 
     // dummy entry for undecoded instruction
-    ATTR32_LAST                 (           LAST,            LAST,          "undef"      )
+    ATTR32_LAST                 (           LAST,            LAST,          "undef")
 };
 
 //
@@ -4759,17 +4777,18 @@ typedef union decodeKey32U {
     Uns32 u32;
 
     struct {
-        riscvVectVer     vect_version     :  4;
-        riscvBitManipVer bitmanip_version :  4;
-        riscvCryptoVer   crypto_version   :  4;
-        riscvDSPVer      dsp_version      :  4;
-        Bool             K                :  1;
-        Bool             P                :  1;
-        Bool             Zceb             :  1;
-        Bool             Zicbom           :  1;
-        Bool             Zicbop           :  1;
-        Bool             Zicboz           :  1;
-        Uns32            _unused          : 10;
+        riscvVectVer     vect_version     : 4;
+        riscvBitManipVer bitmanip_version : 4;
+        riscvCryptoVer   crypto_version   : 4;
+        riscvDSPVer      dsp_version      : 4;
+        Bool             K                : 1;
+        Bool             P                : 1;
+        Bool             Zceb             : 1;
+        Bool             Zicbom           : 1;
+        Bool             Zicbop           : 1;
+        Bool             Zicboz           : 1;
+        Bool             Svinval          : 1;
+        Uns32            _unused          : 9;
     } f;
 
 } decodeKey32;
@@ -4817,7 +4836,7 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeBV091[0]);
     }
 
-    // handle bitmanip-extension-dependent table entries until/after 0.92
+    // handle bitmanip-extension-dependent table entries after 0.92
     if(key.f.bitmanip_version>RVBV_0_92) {
         insertEntries32(table, &decodeBPostV092[0]);
     }
@@ -4840,10 +4859,8 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeBV093Draft[0]);
     }
 
-    // handle bitmanip-extension-dependent table entries until/after 0.93
-    if(key.f.bitmanip_version<=RVBV_0_93) {
-        insertEntries32(table, &decodeBUntilV093[0]);
-    } else {
+    // handle bitmanip-extension-dependent table entries after 0.93
+    if(key.f.bitmanip_version>RVBV_0_93) {
         insertEntries32(table, &decodeBPostV093[0]);
     }
 
@@ -5007,6 +5024,11 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeZicboz[0]);
     }
 
+    // handle Svinval extension instructions
+    if(key.f.Svinval) {
+        insertEntries32(table, &decodeSvinval[0]);
+    }
+
     return table;
 }
 
@@ -5063,6 +5085,7 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
             Zicbom           : riscv->configInfo.Zicbom,
             Zicbop           : riscv->configInfo.Zicbop,
             Zicboz           : riscv->configInfo.Zicboz,
+            Svinval          : riscv->configInfo.Svinval,
         }
     };
 

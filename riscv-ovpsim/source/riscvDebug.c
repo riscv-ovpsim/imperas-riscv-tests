@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -587,7 +587,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
 
         // fill GPR entries
         for(i=0; i<gprNum; i++) {
-            dst->name     = riscvGetXRegName(i);
+            dst->name     = riscvGetXRegName(riscv, i);
             dst->group    = RV_GROUP(CORE);
             dst->bits     = XLEN;
             dst->gdbIndex = i;
@@ -612,7 +612,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
 
         // fill FPR entries
         for(i=0; i<fprNum; i++) {
-            dst->name     = riscvGetFRegName(i);
+            dst->name     = riscvGetFRegName(riscv, i);
             dst->group    = RV_GROUP(FP);
             dst->bits     = FLEN;
             dst->gdbIndex = i+RISCV_FPR0_INDEX;
@@ -623,7 +623,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
 
         // fill VR entries
         for(i=0; i<vrNum; i++) {
-            dst->name     = riscvGetVRegName(i);
+            dst->name     = riscvGetVRegName(riscv, i);
             dst->group    = RV_GROUP(V);
             dst->bits     = riscv->configInfo.VLEN;
             dst->gdbIndex = i+RISCV_V0_INDEX;

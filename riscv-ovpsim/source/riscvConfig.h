@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 
 // model header files
 #include "riscvCSR.h"
+#include "riscvFeatures.h"
 #include "riscvTypeRefs.h"
 #include "riscvVariant.h"
 
@@ -114,8 +115,14 @@ typedef struct riscvConfigS {
     Uns32 noinhibit_mask;               // counter no-inhibit mask
     Uns32 local_int_num;                // number of local interrupts
     Uns32 lr_sc_grain;                  // LR/SC region grain size
+#if(ENABLE_SSMPU)
+    Uns32 MPU_grain;                    // MPU region grain size
+#endif
     Uns32 PMP_grain;                    // PMP region grain size
-    Uns32 PMP_registers;                // number of implemented PMP registers
+#if(ENABLE_SSMPU)
+    Uns32 MPU_registers;                // number of implemented MPU regions
+#endif
+    Uns32 PMP_registers;                // number of implemented PMP regions
     Uns32 PMP_max_page;                 // maximum size of PMP page to map
     Uns32 Sv_modes;                     // bit mask of valid Sv modes
     Uns32 numHarts;                     // number of hart contexts if MPCore
@@ -147,13 +154,16 @@ typedef struct riscvConfigS {
     Bool  isPSE                : 1;     // whether a PSE (internal use only)
     Bool  enable_expanded      : 1;     // enable expanded instructions
     Bool  endianFixed          : 1;     // endianness is fixed (UBE/SBE/MBE r/o)
+    Bool  use_hw_reg_names     : 1;     // use hardware names for X/F registers
     Bool  ABI_d                : 1;     // ABI uses D registers for parameters
     Bool  agnostic_ones        : 1;     // when agnostic elements set to 1
     Bool  MXL_writable         : 1;     // writable bits in misa.MXL
     Bool  SXL_writable         : 1;     // writable bits in mstatus.SXL
     Bool  UXL_writable         : 1;     // writable bits in mstatus.UXL
     Bool  VSXL_writable        : 1;     // writable bits in mstatus.VSXL
+    Bool  Smstateen            : 1;     // Smstateen implemented?
     Bool  Svpbmt               : 1;     // Svpbmt implemented?
+    Bool  Svinval              : 1;     // Svinval implemented?
     Bool  Zmmul                : 1;     // Zmmul implemented?
     Bool  Zfhmin               : 1;     // Zfhmin implemented?
     Bool  Zvlsseg              : 1;     // Zvlsseg implemented?
@@ -192,11 +202,15 @@ typedef struct riscvConfigS {
     Bool  mstatus_FS_zero      : 1;     // whether mstatus.FS hardwired to zero
     Bool  trap_preserves_lr    : 1;     // whether trap preserves active LR/SC
     Bool  xret_preserves_lr    : 1;     // whether xret preserves active LR/SC
+    Bool  fence_g_preserves_vs : 1;     // whether G-stage fence preserves VS-stage
     Bool  require_vstart0      : 1;     // require vstart 0 if uninterruptible?
     Bool  align_whole          : 1;     // whole register load aligned to hint?
     Bool  vill_trap            : 1;     // trap instead of setting vill?
     Bool  enable_CSR_bus       : 1;     // enable CSR implementation bus
     Bool  mcounteren_present   : 1;     // force mcounteren to be present
+#if(ENABLE_SSMPU)
+    Bool  MPU_decompose        : 1;     // decompose unaligned MPU accesses
+#endif
     Bool  PMP_decompose        : 1;     // decompose unaligned PMP accesses
     Bool  PMP_undefined        : 1;     // force all PMP registers undefined
     Bool  external_int_id      : 1;     // enable external interrupt ID ports

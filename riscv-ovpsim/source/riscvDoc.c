@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,6 +49,22 @@ inline static riscvP getChild(riscvP riscv) {
 }
 
 //
+// Return description of Sv mode
+//
+static const char *getSvMode(Uns32 index) {
+
+    static const char *map[16] = {
+        [0]  = "bare",
+        [1]  = "Sv32",
+        [8]  = "Sv39",
+        [9]  = "Sv48",
+        [10] = "Sv57",
+    };
+
+    return map[index] ? : "unknown";
+}
+
+//
 // Fill result with description string of a single Sv mode
 //
 static void fillSvMode(char *result, Uns32 mask) {
@@ -59,7 +75,7 @@ static void fillSvMode(char *result, Uns32 mask) {
         index++;
     }
 
-    sprintf(result, "%u", index);
+    sprintf(result, "%u (%s)", index, getSvMode(index));
 }
 
 //
@@ -304,7 +320,7 @@ static riscvArchitecture getNamedSet(riscvArchitecture arch) {
 
     for(featureBit=0; featureBit<=('Z'-'A'); featureBit++) {
         riscvArchitecture feature = 1<<featureBit;
-        if((feature & arch) && riscvGetFeatureName(feature)) {
+        if((feature & arch) && riscvGetFeatureName(feature, True)) {
            result |= feature;
         }
     }
@@ -345,7 +361,7 @@ static void listFeatures(
         // report the extensions that are supported but not enabled
         if(arch & feature) {
 
-            const char *name = riscvGetFeatureName(feature);
+            const char *name = riscvGetFeatureName(feature, True);
 
             snprintf(
                 string, stringLen,
@@ -741,11 +757,6 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             );
             vmidocAddText(
                 External,
-                "\"irq_id_i\": this input should be written with the id of the "
-                "highest-priority pending interrupt."
-            );
-            vmidocAddText(
-                External,
                 "\"irq_i\": this input should be written with 1 to indicate "
                 "that the external CLIC is presenting an interrupt, or 0 if "
                 "no interrupt is being presented."
@@ -892,6 +903,37 @@ static void docCLINT(riscvP riscv, vmiDocNodeP Root) {
         );
         vmidocAddText(CLINT, string);
     }
+}
+
+//
+// Document a Boolean parameter
+//
+static vmiDocNodeP docBoolParam(
+    vmiDocNodeP  node,
+    const char  *name,
+    Bool         param,
+    const char **meanings
+) {
+    vmiDocNodeP sub = vmidocAddSection(node, name);
+    char        string[1024];
+
+    snprintf(
+        SNPRINTF_TGT(string),
+        "Parameter \"%s\" is %u on this variant, meaning that "
+        "%s. if \"%s\" is set to %u then %s.",
+        name, param, meanings[param], name, !param, meanings[!param]
+    );
+
+    vmidocAddText(sub, string);
+
+    return sub;
+}
+
+//
+// Does configuration indicate that 64-bit S-mode is present?
+//
+inline static Bool cfgHas64S(riscvConfigCP cfg) {
+    return (cfg->arch&ISA_S) && (cfg->arch&ISA_XLEN_64);
 }
 
 //
@@ -1341,27 +1383,30 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             }
         }
 
-        // document ASID size
+        // document address translation
         if(cfg->arch&ISA_S) {
 
-            vmiDocNodeP sub = vmidocAddSection(Features, "ASID");
+            vmiDocNodeP sub = vmidocAddSection(Features, "Virtual Memory");
             char        svModes[256];
+
+            fillSvModes(svModes, cfg->Sv_modes);
+            snprintf(
+                SNPRINTF_TGT(string),
+                "This variant supports address translation %s. Use parameter "
+                "\"Sv_modes\" to specify a bit mask of different implemented "
+                "modes if required; for example, setting \"Sv_modes\" to "
+                "(1<<0)+(1<<8) indicates that mode 0 (%s) and mode 8 (%s) are "
+                "implemented. These indices correspond to writable values in "
+                "the satp.MODE CSR field.",
+                svModes, getSvMode(0), getSvMode(8)
+            );
+            vmidocAddText(sub, string);
 
             snprintf(
                 SNPRINTF_TGT(string),
                 "A %u-bit ASID is implemented. Use parameter \"ASID_bits\" to "
                 "specify a different implemented ASID size if required.",
                 cfg->ASID_bits
-            );
-            vmidocAddText(sub, string);
-
-            fillSvModes(svModes, cfg->Sv_modes);
-            snprintf(
-                SNPRINTF_TGT(string),
-                "This variant supports address translation %s. Use parameter "
-                "\"Sv_modes\" to specify a bit mask of different modes if "
-                "required.",
-                svModes
             );
             vmidocAddText(sub, string);
 
@@ -1377,7 +1422,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "If the model detects that the TLB entry cache is too small "
                 "(entry ejections are very frequent), it will increase the "
                 "cache size automatically. In this variant, \"ASIDCacheSize\" "
-                "is %u",
+                "is %u.",
                 cfg->ASID_cache_size
             );
             vmidocAddText(sub, string);
@@ -1484,35 +1529,6 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(sub, string);
         }
-
-        // document Zicsr
-        {
-            vmiDocNodeP sub = vmidocAddSection(Features, "Zicsr");
-
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Parameter \"Zicsr\" is %u on this variant, meaning that "
-                "standard CSRs and CSR access instructions are %simplemented. "
-                "If CSRs are not implemented, an alternative scheme must "
-                "be provided as a processor extension.",
-                !cfg->noZicsr, cfg->noZicsr ? "not " : ""
-            );
-            vmidocAddText(sub, string);
-        }
-
-        // document Zifencei
-        {
-            vmiDocNodeP sub = vmidocAddSection(Features, "Zifencei");
-
-            snprintf(
-                SNPRINTF_TGT(string),
-                "Parameter \"Zifencei\" is %u on this variant, meaning that "
-                "the fence.i instruction is %simplemented. If implemented, "
-                "this instruction is treated as a NOP by the model.",
-                !cfg->noZifencei, cfg->noZifencei ? "not " : ""
-            );
-            vmidocAddText(sub, string);
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1607,8 +1623,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 SNPRINTF_TGT(string),
                 "%s is implemented, meaning that all floating point operations "
                 "that would normally use the floating point register file use "
-                "the integer register file instead. This feature is currently "
-                "being defined and subject to change.",
+                "the integer register file instead.",
                 riscvGetZfinxVersionDesc(riscv)
             );
             vmidocAddText(Features, string);
@@ -1668,6 +1683,34 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 riscvGetFSModeName(riscv)
             );
             vmidocAddText(Features, string);
+        }
+
+        // document Zfhmin
+        if(riscv->configInfo.fp16_version && (cfg->arch&ISA_DF)) {
+
+            Bool param = cfg->Zfhmin;
+
+            static const char *meanings[] = {
+                "all half-precision operations are supported",
+                "a minimal set of half-precision operations are supported",
+            };
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"Zfhmin\" is %u on this variant, meaning that "
+                "%s. if \"Zfhmin\" is set to %u then %s.",
+                param, meanings[param], !param, meanings[!param]
+            );
+            vmidocAddText(Features, string);
+
+            vmidocAddText(
+                Features,
+                "For Zhinx, specify both \"Zfh\" and \"Zfinx_version\"."
+            );
+            vmidocAddText(
+                Features,
+                "For Zhinxmin, specify both \"Zfhmin\" and \"Zfinx_version\"."
+            );
         }
     }
 
@@ -2021,6 +2064,10 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- instructions named *u.w renamed to *.uw;"
+            );
+            vmidocAddText(
+                Version,
+                "- instruction add.uw zero-extends argument rs1, not rs2;"
             );
             vmidocAddText(
                 Version,
@@ -3082,19 +3129,18 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // VECTOR EXTENSION VERSION master
+        // VECTOR EXTENSION VERSION 1.0
         ////////////////////////////////////////////////////////////////////////
 
         {
             vmiDocNodeP Version = vmidocAddSection(
-                Vector, "Version master"
+                Vector, "Version 1.0"
             );
 
             vmidocAddText(
                 Version,
-                "Unstable master version as of "RVVV_MASTER_DATE" (commit "
-                RVVV_MASTER_TAG") with these changes compared to version "
-                "1.0-rc1-20210608:"
+                "Stable 1.0 official release (commit 8af318f), with these "
+                "changes compared to version 1.0-rc1-20210608:"
             );
             vmidocAddText(
                 Version,
@@ -3107,6 +3153,27 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- instruction vmornot.mm renamed vmorn.mm."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR EXTENSION VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                Vector, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVVV_MASTER_DATE" (commit "
+                RVVV_MASTER_TAG"), with these changes compared to version 1.0:"
+            );
+            vmidocAddText(
+                Version,
+                "- instruction encodings are reserved if the same vector "
+                " register would be read with two or more different EEWs."
             );
         }
     }
@@ -3228,6 +3295,200 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "URSTAS16, UKSTAS16, STSA16, RSTSA16, KSTSA16, URSTSA16, "
                 "UKSTSA16, STAS32, RSTAS32, KSTAS32, URSTAS32, UKSTAS32, "
                 "STSA32, RSTSA32, KSTSA32, URSTSA32 and UKSTSA32."
+            );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    // OTHER EXTENSIONS
+    ////////////////////////////////////////////////////////////////////////
+
+    {
+        vmiDocNodeP extP = vmidocAddSection(Root, "Other Extensions");
+
+        vmidocAddText(
+            extP,
+            "Other extensions that can be configured are described in this "
+            "section."
+        );
+
+        // document Zmmul
+        if(cfg->arch&ISA_M) {
+
+            static const char *meanings[] = {
+                "all multiply and divide instructions are implemented",
+                "multiply instructions are implemented but divide and "
+                "remainder instructions are not implemented"
+            };
+
+            docBoolParam(extP, "Zmmul", cfg->Zmmul, meanings);
+        }
+
+        // document Zicsr
+        {
+            static const char *meanings[] = {
+                "standard CSRs and CSR access instructions are not implemented "
+                "and an alternative scheme must be provided as a processor "
+                "extension",
+                "standard CSRs and CSR access instructions are implemented"
+            };
+
+            docBoolParam(extP, "Zicsr", !cfg->noZicsr, meanings);
+        }
+
+        // document Zifencei
+        {
+            static const char *meanings[] = {
+                "the fence.i instruction is not implemented",
+                "the fence.i instruction is implemented (but treated as a NOP "
+                "by the model)"
+            };
+
+            docBoolParam(extP, "Zifencei", !cfg->noZifencei, meanings);
+        }
+
+        // document Zicbom
+        {
+            static const char *meanings[] = {
+                "code block management instructions are undefined",
+                "code block management instructions cbo.clean, cbo.flush and "
+                "cbo.inval are defined",
+            };
+
+            vmiDocNodeP sub = docBoolParam(extP, "Zicbom", cfg->Zicbom, meanings);
+
+            vmidocAddText(
+                sub,
+                "If Zicbom is present, the cache block size is given by "
+                "parameter \"cmomp_bytes\". The instructions may cause traps "
+                "if used illegally but otherwise are NOPs in this model."
+            );
+        }
+
+        // document Zicbop
+        {
+            static const char *meanings[] = {
+                "prefetch instructions are undefined",
+                "prefetch instructions prefetch.i, prefetch.r and prefetch.w "
+                "are defined (but behave as NOPs in this model)",
+            };
+
+            docBoolParam(extP, "Zicbop", cfg->Zicbop, meanings);
+        }
+
+        // document Zicboz
+        {
+            static const char *meanings[] = {
+                "the cbo.zero instruction is undefined",
+                "the cbo.zero instruction is defined",
+            };
+
+            vmiDocNodeP sub = docBoolParam(extP, "Zicboz", cfg->Zicboz, meanings);
+
+            vmidocAddText(
+                sub,
+                "If Zicboz is present, the cache block size is given by "
+                "parameter \"cmoz_bytes\"."
+            );
+        }
+
+        // document Svnapot
+        if(cfgHas64S(cfg)) {
+
+            static const char *meanings[] = {
+                "NAPOT Translation Contiguity is not implemented",
+                "NAPOT Translation Contiguity is enabled for page sizes "
+                "indicated by that mask value when page table entry bit 63 is "
+                "set",
+            };
+            static const char *zNonZ[] = {"zero", "non-zero"};
+
+            const char *name  = "Svnapot";
+            Uns64       param = cfg->Svnapot_page_mask;
+            Bool        nonZ  = param;
+            vmiDocNodeP sub   = vmidocAddSection(extP, name);
+            char        string[1024];
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"Svnapot_page_mask\" is 0x"FMT_Ax" on this "
+                "variant, meaning that %s. if \"Svnapot_page_mask\" is %s then "
+                "%s.",
+                param, meanings[nonZ], zNonZ[!nonZ], meanings[!nonZ]
+            );
+
+            vmidocAddText(sub, string);
+
+            vmidocAddText(
+                sub,
+                "If Svnapot is present, \"Svnapot_page_mask\" is a mask of "
+                "page sizes for which contiguous pages can be created. For "
+                "example, a value of 0x10000 implies that 64KiB contiguous "
+                "pages are supported."
+            );
+        }
+
+        // document Svpbmt
+        if(cfgHas64S(cfg)) {
+
+            static const char *meanings[] = {
+                "page-based memory types are not implemented",
+                "page-based memory types are indicated by page table entry "
+                "bits 62:61",
+            };
+
+            vmiDocNodeP sub = docBoolParam(extP, "Svpbmt", cfg->Svpbmt, meanings);
+
+            vmidocAddText(
+                sub,
+                "Note that except for their effect on Page Faults, the encoded "
+                "memory types do not alter the behavior of this model, which "
+                "always implements strongly-ordered non-cacheable semantics."
+            );
+        }
+
+        // document Svinval
+        if(cfgHas64S(cfg)) {
+
+            static const char *meaningsS[] = {
+                "fine-grained address-translation cache invalidation "
+                "instructions are not implemented",
+                "fine-grained address-translation cache invalidation "
+                "instructions sinval.vma, sfence.w.inval and sfence.inval.ir "
+                "are implemented",
+            };
+
+            static const char *meaningsH[] = {
+                "fine-grained address-translation cache invalidation "
+                "instructions are not implemented",
+                "fine-grained address-translation cache invalidation "
+                "instructions sinval.vma, sfence.w.inval, sfence.inval.ir, "
+                "hinval.vvma and hinval.gvma are implemented",
+            };
+
+            docBoolParam(
+                extP, "Svinval", cfg->Svinval,
+                cfg->arch&ISA_H ? meaningsH : meaningsS
+            );
+        }
+
+        // document Smstateen
+        {
+            static const char *meanings[] = {
+                "state enable CSRs are undefined",
+                "state enable CSRs are defined",
+            };
+
+            vmiDocNodeP sub = docBoolParam(
+                extP, "Smstateen", cfg->Smstateen, meanings
+            );
+
+            vmidocAddText(
+                sub,
+                "Within the state enable CSRs, only bit 1 (for Zfinx), bit 57 "
+                "(for xcontext CSR access), bit 62 (for xenvcfg CSR access) "
+                "and bit 63 (for lower-level state enable CSR access) are "
+                "currently implemented."
             );
         }
     }
@@ -4183,7 +4444,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(References, string);
         }
 
-        if(cfg->debug_mode) {
+        if(cfg->debug_mode || cfg->trigger_num) {
             snprintf(
                 SNPRINTF_TGT(string),
                 "RISC-V External Debug Support (%s)",

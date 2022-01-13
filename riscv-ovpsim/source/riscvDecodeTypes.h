@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -713,6 +713,9 @@ typedef enum riscvITypeE {
     RV_IT_CBO_FLUSH,
     RV_IT_CBO_INVAL,
     RV_IT_CBO_ZERO,
+
+    // Svinval instructions
+    RV_IT_SFENCE_INVAL,
 
     // KEEP LAST
     RV_IT_LAST

@@ -23,11 +23,11 @@ Architectural Test Suite Data for RV64ZMMUL Zmmul Integer Multiplication:
     10,334 total instructions
 
 Instruction category: arithmetic 
-  mul : 274
   mulh : 274
-  mulw : 274
+  mul : 274
   mulhu : 274
   mulhsu : 274
+  mulw : 274
 
 Other instructions (those not the focus of this suite)
   jal : 5
