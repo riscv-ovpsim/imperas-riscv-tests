@@ -30,15 +30,15 @@ Instruction category: OPB_LWNE Logic With Negate
   xnor : 274
 Instruction category: OPB_PACK Packing
   packh : 274
-  pack : 274
   packw : 274
+  pack : 274
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rori : 274
-  rol : 274
   ror : 274
-  roriw : 274
+  rori : 274
   rolw : 274
+  roriw : 274
+  rol : 274
   rorw : 274
 
 Other instructions (those not the focus of this suite)

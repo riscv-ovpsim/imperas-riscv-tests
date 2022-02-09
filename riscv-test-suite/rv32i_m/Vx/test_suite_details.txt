@@ -76,8 +76,8 @@ Other instructions (those not the focus of this suite)
   fence : 348
   ecall : 348
   beq : 1,044
-  vle32.v : 8,853
-  vse32.v : 2,626
   vle16.v : 8,853
   vse16.v : 3,046
+  vle32.v : 8,853
+  vse32.v : 2,626
 

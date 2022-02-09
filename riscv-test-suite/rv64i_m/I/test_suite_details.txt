@@ -41,8 +41,8 @@ Instruction category: logical
 Instruction category: branch 
   beq : 457
   bltu : 277
-  blt : 308
   bge : 277
+  blt : 308
   bne : 277
   bgeu : 277
 Instruction category: OPI_IMN 
@@ -54,35 +54,35 @@ Instruction category: jump
   jal : 1,128
   jalr : 283
 Instruction category: load 
-  lb : 275
   lw : 280
+  lb : 275
   lh : 279
-  lbu : 280
   lhu : 280
+  lbu : 280
   ld : 1,379
   lwu : 274
 Instruction category: store 
   sd : 13,776
-  sh : 278
   sb : 274
+  sh : 278
   sw : 462
 Instruction category: shift 
   slli : 13,571
-  srai : 275
   srli : 275
+  srai : 275
   sll : 275
   srl : 275
   sra : 275
   slliw : 274
   srliw : 274
+  sllw : 274
   sraw : 274
   srlw : 274
   sraiw : 274
-  sllw : 274
 Instruction category: compare 
-  sltiu : 275
-  sltu : 275
   slti : 275
+  sltu : 275
+  sltiu : 275
   slt : 275
 
 Other instructions (those not the focus of this suite)

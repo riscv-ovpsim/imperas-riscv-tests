@@ -71,9 +71,9 @@ Instruction category: OPV_FPMO floating-point move
   vfmv.v.f : 224
 Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.f.f.w : 70
-  vfncvt.rod.f.f.w : 70
   vfncvt.f.x.w : 70
   vfncvt.f.xu.w : 70
+  vfncvt.rod.f.f.w : 70
   vfncvt.x.f.w : 70
   vfncvt.rtz.x.f.w : 70
   vfncvt.xu.f.w : 70
@@ -105,17 +105,17 @@ Instruction category: OPV_WFITC widening floating-point/integer type-convert
   vfwcvt.f.xu.v : 70
   vfwcvt.x.f.v : 70
   vfwcvt.rtz.x.f.v : 70
-  vfwcvt.xu.f.v : 70
   vfwcvt.rtz.xu.f.v : 70
+  vfwcvt.xu.f.v : 70
 Instruction category: OPV_WFFMA widening floating-point fused multiply-add
-  vfwmacc.vf : 70
   vfwmacc.vv : 70
+  vfwmacc.vf : 70
   vfwmsac.vf : 70
   vfwmsac.vv : 70
   vfwnmacc.vf : 70
+  vfwnmacc.vv : 70
   vfwnmsac.vf : 70
   vfwnmsac.vv : 70
-  vfwnmacc.vv : 70
 Instruction category: OPV_WFM widening floating-point multiply
   vfwmul.vf : 70
   vfwmul.vv : 70

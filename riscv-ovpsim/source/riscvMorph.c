@@ -7809,7 +7809,8 @@ static void widenOperands(riscvMorphStateP state, iterDescP id) {
 
         for(i=1; i<RV_MAX_AREGS; i++) {
 
-            riscvSEWMt EEW = getEEW(id, i);
+            riscvSEWMt EEW  = getEEW(id, i);
+            Uns32      XLEN = riscvGetXlenMode(state->riscv);
 
             // detect arguments requiring extension
             if((EEW<id->SEW) && !(forceEEW(id, i) || isMaskN(vShape, i))) {
@@ -7839,7 +7840,17 @@ static void widenOperands(riscvMorphStateP state, iterDescP id) {
                     );
                 }
 
-                // use extended temporary as source or destination
+                // use extended temporary as source
+                id->r[i] = tmpA;
+
+            } else if(isXReg(getRVReg(state, i)) && (EEW>XLEN)) {
+
+                vmiReg tmpA = newTmp(state);
+
+                // sign-extend to temporary
+                vmimtMoveExtendRR(EEW, tmpA, XLEN, id->r[i], True);
+
+                // use extended temporary as source
                 id->r[i] = tmpA;
             }
         }

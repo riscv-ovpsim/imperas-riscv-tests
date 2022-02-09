@@ -904,6 +904,11 @@ void riscvTakeException(
         Uns32 ecode = getExceptionCode(exception);
         Bool  inhv  = riscv->inhv;
 
+        // force trap value to zero if required
+        if(riscv->configInfo.tval_zero) {
+            tval = 0;
+        }
+
         // set trap context information
         trapCxt cxt = {
             handlerPC : 0,
@@ -968,11 +973,6 @@ void riscvTakeException(
             cxt.level = riscv->pendEnab.level;
         } else if(cxt.modeX != cxt.modeY) {
             cxt.level = 0;
-        }
-
-        // force trap value to zero if required
-        if(riscv->configInfo.tval_zero) {
-            tval = 0;
         }
 
         // notify derived model of exception entry if required
@@ -4146,8 +4146,8 @@ static riscvNetPortPP addGuestExternaIInterruptNetPorts(
     for(i=1; i<=guestExternalIntNum; i++) {
 
         // construct name and description
-        char name[32];
-        char desc[32];
+        char name[64];
+        char desc[64];
         sprintf(name, "GuestExternalInterrupt%u", i);
         sprintf(desc, "Guest external interrupt %u", i);
 

@@ -11,8 +11,11 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
-Date 2022-January-12
-Release 20220111.0
+- When the vector extension is implemented and XLEN<SEW, values from X registers
+  are now sign-extended (previously, they were zero-extended).
+
+Date 2022-January-13
+Release 20220112.0
 ===
 
 - New privileged version 20211203 has been introduced and is used by default in

@@ -181,14 +181,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 4,206
   mret : 1,402
   vsetvli : 123,773
-  vle8.v : 28,670
+  vle16.v : 36,265
   add : 140,872
-  vse8.v : 10,406
+  vse16.v : 12,576
   fence : 1,402
   ecall : 1,402
   beq : 4,206
-  vle16.v : 36,265
-  vse16.v : 12,576
+  vle8.v : 28,670
+  vse8.v : 10,406
   vle32.v : 36,465
   vse32.v : 12,236
 

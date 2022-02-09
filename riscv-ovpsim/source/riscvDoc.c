@@ -88,7 +88,7 @@ static void fillSvModes(char *result, Uns32 Sv_modes) {
 
     while((mask = (Sv_modes & -Sv_modes))) {
 
-        char SvMode[8];
+        char SvMode[16];
 
         Sv_modes &= ~mask;
 

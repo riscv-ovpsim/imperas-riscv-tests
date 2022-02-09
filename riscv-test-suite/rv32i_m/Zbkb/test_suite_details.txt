@@ -33,9 +33,9 @@ Instruction category: OPB_PACK Packing
   packh : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 146
-  rori : 146
   rol : 146
+  rori : 146
+  ror : 146
 
 Other instructions (those not the focus of this suite)
   jal : 11
@@ -45,11 +45,11 @@ Other instructions (those not the focus of this suite)
   auipc : 385
   csrrw : 22
   mret : 11
-  grevi : 146
   sw : 1,606
   fence : 11
   ecall : 11
   beq : 33
-  unshfli : 146
+  grevi : 146
   shfli : 146
+  unshfli : 146
 
