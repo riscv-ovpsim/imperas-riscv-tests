@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -24,18 +24,18 @@ Architectural Test Suite Data for RV64M M Integer Multiplication and Division:
 
 Instruction category: arithmetic 
   mulh : 274
-  div : 274
-  divu : 274
-  mulw : 274
-  mul : 274
-  remw : 274
-  rem : 274
-  remuw : 274
   mulhu : 274
-  mulhsu : 274
+  mul : 274
+  div : 274
+  rem : 274
   divw : 274
-  remu : 274
+  mulw : 274
+  remuw : 274
+  divu : 274
   divuw : 274
+  remw : 274
+  mulhsu : 274
+  remu : 274
 
 Other instructions (those not the focus of this suite)
   jal : 13

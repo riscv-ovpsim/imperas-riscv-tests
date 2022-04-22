@@ -25,30 +25,30 @@ Architectural Test Suite Data for RV64ZKS K Crypto/Scalar:
     42,126 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 274
   orn : 274
+  andn : 274
   xnor : 274
 Instruction category: OPB_CLML Carry-less Multiply
   clmul : 274
   clmulh : 274
 Instruction category: OPB_PACK Packing
-  pack : 274
   packh : 274
+  pack : 274
   packw : 274
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
+  rol : 274
   ror : 274
   rori : 274
-  rol : 274
   rolw : 274
-  roriw : 274
   rorw : 274
+  roriw : 274
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p0 : 274
   sm3p1 : 274
+  sm3p0 : 274
 Instruction category: OPK_Zkse 
-  sm4ed : 530
   sm4ks : 530
+  sm4ed : 530
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
@@ -62,14 +62,14 @@ Other instructions (those not the focus of this suite)
   mret : 21
   lui : 3,907
   slli : 7,554
-  c-slli : 510
   sd : 5,508
-  c-li : 135
   c-sdsp : 210
-  c-addiw : 114
-  c-addi : 198
   fence : 21
   ecall : 21
+  c-li : 135
   beq : 63
+  c-slli : 510
+  c-addiw : 114
+  c-addi : 198
   grevi : 274
 

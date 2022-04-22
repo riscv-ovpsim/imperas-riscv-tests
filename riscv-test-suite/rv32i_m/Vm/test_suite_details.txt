@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -26,14 +26,17 @@ Instruction category: OPV_MASK mask
   vfirst.m : 303
   viota.m : 303
   vmand.mm : 336
+  vmandn.mm : 336
   vmnand.mm : 336
   vmnor.mm : 336
   vmor.mm : 336
+  vmorn.mm : 336
   vmxnor.mm : 336
   vmxor.mm : 336
   vmsbf.m : 303
   vmsif.m : 303
   vmsof.m : 303
+  vcpop.m : 303
 Instruction category: OPV_INDXEX index
   vid.v : 303
 
@@ -58,7 +61,4 @@ Other instructions (those not the focus of this suite)
   vse16.v : 1,401
   vse32.v : 1,401
   lw : 21,504
-  vmandnot.mm : 336
-  vmornot.mm : 336
-  vpopc.m : 303
 

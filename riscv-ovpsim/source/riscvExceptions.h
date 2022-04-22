@@ -229,6 +229,11 @@ void riscvUpdatePending(riscvP riscv);
 void riscvRefreshPendingAndEnabled(riscvP riscv);
 
 //
+// Are there pending and enabled interupts?
+//
+Bool riscvPendingAndEnabled(riscvP riscv);
+
+//
 // Check for pending interrupts
 //
 void riscvTestInterrupt(riscvP riscv);

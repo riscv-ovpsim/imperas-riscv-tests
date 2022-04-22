@@ -1,7 +1,7 @@
 // RISC-V Compliance IO Test Header File
 
 /*
- * Copyright (c) 2005-2018 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -271,7 +271,7 @@ reset_vector:                                                           \
 20005:
 
 // _SP = (volatile register)
-#define LOCAL_IO_WRITE_STR(_STR) RVMODEL_IO_WRITE_STR(x31, _STR)
+#define LOCAL_IO_WRITE_STR(_STR) RVMODEL_IO_WRITE_STR(x15, _STR)
 #define RVMODEL_IO_WRITE_STR(_SP, _STR)                                 \
     LOCAL_IO_PUSH(_SP)                                                  \
     .section .data.string;                                              \

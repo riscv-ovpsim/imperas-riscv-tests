@@ -110,6 +110,7 @@
 #define FMT_R1_SIMM_TGT         EMIT_R1_S "," EMIT_CS_S "," EMIT_TGT_S
 #define FMT_TGT                 EMIT_TGT_S
 #define FMT_PRED_SUCC           EMIT_PRED_S "," EMIT_SUCC_S
+#define FMT_RLIST_SIMM          EMIT_RLIST_S "," EMIT_CS_S
 #define FMT_RLIST_RETVAL_SIMM   EMIT_RLIST_S "," EMIT_RETVAL_S "," EMIT_CS_S
 #define FMT_RLIST_ALIST_SIMM    EMIT_RLIST_S "," EMIT_ALIST_S "," EMIT_CS_S
 

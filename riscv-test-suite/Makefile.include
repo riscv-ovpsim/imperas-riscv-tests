@@ -5,8 +5,9 @@
 comma   := ,
 act_dir := .
 src_dir := $(act_dir)/src
+RISCV_MODE ?= m
 work_dir := $(WORK)
-work_dir_isa := $(work_dir)/rv$(XLEN)${RISCV_BASE}_m/$(RISCV_DEVICE)
+work_dir_isa := $(work_dir)/rv$(XLEN)${RISCV_BASE}_$(RISCV_MODE)/$(RISCV_DEVICE)
 
 include $(act_dir)/Makefrag
 ifneq ($(RISCV_TEST),)
@@ -21,7 +22,7 @@ default: all
 
 vpath %.S $(act_dir)
 
-INCLUDE=$(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)${RISCV_BASE}_m/$(RISCV_DEVICE)/Makefile.include
+INCLUDE=$(TARGETDIR)/$(RISCV_TARGET)/device/rv$(XLEN)${RISCV_BASE}_$(RISCV_MODE)/$(RISCV_DEVICE)/Makefile.include
 ifeq ($(wildcard $(INCLUDE)),)
     $(error Cannot find '$(INCLUDE)`. Check that RISCV_TARGET and RISCV_DEVICE are set correctly.)
 endif

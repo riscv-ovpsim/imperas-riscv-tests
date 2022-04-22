@@ -2102,11 +2102,152 @@ inline static void writeUnpackedSize(unpackedReg rd, Uns32 srcBits) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Return given constraint with unaligned requirement stripped
+//
+inline static memConstraint stripAlign(memConstraint constraint) {
+    return constraint & ~MEM_CONSTRAINT_ALIGNED;
+}
+
+//
+// Should action be taken to handle the case when alignment exceptions are lower
+// priority than page fault or access fault exceptions?
+//
+inline static Bool alignIsLowPriority(
+    riscvP        riscv,
+    Uns32         bits,
+    memConstraint constraint
+) {
+    return (
+        riscv->configInfo.unaligned_low_pri &&
+        (bits>8) &&
+        (constraint&MEM_CONSTRAINT_ALIGNED)
+    );
+}
+
+//
 // Set address bits for a load/store operation (has effect when running with
 // XLEN=32 on a system also implementing XLEN=64)
 //
 static void setAddressMaskMT(riscvP riscv) {
     vmimtSetAddressMask(getAddressMask(riscvGetXlenMode(riscv)));
+}
+
+//
+// Emit unaligned try-load to raise priority of page fault and access exceptions
+// above subsequent alignment exception if required
+//
+static void emitLowPriorityAlignTryLoad(
+    riscvP        riscv,
+    memDomainP    domain,
+    Uns32         bits,
+    Addr          offset,
+    vmiReg        ra,
+    memConstraint constraint
+) {
+    if(alignIsLowPriority(riscv, bits, constraint)) {
+        setAddressMaskMT(riscv);
+        vmimtTryLoadRCDomain(domain, bits, offset, ra, stripAlign(constraint));
+    }
+}
+
+//
+// Emit unaligned try-store to raise priority of page fault and access exceptions
+// above subsequent alignment exception if required
+//
+static void emitLowPriorityAlignTryStore(
+    riscvP        riscv,
+    memDomainP    domain,
+    Uns32         bits,
+    Addr          offset,
+    vmiReg        ra,
+    memConstraint constraint
+) {
+    if(alignIsLowPriority(riscv, bits, constraint)) {
+        setAddressMaskMT(riscv);
+        vmimtTryStoreRCDomain(domain, bits, offset, ra, stripAlign(constraint));
+    }
+}
+
+//
+// Wrapper for vmimtTryLoadRC, handling alignment constraints
+//
+static void emitTryLoadRC(
+    riscvP        riscv,
+    Uns32         bits,
+    Addr          offset,
+    vmiReg        ra,
+    memConstraint constraint
+) {
+    // do high priority unaligned access if required
+    emitLowPriorityAlignTryLoad(riscv, 0, bits, offset, ra, constraint);
+
+    // do true access
+    setAddressMaskMT(riscv);
+    vmimtTryLoadRC(bits, offset, ra, constraint);
+}
+
+//
+// Wrapper for vmimtTryStoreRC, handling alignment constraints
+//
+static void emitTryStoreRC(
+    riscvP        riscv,
+    Uns32         bits,
+    Addr          offset,
+    vmiReg        ra,
+    memConstraint constraint
+) {
+    // do high priority unaligned access if required
+    emitLowPriorityAlignTryStore(riscv, 0, bits, offset, ra, constraint);
+
+    // do true access
+    setAddressMaskMT(riscv);
+    vmimtTryStoreRC(bits, offset, ra, constraint);
+}
+
+//
+// Wrapper for vmimtLoadRRODomain, handling alignment constraints
+//
+static void emitLoadRRODomain(
+    riscvP        riscv,
+    memDomainP    domain,
+    Uns32         destBits,
+    Uns32         memBits,
+    Addr          offset,
+    vmiReg        rd,
+    vmiReg        ra,
+    memEndian     endian,
+    Bool          signExtend,
+    memConstraint constraint
+) {
+    // do high priority unaligned access if required
+    emitLowPriorityAlignTryLoad(riscv, domain, memBits, offset, ra, constraint);
+
+    // do true access
+    setAddressMaskMT(riscv);
+    vmimtLoadRRODomain(
+        domain, destBits, memBits, offset, rd, ra, endian, signExtend, constraint
+    );
+}
+
+//
+// Wrapper for vmimtStoreRRODomain, handling alignment constraints
+//
+static void emitStoreRRODomain(
+    riscvP        riscv,
+    memDomainP    domain,
+    Uns32         bits,
+    Addr          offset,
+    vmiReg        ra,
+    vmiReg        rb,
+    memEndian     endian,
+    memConstraint constraint
+) {
+    // do high priority unaligned access if required
+    emitLowPriorityAlignTryStore(riscv, domain, bits, offset, ra, constraint);
+
+    // do true access
+    setAddressMaskMT(riscv);
+    vmimtStoreRRODomain(domain, bits, offset, ra, rb, endian, constraint);
 }
 
 //
@@ -2348,8 +2489,7 @@ void riscvEmitLoad(
     // if a transactional domain access, perform try-load in current data
     // domain (to update VM and PMP structures and generate access exceptions)
     if(inTransactionMode(riscv)) {
-        setAddressMaskMT(riscv);
-        vmimtTryLoadRC(memBits, offset, ra, constraint);
+        emitTryLoadRC(riscv, memBits, offset, ra, constraint);
     }
 
     // load result into temporary if load value trigger is active
@@ -2358,9 +2498,9 @@ void riscvEmitLoad(
     }
 
     // emit code to perform load
-    setAddressMaskMT(riscv);
-    vmimtLoadRRODomain(
-        domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend, constraint
+    emitLoadRRODomain(
+        riscv, domain, rdBits, memBits, offset, rdTmp, ra, endian, sExtend,
+        constraint
     );
 
     // invoke load value trigger if required
@@ -2409,14 +2549,12 @@ void riscvEmitStore(
     // if a transactional domain access, perform try-store in current data
     // domain (to update VM and PMP structures and generate access exceptions)
     if(inTransactionMode(riscv)) {
-        setAddressMaskMT(riscv);
-        vmimtTryStoreRC(memBits, offset, ra, constraint);
+        emitTryStoreRC(riscv, memBits, offset, ra, constraint);
     }
 
     // emit code to perform store
-    setAddressMaskMT(riscv);
-    vmimtStoreRRODomain(
-        domain, memBits, offset, ra, rs, endian, constraint
+    emitStoreRRODomain(
+        riscv, domain, memBits, offset, ra, rs, endian, constraint
     );
 
     // indicate end of HLV/HLVX/HSV if required
@@ -2514,8 +2652,7 @@ static void emitTryStoreCommon(
     Uns64  offset  = state->info.c;
 
     // generate Store/AMO exception in preference to Load exception
-    setAddressMaskMT(riscv);
-    vmimtTryStoreRC(memBits, offset, ra, constraint);
+    emitTryStoreRC(riscv, memBits, offset, ra, constraint);
 }
 
 
@@ -3426,8 +3563,7 @@ static void emitValidateSCAccess(riscvMorphStateP state, vmiReg ra) {
     memConstraint constraint = getLoadStoreConstraintLR(state);
 
     if(constraint) {
-        setAddressMaskMT(riscv);
-        vmimtTryStoreRC(state->info.memBits, 0, ra, constraint);
+        emitTryStoreRC(riscv, state->info.memBits, 0, ra, constraint);
     }
 }
 
@@ -4921,8 +5057,8 @@ static const Uns8 rsqrt_lut[] = {
 static VMI_FP_16_RESULT_FN(doFRsqrtE7_16) {
 
     Bool  sign = args[0].f16Parts.sign;
-    Uns16 exp  = args[0].f16Parts.exponent;
-    Uns16 sig  = args[0].f16Parts.fraction;
+    Uns64 exp  = args[0].f16Parts.exponent;
+    Uns64 sig  = args[0].f16Parts.fraction;
 
     if(!sign && isInf16(args[0].u16)) {
 
@@ -4968,8 +5104,8 @@ static VMI_FP_16_RESULT_FN(doFRsqrtE7_16) {
     #define E (16-S-1)          // exponent bits
     #define B ((1<<(E-1))-1)    // exponent bias
 
-    Uns16 out_sig = rsqrt_lut[RSQRT_LUT_INDEX(sig, exp, S, P)] << (S-P);
-    Uns16 out_exp = (3 * B + ~exp) / 2;
+    Uns64 out_sig = rsqrt_lut[RSQRT_LUT_INDEX(sig, exp, S, P)] << (S-P);
+    Uns64 out_exp = (3 * B + ~exp) / 2;
 
     return (out_exp << S) | out_sig;
 
@@ -4985,8 +5121,8 @@ static VMI_FP_16_RESULT_FN(doFRsqrtE7_16) {
 static VMI_FP_32_RESULT_FN(doFRsqrtE7_32) {
 
     Bool  sign = args[0].f32Parts.sign;
-    Uns32 exp  = args[0].f32Parts.exponent;
-    Uns32 sig  = args[0].f32Parts.fraction;
+    Uns64 exp  = args[0].f32Parts.exponent;
+    Uns64 sig  = args[0].f32Parts.fraction;
 
     if(!sign && isInf32(args[0].u32)) {
 
@@ -5032,8 +5168,8 @@ static VMI_FP_32_RESULT_FN(doFRsqrtE7_32) {
     #define E (32-S-1)          // exponent bits
     #define B ((1<<(E-1))-1)    // exponent bias
 
-    Uns32 out_sig = rsqrt_lut[RSQRT_LUT_INDEX(sig, exp, S, P)] << (S-P);
-    Uns32 out_exp = (3 * B + ~exp) / 2;
+    Uns64 out_sig = rsqrt_lut[RSQRT_LUT_INDEX(sig, exp, S, P)] << (S-P);
+    Uns64 out_exp = (3 * B + ~exp) / 2;
 
     return (out_exp << S) | out_sig;
 
@@ -6230,7 +6366,7 @@ static RISCV_MORPH_FN(emitMVP) {
 //
 // Do table jump target fetch (XLEN=32)
 //
-static Uns32 doTBLJFetch32(vmiProcessorP processor, Uns32 va) {
+static Uns32 doJTFetch32(vmiProcessorP processor, Uns32 va) {
 
     memDomainP     domain = vmirtGetProcessorCodeDomain(processor);
     memEndian      endian = MEM_ENDIAN_LITTLE;
@@ -6242,7 +6378,7 @@ static Uns32 doTBLJFetch32(vmiProcessorP processor, Uns32 va) {
 //
 // Do table jump target fetch (XLEN=64)
 //
-static Uns64 doTBLJFetch64(vmiProcessorP processor, Uns64 va) {
+static Uns64 doJTFetch64(vmiProcessorP processor, Uns64 va) {
 
     memDomainP     domain = vmirtGetProcessorCodeDomain(processor);
     memEndian      endian = MEM_ENDIAN_LITTLE;
@@ -6254,7 +6390,7 @@ static Uns64 doTBLJFetch64(vmiProcessorP processor, Uns64 va) {
 //
 // Implement table jump
 //
-static RISCV_MORPH_FN(emitTBLJ) {
+static RISCV_MORPH_FN(emitJT) {
 
     unpackedReg lr     = unpackRX(state, 0);
     Uns32       bits   = lr.bits;
@@ -6264,7 +6400,7 @@ static RISCV_MORPH_FN(emitTBLJ) {
     vmiCallFn   cb;
 
     // get table access function
-    cb = (bits==32) ? (vmiCallFn)doTBLJFetch32 : (vmiCallFn)doTBLJFetch64;
+    cb = (bits==32) ? (vmiCallFn)doJTFetch32 : (vmiCallFn)doJTFetch64;
 
     // calculate address of jump table entry
     vmimtBinopRRC(bits, vmi_ADD, tmp, RISCV_CPU_REG(csr.tbljalvec), offset, 0);
@@ -6498,8 +6634,9 @@ static RISCV_MORPH_FN(emitPOP) {
     // handle return value
     if(retval) {
 
-        unpackedReg a0  = createRX(state, RV_REG_X_A0);
-        Int32       val = (retval==RV_RV_0) ? 0 : (retval==RV_RV_P1) ? 1 : -1;
+        unpackedReg a0   = createRX(state, RV_REG_X_A0);
+        Bool        zero = (retval==RV_RV_0) || (retval==RV_RV_Z);
+        Int32       val  = zero ? 0 : (retval==RV_RV_P1) ? 1 : -1;
 
         vmimtMoveRC(a0.bits, a0.r, val);
 
@@ -6615,7 +6752,7 @@ typedef struct iterDescS {
     Uns32          SLEN;                // effective SLEN
     Uns32          VLEN;                // effective VLEN
     Uns32          nf;                  // effective number of fields
-    Uns32          vregs;               // number of regiser affected
+    Uns32          vregs;               // number of registers affected
     riscvRegDesc   PdA;                 // predicate abstract target register
     vmiReg         mask;                // mask register
     vmiReg         rdNarrow;            // narrow destination register
@@ -7449,29 +7586,34 @@ inline static riscvVLMULx8Mt getEMULx8(iterDescP id, Uns32 argIndex) {
 }
 
 //
-// Return EMULxNF for operation Nth vector argument
+// Return the number of vector registers affected by an operation, taking into
+// account the number of fields affected
 //
-static Uns32 getEMULxNF(riscvMorphStateP state, iterDescP id, Uns32 index) {
+static Uns32 getVRegNum(riscvMorphStateP state, iterDescP id, Uns32 index) {
 
     Uns32          fieldNum = state->info.nf+1;
     riscvVLMULx8Mt EMULx8   = getEMULx8(id, index);
-    Uns32          result   = EMULx8*fieldNum/8;
 
-    return result ? : 1;
+    // fractional operations affect a whole register
+    if(EMULx8<VLMULx8MT_1) {
+        EMULx8 = VLMULx8MT_1;
+    }
+
+    return EMULx8*fieldNum/8;
 }
 
 //
-// Is EMULxNF valid for the indexed vector register (register numbers must not
-// increment past the last-supported vector register)
+// Is the register index valid? (register numbers must not increment past the
+// last-supported vector register)
 //
-static Bool legalEMULxNFIndex(
+static Bool legalVRegNum(
     riscvMorphStateP state,
     iterDescP        id,
     Uns32            index
 ) {
-    riscvRegDesc rv      = getRVReg(state, index);
-    Uns32        numRegs = getEMULxNF(state, id, index);
-    Uns32        last    = getRIndex(rv)+numRegs-1;
+    riscvRegDesc rv     = getRVReg(state, index);
+    Uns32        regNum = getVRegNum(state, id, index);
+    Uns32        last   = getRIndex(rv)+regNum-1;
 
     return last<VREG_NUM;
 }
@@ -7559,7 +7701,7 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
 
         riscvRegDesc mask      = state->info.mask;
         Uns32        index     = getRIndex(rD);
-        Uns32        dstRegNum = getEMULxNF(state, id, 0);
+        Uns32        dstRegNum = getVRegNum(state, id, 0);
         overlapType  ot        = getOverlapType(vShape);
         Uns32        badMask   = 0;
         Uns32        i;
@@ -7902,7 +8044,40 @@ static void narrowResult(riscvMorphStateP state, iterDescP id) {
 }
 
 //
-// Return VMI register for the given abstract vector register
+// Return the index number of the indexed successor register of the given
+// vector register
+//
+static Uns32 getSegmentRegisterIndex(iterDescP id, riscvRegDesc rv, Uns32 f) {
+    return getRIndex(rv) + (f*getEMUL(id, 0));
+}
+
+//
+// Return the descriptor of the indexed successor register of the given
+// vector register
+//
+static riscvRegDesc getSegmentRegister(iterDescP id, riscvRegDesc rv, Uns32 f) {
+    return RV_RD_V|getSegmentRegisterIndex(id, rv, f);
+}
+
+//
+// Return vmiReg for the indexed successor segment register of vector register 0
+//
+static vmiReg getSegmentRegisterV0(riscvMorphStateP state, iterDescP id, Uns32 f) {
+
+    riscvVShape  vShape = state->attrs->vShape;
+    vmiReg       base   = isNarrowing(vShape) ? id->rdNarrow : id->r[0];
+    Int32        VLEN   = id->VLEN;
+    riscvRegDesc rv0    = getRVReg(state, 0);
+    Int32        i1     = getSegmentRegisterIndex(id, rv0, 0);
+    Int32        i2     = getSegmentRegisterIndex(id, rv0, f);
+    Int32        delta  = (i2-i1)*(VLEN/8);
+
+    return VMI_REG_DELTA(base, delta);
+}
+
+//
+// Return VMI register for the given abstract vector register having validated
+// its index
 //
 static vmiReg getVMIRegV(
     riscvMorphStateP state,
@@ -7927,6 +8102,11 @@ static vmiReg getVMIRegV(
         ILLEGAL_OPERAND_MESSAGE(riscv, "IVI", "register index must be multiple of 4", i);
     } else if(EMULx8==VLMULx8MT_8) {
         ILLEGAL_OPERAND_MESSAGE(riscv, "IVI", "register index must be multiple of 8", i);
+    }
+
+    // validate segment register operations using Vd0 do not overflow
+    if((i==0) && (getSegmentRegisterIndex(id, r, id->nf)>=VREG_NUM)) {
+        ILLEGAL_OPERAND_MESSAGE(riscv, "IVI", "segment register index overflow", i);
     }
 
     return getVMIReg(riscv, r);
@@ -8193,37 +8373,6 @@ static void getIndexedVRegisters(riscvMorphStateP state, iterDescP id) {
             getIndexedVRegister(state, id, i);
         }
     }
-}
-
-//
-// Return the index number of the indexed successor register of the given
-// vector register
-//
-static Uns32 getSegmentRegisterIndex(iterDescP id, riscvRegDesc rv, Uns32 i) {
-    return (getRIndex(rv) + (i*getEMUL(id, 0))) % VREG_NUM;
-}
-
-//
-// Return the descriptor of the indexed successor register of the given
-// vector register
-//
-static riscvRegDesc getSegmentRegister(iterDescP id, riscvRegDesc rv, Uns32 i) {
-    return RV_RD_V|getSegmentRegisterIndex(id, rv, i);
-}
-
-//
-// Return vmiReg for the indexed successor segment register of vector register 0
-//
-static vmiReg getSegmentRegisterV0(riscvMorphStateP state, iterDescP id, Uns32 i) {
-
-    vmiReg       base  = id->r[0];
-    Int32        VLEN  = id->VLEN;
-    riscvRegDesc rv0   = getRVReg(state, 0);
-    Int32        i1    = getSegmentRegisterIndex(id, rv0, 0);
-    Int32        i2    = getSegmentRegisterIndex(id, rv0, i);
-    Int32        delta = (i2-i1)*(VLEN/8);
-
-    return VMI_REG_DELTA(base, delta);
 }
 
 //
@@ -8654,7 +8803,7 @@ static void setVdPdTopPE(
 
         // get number of vector elements
         elemNum = (id->VLEN*id->vregs)/id->SEW;
-   }
+    }
 
     // kill base registers for this iteration
     killBaseRegistersAndTemps(state, id);
@@ -9172,8 +9321,10 @@ riscvSEWMt riscvValidVType(riscvP riscv, riscvVType vtype) {
         ((getVTypeVTA(vtype)||getVTypeVMA(vtype)) && !vectorAgnostic(riscv)) ||
         // validate SEW is supported
         (SEW<SEW_min) || (SEW>ELEN) ||
-        // validate LMUL>=(SEW/FRLEN)
-        !(VLMULx8>=((SEW*8)/FRLEN))
+        // validate LMUL>=(SEW_min/FRLEN)
+        !(VLMULx8>=((SEW_min*8)/FRLEN)) ||
+        // disallow settings that would cause VL to be zero
+        !((VLMULx8*VLEN)/(SEW*8))
     ) {
         SEW = SEWMT_UNKNOWN;
     }
@@ -9517,10 +9668,14 @@ inline static Bool isRegNumP2(Uns32 regNum) {
 }
 
 //
-// Get alignment constraint for vector load/store operations (always aligned)
+// Get alignment constraint for vector load/store operations
 //
-inline static memConstraint getLoadStoreConstraintV(riscvMorphStateP state) {
-    return MEM_CONSTRAINT_ALIGNED;
+static memConstraint getLoadStoreConstraintV(riscvMorphStateP state) {
+
+    riscvP riscv     = state->riscv;
+    Bool   unaligned = riscv->configInfo.unalignedV;
+
+    return doAligned(unaligned);
 }
 
 //
@@ -9553,7 +9708,7 @@ static Bool emitVLdStCheckWhole(riscvMorphStateP state, iterDescP id) {
     riscvP       riscv  = state->riscv;
     riscvRegDesc rA     = getRVReg(state, 0);
     Uns32        index  = getRIndex(rA);
-    Uns32        regNum = getEMULxNF(state, id, 0);
+    Uns32        regNum = getVRegNum(state, id, 0);
     Bool         ok     = True;
 
     if(!state->info.isWhole) {
@@ -9622,13 +9777,13 @@ static RISCV_CHECKV_FN(emitVLdStCheckCB) {
         // whole register loads/store check failed
         ok = False;
 
-    } else if(getEMULxNF(state, id, 0)>8) {
+    } else if(getVRegNum(state, id, 0)>8) {
 
         // VLMUL*NFIELDS must not exceed 8 for load/store segment instructions
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVLMUL", "Illegal VLMUL*NFIELDS>8");
         ok = False;
 
-    } else if(!legalEMULxNFIndex(state, id, 0)) {
+    } else if(!legalVRegNum(state, id, 0)) {
 
         // register indices must not wrap
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVWRAP", "Illegal vector index wrap-around");
@@ -9712,16 +9867,16 @@ static RISCV_CHECKV_FN(emitVMVRCheckCB) {
     riscvRegDesc rsA    = getRVReg(state, 1);
     Uns32        dIndex = getRIndex(rdA);
     Uns32        sIndex = getRIndex(rsA);
-    Uns32        regNum = getEMULxNF(state, id, 0);
+    Uns32        regNum = getVRegNum(state, id, 0);
     Bool         ok     = True;
 
-    if(!legalEMULxNFIndex(state, id, 0)) {
+    if(!legalVRegNum(state, id, 0)) {
 
         // destination register indices must not wrap
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVWRAPD", "Illegal destination vector index wrap-around");
         ok = False;
 
-    } else if(!legalEMULxNFIndex(state, id, 1)) {
+    } else if(!legalVRegNum(state, id, 1)) {
 
         // source register indices must not wrap
         ILLEGAL_INSTRUCTION_MESSAGE(riscv, "IVWRAPS", "Illegal source vector index wrap-around");
@@ -9776,8 +9931,7 @@ static RISCV_MORPHV_FN(emitVLdStInitCB) {
         // encoded EEW does not exceed effective SEW
     } else {
         unpackedReg ra = unpackRX(state, 1);
-        setAddressMaskMT(riscv);
-        vmimtTryLoadRC(eew, 0, ra.r, getLoadStoreConstraintV(state));
+        emitTryLoadRC(riscv, eew, 0, ra.r, getLoadStoreConstraintV(state));
     }
 
     // set first-fault active indication if required
@@ -13460,7 +13614,7 @@ static void emitCBOTryWriteOrZero(
     // set addres mask for following operation
     setAddressMaskMT(riscv);
 
-    // do try-write or zero of entire cache line
+    // do aligned try-write or zero of entire cache line
     if(zero) {
         vmimtStoreRCO(bits, 0, tmp, 0, endian, constraint);
     } else {
@@ -14197,9 +14351,9 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_MULI_I]           = {morph:emitBinopRRC, binop:vmi_IMUL, iClass:OCL_IC_INTEGER},
     [RV_IT_BEQI_B]           = {morph:emitBranchRC, cond:vmi_COND_EQ},
     [RV_IT_BNEI_B]           = {morph:emitBranchRC, cond:vmi_COND_NE},
-    [RV_IT_TBLJ]             = {morph:emitTBLJ,     offset: 8},
-    [RV_IT_TBLJAL]           = {morph:emitTBLJ,     offset:64},
-    [RV_IT_TBLJALM]          = {morph:emitTBLJ,     offset: 0},
+    [RV_IT_JT0]              = {morph:emitJT,       offset: 0},
+    [RV_IT_JT8]              = {morph:emitJT,       offset: 8},
+    [RV_IT_JT64]             = {morph:emitJT,       offset:64},
     [RV_IT_PUSH]             = {morph:emitPUSH},
     [RV_IT_POP]              = {morph:emitPOP},
     [RV_IT_DECBNEZ]          = {morph:emitDECBNEZ},

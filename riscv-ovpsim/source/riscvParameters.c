@@ -18,6 +18,9 @@
  */
 
 // standard header files
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <string.h>
 #include <stdio.h>
 
@@ -46,54 +49,61 @@
 //
 typedef enum riscvParamVariantE {
 
-    RVPV_ALL     = 0,           // present for all variants
+    RVPV_ALL       = 0,             // present for all variants
 
-                                // PARAMETER IDENTIFIERS
-    RVPV_PRE     = (1<<0),      // identifies pre-parameter
-    RVPV_VARIANT = (1<<1),      // identifies variant parameter
-    RVPV_FP      = (1<<2),      // requires floating point unit
-    RVPV_C       = (1<<3),      // requires compressed extension
-    RVPV_D       = (1<<4),      // requires double floating point unit
-    RVPV_A       = (1<<5),      // requires atomic instructions
-    RVPV_K       = (1<<6),      // requires crypto extension
-    RVPV_BK      = (1<<7),      // requires bitmanip or crypto extension
-    RVPV_32      = (1<<8),      // present if XLEN=32
-    RVPV_64      = (1<<9),      // present if XLEN=64
-    RVPV_S       = (1<<10),     // requires Supervisor mode
-    RVPV_SnotFP  = (1<<11),     // requires Supervisor mode and no floating point
-    RVPV_U       = (1<<12),     // requires Supervisor mode
-    RVPV_H       = (1<<13),     // requires Hypervisor mode
-    RVPV_N       = (1<<14),     // requires User mode interrupts
-    RVPV_M       = (1<<15),     // requires M extension
-    RVPV_V       = (1<<16),     // requires Vector extension
-    RVPV_P       = (1<<17),     // requires DSP extension
-    RVPV_MPCORE  = (1<<18),     // present for multicore variants
-    RVPV_NMBITS  = (1<<19),     // present if CLICCFGMBITS can be > 0
-    RVPV_DEBUG   = (1<<20),     // present if debug mode implemented
-    RVPV_TRIG    = (1<<21),     // present if triggers implemented
-    RVPV_DBGT    = (1<<22),     // present if debug mode or triggers implemented
-    RVPV_RNMI    = (1<<23),     // present if RNMI implemented
-    RVPV_CLIC    = (1<<24),     // present if CLIC enabled
-    RVPV_CLINT   = (1<<25),     // present if CLINT implemented
-    RVPV_CLUSTER = (1<<26),     // present if a cluster
-    RVPV_ROOTINT = (1<<27),     // present at root level only
-    RVPV_CMOMP   = (1<<28),     // present if Zicbom/Zicbop implemented
-    RVPV_CMOZ    = (1<<29),     // present if Zicboz implemented
+                                    // PARAMETER IDENTIFIERS
+    RVPV_PRE       = (1ULL<<0),     // identifies pre-parameter
+    RVPV_VARIANT   = (1ULL<<1),     // identifies variant parameter
+    RVPV_FP        = (1ULL<<2),     // requires floating point unit
+    RVPV_C         = (1ULL<<3),     // requires compressed extension
+    RVPV_D         = (1ULL<<4),     // requires double floating point unit
+    RVPV_A         = (1ULL<<5),     // requires atomic instructions
+    RVPV_K         = (1ULL<<6),     // requires crypto extension
+    RVPV_BK        = (1ULL<<7),     // requires bitmanip or crypto extension
+    RVPV_32        = (1ULL<<8),     // present if XLEN=32
+    RVPV_64        = (1ULL<<9),     // present if XLEN=64
+    RVPV_S         = (1ULL<<10),    // requires Supervisor mode
+    RVPV_SnotFP    = (1ULL<<11),    // requires Supervisor mode and no floating point
+    RVPV_U         = (1ULL<<12),    // requires Supervisor mode
+    RVPV_H         = (1ULL<<13),    // requires Hypervisor mode
+    RVPV_N         = (1ULL<<14),    // requires User mode interrupts
+    RVPV_M         = (1ULL<<15),    // requires M extension
+    RVPV_V         = (1ULL<<16),    // requires Vector extension
+    RVPV_P         = (1ULL<<17),    // requires DSP extension
+    RVPV_MPCORE    = (1ULL<<18),    // present for multicore variants
+    RVPV_NMBITS    = (1ULL<<19),    // present if CLICCFGMBITS can be > 0
+    RVPV_DEBUG     = (1ULL<<20),    // present if debug mode implemented
+    RVPV_TRIG      = (1ULL<<21),    // present if triggers implemented
+    RVPV_DBGT      = (1ULL<<22),    // present if debug mode or triggers implemented
+    RVPV_RNMI      = (1ULL<<23),    // present if RNMI implemented
+    RVPV_CLIC      = (1ULL<<24),    // present if CLIC enabled
+    RVPV_CLINT     = (1ULL<<25),    // present if CLINT implemented
+    RVPV_CLUSTER   = (1ULL<<26),    // present if a cluster
+    RVPV_ROOTINT   = (1ULL<<27),    // present at root level only
+    RVPV_CMOMP     = (1ULL<<28),    // present if Zicbom/Zicbop implemented
+    RVPV_CMOZ      = (1ULL<<29),    // present if Zicboz implemented
+    RVPV_PMPINIT   = (1ULL<<30),    // present if PMP_initialparams is true
+    RVPV_PMPMASK   = (1ULL<<31),    // present if PMP_romaskparams is true
+    RVPV_CLEG      = (1ULL<<32),    // present if legacy C extension
+    RVPV_CNEW      = (1ULL<<33),    // present if new C extension
 
-                                // COMPOSITE PARAMETER IDENTIFIERS
-    RVPV_ROOT    = RVPV_ROOTINT|RVPV_CLINT|RVPV_CLIC,
-    RVPV_ROOTPRE = RVPV_ROOTINT|RVPV_PRE,
-    RVPV_FPV     = RVPV_FP|RVPV_V,
-    RVPV_CLIC_NM = RVPV_CLIC|RVPV_NMBITS,
-    RVPV_CLIC_S  = RVPV_CLIC|RVPV_S,
-    RVPV_CLIC_N  = RVPV_CLIC|RVPV_N,
-    RVPV_KV      = RVPV_K|RVPV_V,
-    RVPV_64S     = RVPV_64|RVPV_S,
-    RVPV_64U     = RVPV_64|RVPV_U,
-    RVPV_64H     = RVPV_64|RVPV_H,
-    RVPV_TRIG_S  = RVPV_TRIG|RVPV_S,
-    RVPV_TRIG_H  = RVPV_TRIG|RVPV_H,
-    RVPV_32P     = RVPV_32|RVPV_P,
+                                    // COMPOSITE PARAMETER IDENTIFIERS
+    RVPV_ROOT      = RVPV_ROOTINT|RVPV_CLINT|RVPV_CLIC,
+    RVPV_ROOTPRE   = RVPV_ROOTINT|RVPV_PRE,
+    RVPV_FPV       = RVPV_FP|RVPV_V,
+    RVPV_CLIC_NM   = RVPV_CLIC|RVPV_NMBITS,
+    RVPV_CLIC_S    = RVPV_CLIC|RVPV_S,
+    RVPV_CLIC_N    = RVPV_CLIC|RVPV_N,
+    RVPV_KV        = RVPV_K|RVPV_V,
+    RVPV_64S       = RVPV_64|RVPV_S,
+    RVPV_64U       = RVPV_64|RVPV_U,
+    RVPV_64H       = RVPV_64|RVPV_H,
+    RVPV_TRIG_S    = RVPV_TRIG|RVPV_S,
+    RVPV_TRIG_H    = RVPV_TRIG|RVPV_H,
+    RVPV_32P       = RVPV_32|RVPV_P,
+    RVPV_PMPINIT32 = RVPV_32|RVPV_PMPINIT,
+    RVPV_PMPMASK32 = RVPV_32|RVPV_PMPMASK,
+    RVPV_C_CLEG    = RVPV_C|RVPV_CLEG
 
 } riscvParamVariant;
 
@@ -109,7 +119,7 @@ static vmiEnumParameter privVariants[] = {
     [RVPV_1_11] = {
         .name        = "1.11",
         .value       = RVPV_20190608,
-        .description = "Deprecated and equivalent to 20190608",
+        .description = "Privileged Architecture Version 1.11, equivalent to 20190608",
     },
     [RVPV_20190405] = {
         .name        = "20190405",
@@ -123,8 +133,13 @@ static vmiEnumParameter privVariants[] = {
     },
     [RVPV_20211203] = {
         .name        = "20211203",
-        .value       = RVPV_20211203,
+        .value       = RVPV_1_12,
         .description = "Privileged Architecture Version 20211203",
+    },
+    [RVPV_1_12] = {
+        .name        = "1.12",
+        .value       = RVPV_1_12,
+        .description = "Privileged Architecture Version 1.12, equivalent to 20211203",
     },
     [RVPV_MASTER] = {
         .name        = "master",
@@ -229,6 +244,24 @@ static vmiEnumParameter vectorVariants[] = {
         .value       = RVVV_MASTER,
         .description = "Vector Architecture Master Branch as of commit "
                        RVVV_MASTER_TAG" (this is subject to change)",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
+// Supported Compressed Architecture variants
+//
+static vmiEnumParameter compressedVariants[] = {
+    [RVCV_NA_LEGACY] = {
+        .name        = "legacy",
+        .value       = RVCV_NA_LEGACY,
+        .description = "Compressed Architecture absent or legacy version",
+    },
+    [RVCV_0_70_1] = {
+        .name        = "0.70.1",
+        .value       = RVCV_0_70_1,
+        .description = "Compressed Architecture Version 0.70.1",
     },
     // KEEP LAST: terminator
     {0}
@@ -406,6 +439,11 @@ static vmiEnumParameter CLICVariants[] = {
         .name        = "0.9-draft-20191208",
         .value       = RVCLC_0_9_20191208,
         .description = "CLIC Version 0.9-draft-20191208",
+    },
+    [RVCLC_0_9_20220315] = {
+        .name        = "0.9-draft-20220315",
+        .value       = RVCLC_0_9_20220315,
+        .description = "CLIC Version 0.9-draft-20220315",
     },
     [RVCLC_MASTER] = {
         .name        = "master",
@@ -592,6 +630,24 @@ static vmiEnumParameter DERETModes[] = {
 };
 
 //
+// Specify relative prioriies of simultaneous debug events
+//
+static vmiEnumParameter DebugPriorities[] = {
+    [RVDP_ORIG] = {
+        .name        = "original",
+        .value       = RVDP_ORIG,
+        .description = "original debug priorities",
+    },
+    [RVDP_693] = {
+        .name        = "PR693",
+        .value       = RVDP_693,
+        .description = "priorities described specification PR 693",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
 // Supported Smepmp variants
 //
 static vmiEnumParameter SmepmpVariants[] = {
@@ -603,7 +659,12 @@ static vmiEnumParameter SmepmpVariants[] = {
     [RVSP_0_9_5] = {
         .name        = "0.9.5",
         .value       = RVSP_0_9_5,
-        .description = "Smepmp version 0.9.5",
+        .description = "Smepmp version 0.9.5 (deprecated and identical to 1.0)",
+    },
+    [RVSP_1_0] = {
+        .name        = "1.0",
+        .value       = RVSP_1_0,
+        .description = "Smepmp version 1.0",
     },
     // KEEP LAST: terminator
     {0}
@@ -754,6 +815,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(user_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(priv_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(vect_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(bitmanip_version);
+static RISCV_ENUM_PDEFAULT_CFG_FN(compress_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(hyp_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(crypto_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(dsp_version);
@@ -769,6 +831,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(fp16_version);
 static RISCV_ENUM_PDEFAULT_CFG_FN(mstatus_fs_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_eret_mode);
+static RISCV_ENUM_PDEFAULT_CFG_FN(debug_priority);
 
 
 //
@@ -778,8 +841,10 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(enable_expanded);
 static RISCV_BOOL_PDEFAULT_CFG_FN(endianFixed);
 static RISCV_BOOL_PDEFAULT_CFG_FN(updatePTEA);
 static RISCV_BOOL_PDEFAULT_CFG_FN(updatePTED);
+static RISCV_BOOL_PDEFAULT_CFG_FN(unaligned_low_pri);
 static RISCV_BOOL_PDEFAULT_CFG_FN(unaligned);
 static RISCV_BOOL_PDEFAULT_CFG_FN(unalignedAMO);
+static RISCV_BOOL_PDEFAULT_CFG_FN(unalignedV);
 static RISCV_BOOL_PDEFAULT_CFG_FN(wfi_is_nop);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mtvec_is_ro);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero);
@@ -825,6 +890,9 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(VSXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(MPU_decompose);
 #endif
 static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_decompose);
+static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_maskparams);
+static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_initialparams);
 static RISCV_BOOL_PDEFAULT_CFG_FN(posedge_other);
 static RISCV_BOOL_PDEFAULT_CFG_FN(poslevel_other);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero_ebreak);
@@ -895,12 +963,18 @@ static RISCV_PDEFAULT_FN(default_ABI_d) {
 }
 
 //
+// max number of PMPs for the architecture
+//
+static Uns32 max_PMP_registers(riscvConfigCP cfg) {
+    return (cfg->priv_version>=RVPV_1_12) ? 64 : 16;
+}
+//
 // Set default number of PMP registers
 //
 static RISCV_PDEFAULT_FN(default_PMP_registers) {
 
     setUns32ParamDefault(param, cfg->PMP_registers);
-    setUns32ParamMax(param, (cfg->priv_version>=RVPV_1_12) ? 64 : 16);
+    setUns32ParamMax(param, max_PMP_registers(cfg));
 }
 
 //
@@ -1134,23 +1208,82 @@ static RISCV_PDEFAULT_FN(default_mtime_Hz) {
 }
 
 //
+// Macro to define a function to set an Uns32 CSR parameter value from the
+// configuration
+//
+#define RISCV_CSR_PDEFAULT_32_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+    setUns32ParamDefault(param, cfg->csr._NAME._pad);  \
+}
+
+//
 // Macro to define a function to set an Uns64 CSR parameter value from the
 // configuration
 //
-#define RISCV_CSR_PDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+#define RISCV_CSR_PDEFAULT_64_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
     setUns64ParamDefault(param, cfg->csr._NAME._pad);  \
 }
 
 //
 // Set default value of CSR parameters
 //
-static RISCV_CSR_PDEFAULT_CFG_FN(mvendorid)
-static RISCV_CSR_PDEFAULT_CFG_FN(marchid)
-static RISCV_CSR_PDEFAULT_CFG_FN(mimpid)
-static RISCV_CSR_PDEFAULT_CFG_FN(mhartid)
-static RISCV_CSR_PDEFAULT_CFG_FN(mconfigptr)
-static RISCV_CSR_PDEFAULT_CFG_FN(mtvec)
-static RISCV_CSR_PDEFAULT_CFG_FN(mclicbase)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mvendorid)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(marchid)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mimpid)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mhartid)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mconfigptr)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mtvec)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mclicbase)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(mseccfg)
+
+// Set default value of PMP Configuration parameters
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg0)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg1)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg2)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg3)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg4)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg5)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg6)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg7)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg8)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg9)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg10)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg11)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg12)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg13)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpcfg14)
+static RISCV_CSR_PDEFAULT_32_CFG_FN(pmpcfg15)
+
+#define RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(_I) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##0) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##1) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##2) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##3) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##4) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##5) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##6) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##7) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##8) \
+    static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr##_I##9)
+
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr0)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr1)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr2)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr3)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr4)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr5)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr6)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr7)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr8)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr9)
+RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(1)
+RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(2)
+RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(3)
+RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(4)
+RISCV_PMP_ADDR_PDEFAULT_CFG_FN_0_9(5)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr60)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr61)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr62)
+static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr63)
 
 //
 // Macro to define a function to set an Uns64 CSR mask value from the
@@ -1267,6 +1400,45 @@ static RISCV_VPROF_PDEFAULT_CFG_FN(Zve32f);
 static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64x);
 static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64f);
 static RISCV_VPROF_PDEFAULT_CFG_FN(Zve64d);
+
+//
+// Set compressed extension subset option parameter default
+//
+static void setCSetParamDefault(
+    riscvConfigCP    cfg,
+    vmiParameterP    param,
+    riscvCompressSet option
+) {
+    CHECK_PARAM_TYPE(param, vmi_PT_BOOL, "Bool");
+
+    riscvCompressSet compress_present = cfg->compress_present;
+
+    // enable base C extensions if unspecified
+    if(!compress_present) {
+        compress_present = (RVCS_Zca|RVCS_Zcd|RVCS_Zcf);
+    }
+
+    param->u.boolParam.defaultValue = (compress_present & option);
+}
+
+//
+// Macro to define a function to set a raw Bool compressed subset parameter
+// value from the configuration
+//
+#define RISCV_CSET_PDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME) { \
+    setCSetParamDefault(cfg, param, RVCS_##_NAME); \
+}
+
+//
+// Set default values of compressed extension subset options
+//
+static RISCV_CSET_PDEFAULT_CFG_FN(Zca);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcb);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcf);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcmb);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcmp);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcmpe);
+static RISCV_CSET_PDEFAULT_CFG_FN(Zcmt);
 
 //
 // Set bit manipulation extension subset option parameter default
@@ -1414,6 +1586,7 @@ typedef enum riscvParamGroupIdE {
     RV_PG_DBG,          // debug extension
     RV_PG_TRIG,         // trigger module
     RV_PG_EXT,          // other extensions
+    RV_PG_PMP,          // PMP configuration
     RV_PG_LAST          // KEEP LAST: for sizing
 } riscvParamGroupId;
 
@@ -1440,12 +1613,79 @@ static const vmiParameterGroup groups[RV_PG_LAST+1] = {
     [RV_PG_DBG]   = {name: "Debug_Extension"},
     [RV_PG_TRIG]  = {name: "Trigger"},
     [RV_PG_EXT]   = {name: "Other_Extensions"},
+    [RV_PG_PMP]   = {name: "PMP Configuration"},
 };
 
 //
 // Macro to specify a the group for a register
 //
 #define RV_GROUP(_G) &groups[RV_PG_##_G]
+
+//
+// Macros for PMP configuration parameter "arrays"
+//
+#define PMP_CFG_EVEN(_I) \
+    {  RVPV_PMPMASK,     0,         0,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mask_pmpcfg##_I, -1, 0, -1, RV_GROUP(PMP), "Specify hardware-enforced mask of writable bits in pmpcfg"#_I" (upper 32 bits ignored in RV32)")}, \
+    {  RVPV_PMPINIT,     0, default_pmpcfg##_I, VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues,      pmpcfg##_I,  0, 0, -1, RV_GROUP(PMP), "Specify reset value of pmpcfg"#_I" (upper 32 bits ignored in RV32)")}
+
+#define PMP_CFG_ODD(_I) \
+    {  RVPV_PMPMASK32,   0,         0,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mask_pmpcfg##_I, -1, 0, -1, RV_GROUP(PMP), "Specify hardware-enforced mask of writable bits in pmpcfg"#_I)}, \
+    {  RVPV_PMPINIT32,   0, default_pmpcfg##_I, VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues,      pmpcfg##_I,  0, 0, -1, RV_GROUP(PMP), "Specify reset value of pmpcfg"#_I)}
+
+#define PMP_CFG_0_15 \
+    PMP_CFG_EVEN(0), \
+    PMP_CFG_ODD(1), \
+    PMP_CFG_EVEN(2), \
+    PMP_CFG_ODD(3), \
+    PMP_CFG_EVEN(4), \
+    PMP_CFG_ODD(5), \
+    PMP_CFG_EVEN(6), \
+    PMP_CFG_ODD(7), \
+    PMP_CFG_EVEN(8), \
+    PMP_CFG_ODD(9), \
+    PMP_CFG_EVEN(10), \
+    PMP_CFG_ODD(11), \
+    PMP_CFG_EVEN(12), \
+    PMP_CFG_ODD(13), \
+    PMP_CFG_EVEN(14), \
+    PMP_CFG_ODD(15)
+
+#define PMP_ADDR(_I) \
+    {  RVPV_PMPMASK,     0,         0,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mask_pmpaddr##_I, -1, 0, -1, RV_GROUP(PMP),"Specify hardware-enforced mask of writable bits in mask_pmpaddr"#_I)}, \
+    {  RVPV_PMPINIT,     0, default_pmpaddr##_I, VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues,      pmpaddr##_I,  0, 0, -1, RV_GROUP(PMP),"Specify reset value of pmpaddr"#_I)}
+
+#define PMP_ADDR_0_9(_X) \
+    PMP_ADDR(_X##0), \
+    PMP_ADDR(_X##1), \
+    PMP_ADDR(_X##2), \
+    PMP_ADDR(_X##3), \
+    PMP_ADDR(_X##4), \
+    PMP_ADDR(_X##5), \
+    PMP_ADDR(_X##6), \
+    PMP_ADDR(_X##7), \
+    PMP_ADDR(_X##8), \
+    PMP_ADDR(_X##9)
+
+#define PMP_ADDR_0_63 \
+        PMP_ADDR(0), \
+        PMP_ADDR(1), \
+        PMP_ADDR(2), \
+        PMP_ADDR(3), \
+        PMP_ADDR(4), \
+        PMP_ADDR(5), \
+        PMP_ADDR(6), \
+        PMP_ADDR(7), \
+        PMP_ADDR(8), \
+        PMP_ADDR(9), \
+        PMP_ADDR_0_9(1), \
+        PMP_ADDR_0_9(2), \
+        PMP_ADDR_0_9(3), \
+        PMP_ADDR_0_9(4), \
+        PMP_ADDR_0_9(5), \
+        PMP_ADDR(60), \
+        PMP_ADDR(61), \
+        PMP_ADDR(62), \
+        PMP_ADDR(63)
 
 //
 // Table of formal parameter specifications
@@ -1459,6 +1699,7 @@ static riscvParameter parameters[] = {
     {  RVPV_PRE,     0,         default_priv_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, priv_version,            privVariants,              RV_GROUP(FUND),  "Specify required Privileged Architecture version")},
     {  RVPV_V,       0,         default_vect_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, vector_version,          vectorVariants,            RV_GROUP(V),     "Specify required Vector Architecture version")},
     {  RVPV_BK,      0,         default_bitmanip_version,     VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, bitmanip_version,        bitmanipVariants,          RV_GROUP(B),     "Specify required Bit Manipulation Architecture version")},
+    {  RVPV_PRE,     0,         default_compress_version,     VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, compress_version,        compressedVariants,        RV_GROUP(C),     "Specify required Compressed Architecture version")},
     {  RVPV_H,       0,         default_hyp_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, hypervisor_version,      hypervisorVariants,        RV_GROUP(H),     "Specify required Hypervisor Architecture version")},
     {  RVPV_K,       0,         default_crypto_version,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, crypto_version,          cryptoVariants,            RV_GROUP(K),     "Specify required Cryptographic Architecture version")},
     {  RVPV_P,       0,         default_dsp_version,          VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, dsp_version,             DSPVariants,               RV_GROUP(P),     "Specify required DSP Architecture version")},
@@ -1472,6 +1713,7 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   0,         default_debug_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, debug_address,           0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump to enter debug in vectored mode")},
     {  RVPV_DEBUG,   0,         default_dexc_address,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, dexc_address,            0, 0,          -1,         RV_GROUP(DBG),   "Specify address to which to jump on debug exception in vectored mode")},
     {  RVPV_DEBUG,   0,         default_debug_eret_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_eret_mode,         DERETModes,                RV_GROUP(DBG),   "Specify behavior for MRET, SRET or URET in Debug mode (nop, jump to dexc_address or trap to dexc_address)")},
+    {  RVPV_DEBUG,   0,         default_debug_priority,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_priority,          DebugPriorities,           RV_GROUP(DBG),   "Specify relative priorities of simultaneous debug events")},
     {  RVPV_DEBUG,   0,         default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,        0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
     {  RVPV_ALL,     0,         default_use_hw_reg_names,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, use_hw_reg_names,        False,                     RV_GROUP(ARTIF), "Specify whether to use hardware register names x0-x31 and f0-f31 instead of ABI register names")},
     {  RVPV_D,       0,         default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                   False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
@@ -1480,8 +1722,10 @@ static riscvParameter parameters[] = {
     {  RVPV_MPCORE,  0,         default_numHarts,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, numHarts,                0, 0,          32,         RV_GROUP(FUND),  "Specify the number of hart contexts in a multiprocessor")},
     {  RVPV_S,       0,         default_updatePTEA,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTEA,              False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE A bit is supported")},
     {  RVPV_S,       0,         default_updatePTED,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTED,              False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE D bit is supported")},
+    {  RVPV_ALL,     0,         default_unaligned_low_pri,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unaligned_low_pri,       False,                     RV_GROUP(MEM),   "Specify whether address misaligned exceptions are lower priority than page or access fault exceptions")},
     {  RVPV_ALL,     0,         default_unaligned,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unaligned,               False,                     RV_GROUP(MEM),   "Specify whether the processor supports unaligned memory accesses")},
     {  RVPV_A,       0,         default_unalignedAMO,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unalignedAMO,            False,                     RV_GROUP(MEM),   "Specify whether the processor supports unaligned memory accesses for AMO instructions")},
+    {  RVPV_V,       0,         default_unalignedV,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unalignedV,              False,                     RV_GROUP(V),     "Specify whether the processor supports unaligned memory accesses for vector instructions")},
     {  RVPV_ALL,     0,         default_wfi_is_nop,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, wfi_is_nop,              False,                     RV_GROUP(ICSRB), "Specify whether WFI should be treated as a NOP (if not, halt while waiting for interrupts)")},
     {  RVPV_ALL,     0,         default_mtvec_is_ro,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mtvec_is_ro,             False,                     RV_GROUP(INTXC), "Specify whether mtvec CSR is read-only")},
     {  RVPV_ALL,     0,         default_tvec_align,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, tvec_align,              0, 0,          (1<<16),    RV_GROUP(INTXC), "Specify hardware-enforced alignment of mtvec/stvec/utvec when Vectored interrupt mode enabled")},
@@ -1556,10 +1800,17 @@ static riscvParameter parameters[] = {
     {  RVPV_S,       0,         default_MPU_registers,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, MPU_registers,           0, 0,          64,         RV_GROUP(MEM),   "Specify the number of implemented Ssmpu address registers")},
     {  RVPV_S,       0,         default_MPU_decompose,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, MPU_decompose,           False,                     RV_GROUP(MEM),   "Whether unaligned Ssmpu accesses are decomposed into separate aligned accesses")},
 #endif
-    {  RVPV_ALL,     0,         default_PMP_grain,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_grain,               0, 0,          29,         RV_GROUP(MEM),   "Specify PMP region granularity, G (0 => 4 bytes, 1 => 8 bytes, etc)")},
-    {  RVPV_ALL,     0,         default_PMP_registers,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_registers,           0, 0,          0,          RV_GROUP(MEM),   "Specify the number of implemented PMP address registers")},
-    {  RVPV_ALL,     0,         default_PMP_max_page,         VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_max_page,            0, 0,          -1,         RV_GROUP(MEM),   "Specify the maximum size of PMP region to map if non-zero (may improve performance; constrained to a power of two)")},
-    {  RVPV_ALL,     0,         default_PMP_decompose,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_decompose,           False,                     RV_GROUP(MEM),   "Whether unaligned PMP accesses are decomposed into separate aligned accesses")},
+
+    {  RVPV_ALL,     0,         default_PMP_grain,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_grain,               0, 0,          29,         RV_GROUP(PMP),   "Specify PMP region granularity, G (0 => 4 bytes, 1 => 8 bytes, etc)")},
+    {  RVPV_ALL,     0,         default_PMP_registers,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_registers,           0, 0,          0,          RV_GROUP(PMP),   "Specify the number of implemented PMP address registers")},
+    {  RVPV_ALL,     0,         default_PMP_max_page,         VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, PMP_max_page,            0, 0,          -1,         RV_GROUP(PMP),   "Specify the maximum size of PMP region to map if non-zero (may improve performance; constrained to a power of two)")},
+    {  RVPV_ALL,     0,         default_PMP_decompose,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_decompose,           False,                     RV_GROUP(PMP),   "Whether unaligned PMP accesses are decomposed into separate aligned accesses")},
+    {  RVPV_ALL,     0,         default_PMP_undefined,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_undefined,           False,                     RV_GROUP(PMP),   "Whether accesses to unimplemented PMP registers are undefined (if True) or write ignored and zero (if False)")},
+    {  RVPV_PRE,     0,         default_PMP_maskparams,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_maskparams,          False,                     RV_GROUP(PMP),   "Enable parameters to change the read-only masks for PMP CSRs")},
+    {  RVPV_PRE,     0,         default_PMP_initialparams,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, PMP_initialparams,       False,                     RV_GROUP(PMP),   "Enable parameters to change the reset values for PMP CSRs")},
+    PMP_CFG_0_15,
+    PMP_ADDR_0_63,
+
     {  RVPV_CMOMP,   0,         default_cmomp_bytes,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, cmomp_bytes,             0, 4,          32678,      RV_GROUP(EXT),   "Specify size of cache block for CMO management/prefetch instructions")},
     {  RVPV_CMOZ,    0,         default_cmoz_bytes,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, cmoz_bytes,              0, 4,          32678,      RV_GROUP(EXT),   "Specify size of cache block for CMO zero instructions")},
     {  RVPV_S,       0,         default_Sv_modes,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, Sv_modes,                0, 0,          (1<<16)-1,  RV_GROUP(MEM),   "Specify bit mask of implemented address translation modes (e.g. (1<<0)+(1<<8) indicates \"bare\" and \"Sv39\" modes may be selected in satp.MODE)")},
@@ -1603,6 +1854,7 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     RVPV_1_12, default_mconfigptr,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mconfigptr,              0, 0,          -1,         RV_GROUP(CSRDV), "Override mconfigptr register")},
     {  RVPV_ALL,     0,         default_mtvec,                VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mtvec,                   0, 0,          -1,         RV_GROUP(CSRDV), "Override mtvec register")},
     {  RVPV_CLIC,    0,         default_mclicbase,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mclicbase,               0, 0,          -1,         RV_GROUP(CLIC),  "Override mclicbase register")},
+    {  RVPV_ALL,     RVPV_1_12, default_mseccfg,              VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mseccfg,                 0, 0,          -1,         RV_GROUP(CSRDV), "Override mseccfg register")},
     {  RVPV_FP,      0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mstatus_FS,              0, 0,          3,          RV_GROUP(FP),    "Override default value of mstatus.FS (initial state of floating point unit)")},
     {  RVPV_V,       0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mstatus_VS,              0, 0,          3,          RV_GROUP(V),     "Override default value of mstatus.VS (initial state of vector unit)")},
     {  RVPV_SnotFP,  0,         default_mstatus_FS_zero,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mstatus_FS_zero,         False,                     RV_GROUP(FP),    "Specify that mstatus.FS is hard-wired to zero")},
@@ -1650,9 +1902,16 @@ static riscvParameter parameters[] = {
     {  RVPV_K,       0,         default_Zkg,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zkg,                     False,                     RV_GROUP(K),     "Specify that Zkg is implemented (deprecated alias of Zbkc)")},
     {  RVPV_32P,     0,         default_Zpsfoperand,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zpsfoperand,             False,                     RV_GROUP(P),     "Specify that Zpsfoperand is implemented")},
     {  RVPV_FP,      0,         default_Zfinx_version,        VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zfinx_version,           ZfinxVariants,             RV_GROUP(FP),    "Specify version of Zfinx implemented (use integer register file for floating point instructions)")},
-    {  RVPV_C,       0,         default_Zcea_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcea_version,            ZceaVariants,              RV_GROUP(C),     "Specify version of Zcea implemented")},
-    {  RVPV_C,       0,         default_Zceb_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zceb_version,            ZcebVariants,              RV_GROUP(C),     "Specify version of Zceb implemented")},
-    {  RVPV_C,       0,         default_Zcee_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcee_version,            ZceeVariants,              RV_GROUP(C),     "Specify version of Zcee implemented")},
+    {  RVPV_C_CLEG,  0,         default_Zcea_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcea_version,            ZceaVariants,              RV_GROUP(C),     "Specify version of Zcea implemented (legacy only)")},
+    {  RVPV_C_CLEG,  0,         default_Zceb_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zceb_version,            ZcebVariants,              RV_GROUP(C),     "Specify version of Zceb implemented (legacy only)")},
+    {  RVPV_C_CLEG,  0,         default_Zcee_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcee_version,            ZceeVariants,              RV_GROUP(C),     "Specify version of Zcee implemented (legacy only)")},
+    {  RVPV_CNEW,    0,         default_Zca,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zca,                     False,                     RV_GROUP(C),     "Specify that Zca is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcb,                     False,                     RV_GROUP(C),     "Specify that Zcb is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcf,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcf,                     False,                     RV_GROUP(C),     "Specify that Zcf is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcmb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmb,                    False,                     RV_GROUP(C),     "Specify that Zcmb is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcmp,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmp,                    False,                     RV_GROUP(C),     "Specify that Zcmp is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcmpe,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmpe,                   False,                     RV_GROUP(C),     "Specify that Zcmpe is implemented")},
+    {  RVPV_CNEW,    0,         default_Zcmt,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmt,                    False,                     RV_GROUP(C),     "Specify that Zcmt is implemented")},
 
     // CLIC configuration
     {  RVPV_ROOTPRE, 0,         default_CLICLEVELS,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, CLICLEVELS,              0, 0,          256,        RV_GROUP(CLIC),  "Specify number of interrupt levels implemented by CLIC, or 0 if CLIC absent")},
@@ -1721,6 +1980,30 @@ static Bool selectPreParameter(riscvP riscv, riscvParameterP param) {
     }
 
     return True;
+}
+
+//
+// Parse the index from the PMP parameter name. Expected names are:
+//   pmpaddr<n>
+//   pmpcfg<n>
+//   mask_pmpcfg<n>
+//   mask_pmpaddr<n>
+// Note: the pmpcfg registers each contain four entries, so the register
+//       index is adjusted to return the first element's index
+//
+static Uns32 pmpIndex(riscvParameterP param) {
+    Uns32       index = 0;
+    const char *pmpstr = strstr(param->parameter.name, "pmp");
+
+    if (pmpstr) {
+        if (sscanf(pmpstr, "pmpaddr%d", &index) != 1) {
+            if (sscanf(pmpstr, "pmpcfg%d", &index) == 1) {
+                index *= 4;
+            }
+        }
+    }
+
+    return index;
 }
 
 //
@@ -1907,6 +2190,29 @@ static Bool selectParameter(
 
         // include parameters that are only required for Zicboz
         if((param->variant & RVPV_CMOZ) && !cfg->Zicboz) {
+            return False;
+        }
+
+        // include parameters that are only required for legacy C extension
+        if((param->variant & RVPV_CLEG) && cfg->compress_version) {
+            return False;
+        }
+
+        // include parameters that are only required for new C extension
+        if((param->variant & RVPV_CNEW) && !cfg->compress_version) {
+            return False;
+        }
+
+        // include parameters that are enabled by PMP_xxxparams parameter
+        // if the index is in range of the configured number of PMP entries
+        // NOTE: cfg->PMP_registers cannot be a pre-param, so instead use the
+        //       max registers allowed based on the pre-param priv_version
+        if((param->variant & RVPV_PMPINIT) &&
+           (!cfg->PMP_initialparams || pmpIndex(param) >= max_PMP_registers(cfg))) {
+                return False;
+        }
+        if((param->variant & RVPV_PMPMASK) &&
+            (!cfg->PMP_maskparams || pmpIndex(param) >= max_PMP_registers(cfg))) {
             return False;
         }
     }
@@ -2178,6 +2484,15 @@ static void appendExtensions(char *name, riscvArchitecture arch, char op) {
 }
 
 //
+// Apply pre-parameter value if it has been set (if not, leave as per-variant
+// default) and then handle any deprecated version remappings
+//
+#define APPLY_PREPARAM_IF_SET_REMAP(_PROC, _PARAMS, _NAME, _REMAP) { \
+    APPLY_PREPARAM_IF_SET(_PROC, _PARAMS, _NAME);                       \
+    _PROC->configInfo._NAME = _REMAP[_PROC->configInfo._NAME].value;    \
+}
+
+//
 // Return arch modified so that it is self-consistent
 //
 inline static riscvArchitecture fixArch(riscvArchitecture arch) {
@@ -2220,8 +2535,8 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
         riscv->configInfo = *riscvGetNamedConfig(cfgList, variant);
 
         // override architecture versions if required
-        APPLY_PREPARAM_IF_SET(riscv, params, user_version);
-        APPLY_PREPARAM_IF_SET(riscv, params, priv_version);
+        APPLY_PREPARAM_IF_SET_REMAP(riscv, params, user_version, userVariants);
+        APPLY_PREPARAM_IF_SET_REMAP(riscv, params, priv_version, privVariants);
 
         // old and new misa architecture
         riscvArchitecture archExplicit = riscv->configInfo.arch;
@@ -2285,13 +2600,13 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
         APPLY_PREPARAM_IF_SET(riscv, params, CLICLEVELS);
 
         // apply debug_mode override if required
-        APPLY_PREPARAM_IF_SET(riscv, params, debug_mode);
+        APPLY_PREPARAM_IF_SET_REMAP(riscv, params, debug_mode, DMModes);
 
         // apply trigger_num override if required
         APPLY_PREPARAM_IF_SET(riscv, params, trigger_num);
 
         // apply rnmi_version override if required
-        APPLY_PREPARAM_IF_SET(riscv, params, rnmi_version);
+        APPLY_PREPARAM_IF_SET_REMAP(riscv, params, rnmi_version, rnmiVariants);
 
         // apply CLINT_address override if required
         APPLY_PREPARAM_IF_SET(riscv, params, CLINT_address);
@@ -2300,6 +2615,14 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
         APPLY_PREPARAM_IF_SET(riscv, params, Zicbom);
         APPLY_PREPARAM_IF_SET(riscv, params, Zicbop);
         APPLY_PREPARAM_IF_SET(riscv, params, Zicboz);
+
+        // apply PMP_*params/registers overrides if required
+        APPLY_PREPARAM_IF_SET(riscv, params, PMP_maskparams);
+        APPLY_PREPARAM_IF_SET(riscv, params, PMP_initialparams);
+        APPLY_PREPARAM_IF_SET(riscv, params, PMP_registers);
+
+        // apply compress_version override if required
+        APPLY_PREPARAM_IF_SET(riscv, params, compress_version);
 
         // create full parameter list
         riscv->parameters = createParameterList(riscv, &riscv->configInfo);
@@ -2358,6 +2681,13 @@ const char *riscvGetUserVersionDesc(riscvP riscv) {
 //
 const char *riscvGetVectorVersionDesc(riscvP riscv) {
     return vectorVariants[RISCV_VECT_VERSION(riscv)].description;
+}
+
+//
+// Return Compressed Architecture description
+//
+const char *riscvGetCompressedVersionDesc(riscvP riscv) {
+    return compressedVariants[RISCV_COMPRESS_VERSION(riscv)].description;
 }
 
 //

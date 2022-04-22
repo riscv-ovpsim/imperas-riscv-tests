@@ -142,6 +142,7 @@ typedef enum riscvArchitectureE {
     RV32A    = ISA_XLEN_32  |                 ISA_A,
     RV32C    = ISA_XLEN_32  |                         ISA_C,
     RV32E    = ISA_XLEN_32  |                                 ISA_E,
+    RV32EM   = ISA_XLEN_32  |         ISA_M |                 ISA_E,
     RV32F    = ISA_XLEN_32  |                                         ISA_F,
     RV32D    = ISA_XLEN_32  |                                                 ISA_D,
     RV32B    = ISA_XLEN_32  |                                                                         ISA_B,
@@ -248,10 +249,10 @@ typedef enum riscvPrivVerE {
     RVPV_1_11,                          // version 1.11 (legacy naming)
     RVPV_20190405,                      // version 20190405
     RVPV_20190608,                      // version 20190608
-    RVPV_1_12,                          // version 1.12 (placeholder)
-    RVPV_20211203 = RVPV_1_12,          // version 20211203
+    RVPV_20211203,                      // version 20211203 (identical to 1.12)
+    RVPV_1_12,                          // version 1.12
     RVPV_MASTER,                        // master branch
-    RVPV_DEFAULT = RVPV_20211203,       // default version
+    RVPV_DEFAULT = RVPV_1_12,           // default version
 } riscvPrivVer;
 
 //
@@ -356,7 +357,7 @@ typedef enum riscvBitManipSetE {
 } riscvBitManipSet;
 
 //
-// Supported Zcea versions
+// Supported Zcea versions (legacy only)
 //
 typedef enum riscvZceaVerE {
     RVZCEA_NA,                          // Zcea absent
@@ -366,7 +367,7 @@ typedef enum riscvZceaVerE {
 } riscvZceaVer;
 
 //
-// Supported Zceb versions
+// Supported Zceb versions (legacy only)
 //
 typedef enum riscvZcebVerE {
     RVZCEB_NA,                          // Zceb absent
@@ -376,7 +377,7 @@ typedef enum riscvZcebVerE {
 } riscvZcebVer;
 
 //
-// Supported Zcee versions
+// Supported Zcee versions (legacy only)
 //
 typedef enum riscvZceeVerE {
     RVZCEE_NA,                          // Zcee absent
@@ -386,12 +387,33 @@ typedef enum riscvZceeVerE {
 } riscvZceeVer;
 
 //
+// Supported Compressed Architecture versions
+//
+typedef enum riscvCompressVerE {
+    RVCV_NA_LEGACY,                     // Zc absent or legacy (see above)
+    RVCV_0_70_1,                        // Zc version 0.70.1
+    RVCV_DEFAULT = RVCV_0_70_1,         // default version
+} riscvCompressVer;
+
+//
 // Compressed extension subsets
 //
 typedef enum riscvCompressSetE {
-    RVCS_Zcea = (1<<0),                 // Zcea subset
-    RVCS_Zceb = (1<<1),                 // Zceb subset
-    RVCS_Zcee = (1<<2),                 // Zcee subset
+    // legacy values
+    RVCS_Zcea  = (1<<0),                // Zcea subset
+    RVCS_Zceb  = (1<<1),                // Zceb subset
+    RVCS_Zcee  = (1<<2),                // Zcee subset
+    // new values
+    RVCS_Zca   = (1<<3),                // Zca subset
+    RVCS_Zcb   = (1<<4),                // Zcb subset
+    RVCS_Zcd   = (1<<5),                // Zcd subset (implicit)
+    RVCS_Zcf   = (1<<6),                // Zcf subset
+    RVCS_Zcmb  = (1<<7),                // Zcmb subset
+    RVCS_Zcmp  = (1<<8),                // Zcmp subset
+    RVCS_Zcmpe = (1<<9),                // Zcmpe subset
+    RVCS_Zcmt  = (1<<10),               // Zcmt subset
+    // composite values
+    RVCS_ZcNotD = RVCS_Zcmb|RVCS_Zcmp|RVCS_Zcmpe|RVCS_Zcmt
 } riscvCompressSet;
 
 //
@@ -467,8 +489,8 @@ typedef enum riscvDebugVerE {
 //
 // Date and tag of master version
 //
-#define RVCLC_MASTER_DATE    "11 May 2021"
-#define RVCLC_MASTER_TAG     "dd15cd3"
+#define RVCLC_MASTER_DATE    "15 March 2022"
+#define RVCLC_MASTER_TAG     "9af754e"
 
 //
 // Supported CLIC version
@@ -476,8 +498,9 @@ typedef enum riscvDebugVerE {
 typedef enum riscvCLICVerE {
     RVCLC_20180831,                     // 20180831
     RVCLC_0_9_20191208,                 // 0.9-draft-20191208
+    RVCLC_0_9_20220315,                 // 0.9-draft-20220315
     RVCLC_MASTER,                       // master branch
-    RVCLC_DEFAULT = RVCLC_0_9_20191208, // default version
+    RVCLC_DEFAULT = RVCLC_0_9_20220315, // default version
 } riscvCLICVer;
 
 //
@@ -538,6 +561,14 @@ typedef enum riscvDERETModeE {
 } riscvDERETMode;
 
 //
+// How debug event priorities are ordered
+//
+typedef enum riscvDPriorityE {
+    RVDP_ORIG,                          // original priority ordering
+    RVDP_693,                           // priority ordering as in PR #693
+} riscvDPriority;
+
+//
 // Supported RNMI versions
 //
 typedef enum riscvRNMIVerE {
@@ -551,7 +582,8 @@ typedef enum riscvRNMIVerE {
 typedef enum riscvSmepmpVerE {
     RVSP_NONE,                          // Smepmp not implemented
     RVSP_0_9_5,                         // version 0.9.5
-    RVSP_DEFAULT = RVSP_0_9_5,          // default version
+    RVSP_1_0,                           // version 1.0
+    RVSP_DEFAULT = RVSP_1_0,            // default version
 } riscvSmepmpVer;
 
 // macro returning User Architecture version
@@ -562,6 +594,9 @@ typedef enum riscvSmepmpVerE {
 
 // macro returning Vector Architecture version
 #define RISCV_VECT_VERSION(_P)      ((_P)->configInfo.vect_version)
+
+// macro returning Compressed Architecture version
+#define RISCV_COMPRESS_VERSION(_P)  ((_P)->configInfo.compress_version)
 
 // macro returning Bit Manipulation Architecture version
 #define RISCV_BITMANIP_VERSION(_P)  ((_P)->configInfo.bitmanip_version)

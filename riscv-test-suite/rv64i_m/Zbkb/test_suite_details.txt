@@ -25,21 +25,21 @@ Architectural Test Suite Data for RV64ZBKB K Crypto/Scalar:
     24,628 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 274
   orn : 274
+  andn : 274
   xnor : 274
 Instruction category: OPB_PACK Packing
+  pack : 274
   packh : 274
   packw : 274
-  pack : 274
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 274
   rori : 274
   rolw : 274
-  roriw : 274
   rol : 274
+  ror : 274
   rorw : 274
+  roriw : 274
 
 Other instructions (those not the focus of this suite)
   c-j : 13
@@ -52,14 +52,14 @@ Other instructions (those not the focus of this suite)
   mret : 13
   lui : 2,115
   slli : 4,218
-  sd : 3,432
-  c-sdsp : 130
-  fence : 13
-  ecall : 13
-  c-li : 63
-  beq : 39
   c-slli : 170
   grevi : 274
+  sd : 3,432
+  c-li : 63
+  c-sdsp : 130
   c-addiw : 38
   c-addi : 66
+  fence : 13
+  ecall : 13
+  beq : 39
 

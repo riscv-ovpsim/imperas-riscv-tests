@@ -38,20 +38,38 @@
 //
 // Get description for missing instruction subset
 //
-static const char *getSubsetDesc(riscvCompressSet requiredSet) {
+static const char *getSubsetDesc(riscvP riscv, riscvCompressSet requiredSet) {
+
+    riscvCompressSet legacySet = RVCS_Zcea|RVCS_Zceb|RVCS_Zcee;
 
     // get feature description
     const char *description = 0;
+
+    // select alternative architectural features implied by version
+    requiredSet &= RISCV_COMPRESS_VERSION(riscv) ? ~legacySet : legacySet;
 
     // get missing subset description (NOTE: all Zceb subset instructions map
     // to D extension opcodes if Zceb is unimplemented, meaning that RVCS_Zceb
     // case cannot be reached)
     switch(requiredSet) {
 
-        // INDIVIDUAL SETS
-        case RVCS_Zcea : description = "Zcea"; break;
-        case RVCS_Zceb : description = "Zceb"; break;   // LCOV_EXCL_LINE
-        case RVCS_Zcee : description = "Zcee"; break;
+        // LEGACY SETS
+        case RVCS_Zcea  : description = "Zcea";  break;
+        case RVCS_Zceb  : description = "Zceb";  break; // LCOV_EXCL_LINE
+        case RVCS_Zcee  : description = "Zcee";  break;
+
+        // NEW SETS
+        case RVCS_Zca   : description = "Zca";   break;
+        case RVCS_Zcb   : description = "Zcb";   break;
+        case RVCS_Zcd   : description = "Zcd";   break; // LCOV_EXCL_LINE
+        case RVCS_Zcf   : description = "Zcf";   break;
+        case RVCS_Zcmb  : description = "Zcmb";  break;
+        case RVCS_Zcmp  : description = "Zcmp";  break;
+        case RVCS_Zcmpe : description = "Zcmpe"; break;
+        case RVCS_Zcmt  : description = "Zcmt";  break;
+
+        // COMPOSITE VALUES (IGNORE)
+        case RVCS_ZcNotD:                        break; // LCOV_EXCL_LINE
     }
 
     // sanity check known subset
@@ -68,7 +86,7 @@ Bool riscvValidateCExtSubset(riscvP riscv, riscvCompressSet Zc) {
 
     // detect absent subset
     if(Zc && !(Zc & riscv->configInfo.compress_present)) {
-        riscvEmitIllegalInstructionAbsentSubset(getSubsetDesc(Zc));
+        riscvEmitIllegalInstructionAbsentSubset(getSubsetDesc(riscv, Zc));
         return False;
     }
 

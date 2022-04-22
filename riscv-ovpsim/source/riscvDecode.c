@@ -150,8 +150,10 @@ inline static Uns32 getXLenBits(riscvP riscv) {
 #define U_6_4(_I)           UBITS(3, (_I)>> 4)
 #define U_6_5(_I)           UBITS(2, (_I)>> 5)
 #define U_7(_I)             UBITS(1, (_I)>> 7)
+#define U_7_4(_I)           UBITS(4, (_I)>> 4)
 #define U_8(_I)             UBITS(1, (_I)>> 8)
 #define U_8_7(_I)           UBITS(2, (_I)>> 7)
+#define U_9(_I)             UBITS(1, (_I)>> 9)
 #define U_9_2(_I)           UBITS(8, (_I)>> 2)
 #define U_9_7(_I)           UBITS(3, (_I)>> 7)
 #define U_10(_I)            UBITS(1, (_I)>>10)
@@ -299,6 +301,7 @@ typedef enum unsExtSpecE {
     USX_T,              // extension always unsigned
     USX_1,              // extension specification in bit 1
     USX_2,              // extension specification in bit 2
+    USX_6,              // extension specification in bit 6
     USX_14,             // extension specification in bit 14
     USX_20,             // extension specification in bit 20
     USX_28,             // extension specification in bit 28
@@ -347,14 +350,18 @@ typedef enum constSpecE {
     CS_C_SWSP,          // unsigned value in 12:7 (C.SWSP encoding)
     CS_C_SDSP,          // unsigned value in 12:7 (C.SDSP encoding)
     CS_C_TBLJ_M0,       // unsigned value in 9:2-0 (C.TBLJALM encoding)
-    CS_C_TBLJ_M8,       // unsigned value in 9:2-0 (C.TBLJ encoding)
-    CS_C_TBLJ_M64,      // unsigned value in 9:2-0 (C.TBLJAL encoding)
+    CS_C_TBLJ_M8,       // unsigned value in 9:2-8 (C.TBLJ encoding)
+    CS_C_TBLJ_M64,      // unsigned value in 9:2-64 (C.TBLJAL encoding)
     CS_C_LB,            // signed value in 10,6:5,11 (C.LB encoding)
     CS_C_LH,            // signed value in 11:10,6:5 (C.LH encoding)
+    CS_C_LB2,           // unsigned value in 5,6 (C.LB encoding 2)
+    CS_C_LH2,           // unsigned value in 5 (C.LH encoding 2)
     CS_NSTKA_11_7,      // negative stack adjust in 11:7
     CS_PSTKA_11_7,      // positive stack adjust in 11:7
     CS_NSTKA_9_7,       // negative stack adjust in 9:7
     CS_PSTKA_9_7,       // positive stack adjust in 9:7
+    CS_NSTKA_3_2,       // negative stack adjust in 3:2
+    CS_PSTKA_3_2,       // positive stack adjust in 3:2
     CS_NSTKA_5_4_7,     // negative stack adjust in {5:4,7}
     CS_PSTKA_7,         // positive stack adjust in 7
     CS_S_LWGP,          // signed value, LWGP (Zceb)
@@ -556,6 +563,7 @@ typedef enum rlistSpecE {
     RL_NA,              // no rlist specification
     RL_3_2,             // rlist encoded in bits 3:2
     RL_4_2,             // rlist encoded in bits 4:2
+    RL_7_4,             // rlist encoded in bits 7:4
     RL_19_16,           // rlist encoded in bits 19:16
 } rlistSpec;
 
@@ -575,6 +583,7 @@ typedef enum retvalSpecE {
     RV_NA,              // no retval specification
     RV_4,               // retval encoded in bit 4
     RV_5,               // retval encoded in bit 5
+    RV_9,               // retval encoded in bit 9
     RV_21_20,           // retval encoded in bits 21:20
 } retvalSpec;
 
@@ -595,7 +604,7 @@ typedef struct opAttrsS {
     const char       *format;           // format string
     riscvArchitecture arch;             // architectural requirements
     riscvIType        type     : 16;    // equivalent generic instruction
-    riscvCompressSet  Zc       :  8;    // compressed extension
+    riscvCompressSet  Zc       : 16;    // compressed extension
     riscvVIType       VIType   :  8;    // vector instruction type
     rSpec             r1       :  8;    // specification of r1
     rSpec             r2       :  8;    // specification of r2
@@ -2183,6 +2192,47 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(     VWMACCU_VX, "|111100|.|.....|.....|110|.....|1010111|"),
     DECODE32_ENTRY(      VWMACC_VX, "|111101|.|.....|.....|110|.....|1010111|"),
 
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes present only when notional Zcd
+// extension is implemented (D-extension loads and stores)
+//
+const static decodeEntry32 decodeZcd32[] = {
+
+    // F-extension and D-extension I-type instructions
+    //                               |       imm32|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(           FL_I, "|............|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           FS_I, "|............|.....|011|.....|0100111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 32-bit opcodes present only when notional Zcd
+// extension is *not* implemented
+//
+const static decodeEntry32 decodeLegacyNotZcd32[] = {
+
+    DECODE32_ENTRY(           LWGP, "|000|.........|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           LDGP, "|010|.........|.....|011|.....|0000111|"),
+    DECODE32_ENTRY(           SWGP, "|000|.........|.....|011|.....|0100111|"),
+    DECODE32_ENTRY(           SDGP, "|010|.........|.....|011|.....|0100111|"),
+    DECODE32_ENTRY(        DECBNEZ, "|100|.........|.....|011|.....|0000111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for legacy Zcea instructions that do not conflict
+// with other C extension decodes
+//
+const static decodeEntry32 decodeLegacyZcea32[] = {
+
     // Zcea instructions
     DECODE32_ENTRY(         MULI_I, "|............|.....|001|.....|0001011|"),
     DECODE32_ENTRY(         BEQI_B, "|.|......|.....|.....|010|....|.|1100011|"),
@@ -2197,37 +2247,6 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(            POP, "|0000000000|..|....|0110|.....|0101011|"),
     DECODE32_ENTRY(           POPE, "|0000000000|..|1101|0110|.....|0101011|"),
     DECODE32_ENTRY(           POPE, "|0000000000|..|111.|0110|.....|0101011|"),
-
-    // table termination entry
-    {0}
-};
-
-//
-// This specifies decodes for 32-bit opcodes present only when Zceb is
-// implemented
-//
-const static decodeEntry32 decodeZceb32[] = {
-
-    DECODE32_ENTRY(           LWGP, "|000|.........|.....|011|.....|0000111|"),
-    DECODE32_ENTRY(           LDGP, "|010|.........|.....|011|.....|0000111|"),
-    DECODE32_ENTRY(           SWGP, "|000|.........|.....|011|.....|0100111|"),
-    DECODE32_ENTRY(           SDGP, "|010|.........|.....|011|.....|0100111|"),
-    DECODE32_ENTRY(        DECBNEZ, "|100|.........|.....|011|.....|0000111|"),
-
-    // table termination entry
-    {0}
-};
-
-//
-// This specifies decodes for 32-bit opcodes present only when Zceb is *not*
-// implemented (D-extension loads and stores)
-//
-const static decodeEntry32 decodeNotZceb32[] = {
-
-    // F-extension and D-extension I-type instructions
-    //                               |       imm32|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(           FL_I, "|............|.....|011|.....|0000111|"),
-    DECODE32_ENTRY(           FS_I, "|............|.....|011|.....|0100111|"),
 
     // table termination entry
     {0}
@@ -4781,14 +4800,15 @@ typedef union decodeKey32U {
         riscvBitManipVer bitmanip_version : 4;
         riscvCryptoVer   crypto_version   : 4;
         riscvDSPVer      dsp_version      : 4;
+        riscvCompressVer compress_version : 4;
         Bool             K                : 1;
         Bool             P                : 1;
-        Bool             Zceb             : 1;
+        Bool             Zcd              : 1;
         Bool             Zicbom           : 1;
         Bool             Zicbop           : 1;
         Bool             Zicboz           : 1;
         Bool             Svinval          : 1;
-        Uns32            _unused          : 9;
+        Uns32            _unused          : 5;
     } f;
 
 } decodeKey32;
@@ -4804,13 +4824,19 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
     insertEntries32(table, &decodeCommon32[0]);
 
     ////////////////////////////////////////////////////////////////////////////
-    // DECODES PRESENT WHEN Zceb ABSENT (FLD/FSD) OR PRESENT (LWGP, SWGP ETC)
+    // COMPRESSED EXTENSION
     ////////////////////////////////////////////////////////////////////////////
 
-    if(key.f.Zceb) {
-        insertEntries32(table, &decodeZceb32[0]);
-    } else {
-        insertEntries32(table, &decodeNotZceb32[0]);
+    // legacy compressed extension decodes that conflict with notional Zcd
+    if(key.f.Zcd) {
+        insertEntries32(table, &decodeZcd32[0]);
+    } else if(!key.f.compress_version) {
+        insertEntries32(table, &decodeLegacyNotZcd32[0]);
+    }
+
+    // legacy compressed extension decodes that do not conflict
+    if(!key.f.compress_version) {
+        insertEntries32(table, &decodeLegacyZcea32[0]);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -5075,13 +5101,14 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
     // create key
     decodeKey32 key = {
         f : {
-            vect_version     : riscv->configInfo.vect_version,
-            bitmanip_version : riscv->configInfo.bitmanip_version,
-            crypto_version   : riscv->configInfo.crypto_version,
-            dsp_version      : riscv->configInfo.dsp_version,
+            vect_version     : RISCV_VECT_VERSION(riscv),
+            bitmanip_version : RISCV_BITMANIP_VERSION(riscv),
+            crypto_version   : RISCV_CRYPTO_VERSION(riscv),
+            dsp_version      : RISCV_DSP_VERSION(riscv),
+            compress_version : RISCV_COMPRESS_VERSION(riscv),
             K                : cryptoPresent(riscv),
             P                : DSPPresent(riscv),
-            Zceb             : Zceb(riscv),
+            Zcd              : Zcd(riscv),
             Zicbom           : riscv->configInfo.Zicbom,
             Zicbop           : riscv->configInfo.Zicbop,
             Zicboz           : riscv->configInfo.Zicboz,
@@ -5244,6 +5271,24 @@ typedef enum riscvIType16E {
     IT16_EXT_R,
     IT16_MUL_R,
 
+    // Zcb instructions
+    IT16_LB2,
+    IT16_LH2,
+    IT16_SB2,
+    IT16_SH2,
+
+    // Zcmp/Zcmpe instructions
+    IT16_PUSH2,
+    IT16_POP2,
+    IT16_POPRET2,
+    IT16_POPRETZ2,
+    IT16_MVA01S_R,
+    IT16_MVSA01_R,
+
+    // Zcmt instructions
+    IT16_JT,
+    IT16_JALT,
+
     // explicitly undefined and reserved instructions
     IT16_UD1,
     IT16_RES,
@@ -5318,32 +5363,6 @@ const static decodeEntry16 decodeCommon16[] = {
     // base J-type instructions
     DECODE16_ENTRY(        J_J, "|101|...........|01|"),
 
-    // Zcea instructions
-    DECODE16_ENTRY(      NOT_R, "|100000|...|00|111|00|"),
-    DECODE16_ENTRY(      NEG_R, "|100000|...|00|110|00|"),
-    DECODE16_ENTRY( MVA01S07_R, "|100111|...|11|...|01|"),
-    DECODE16_ENTRY(       TBLJ, "|100010|00......|00|"),
-    DECODE16_ENTRY(     TBLJAL, "|100010|........|00|"),
-    DECODE16_ENTRY(    TBLJALM, "|100010|00000...|00|"),
-    DECODE16_ENTRY(       PUSH, "|100011|0..|10|...|00|"),
-    DECODE16_ENTRY(       PUSH, "|100011|10.|10|...|00|"),
-    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.0.|00|"),
-    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.10|00|"),
-    DECODE16_ENTRY(        POP, "|100011|11.|00|...|00|"),
-    DECODE16_ENTRY(       POPE, "|100011|11.|01|00.|00|"),
-    DECODE16_ENTRY(       POPE, "|100011|11.|01|010|00|"),
-    DECODE16_ENTRY(     POPRET, "|100011|0..|0.|...|00|"),
-    DECODE16_ENTRY(     POPRET, "|100011|10.|0.|...|00|"),
-    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.0.|00|"),
-    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.10|00|"),
-    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.0.|00|"),
-    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.10|00|"),
-
-    // Zcee instructions
-    DECODE16_ENTRY(      EXT_R, "|100000|...|00|0..|00|"),
-    DECODE16_ENTRY(      EXT_R, "|100000|...|00|100|00|"),
-    DECODE16_ENTRY(      MUL_R, "|100111|...|10|...|01|"),
-
     // explicitly undefined instructions
     DECODE16_ENTRY(        UD1, "|000|0|00000|00000|00|"),
 
@@ -5392,10 +5411,62 @@ const static decodeEntry16 decodeRV6416[] = {
 };
 
 //
-// This specifies decodes for 16-bit opcodes present only when Zceb is
-// implemented
+// This specifies decodes for 16-bit opcodes present only when notional Zcd
+// extension is implemented (D-extension loads and stores)
 //
-const static decodeEntry16 decodeZceb16[] = {
+const static decodeEntry16 decodeZcd16[] = {
+
+    // F-extension and D-extension I-type instructions
+    DECODE16_ENTRY(      FLD_I, "|001|...|...|..|...|00|"),
+    DECODE16_ENTRY(    FLDSP_I, "|001|.|.....|.....|10|"),
+    DECODE16_ENTRY(      FSD_I, "|101|...|...|..|...|00|"),
+    DECODE16_ENTRY(    FSDSP_I, "|101|......|.....|10|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for 16-bit Zcm* instructions present only when
+// notional Zcd extension is *not* implemented
+//
+const static decodeEntry16 decodeZcm16[] = {
+
+    // Zcmb instructions
+    DECODE16_ENTRY(         LB, "|001|0|..|...|..|...|.0|"),
+    DECODE16_ENTRY(         LH, "|001|1|..|...|..|...|.0|"),
+    DECODE16_ENTRY(         SB, "|101|0|..|...|..|...|00|"),
+    DECODE16_ENTRY(         SH, "|101|1|..|...|..|...|00|"),
+    DECODE16_ENTRY(        RES, "|001|0|.0|...|0.|...|.0|"),    // cm.lb* when uimm<4
+    DECODE16_ENTRY(        RES, "|001|1|00|...|0.|...|.0|"),    // cm.lh* when uimm<4
+    DECODE16_ENTRY(        RES, "|101|0|.0|...|0.|...|00|"),    // cm.sb when uimm<4
+    DECODE16_ENTRY(        RES, "|101|1|00|...|0.|...|00|"),    // cm.sh when uimm<4
+
+    // Zcmp/Zcmpe instructions
+    DECODE16_ENTRY(      PUSH2, "|10111000|....|..|10|"),
+    DECODE16_ENTRY(       POP2, "|10111010|....|..|10|"),
+    DECODE16_ENTRY(    POPRET2, "|10111110|....|..|10|"),
+    DECODE16_ENTRY(   POPRETZ2, "|10111100|....|..|10|"),
+    DECODE16_ENTRY(        RES, "|10111000|00..|..|10|"),       // cm.push when rlist<4
+    DECODE16_ENTRY(        RES, "|10111010|00..|..|10|"),       // cm.pop when rlist<4
+    DECODE16_ENTRY(        RES, "|10111110|00..|..|10|"),       // cm.popret when rlist<4
+    DECODE16_ENTRY(        RES, "|10111100|00..|..|10|"),       // cm.popretz when rlist<4
+    DECODE16_ENTRY(   MVA01S_R, "|101011|...|11|...|10|"),
+    DECODE16_ENTRY(   MVSA01_R, "|101011|...|01|...|10|"),
+
+    // Zcmt instructions
+    DECODE16_ENTRY(         JT, "|101000|00......|10|"),
+    DECODE16_ENTRY(       JALT, "|101000|........|10|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for legacy 16-bit Zc instructions present only when
+// notional Zcd extension is *not* implemented
+//
+const static decodeEntry16 decodeLegacyNotZcd16[] = {
 
     DECODE16_ENTRY(         LB, "|001|0|..|...|..|...|.0|"),
     DECODE16_ENTRY(         LH, "|001|1|..|...|..|...|.0|"),
@@ -5409,16 +5480,56 @@ const static decodeEntry16 decodeZceb16[] = {
 };
 
 //
-// This specifies decodes for 32-bit opcodes present only when Zceb is *not*
-// implemented (D-extension loads and stores)
+// This specifies decodes for 16-bit Zcb instructions that do not conflict
+// with other C extension decodes
 //
-const static decodeEntry16 decodeNotZceb16[] = {
+const static decodeEntry16 decodeZcb16[] = {
 
-    // F-extension and D-extension I-type instructions
-    DECODE16_ENTRY(      FLD_I, "|001|...|...|..|...|00|"),
-    DECODE16_ENTRY(    FLDSP_I, "|001|.|.....|.....|10|"),
-    DECODE16_ENTRY(      FSD_I, "|101|...|...|..|...|00|"),
-    DECODE16_ENTRY(    FSDSP_I, "|101|......|.....|10|"),
+    // Zcb instructions
+    DECODE16_ENTRY(        LB2, "|100000|...|..|...|00|"),
+    DECODE16_ENTRY(        LH2, "|100001|...|..|...|00|"),
+    DECODE16_ENTRY(        SB2, "|100010|...|..|...|00|"),
+    DECODE16_ENTRY(        SH2, "|100011|...|0.|...|00|"),
+    DECODE16_ENTRY(      EXT_R, "|100111|...|11|0..|01|"),
+    DECODE16_ENTRY(      EXT_R, "|100111|...|11|100|01|"),
+    DECODE16_ENTRY(      MUL_R, "|100111|...|10|...|01|"),
+    DECODE16_ENTRY(      NOT_R, "|100111|...|11|101|01|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for legacy Zcea/Zcee instructions that do not conflict
+// with other C extension decodes
+//
+const static decodeEntry16 decodeLegacyZceaZcee16[] = {
+
+    // Zcea instructions
+    DECODE16_ENTRY(      NOT_R, "|100000|...|00|111|00|"),
+    DECODE16_ENTRY(      NEG_R, "|100000|...|00|110|00|"),
+    DECODE16_ENTRY( MVA01S07_R, "|100111|...|11|...|01|"),
+    DECODE16_ENTRY(       TBLJ, "|100010|00......|00|"),
+    DECODE16_ENTRY(     TBLJAL, "|100010|........|00|"),
+    DECODE16_ENTRY(    TBLJALM, "|100010|00000...|00|"),
+    DECODE16_ENTRY(       PUSH, "|100011|0..|10|...|00|"),
+    DECODE16_ENTRY(       PUSH, "|100011|10.|10|...|00|"),
+    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.0.|00|"),
+    DECODE16_ENTRY(      PUSHE, "|100011|11.|1.|.10|00|"),
+    DECODE16_ENTRY(        POP, "|100011|11.|00|...|00|"),
+    DECODE16_ENTRY(       POPE, "|100011|11.|01|00.|00|"),
+    DECODE16_ENTRY(       POPE, "|100011|11.|01|010|00|"),
+    DECODE16_ENTRY(     POPRET, "|100011|0..|0.|...|00|"),
+    DECODE16_ENTRY(     POPRET, "|100011|10.|0.|...|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.0.|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|0..|11|.10|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.0.|00|"),
+    DECODE16_ENTRY(    POPRETE, "|100011|10.|11|.10|00|"),
+
+    // Zcee instructions
+    DECODE16_ENTRY(      EXT_R, "|100000|...|00|0..|00|"),
+    DECODE16_ENTRY(      EXT_R, "|100000|...|00|100|00|"),
+    DECODE16_ENTRY(      MUL_R, "|100111|...|10|...|01|"),
 
     // table termination entry
     {0}
@@ -5430,65 +5541,65 @@ const static decodeEntry16 decodeNotZceb16[] = {
 const static opAttrs attrsArray16[] = {
 
     // base R-type instructions
-    ATTR16_ADD         (      ADD_R,    ADD_R, RVANYC,  "add"),
-    ATTR16_ADDW        (     ADDW_R,    ADD_R, RV64C,   "add"),
-    ATTR16_AND         (      AND_R,    AND_R, RVANYC,  "and"),
-    ATTR16_MV          (       MV_R,     MV_R, RVANYC,  "mv" ),
-    ATTR16_AND         (       OR_R,     OR_R, RVANYC,  "or" ),
-    ATTR16_AND         (      SUB_R,    SUB_R, RVANYC,  "sub"),
-    ATTR16_ADDW        (     SUBW_R,    SUB_R, RV64C,   "sub"),
-    ATTR16_AND         (      XOR_R,    XOR_R, RVANYC,  "xor"),
+    ATTR16_ADD         (      ADD_R,    ADD_R, RVANYC,  "add",      Zca),
+    ATTR16_ADDW        (     ADDW_R,    ADD_R, RV64C,   "add",      Zca),
+    ATTR16_AND         (      AND_R,    AND_R, RVANYC,  "and",      Zca),
+    ATTR16_MV          (       MV_R,     MV_R, RVANYC,  "mv",       Zca),
+    ATTR16_AND         (       OR_R,     OR_R, RVANYC,  "or",       Zca),
+    ATTR16_AND         (      SUB_R,    SUB_R, RVANYC,  "sub",      Zca),
+    ATTR16_ADDW        (     SUBW_R,    SUB_R, RV64C,   "sub",      Zca),
+    ATTR16_AND         (      XOR_R,    XOR_R, RVANYC,  "xor",      Zca),
 
     // base I-type instructions
-    ATTR16_ADDI        (     ADDI_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDI16SP    ( ADDI16SP_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDI4SPN    ( ADDI4SPN_I,   ADDI_I, RVANYC,  "addi"),
-    ATTR16_ADDIW       (    ADDIW_I,   ADDI_I, RV64C,   "addi"),
-    ATTR16_ANDI        (     ANDI_I,   ANDI_I, RVANYC,  "andi"),
-    ATTR16_SLLI        (     SLLI_I,   SLLI_I, RVANYC,  "slli"),
-    ATTR16_SRAI        (     SRAI_I,   SRAI_I, RVANYC,  "srai"),
-    ATTR16_SRAI        (     SRLI_I,   SRLI_I, RVANYC,  "srli"),
-    ATTR16_LI          (       LI_I,   ADDI_I, RVANYC,  "li"  ),
-    ATTR16_LUI         (      LUI_I,   ADDI_I, RVANYC,  "lui" ),
-    ATTR16_JR          (       JR_I,   JALR_I, RVANYC,  "jr"  ),
-    ATTR16_JALR        (     JALR_I,   JALR_I, RVANYC,  "jalr"),
-    ATTR16_LD          (       LD_I,      L_I, RV64C,   "l"   ),
-    ATTR16_LDSP        (     LDSP_I,      L_I, RV64C,   "l"   ),
-    ATTR16_LW          (       LW_I,      L_I, RVANYC,  "l"   ),
-    ATTR16_LWSP        (     LWSP_I,      L_I, RVANYC,  "l"   ),
-    ATTR16_LD          (       SD_I,      S_I, RV64C,   "s"   ),
-    ATTR16_SDSP        (     SDSP_I,      S_I, RV64C,   "s"   ),
-    ATTR16_LW          (       SW_I,      S_I, RVANYC,  "s"   ),
-    ATTR16_SWSP        (     SWSP_I,      S_I, RVANYC,  "s"   ),
+    ATTR16_ADDI        (     ADDI_I,   ADDI_I, RVANYC,  "addi",     Zca),
+    ATTR16_ADDI16SP    ( ADDI16SP_I,   ADDI_I, RVANYC,  "addi",     Zca),
+    ATTR16_ADDI4SPN    ( ADDI4SPN_I,   ADDI_I, RVANYC,  "addi",     Zca),
+    ATTR16_ADDIW       (    ADDIW_I,   ADDI_I, RV64C,   "addi",     Zca),
+    ATTR16_ANDI        (     ANDI_I,   ANDI_I, RVANYC,  "andi",     Zca),
+    ATTR16_SLLI        (     SLLI_I,   SLLI_I, RVANYC,  "slli",     Zca),
+    ATTR16_SRAI        (     SRAI_I,   SRAI_I, RVANYC,  "srai",     Zca),
+    ATTR16_SRAI        (     SRLI_I,   SRLI_I, RVANYC,  "srli",     Zca),
+    ATTR16_LI          (       LI_I,   ADDI_I, RVANYC,  "li",       Zca),
+    ATTR16_LUI         (      LUI_I,   ADDI_I, RVANYC,  "lui",      Zca),
+    ATTR16_JR          (       JR_I,   JALR_I, RVANYC,  "jr",       Zca),
+    ATTR16_JALR        (     JALR_I,   JALR_I, RVANYC,  "jalr",     Zca),
+    ATTR16_LD          (       LD_I,      L_I, RV64C,   "l",        Zca),
+    ATTR16_LDSP        (     LDSP_I,      L_I, RV64C,   "l",        Zca),
+    ATTR16_LW          (       LW_I,      L_I, RVANYC,  "l",        Zca),
+    ATTR16_LWSP        (     LWSP_I,      L_I, RVANYC,  "l",        Zca),
+    ATTR16_LD          (       SD_I,      S_I, RV64C,   "s",        Zca),
+    ATTR16_SDSP        (     SDSP_I,      S_I, RV64C,   "s",        Zca),
+    ATTR16_LW          (       SW_I,      S_I, RVANYC,  "s",        Zca),
+    ATTR16_SWSP        (     SWSP_I,      S_I, RVANYC,  "s",        Zca),
 
     // miscellaneous system instructions
-    ATTR16_NOP         (   EBREAK_I, EBREAK_I, RVANYC,  "ebreak"),
+    ATTR16_NOP         (   EBREAK_I, EBREAK_I, RVANYC,  "ebreak",   Zca),
 
     // base B-type instructions
-    ATTR16_BEQZ        (     BEQZ_B,    BEQ_B, RVANYC,  "beqz"),
-    ATTR16_BEQZ        (     BNEZ_B,    BNE_B, RVANYC,  "bnez"),
+    ATTR16_BEQZ        (     BEQZ_B,    BEQ_B, RVANYC,  "beqz",     Zca),
+    ATTR16_BEQZ        (     BNEZ_B,    BNE_B, RVANYC,  "bnez",     Zca),
 
     // base J-type instructions
-    ATTR16_J           (        J_J,    JAL_J, RVANYC,  "j"  ),
-    ATTR16_JAL         (      JAL_J,    JAL_J, RV32C,   "jal"),
+    ATTR16_J           (        J_J,    JAL_J, RVANYC,  "j",        Zca),
+    ATTR16_JAL         (      JAL_J,    JAL_J, RV32C,   "jal",      Zca),
 
     // F-extension and D-extension I-type instructions
-    ATTR16_FLD         (      FLD_I,      L_I, RVANYCD, "fl"),
-    ATTR16_FLDSP       (    FLDSP_I,      L_I, RVANYCD, "fl"),
-    ATTR16_FLW         (      FLW_I,      L_I, RV32CF,  "fl"),
-    ATTR16_FLWSP       (    FLWSP_I,      L_I, RV32CF,  "fl"),
-    ATTR16_FLD         (      FSD_I,      S_I, RVANYCD, "fs"),
-    ATTR16_FSDSP       (    FSDSP_I,      S_I, RVANYCD, "fs"),
-    ATTR16_FLW         (      FSW_I,      S_I, RV32CF,  "fs"),
-    ATTR16_FSWSP       (    FSWSP_I,      S_I, RV32CF,  "fs"),
+    ATTR16_FLD         (      FLD_I,      L_I, RVANYCD, "fl",       Zcd),
+    ATTR16_FLDSP       (    FLDSP_I,      L_I, RVANYCD, "fl",       Zcd),
+    ATTR16_FLW         (      FLW_I,      L_I, RV32CF,  "fl",       Zcf),
+    ATTR16_FLWSP       (    FLWSP_I,      L_I, RV32CF,  "fl",       Zcf),
+    ATTR16_FLD         (      FSD_I,      S_I, RVANYCD, "fs",       Zcd),
+    ATTR16_FSDSP       (    FSDSP_I,      S_I, RVANYCD, "fs",       Zcd),
+    ATTR16_FLW         (      FSW_I,      S_I, RV32CF,  "fs",       Zcf),
+    ATTR16_FSWSP       (    FSWSP_I,      S_I, RV32CF,  "fs",       Zcf),
 
     // Zcea instructions
-    ATTR16_NOT_ZC      (      NOT_R,    NOT_R, RVANYC,  "not",      Zcea),
-    ATTR16_NOT_ZC      (      NEG_R,    NEG_R, RVANYC,  "neg",      Zcea),
-    ATTR16_MVA01S07_ZC ( MVA01S07_R,    MVP_R, RVANYC,  "mva01s07", Zcea),
-    ATTR16_TBLJ_ZC     (       TBLJ,     TBLJ, RVANYC,  "tblj",     Zcea, 8,  ZERO),
-    ATTR16_TBLJ_ZC     (     TBLJAL,   TBLJAL, RVANYC,  "tbljal",   Zcea, 64, RA),
-    ATTR16_TBLJ_ZC     (    TBLJALM,  TBLJALM, RVANYC,  "tbljalm",  Zcea, 0,  T0),
+    ATTR16_NOT_ZC      (      NOT_R,    NOT_R, RVANYC,  "not",      Zcea, Zcb),
+    ATTR16_NOT_ZC      (      NEG_R,    NEG_R, RVANYC,  "neg",      Zcea, Zcb),
+    ATTR16_MVA01S_ZC   ( MVA01S07_R,    MVP_R, RVANYC,  "mva01s07", Zcea),
+    ATTR16_TBLJ_ZC     (       TBLJ,      JT8, RVANYC,  "tblj",     Zcea, 8,  ZERO),
+    ATTR16_TBLJ_ZC     (     TBLJAL,     JT64, RVANYC,  "tbljal",   Zcea, 64, RA),
+    ATTR16_TBLJ_ZC     (    TBLJALM,      JT0, RVANYC,  "tbljalm",  Zcea, 0,  T0),
     ATTR16_PUSH_ZC     (       PUSH,     PUSH, RVANYC,  "push",     Zcea),
     ATTR16_PUSHE_ZC    (      PUSHE,     PUSH, RV32C,   "push",     Zcea),
     ATTR16_POP_ZC      (        POP,      POP, RVANYC,  "pop",      Zcea),
@@ -5497,19 +5608,37 @@ const static opAttrs attrsArray16[] = {
     ATTR16_POPRETE_ZC  (    POPRETE,      POP, RV32C,   "pop",      Zcea),
 
     // Zceb instructions
-    ATTR16_LB_ZC       (        LB,       L_I, RVANYC,  "l",        Zceb),
-    ATTR16_LH_ZC       (        LH,       L_I, RVANYC,  "l",        Zceb),
-    ATTR16_SB_ZC       (        SB,       S_I, RVANYC,  "s",        Zceb),
-    ATTR16_SH_ZC       (        SH,       S_I, RVANYC,  "s",        Zceb),
+    ATTR16_LB_ZC       (        LB,       L_I, RVANYC,  "l",        Zceb, Zcmb),
+    ATTR16_LH_ZC       (        LH,       L_I, RVANYC,  "l",        Zceb, Zcmb),
+    ATTR16_SB_ZC       (        SB,       S_I, RVANYC,  "s",        Zceb, Zcmb),
+    ATTR16_SH_ZC       (        SH,       S_I, RVANYC,  "s",        Zceb, Zcmb),
     ATTR16_DECBNEZ_ZC  (    DECBNEZ,  DECBNEZ, RVANYC,  "decbnez",  Zceb),
 
     // Zcee instructions
-    ATTR16_EXT_ZC      (      EXT_R,    EXT_R, RVANYC,  "ext",      Zcee),
-    ATTR16_MUL_ZC      (      MUL_R,    MUL_R, RVANYCM, "mul",      Zcee),
+    ATTR16_EXT_ZC      (      EXT_R,    EXT_R, RVANYC,  "ext",      Zcee, Zcb),
+    ATTR16_MUL_ZC      (      MUL_R,    MUL_R, RVANYCM, "mul",      Zcee, Zcb),
+
+    // Zcb instructions
+    ATTR16_LB2_ZC      (        LB2,      L_I, RVANYC,  "l",        Zcb),
+    ATTR16_LH2_ZC      (        LH2,      L_I, RVANYC,  "l",        Zcb),
+    ATTR16_SB2_ZC      (        SB2,      S_I, RVANYC,  "s",        Zcb),
+    ATTR16_SH2_ZC      (        SH2,      S_I, RVANYC,  "s",        Zcb),
+
+    // Zcmp/Zcmpe instructions
+    ATTR16_PUSH2_ZC    (      PUSH2,     PUSH, RVANYC,  "push",     Zcmp, Zcmpe),
+    ATTR16_POP2_ZC     (       POP2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
+    ATTR16_POPRET2_ZC  (    POPRET2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
+    ATTR16_POPRET2_ZC  (   POPRETZ2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
+    ATTR16_MVA01S_ZC   (   MVA01S_R,    MVP_R, RVANYC,  "mva01s",   Zcmp),
+    ATTR16_MVSA01_ZC   (   MVSA01_R,    MVP_R, RVANYC,  "mvsa01",   Zcmp),
+
+    // Zcmt instructions
+    ATTR16_TBLJ_ZC     (         JT,      JT0, RVANYC,  "jt",       Zcmt, 0,  ZERO),
+    ATTR16_TBLJ_ZC     (       JALT,     JT64, RVANYC,  "jalt",     Zcmt, 64, RA),
 
     // explicitly undefined and reserved instructions
-    ATTR16_NOP         (        UD1,     LAST, RVANYC,  "illegal"),
-    ATTR16_NOP         (        RES,     LAST, RVANYC,  "res"    ),
+    ATTR16_NOP         (        UD1,     LAST, RVANYC,  "illegal",  Zca),
+    ATTR16_NOP         (        RES,     LAST, RVANYC,  "res",      Zca),
 
     // dummy entry for undecoded instruction
     ATTR16_LAST        (       LAST,     LAST,          "undef")
@@ -5557,9 +5686,10 @@ typedef union decodeKey16U {
     Uns32 u32;
 
     struct {
-        Bool  RV64    :  1;
-        Bool  Zceb    :  1;
-        Uns32 _unused : 30;
+        riscvCompressVer compress_version :  4;
+        Bool             RV64             :  1;
+        Bool             Zcd              :  1;
+        Uns32           _unused           : 26;
     } f;
 
 } decodeKey16;
@@ -5585,13 +5715,23 @@ static vmidDecodeTableP createDecodeTable16(decodeKey16 key) {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // DECODES PRESENT WHEN Zceb ABSENT (FLD/FSD) OR PRESENT (LWGP, SWGP ETC)
+    // COMPRESSED EXTENSION
     ////////////////////////////////////////////////////////////////////////////
 
-    if(key.f.Zceb) {
-        insertEntries16(table, &decodeZceb16[0]);
+    // compressed extension decodes that conflict with Zca (notional Zcd)
+    if(key.f.Zcd) {
+        insertEntries16(table, &decodeZcd16[0]);
+    } else if(key.f.compress_version) {
+        insertEntries16(table, &decodeZcm16[0]);
     } else {
-        insertEntries16(table, &decodeNotZceb16[0]);
+        insertEntries16(table, &decodeLegacyNotZcd16[0]);
+    }
+
+    // legacy compressed extension decodes that do not conflict with Zca
+    if(key.f.compress_version) {
+        insertEntries16(table, &decodeZcb16[0]);
+    } else {
+        insertEntries16(table, &decodeLegacyZceaZcee16[0]);
     }
 
     return table;
@@ -5615,8 +5755,9 @@ static vmidDecodeTableP createDecodeTable16Key(riscvP riscv) {
     // create key
     decodeKey16 key = {
         f : {
-            RV64 : (getXLenBits(riscv)==64),
-            Zceb : Zceb(riscv),
+            compress_version : RISCV_COMPRESS_VERSION(riscv),
+            RV64             : (getXLenBits(riscv)==64),
+            Zcd              : Zcd(riscv),
         }
     };
 
@@ -5898,6 +6039,31 @@ static void validateByte(
 }
 
 //
+// Return stack adjustment for C extension push/pop
+//
+static Uns64 getPushPopStackAdjust(riscvP riscv, Uns32 rlist, Uns32 spimm) {
+
+    Uns32 stack_adj_base;
+
+    // tables of stack_adj_base for each XLEN
+    static const Uns8 stack_adj_base32[] = {
+        0, 0, 0, 0, 16, 16, 16, 16, 32, 32, 32, 32, 48, 48, 48, 64
+    };
+    static const Uns8 stack_adj_base64[] = {
+        0, 0, 0, 0, 16, 16, 32, 32, 48, 48, 64, 64, 80, 80, 96, 112
+    };
+
+    // get stack_adj_base
+    if(getXLenBits(riscv)==32) {
+        stack_adj_base = stack_adj_base32[rlist];
+    } else {
+        stack_adj_base = stack_adj_base64[rlist];
+    }
+
+    return stack_adj_base + (spimm*16);
+}
+
+//
 // Return a constant encoded within the instruction
 //
 static Uns64 getConstant(
@@ -6031,6 +6197,13 @@ static Uns64 getConstant(
             result  = U_11_10(instr) << 3;
             result += U_6_5(instr)   << 1;
             break;
+        case CS_C_LB2:
+            result  = U_5(instr) << 1;
+            result += U_6(instr);
+            break;
+        case CS_C_LH2:
+            result  = U_5(instr) << 1;
+            break;
         case CS_NSTKA_11_7:
             result = -(Int32)U_11_7(instr) * 16;
             break;
@@ -6042,6 +6215,12 @@ static Uns64 getConstant(
             break;
         case CS_PSTKA_9_7:
             result =  U_9_7(instr) * 16;
+            break;
+        case CS_NSTKA_3_2:
+            result =  -getPushPopStackAdjust(riscv, U_7_4(instr), U_3_2(instr));
+            break;
+        case CS_PSTKA_3_2:
+            result =  getPushPopStackAdjust(riscv, U_7_4(instr), U_3_2(instr));
             break;
         case CS_NSTKA_5_4_7:
             result = -(Int32)((U_5_4(instr)<<1)+U_7(instr)) * 16;
@@ -6499,6 +6678,9 @@ static Bool getUnsExt(riscvInstrInfoP info, unsExtSpec unsExt) {
         case USX_2:
             result = !U_2(instr);
             break;
+        case USX_6:
+            result = !U_6(instr);
+            break;
         case USX_14:
             result = U_14(instr);
             break;
@@ -6896,6 +7078,26 @@ static riscvRListDesc getRList(riscvInstrInfoP info, rlistSpec rlist) {
         RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
     };
 
+    // mapping for rlist4
+    static const riscvRListDesc map4[] = {
+        RV_RL_x_RA,             // reserved
+        RV_RL_x_RA,             // reserved
+        RV_RL_x_RA,             // reserved
+        RV_RL_x_RA,             // reserved
+        RV_RL_x_RA,             // {ra}                 both
+        RV_RL_x_RA_S0,          // {ra,s0}              both
+        RV_RL_x_RA_S0_1,        // {ra,s0-s1}           both
+        RV_RL_U_RA_S0_2,        // {ra,s0-s2}           UABI
+        RV_RL_U_RA_S0_3,        // {ra,s0-s3}           UABI
+        RV_RL_U_RA_S0_4,        // {ra,s0-s4}           UABI
+        RV_RL_U_RA_S0_5,        // {ra,s0-s5}           UABI
+        RV_RL_U_RA_S0_6,        // {ra,s0-s6}           UABI
+        RV_RL_U_RA_S0_7,        // {ra,s0-s7}           UABI
+        RV_RL_U_RA_S0_8,        // {ra,s0-s8}           UABI
+        RV_RL_U_RA_S0_9,        // {ra,s0-s9}           UABI
+        RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
+    };
+
     switch(rlist) {
         case RL_NA:
             break;
@@ -6904,6 +7106,9 @@ static riscvRListDesc getRList(riscvInstrInfoP info, rlistSpec rlist) {
             break;
         case RL_4_2:
             result = map3[U_4_2(info->instruction)];
+            break;
+        case RL_7_4:
+            result = map4[U_7_4(info->instruction)];
             break;
         case RL_19_16:
             result = U_19_16(info->instruction);
@@ -6972,6 +7177,9 @@ static riscvRetValDesc getRetVal(riscvInstrInfoP info, retvalSpec retval) {
             break;
         case RV_5:
             result = U_5(info->instruction);
+            break;
+        case RV_9:
+            result = U_9(info->instruction) ? RV_RV_NA : RV_RV_Z;
             break;
         case RV_21_20:
             result = U_21_20(info->instruction);

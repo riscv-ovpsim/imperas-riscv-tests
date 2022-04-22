@@ -17,7 +17,16 @@ At the top of each test source file is listed the specification version and conf
 
 The coverage data is collected and reported by functionality included in riscvOVPsim.
 
-The 'src' directory contains all the .S assembler files of the tests.
-The 'reference' directory contains the reference signatures for the tests.
+Depending where you are viewing this file you might see some other directories/files:
+The src and reference directories are the test suites and their reference.
+    The 'src' directory contains all the .S assembler files of the tests.
+    The 'reference' directory contains the reference signatures for the tests.
 
+On github you will find only the RV32I tests. 
+All the other open source freely available suites are can be found on OVPworld.
+To obtain the download package for those configured testsuites, get the download package from: [www.OVPworld.org](https://www.ovpworld.org/riscvOVPsimPlus).
+
+If you need vector tests and your device is a different configuration of vector engine, please contact Imperas (info@imperas.com) to obtain a test suite configured for your specific device.
+
+If the suite is only commercially available (for example for the Vector instructions and PMP privilege ISA tests) please contact Imperas.
 

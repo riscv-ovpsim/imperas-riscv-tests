@@ -2611,17 +2611,18 @@
 //
 // instructions like NOP
 //
-#define ATTR16_NOP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_NOP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_NONE,          \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADD
 //
-#define ATTR16_ADD(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADD(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_R3,      \
     type   : RV_IT_##_GENERIC,  \
@@ -2629,12 +2630,13 @@
     r1     : RS_X_11_7,         \
     r2     : RS_X_11_7,         \
     r3     : RS_X_6_2,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like AND
 //
-#define ATTR16_AND(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_AND(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_R3,      \
     type   : RV_IT_##_GENERIC,  \
@@ -2642,12 +2644,13 @@
     r1     : RS_X_9_7_P8,       \
     r2     : RS_X_9_7_P8,       \
     r3     : RS_X_4_2_P8,       \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADDW
 //
-#define ATTR16_ADDW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADDW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_R3,      \
     type   : RV_IT_##_GENERIC,  \
@@ -2656,106 +2659,107 @@
     r2     : RS_X_9_7_P8,       \
     r3     : RS_X_4_2_P8,       \
     wX     : WX_W1,             \
-}
-
-//
-// instructions like LB (Zc subset)
-//
-#define ATTR16_LB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LB,           \
-    unsExt : USX_1,             \
-    memBits: MBS_B,             \
-    xQuiet : True,              \
     Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LB (Zc subset)
 //
-#define ATTR16_LH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LH,           \
-    unsExt : USX_1,             \
-    memBits: MBS_H,             \
-    xQuiet : True,              \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_LB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_OFF_R2,             \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_4_2_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    cs     : CS_C_LB,                   \
+    unsExt : USX_1,                     \
+    memBits: MBS_B,                     \
+    xQuiet : True,                      \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
+}
+
+//
+// instructions like LH (Zc subset)
+//
+#define ATTR16_LH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_OFF_R2,             \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_4_2_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    cs     : CS_C_LH,                   \
+    unsExt : USX_1,                     \
+    memBits: MBS_H,                     \
+    xQuiet : True,                      \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
 // instructions like SB (Zc subset)
 //
-#define ATTR16_SB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LB,           \
-    memBits: MBS_B,             \
-    xQuiet : True,              \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_SB_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_OFF_R2,             \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_4_2_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    cs     : CS_C_LB,                   \
+    memBits: MBS_B,                     \
+    xQuiet : True,                      \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
 // instructions like SH (Zc subset)
 //
-#define ATTR16_SH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_OFF_R2,     \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_4_2_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    cs     : CS_C_LH,           \
-    memBits: MBS_H,             \
-    xQuiet : True,              \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_SH_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_OFF_R2,             \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_4_2_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    cs     : CS_C_LH,                   \
+    memBits: MBS_H,                     \
+    xQuiet : True,                      \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
 // instructions like SEXT.B (Zc subset)
 //
-#define ATTR16_EXT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_R2,         \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_9_7_P8,       \
-    r2     : RS_X_9_7_P8_S_4_3, \
-    unsExt : USX_2,             \
-    unsPfx : True,              \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_EXT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_R2,                 \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_9_7_P8,               \
+    r2     : RS_X_9_7_P8_S_4_3,         \
+    unsExt : USX_2,                     \
+    unsPfx : True,                      \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
 // instructions like C.NOT (Zc subset)
 //
-#define ATTR16_NOT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_R2,         \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_9_7_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_NOT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_R2,                 \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_9_7_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
-// instructions like C.MVA01S07 (Zc subset)
+// instructions like C.MVA01S (Zcmp subset)
 //
-#define ATTR16_MVA01S07_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+#define ATTR16_MVA01S_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R3_R4,         \
     type   : RV_IT_##_GENERIC,  \
@@ -2764,6 +2768,21 @@
     r2     : RS_X_A1,           \
     r3     : RS_X_9_7_S,        \
     r4     : RS_X_4_2_S,        \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.MVSA01 (Zcmp subset)
+//
+#define ATTR16_MVSA01_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_R2,         \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_9_7_S,        \
+    r2     : RS_X_4_2_S,        \
+    r3     : RS_X_A0,           \
+    r4     : RS_X_A1,           \
     Zc     : RVCS_##_ZC,        \
 }
 
@@ -2783,15 +2802,15 @@
 //
 // instructions like MUL (Zc subset)
 //
-#define ATTR16_MUL_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
-    opcode : _OPCODE,           \
-    format : FMT_R1_R2_R3,      \
-    type   : RV_IT_##_GENERIC,  \
-    arch   : _ARCH,             \
-    r1     : RS_X_9_7_P8,       \
-    r2     : RS_X_9_7_P8,       \
-    r3     : RS_X_4_2_P8,       \
-    Zc     : RVCS_##_ZC,        \
+#define ATTR16_MUL_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_R1_R2_R3,              \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    r1     : RS_X_9_7_P8,               \
+    r2     : RS_X_9_7_P8,               \
+    r3     : RS_X_4_2_P8,               \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
 }
 
 //
@@ -2879,7 +2898,7 @@
 }
 
 //
-// instructions like C.DECBNEZ (Zb subset)
+// instructions like C.DECBNEZ (Zc subset)
 //
 #define ATTR16_DECBNEZ_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
@@ -2893,21 +2912,128 @@
 }
 
 //
+// instructions like C.LB (Zcb subset)
+//
+#define ATTR16_LB2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LB2,          \
+    memBits: MBS_B,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.LH (Zcb subset)
+//
+#define ATTR16_LH2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LH2,          \
+    unsExt : USX_6,             \
+    memBits: MBS_H,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.SB (Zcb subset)
+//
+#define ATTR16_SB2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LB2,          \
+    memBits: MBS_B,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.SH (Zcb subset)
+//
+#define ATTR16_SH2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R1_OFF_R2,     \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_4_2_P8,       \
+    r2     : RS_X_9_7_P8,       \
+    cs     : CS_C_LH2,          \
+    memBits: MBS_H,             \
+    xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
+}
+
+//
+// instructions like C.PUSH (Zcmp/Zcmpe subset)
+//
+#define ATTR16_PUSH2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_RLIST_SIMM,            \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    rlist  : RL_7_4,                    \
+    cs     : CS_NSTKA_3_2,              \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
+}
+
+//
+// instructions like C.POP (Zcmp/Zcmpe subset)
+//
+#define ATTR16_POP2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_RLIST_SIMM,            \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    rlist  : RL_7_4,                    \
+    cs     : CS_PSTKA_3_2,              \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
+}
+
+//
+// instructions like C.POPRET (Zcmp/Zcmpe subset)
+//
+#define ATTR16_POPRET2_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZCA, _ZCB) [IT16_##_NAME] = { \
+    opcode : _OPCODE,                   \
+    format : FMT_RLIST_SIMM,            \
+    type   : RV_IT_##_GENERIC,          \
+    arch   : _ARCH,                     \
+    rlist  : RL_7_4,                    \
+    ret    : RS_T,                      \
+    retval : RV_9,                      \
+    cs     : CS_PSTKA_3_2,              \
+    Zc     : RVCS_##_ZCA|RVCS_##_ZCB,   \
+}
+
+//
 // instructions like MV
 //
-#define ATTR16_MV(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_MV(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2,         \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_11_7,         \
     r2     : RS_X_6_2,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADDI
 //
-#define ATTR16_ADDI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADDI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_SIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2915,12 +3041,13 @@
     r1     : RS_X_11_7,         \
     r2     : RS_X_11_7,         \
     cs     : CS_C_ADDI,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADDI16SP
 //
-#define ATTR16_ADDI16SP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADDI16SP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_SIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2928,12 +3055,13 @@
     r1     : RS_X_SP,           \
     r2     : RS_X_SP,           \
     cs     : CS_C_ADDI16SP,     \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADDI4SPN
 //
-#define ATTR16_ADDI4SPN(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADDI4SPN(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_SIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2941,12 +3069,13 @@
     r1     : RS_X_4_2_P8,       \
     r2     : RS_X_SP,           \
     cs     : CS_C_ADDI4SPN,     \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ADDIW
 //
-#define ATTR16_ADDIW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ADDIW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_SIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2955,12 +3084,13 @@
     r2     : RS_X_11_7,         \
     cs     : CS_C_ADDI,         \
     wX     : WX_W1,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like ANDI
 //
-#define ATTR16_ANDI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_ANDI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_SIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2968,12 +3098,13 @@
     r1     : RS_X_9_7_P8,       \
     r2     : RS_X_9_7_P8,       \
     cs     : CS_C_ADDI,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like SLLI
 //
-#define ATTR16_SLLI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_SLLI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_XIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2981,12 +3112,13 @@
     r1     : RS_X_11_7,         \
     r2     : RS_X_11_7,         \
     cs     : CS_C_SLLI,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like SRAI
 //
-#define ATTR16_SRAI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_SRAI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_R2_XIMM,    \
     type   : RV_IT_##_GENERIC,  \
@@ -2994,12 +3126,13 @@
     r1     : RS_X_9_7_P8,       \
     r2     : RS_X_9_7_P8,       \
     cs     : CS_C_SLLI,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like BEQZ
 //
-#define ATTR16_BEQZ(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_BEQZ(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_TGT,        \
     type   : RV_IT_##_GENERIC,  \
@@ -3007,60 +3140,65 @@
     r1     : RS_X_9_7_P8,       \
     r2     : RS_X_ZERO,         \
     tgts   : TGTS_C_B,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like J
 //
-#define ATTR16_J(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_J(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_TGT,           \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_ZERO,         \
     tgts   : TGTS_C_J,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like JAL
 //
-#define ATTR16_JAL(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_JAL(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_TGT,        \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_RA,           \
     tgts   : TGTS_C_J,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like JR
 //
-#define ATTR16_JR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode   : _OPCODE,             \
-    format   : FMT_R2,              \
-    type     : RV_IT_##_GENERIC,    \
-    arch     : _ARCH,               \
-    r1       : RS_X_ZERO,           \
-    r2       : RS_X_11_7,           \
+#define ATTR16_JR(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R2,            \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_ZERO,         \
+    r2     : RS_X_11_7,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like JALR
 //
-#define ATTR16_JALR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
-    opcode   : _OPCODE,             \
-    format   : FMT_R2,              \
-    type     : RV_IT_##_GENERIC,    \
-    arch     : _ARCH,               \
-    r1       : RS_X_RA,             \
-    r2       : RS_X_11_7,           \
+#define ATTR16_JALR(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
+    opcode : _OPCODE,           \
+    format : FMT_R2,            \
+    type   : RV_IT_##_GENERIC,  \
+    arch   : _ARCH,             \
+    r1     : RS_X_RA,           \
+    r2     : RS_X_11_7,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LI
 //
-#define ATTR16_LI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_SIMM,       \
     type   : RV_IT_##_GENERIC,  \
@@ -3068,12 +3206,13 @@
     r1     : RS_X_11_7,         \
     r2     : RS_X_ZERO,         \
     cs     : CS_C_ADDI,         \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LUI
 //
-#define ATTR16_LUI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LUI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_UI,         \
     type   : RV_IT_##_GENERIC,  \
@@ -3081,12 +3220,13 @@
     r1     : RS_X_11_7,         \
     r2     : RS_X_ZERO,         \
     cs     : CS_C_LUI,          \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LD
 //
-#define ATTR16_LD(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LD(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3095,12 +3235,13 @@
     r2     : RS_X_9_7_P8,       \
     cs     : CS_C_LD,           \
     memBits: MBS_D,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LDSP
 //
-#define ATTR16_LDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LDSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3109,12 +3250,13 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_LDSP,         \
     memBits: MBS_D,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like SDSP
 //
-#define ATTR16_SDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_SDSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3123,12 +3265,13 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_SDSP,         \
     memBits: MBS_D,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LW
 //
-#define ATTR16_LW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3138,12 +3281,13 @@
     cs     : CS_C_LW,           \
     memBits: MBS_W,             \
     xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like LWSP
 //
-#define ATTR16_LWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_LWSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3153,12 +3297,13 @@
     cs     : CS_C_LWSP,         \
     memBits: MBS_W,             \
     xQuiet : True,              \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like SWSP
 //
-#define ATTR16_SWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_SWSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
     format : FMT_R1_OFF_R2,     \
     type   : RV_IT_##_GENERIC,  \
@@ -3167,12 +3312,13 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_SWSP,         \
     memBits: MBS_W,             \
+    Zc     : RVCS_##_ZC,        \
 }
 
 //
 // instructions like FLD
 //
-#define ATTR16_FLD(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FLD(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3184,12 +3330,13 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
 // instructions like FLDSP
 //
-#define ATTR16_FLDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FLDSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3201,12 +3348,13 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
 // instructions like FSDSP
 //
-#define ATTR16_FSDSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FSDSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3218,12 +3366,13 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
 // instructions like FLW
 //
-#define ATTR16_FLW(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FLW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3235,12 +3384,13 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
 // instructions like FLWSP
 //
-#define ATTR16_FLWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FLWSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3252,12 +3402,13 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //
 // instructions like FSWSP
 //
-#define ATTR16_FSWSP(_NAME, _GENERIC, _ARCH, _OPCODE) [IT16_##_NAME] = { \
+#define ATTR16_FSWSP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode   : _OPCODE,             \
     format   : FMT_R1_OFF_R2,       \
     type     : RV_IT_##_GENERIC,    \
@@ -3269,6 +3420,7 @@
     wF       : WF_MEM,              \
     xQuiet   : True,                \
     notZfinx : True,                \
+    Zc       : RVCS_##_ZC,          \
 }
 
 //

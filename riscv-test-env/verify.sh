@@ -14,8 +14,8 @@ do
         break
     fi
 
-    sig=${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/${stub}.signature.output
-    dif=${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/${stub}.diff
+    sig=${WORK}/rv${XLEN}${RISCV_BASE}_${RISCV_MODE}/${RISCV_DEVICE}/${stub}.signature.output
+    dif=${WORK}/rv${XLEN}${RISCV_BASE}_${RISCV_MODE}/${RISCV_DEVICE}/${stub}.diff
 
     RUN=$((${RUN} + 1))
     
@@ -40,7 +40,7 @@ do
 done
 
 # warn on missing reverse reference
-for sig in ${WORK}/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}/*.signature.output; 
+for sig in ${WORK}/rv${XLEN}${RISCV_BASE}_${RISCV_MODE}/${RISCV_DEVICE}/*.signature.output; 
 do
     base=$(basename ${sig})
     stub=${base//".signature.output"/}
@@ -63,7 +63,7 @@ else
     echo -n -e "\e[31m FAIL: ${FAIL}/${RUN} "
     status=1
 fi
-echo -e "RISCV_TARGET=${RISCV_TARGET} RISCV_DEVICE=${RISCV_DEVICE} XLEN=${XLEN} \e[39m"
+echo -e "RISCV_TARGET=${RISCV_TARGET} XLEN=${XLEN} RISCV_BASE=${RISCV_BASE} RISCV_MODE=${RISCV_MODE} RISCV_DEVICE=${RISCV_DEVICE} \e[39m"
 echo
 exit ${status}
 

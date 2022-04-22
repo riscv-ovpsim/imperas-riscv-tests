@@ -1,0 +1,40 @@
+    #
+    # Copyright (c) 2005-2022 Imperas Software Ltd. All Rights Reserved.
+    #
+    # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
+    # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
+    # EXCEPT AS MAY BE PROVIDED FOR IN A WRITTEN AGREEMENT WITH IMPERAS SOFTWARE LTD.
+    #
+    #
+
+
+Architectural Test Suite Data for RV64PRIVEPMP PMP Memory Protection:
+    84 test source files
+    0 different instruction categories
+    21 different instructions
+    116,010 total instructions
+
+
+Other instructions (those not the focus of this suite)
+  jal : 2,447
+  lui : 10,490
+  addiw : 11,312
+  csrrs : 8,398
+  auipc : 3,472
+  addi : 35,709
+  csrrw : 5,813
+  mret : 2,495
+  slli : 8,646
+  xori : 1,596
+  and : 1,848
+  or : 5,628
+  beq : 252
+  jalr : 661
+  sw : 5,376
+  lw : 1,344
+  bne : 9,588
+  FETCH : 795
+  fence : 28
+  ecall : 84
+  csrrc : 28
+

@@ -1,0 +1,46 @@
+# Imperas RISC-V Architecture Tests for RV64I_MU/PRIVPMP
+
+    #
+    # Copyright (c) 2005-2022 Imperas Software Ltd. All Rights Reserved.
+    #
+    # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
+    # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
+    # EXCEPT AS MAY BE PROVIDED FOR IN A WRITTEN AGREEMENT WITH IMPERAS SOFTWARE LTD.
+    #
+    #
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| basic-M_OFF_0                      |       776 |      49,164  |           192  |               1,006  |
+| basic-M_NAPOT_0                    |     4,012 |      45,068  |           192  |               1,213  |
+| basic-U_OFF_0                      |       776 |      49,164  |           192  |               1,564  |
+| basic-U_NAPOT_0                    |     4,012 |      45,068  |           192  |               1,298  |
+| basic-M_NAPOT_1                    |       776 |      49,164  |           192  |               1,181  |
+| basic-U_NAPOT_1                    |       776 |      49,164  |           192  |               1,266  |
+| basic-M_NAPOT_2                    |     4,012 |      45,068  |           192  |               1,142  |
+| basic-U_NAPOT_2                    |     4,012 |      45,068  |           192  |               1,300  |
+| basic-M_NAPOT_3                    |       776 |      49,164  |           192  |               1,167  |
+| basic-U_NAPOT_3                    |       776 |      49,164  |           192  |               1,295  |
+| basic-U_NAPOT_4                    |     4,012 |      45,068  |           192  |               1,270  |
+| basic-M_NAPOT_4                    |     4,012 |      45,068  |           192  |               1,142  |
+| basic-U_NA4_0                      |       776 |         204  |           192  |               1,297  |
+| basic-M_NA4_0                      |       776 |         204  |           192  |               1,169  |
+| basic-M_NA4_1                      |     4,012 |         188  |           192  |               1,182  |
+| basic-M_TOR_0                      |       776 |      49,164  |           192  |               1,152  |
+| basic-U_TOR_0                      |       776 |      49,164  |           192  |               1,265  |
+| basic-U_NA4_1                      |     4,012 |         188  |           192  |               1,295  |
+| basic-M_TOR_1                      |       776 |      49,164  |           192  |               1,194  |
+| priority-M_NAPOT_0                 |       776 |       8,252  |           192  |               1,070  |
+| priority-U_NAPOT_0                 |       776 |       8,252  |           192  |               1,219  |
+| basic-U_TOR_1                      |       776 |      49,164  |           192  |               1,307  |
+| priority-M_NAPOT_1                 |       776 |       8,252  |           192  |               1,258  |
+| priority-U_NAPOT_1                 |       776 |       8,252  |           192  |               1,257  |
+| priority-U_NAPOT_2                 |       776 |       8,268  |           192  |               1,292  |
+| priority-M_NAPOT_3                 |       776 |       8,252  |           192  |               1,338  |
+| priority-M_NAPOT_2                 |       776 |       8,268  |           192  |               1,293  |
+| priority-U_NAPOT_3                 |       776 |       8,252  |           192  |               1,389  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

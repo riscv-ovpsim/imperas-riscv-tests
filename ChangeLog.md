@@ -1,21 +1,26 @@
 # Imperas test framework Change Log
 
-Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the Imperas RISC-V test framework and tests.
 
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2022-Febuary-9
-Release 20220208.0
+Date 2022-April-22
+Release 20220421.0
 
-see RISC-V model changelogs
+Additional PMP tests and updates.
 
-Date 2022-January-13
-Release 20220112.0
+Date 2022-March-10
+Release 20220310.0
 
-Periodic update, see RISC-V model changelogs
+The initial release of the privilege ISA PMP test suites is now available.
+This requires a commercial license and like the vector ISA tests suites
+is configured to the users target device. The suites are targeted at:
+RV32 priv. versions 1.11, 1.12 (inc. Smepmp)
+RV64 priv. versions 1.11, 1.12 (inc. Smepmp)
+Contact info@imperas.com for more information.
 
 Date 2021-November-16
 Release 20211018.0

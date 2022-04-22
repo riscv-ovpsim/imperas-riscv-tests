@@ -669,6 +669,14 @@ static Uns32 getPMPCFGOffset(riscvP riscv, Uns32 index) {
 }
 
 //
+// Return romask for the pmpaddr register
+//
+static Uns64 getPMPAddrROMask(riscvP riscv, Uns32 index) {
+    CSR_REG_TYPE(romask_pmpaddr) *romasks = &riscv->configInfo.csrMask.romask_pmpaddr0;
+    return romasks[index].u64.bits;
+}
+
+//
 // Is the given PMP configuration register index valid?
 //
 static Bool validPMPCFG(riscvP riscv, Uns32 index) {
@@ -706,7 +714,7 @@ Uns64 riscvVMWritePMPCFG(riscvP riscv, Uns32 index, Uns64 newValue) {
         Int32 i;
 
         // get byte-accessible source value
-        union {Uns64 u64; Uns8 u8[8];} src = {u64 : newValue&WM64_pmpcfg&mask};
+        union {Uns64 u64; Uns8 u8[8];} src    = {u64 : newValue&WM64_pmpcfg&mask};
 
         // invalidate any modified entries in lowest-to-highest priority order
         // (required so that useLowerPriorityPMPEntryMMode always returns valid
@@ -715,11 +723,15 @@ Uns64 riscvVMWritePMPCFG(riscvP riscv, Uns32 index, Uns64 newValue) {
 
             Uns32 cfgIndex = (index*4)+i;
             Uns8 *dstP     = &riscv->pmpcfg.u8[cfgIndex];
+            Uns8  romask   = riscv->romask_pmpcfg.u8[cfgIndex];
             Bool  resR0W1  = False;
 
-            // get old and new values
+            // get old (dst) and new (src) values and read only bit mask
             pmpcfgElem srcCFG = {u8:src.u8[i]};
             pmpcfgElem dstCFG = {u8:*dstP};
+
+            // retain existing values for read-only bits
+            srcCFG.u8 = (srcCFG.u8 & ~romask) | (dstCFG.u8 & romask);
 
             if(!RISCV_SMEPMP_VERSION(riscv)) {
 
@@ -799,8 +811,8 @@ Uns64 riscvVMReadPMPAddr(riscvP riscv, Uns32 index) {
 //
 Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
 
-    Uns64 result = 0;
-    Uns32 G      = riscv->configInfo.PMP_grain;
+    Uns64 result   = 0;
+    Uns32 G        = riscv->configInfo.PMP_grain;
 
     // mask writable bits to implemented external bits
     newValue &= (getAddressMask(riscv->extBits) >> 2);
@@ -810,31 +822,40 @@ Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
         newValue &= (-1ULL << (G-1));
     }
 
-    if(validPMPAddr(riscv, index) && (riscv->pmpaddr[index]!=newValue)) {
+    if(validPMPAddr(riscv, index)) {
 
-        if(pmpLocked(riscv, index)) {
+        Uns64 oldValue = riscv->pmpaddr[index];
+        Uns64 romask   = getPMPAddrROMask(riscv, index);
 
-            // entry index is locked
+        // retain existing values for read-only bits
+        newValue = (newValue & ~romask) | (oldValue & romask);
 
-        } else if(pmpLockedTOR(riscv, index+1)) {
+        if (riscv->pmpaddr[index]!=newValue) {
 
-            // next entry is a locked TOR entry
+            if(pmpLocked(riscv, index)) {
 
-        } else {
+                // entry index is locked
 
-            // invalidate entry using its original specification
-            invalidatePMPEntry(riscv, index);
-            invalidatePMPEntryTOR(riscv, index+1);
+            } else if(pmpLockedTOR(riscv, index+1)) {
 
-            // set new value
-            riscv->pmpaddr[index] = newValue;
+                // next entry is a locked TOR entry
 
-            // invalidate entry using its new specification
-            invalidatePMPEntry(riscv, index);
-            invalidatePMPEntryTOR(riscv, index+1);
+            } else {
+
+                // invalidate entry using its original specification
+                invalidatePMPEntry(riscv, index);
+                invalidatePMPEntryTOR(riscv, index+1);
+
+                // set new value
+                riscv->pmpaddr[index] = newValue;
+
+                // invalidate entry using its new specification
+                invalidatePMPEntry(riscv, index);
+                invalidatePMPEntryTOR(riscv, index+1);
+            }
+
+            result = getEffectivePMPAddr(riscv, index);
         }
-
-        result = getEffectivePMPAddr(riscv, index);
     }
 
     return result;
@@ -870,8 +891,12 @@ void riscvVMUnmapAllPMP(riscvP riscv) {
 //
 void riscvVMResetPMP(riscvP riscv) {
 
-    Uns32 numRegs = getNumPMPs(riscv);
-    Uns32 i;
+    Uns32                  numRegs    = getNumPMPs(riscv);
+    Uns32                  numCfgRegs = ((numRegs + 3) / 4);
+    CSR_REG_TYPE(pmpaddr) *cfgPmpaddr = &riscv->configInfo.csr.pmpaddr0;
+    CSR_REG_TYPE(pmpcfg)  *cfgPmpcfg  = &riscv->configInfo.csr.pmpcfg0;
+    CSR_REG_TYPE(pmpcfg)  *cfgRomask  = &riscv->configInfo.csrMask.romask_pmpcfg0;
+    Uns32                  i;
 
     for(i=0; i<numRegs; i++) {
 
@@ -880,9 +905,22 @@ void riscvVMResetPMP(riscvP riscv) {
             // invalidate entry using its current specification
             invalidatePMPEntry(riscv, i);
 
-            // reset entry fields
-            riscv->pmpaddr[i]   = 0;
-            riscv->pmpcfg.u8[i] = 0;
+        }
+
+        // reset pmpaddr to reset values from configInfo
+        riscv->pmpaddr[i] = cfgPmpaddr[i].u64.bits;
+    }
+
+    // reset pmpcfg to reset values from configInfo
+    if (isPMP64(riscv)) {
+        for (i = 0; i < numCfgRegs; i += 2) {
+            riscv->pmpcfg.u64[i/2]        = cfgPmpcfg[i].u64.bits;
+            riscv->romask_pmpcfg.u64[i/2] = cfgRomask[i].u64.bits;
+        }
+    } else {
+        for (i = 0; i < numCfgRegs; i++) {
+            riscv->pmpcfg.u32[i] = cfgPmpcfg[i].u32.bits;
+            riscv->romask_pmpcfg.u32[i] = cfgRomask[i].u32.bits;
         }
     }
 }
@@ -1124,8 +1162,10 @@ void riscvVMNewPMP(riscvP riscv) {
     Uns32 numRegs = getNumPMPs(riscv);
 
     if(numRegs) {
-        riscv->pmpcfg.u64 = STYPE_CALLOC_N(Uns64, (numRegs+7)/8);
-        riscv->pmpaddr    = STYPE_CALLOC_N(Uns64, numRegs);
+        Uns32 numUns64Regs = (numRegs+7)/8;
+        riscv->pmpcfg.u64        = STYPE_CALLOC_N(Uns64, numUns64Regs);
+        riscv->romask_pmpcfg.u64 = STYPE_CALLOC_N(Uns64, numUns64Regs);
+        riscv->pmpaddr           = STYPE_CALLOC_N(Uns64, numRegs);
     }
 }
 
@@ -1137,6 +1177,9 @@ void riscvVMFreePMP(riscvP riscv) {
     if(riscv->pmpcfg.u64) {
         STYPE_FREE(riscv->pmpcfg.u64);
     }
+    if(riscv->romask_pmpcfg.u64) {
+        STYPE_FREE(riscv->romask_pmpcfg.u64);
+    }
     if(riscv->pmpaddr) {
         STYPE_FREE(riscv->pmpaddr);
     }
@@ -1147,8 +1190,9 @@ void riscvVMFreePMP(riscvP riscv) {
 // PMP SAVE/RESTORE SUPPORT
 ////////////////////////////////////////////////////////////////////////////////
 
-#define PMP_CFG  "PMP_CFG"
-#define PMP_ADDR "PMP_ADDR"
+#define PMP_CFG    "PMP_CFG"
+#define PMP_CFG_RO "PMP_CFG_RO"
+#define PMP_ADDR   "PMP_ADDR"
 
 //
 // Save PMP structures
@@ -1159,8 +1203,9 @@ void savePMP(riscvP riscv, vmiSaveContextP cxt) {
     Uns32 i;
 
     for(i=0; i<numRegs; i++) {
-        VMIRT_SAVE_REG(cxt, PMP_CFG,  &riscv->pmpcfg.u8[i]);
-        VMIRT_SAVE_REG(cxt, PMP_ADDR, &riscv->pmpaddr[i]);
+        VMIRT_SAVE_REG(cxt, PMP_CFG,    &riscv->pmpcfg.u8[i]);
+        VMIRT_SAVE_REG(cxt, PMP_CFG_RO, &riscv->romask_pmpcfg.u8[i]);
+        VMIRT_SAVE_REG(cxt, PMP_ADDR,   &riscv->pmpaddr[i]);
     }
 }
 
@@ -1174,8 +1219,9 @@ void restorePMP(riscvP riscv, vmiRestoreContextP cxt) {
 
     for(i=0; i<numRegs; i++) {
         invalidatePMPEntry(riscv, i);
-        VMIRT_RESTORE_REG(cxt, PMP_CFG,  &riscv->pmpcfg.u8[i]);
-        VMIRT_RESTORE_REG(cxt, PMP_ADDR, &riscv->pmpaddr[i]);
+        VMIRT_RESTORE_REG(cxt, PMP_CFG,    &riscv->pmpcfg.u8[i]);
+        VMIRT_RESTORE_REG(cxt, PMP_CFG_RO, &riscv->romask_pmpcfg.u8[i]);
+        VMIRT_RESTORE_REG(cxt, PMP_ADDR,   &riscv->pmpaddr[i]);
     }
 }
 
@@ -2488,7 +2534,7 @@ typedef union SvVAU {
 } SvVA;
 
 //
-// Sizes of VPN fileds for Sv32 and Sv39/Sv48/Sv57
+// Sizes of VPN fields for Sv32 and Sv39/Sv48/Sv57
 //
 #define VPN_SHIFT_SV32 10
 #define VPN_SHIFT_SV64  9
@@ -2555,19 +2601,17 @@ inline static Bool updatePTED(riscvP riscv) {
 //
 static Uns32 getVABits(riscvVAMode vaMode) {
 
-    Uns32 result = 0;
+    static const Uns8 map[16] = {
+        [VAM_Sv32] = 32,
+        [VAM_Sv39] = 39,
+        [VAM_Sv48] = 48,
+        [VAM_Sv57] = 57,
+        [VAM_Sv64] = 64,
+    };
 
-    if(vaMode==VAM_Sv32) {
-        result = 32;
-    } else if(vaMode==VAM_Sv39) {
-        result = 39;
-    } else if(vaMode==VAM_Sv48) {
-        result = 48;
-    } else if(vaMode==VAM_Sv57) {
-        result = 57;
-    } else {
-        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
-    }
+    Uns32 result = map[vaMode];
+
+    VMI_ASSERT(result, "Invalid VA mode %u", vaMode);
 
     return result;
 }
@@ -2577,19 +2621,17 @@ static Uns32 getVABits(riscvVAMode vaMode) {
 //
 static Uns32 getVAlevels(riscvVAMode vaMode) {
 
-    Uns32 result = 0;
+    static const Uns8 map[16] = {
+        [VAM_Sv32] = 2,
+        [VAM_Sv39] = 3,
+        [VAM_Sv48] = 4,
+        [VAM_Sv57] = 5,
+        [VAM_Sv64] = 6,
+    };
 
-    if(vaMode==VAM_Sv32) {
-        result = 2;
-    } else if(vaMode==VAM_Sv39) {
-        result = 3;
-    } else if(vaMode==VAM_Sv48) {
-        result = 4;
-    } else if(vaMode==VAM_Sv57) {
-        result = 5;
-    } else {
-        VMI_ABORT("Invalid VA mode"); // LCOV_EXCL_LINE
-    }
+    Uns32 result = map[vaMode];
+
+    VMI_ASSERT(result, "Invalid VA mode %u", vaMode);
 
     return result;
 }
@@ -2982,12 +3024,12 @@ static riscvException doPageTableWalkVA(
     Uns32    vpnShift   = (vaMode==VAM_Sv32) ? VPN_SHIFT_SV32 : VPN_SHIFT_SV64;
     Uns32    vpnMask    = ((1<<vpnShift)-1);
     SvVA     VA         = {raw : entry->lowVA};
+    Addr     PTEAddr    = 0;
+    pteError error      = 0;
     SvPA     PA;
     SvPTE    PTE;
-    Addr     PTEAddr;
     Addr     a;
     Int32    i;
-    pteError error;
 
     // clear page offset bits (not relevant for entry creation)
     VA.fields.pageOffset = 0;

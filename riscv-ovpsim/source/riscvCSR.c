@@ -1111,6 +1111,13 @@ inline static RISCV_CSR_PRESENTFN(ZceaP) {
     return Zcea(riscv);
 }
 
+//
+// Is Zcmt extension present?
+//
+inline static RISCV_CSR_PRESENTFN(ZcmtP) {
+    return Zcmt(riscv);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // DSP EXTENSION REGISTERS
@@ -2715,7 +2722,7 @@ static RISCV_CSR_WRITEFN(mcyclehW) {
 //
 // Common routine to read time
 //
-static Uns64 timeR(riscvP riscv) {
+static Uns64 timeRInt(riscvP riscv) {
 
     Uns64 result = 1000000 * vmirtGetMonotonicTime((vmiProcessorP)riscv);
 
@@ -2731,12 +2738,12 @@ static Uns64 timeR(riscvP riscv) {
 //
 // Read time or an alias of it
 //
-static RISCV_CSR_READFN(mtimeR) {
+static RISCV_CSR_READFN(timeR) {
 
     Uns64 result = 0;
 
     if(riscvHPMAccessValid(attrs, riscv)) {
-        result = getXLENValue(attrs, riscv, timeR(riscv));
+        result = getXLENValue(attrs, riscv, timeRInt(riscv));
     }
 
     return result;
@@ -2745,12 +2752,12 @@ static RISCV_CSR_READFN(mtimeR) {
 //
 // Read timeh or an alias of it
 //
-static RISCV_CSR_READFN(mtimehR) {
+static RISCV_CSR_READFN(timehR) {
 
     Uns64 result = 0;
 
     if(riscvHPMAccessValid(attrs, riscv)) {
-        result = timeR(riscv) >> 32;
+        result = timeRInt(riscv) >> 32;
     }
 
     return result;
@@ -2939,7 +2946,7 @@ static RISCV_CSR_WRITEFN(mhpmW) {
 //
 static Bool validSVMode(riscvP riscv, Uns32 Sv_mode, Uns32 XL) {
 
-    Uns32 mask = (XL==2) ? RISCV_VMM_64 : RISCV_VMM_32;
+    Uns32 mask = (XL==2) ? (RISCV_VMM_64|RISCV_VMM_SV64) : RISCV_VMM_32;
 
     return (1<<Sv_mode) & riscv->configInfo.Sv_modes & mask;
 }
@@ -4021,17 +4028,28 @@ inline static Bool scontextP(riscvP riscv) {
 }
 
 //
+// Is scontext register at address 0x5A8? (always the case from version 0.14.0,
+// but configurable for earlier versions using scontext_0x5A8)
+//
+inline static Bool scontext0x5A8(riscvP riscv) {
+    return (
+        riscv->configInfo.scontext_0x5A8 ||
+        (RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0)
+    );
+}
+
+//
 // Is scontext register present (prior to version 0.14.0)?
 //
 inline static RISCV_CSR_PRESENTFN(scontext13P) {
-    return (RISCV_DBG_VERSION(riscv)<RVDBG_0_14_0) && scontextP(riscv);
+    return !scontext0x5A8(riscv) && scontextP(riscv);
 }
 
 //
 // Is scontext register present (from version 0.14.0)?
 //
 inline static RISCV_CSR_PRESENTFN(scontext14P) {
-    return (RISCV_DBG_VERSION(riscv)>=RVDBG_0_14_0) && scontextP(riscv);
+    return scontext0x5A8(riscv) && scontextP(riscv);
 }
 
 //
@@ -4490,9 +4508,9 @@ inline static riscvCryptoVer getCryptoVersion(riscvP riscv) {
 }
 
 //
-// Are cryptographic CSRs present?
+// Are cryptographic entropy source CSRs present?
 //
-inline static RISCV_CSR_PRESENTFN(cryptoP) {
+inline static Bool cryptoEntropyP(riscvP riscv) {
     return !(RVKS_Zkr & riscv->configInfo.crypto_absent);
 }
 
@@ -4500,35 +4518,35 @@ inline static RISCV_CSR_PRESENTFN(cryptoP) {
 // Is mentropy register present?
 //
 inline static RISCV_CSR_PRESENTFN(mentropyP) {
-    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)<RVKV_0_9_2);
+    return cryptoEntropyP(riscv) && (getCryptoVersion(riscv)<RVKV_0_9_2);
 }
 
 //
 // Is sentropy register present at original location (0xDBF)?
 //
 inline static RISCV_CSR_PRESENTFN(sentropyAP) {
-    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)==RVKV_0_9_2);
+    return cryptoEntropyP(riscv) && (getCryptoVersion(riscv)==RVKV_0_9_2);
 }
 
 //
 // Is sentropy register present at new location (0x546)?
 //
 inline static RISCV_CSR_PRESENTFN(sentropyBP) {
-    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)==RVKV_1_0_0_RC1);
+    return cryptoEntropyP(riscv) && (getCryptoVersion(riscv)==RVKV_1_0_0_RC1);
 }
 
 //
 // Is seed register present?
 //
 inline static RISCV_CSR_PRESENTFN(seedP) {
-    return cryptoP(attrs, riscv) && (getCryptoVersion(riscv)>=RVKV_1_0_0_RC5);
+    return cryptoEntropyP(riscv) && (getCryptoVersion(riscv)>=RVKV_1_0_0_RC5);
 }
 
 //
 // Is mnoise register present?
 //
 inline static RISCV_CSR_PRESENTFN(mnoiseP) {
-    return cryptoP(attrs, riscv) && !riscv->configInfo.mnoise_undefined;
+    return cryptoEntropyP(riscv) && !riscv->configInfo.mnoise_undefined;
 }
 
 //
@@ -4650,13 +4668,24 @@ static RISCV_CSR_READFN(sentropyRInv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Are Smepmp related fields present in mseccfg?
+//
+inline static Bool mseccfg_pmpP(riscvP riscv) {
+    return RISCV_SMEPMP_VERSION(riscv);
+}
+
+//
+// Are Crypto related fields present in mseccfg?
+//
+inline static Bool mseccfg_cryptoP(riscvP riscv) {
+    return cryptoEntropyP(riscv) && (getCryptoVersion(riscv)>=RVKV_0_9_2);
+}
+
+//
 // Is mseccfg register present?
 //
 inline static RISCV_CSR_PRESENTFN(mseccfgP) {
-    return (
-        RISCV_SMEPMP_VERSION(riscv) ||
-        (cryptoP(attrs, riscv) && (getCryptoVersion(riscv)>=RVKV_0_9_2))
-    );
+    return mseccfg_pmpP(riscv) || mseccfg_cryptoP(riscv);
 }
 
 //
@@ -5707,6 +5736,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TC_     (vxrm,         0x00A, ISA_V,       ISA_FSandV, 1_10,   0,0,0,0,0,0,0, "Fixed-Point Rounding Mode",                             0,           riscvWFSVS,  0,            0,        vxrmW         ),
     CSR_ATTR_T__     (vcsr,         0x00F, ISA_V,       0,          1_10,   1,0,0,0,0,0,0, "Vector Control and Status",                             vcsrP,       riscvWVCSR,  vcsrR,        0,        vcsrW         ),
     CSR_ATTR_P__     (seed,         0x015, ISA_K,       0,          1_10,   0,1,0,0,1,0,0, "Poll Entropy",                                          seedP,       0,           sentropyRInv, seedR,    sentropyW     ),
+    CSR_ATTR_TC_     (jvt,          0x017, ISA_C,       0,          1_10,   0,0,0,0,0,0,0, "Table Jump Base and Control",                           ZcmtP,       0,           0,            0,        0             ),
     CSR_ATTR_T__     (uscratch,     0x040, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Scratch",                                          0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (uepc,         0x041, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Exception Program Counter",                        0,           0,           uepcR,        0,        0             ),
     CSR_ATTR_T__     (ucause,       0x042, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Cause",                                            0,           0,           ucauseR,      0,        ucauseW       ),
@@ -5719,14 +5749,14 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TC_     (tbljalvec,    0x800, ISA_C,       0,          1_10,   0,0,0,0,0,0,0, "Table Jump Base",                                       ZceaP,       0,           0,            0,        0             ),
     CSR_ATTR_TC_     (ucode,        0x801, ISA_P,       0,          1_10,   0,0,0,0,0,0,0, "Code",                                                  ucodeP,      0,           0,            0,        0             ),
     CSR_ATTR_P__     (cycle,        0xC00, 0,           0,          1_10,   0,2,0,0,0,0,0, "Cycle Counter",                                         cycleP,      0,           mcycleR,      0,        0             ),
-    CSR_ATTR_P__     (time,         0xC01, 0,           0,          1_10,   0,2,0,0,0,0,0, "Timer",                                                 timeP,       0,           mtimeR,       0,        0             ),
+    CSR_ATTR_P__     (time,         0xC01, 0,           0,          1_10,   0,2,0,0,0,0,0, "Timer",                                                 timeP,       0,           timeR,        0,        0             ),
     CSR_ATTR_P__     (instret,      0xC02, 0,           0,          1_10,   0,2,0,0,0,0,0, "Instructions Retired",                                  instretP,    0,           minstretR,    0,        0             ),
     CSR_ATTR_P__3_31 (hpmcounter,   0xC00, 0,           0,          1_10,   0,0,0,0,0,0,0, "Performance Monitor Counter ",                          hpmcounterP, 0,           mhpmR,        0,        0             ),
     CSR_ATTR_T__     (vl,           0xC20, ISA_V,       0,          1_10,   0,0,0,0,0,0,0, "Vector Length",                                         0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (vtype,        0xC21, ISA_V,       0,          1_10,   0,0,0,0,0,0,0, "Vector Type",                                           0,           0,           0,            0,        0             ),
     CSR_ATTR_T__     (vlenb,        0xC22, ISA_V,       0,          1_10,   0,0,0,0,0,0,0, "Vector Length in Bytes",                                vlenbP,      0,           0,            0,        0             ),
     CSR_ATTR_P__     (cycleh,       0xC80, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Cycle Counter High",                                    cycleP,      0,           mcyclehR,     0,        0             ),
-    CSR_ATTR_P__     (timeh,        0xC81, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Timer High",                                            timeP,       0,           mtimehR,      0,        0             ),
+    CSR_ATTR_P__     (timeh,        0xC81, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Timer High",                                            timeP,       0,           timehR,       0,        0             ),
     CSR_ATTR_P__     (instreth,     0xC82, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Instructions Retired High",                             instretP,    0,           minstrethR,   0,        0             ),
     CSR_ATTR_P__3_31 (hpmcounterh,  0xC80, ISA_32,      0,          1_10,   0,0,0,0,0,0,0, "Performance Monitor High ",                             hpmcounterP, 0,           mhpmR,        0,        0             ),
 
@@ -7372,26 +7402,31 @@ void riscvCSRInit(riscvP riscv) {
     WR_CSR_FIELDC(riscv, dcsr, xdebugver, 4);
 
     //--------------------------------------------------------------------------
-    // mseccfg write mask
+    // mseccfg CSR and write mask
     //--------------------------------------------------------------------------
 
-    if(RISCV_CRYPTO_VERSION(riscv)<RVKV_1_0_0_RC5) {
+    // Copy full 64 bit value regardless of XLEN
+    riscv->csr.mseccfg = cfg->csr.mseccfg;
 
-        // mseccfg contains SKES if Supervisor mode present
-        if(arch&ISA_S) {
-            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
-        }
+    if (mseccfg_cryptoP(riscv)) {
+        if(RISCV_CRYPTO_VERSION(riscv)<RVKV_1_0_0_RC5) {
 
-    } else {
+            // mseccfg contains SKES if Supervisor mode present
+            if(arch&ISA_S) {
+                WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
+            }
 
-        // mseccfg contains USEED if User mode present
-        if(arch&ISA_U) {
-            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
-        }
+        } else {
 
-        // mseccfg contains SSEED if Supervisor mode present
-        if(arch&ISA_S) {
-            WR_CSR_MASK_FIELDC_1(riscv, mseccfg, SSEED);
+            // mseccfg contains USEED if User mode present
+            if(arch&ISA_U) {
+                WR_CSR_MASK_FIELDC_1(riscv, mseccfg, USEED_SKES);
+            }
+
+            // mseccfg contains SSEED if Supervisor mode present
+            if(arch&ISA_S) {
+                WR_CSR_MASK_FIELDC_1(riscv, mseccfg, SSEED);
+            }
         }
     }
 
@@ -7711,14 +7746,33 @@ static void warnUnimplementedCSR(riscvCSRAttrsCP attrs, riscvP riscv) {
 }
 
 //
-// Emit warning on first access to an unimplemented CSR
+// Emit warning on any access to an inaccessible CSR
 //
-static void emitWarnUnimplementedCSR(riscvCSRAttrsCP attrs, riscvP riscv) {
+static void warnInaccessibleCSR(riscvP riscv) {
+    vmiMessage("W", CPU_PREFIX"_AICSR",
+        SRCREF_FMT
+        "Access ignored",
+        SRCREF_ARGS(riscv, getPC(riscv))
+    );
+}
 
-    if(riscv->verbose) {
+//
+// Emit warning on first access to an inaccessible or unimplemented CSR
+//
+static void emitWarnInaccessibleCSR(
+    riscvCSRAttrsCP attrs,
+    riscvP          riscv,
+    Bool            implemented
+) {
+    if(!riscv->verbose) {
+        // no action
+    } else if(!implemented) {
         vmimtArgNatAddress(attrs);
         vmimtArgProcessor();
         vmimtCall((vmiCallFn)warnUnimplementedCSR);
+    } else {
+        vmimtArgProcessor();
+        vmimtCall((vmiCallFn)warnInaccessibleCSR);
     }
 }
 
@@ -7922,7 +7976,8 @@ void riscvEmitCSRRead(
     } else if(VMI_ISNOREG(raw)) {
 
         // emit warning for unimplemented CSR
-        emitWarnUnimplementedCSR(attrs, riscv);
+        Bool implemented = getCSRWriteCB(attrs, riscv, csrBits);
+        emitWarnInaccessibleCSR(attrs, riscv, implemented);
         vmimtMoveRC(rdBits, rd, 0);
 
     } else {
@@ -7977,7 +8032,8 @@ void riscvEmitCSRWrite(
     } else if(VMI_ISNOREG(raw)) {
 
         // emit warning for unimplemented CSR
-        emitWarnUnimplementedCSR(attrs, riscv);
+        Bool implemented = getCSRReadCB(attrs, riscv, csrBits, False);
+        emitWarnInaccessibleCSR(attrs, riscv, implemented);
 
     } else if((extBits=getCSRMaskExtendBits(mask))) {
 

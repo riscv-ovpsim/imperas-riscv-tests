@@ -47,7 +47,6 @@
 #include "riscvTrigger.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
-#include "riscvVMConstants.h"
 
 
 //
@@ -306,13 +305,23 @@ static void reportFixed(riscvArchitecture fixed, riscvConfigP cfg) {
 }
 
 //
-// Handle absent compressed subsets
+// Handle absent legacy compressed subsets
 //
-#define ADD_C_SET(_PROC, _CFG, _PARAMS, _NAME) { \
+#define ADD_CLEG_SET(_PROC, _CFG, _PARAMS, _NAME) { \
     if(_CFG->_NAME##_version) {                             \
         _CFG->compress_present |= RVCS_##_NAME;             \
     }                                                       \
     REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME##_version);    \
+}
+
+//
+// Handle absent new compressed subsets
+//
+#define ADD_CNEW_SET(_PROC, _CFG, _PARAMS, _NAME) { \
+    if(_PARAMS->_NAME) {                                    \
+        _CFG->compress_present |= RVCS_##_NAME;             \
+    }                                                       \
+    REQUIRE_COMMERCIAL(_PROC, _PARAMS, _NAME);              \
 }
 
 //
@@ -524,6 +533,45 @@ static void copyParentConfig(riscvP riscv) {
     dst->utvt_sext  = src->utvt_sext;
 }
 
+#define PARAMS_APPLY(_C, _P,_CN, _PN, _I) _C._CN##_I.u64.bits = _P->_PN##_I
+#define PARAMS_APPLY_X0_X3(_C, _P,_CN, _PN, _X) \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##0);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##1);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##2);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##3)
+#define PARAMS_APPLY_X0_X5(_C, _P,_CN, _PN, _X) \
+   PARAMS_APPLY_X0_X3(_C, _P,_CN, _PN, _X);     \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##4);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##5)
+#define PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, _X) \
+   PARAMS_APPLY_X0_X5(_C, _P,_CN, _PN, _X);     \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##6);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##7);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##8);        \
+   PARAMS_APPLY(_C, _P,_CN, _PN, _X##9)
+#define PARAMS_APPLY_0_9(_C, _P,_CN, _PN)       \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 0);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 1);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 2);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 3);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 4);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 5);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 6);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 7);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 8);            \
+   PARAMS_APPLY(_C, _P,_CN, _PN, 9)
+#define PARAMS_APPLY_0_15(_C, _P,_CN, _PN)      \
+   PARAMS_APPLY_0_9(_C, _P,_CN, _PN);           \
+   PARAMS_APPLY_X0_X5(_C, _P,_CN, _PN, 1)
+#define PARAMS_APPLY_0_63(_C, _P,_CN, _PN)      \
+   PARAMS_APPLY_0_9(_C, _P,_CN, _PN);           \
+   PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 1);      \
+   PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 2);      \
+   PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 3);      \
+   PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 4);      \
+   PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 5);      \
+   PARAMS_APPLY_X0_X3(_C, _P,_CN, _PN, 6)
+
 //
 // Apply parameters applicable to SMP member
 //
@@ -562,6 +610,7 @@ static void applyParamsSMP(
     cfg->csr.mconfigptr.u64.bits   = params->mconfigptr;
     cfg->csr.mtvec.u64.bits        = params->mtvec;
     cfg->csr.mstatus.u32.fields.FS = params->mstatus_FS;
+    cfg->csr.mseccfg.u64.bits      = params->mseccfg;
 
     // get uninterpreted CSR mask configuration parameters
     cfg->csrMask.mtvec.u64.bits  = params->mtvec_mask;
@@ -602,6 +651,7 @@ static void applyParamsSMP(
     cfg->ABI_d                = params->ABI_d;
     cfg->user_version         = params->user_version;
     cfg->priv_version         = params->priv_version;
+    cfg->compress_version     = params->compress_version;
     cfg->hyp_version          = params->hypervisor_version;
     cfg->dsp_version          = params->dsp_version;
     cfg->dbg_version          = params->debug_version;
@@ -640,6 +690,20 @@ static void applyParamsSMP(
     cfg->PMP_registers        = params->PMP_registers;
     cfg->PMP_max_page         = powerOfTwo(params->PMP_max_page, "PMP_max_page");
     cfg->PMP_decompose        = params->PMP_decompose;
+    cfg->PMP_undefined        = params->PMP_undefined;
+
+    cfg->PMP_maskparams       = params->PMP_maskparams;
+    if (cfg->PMP_maskparams) {
+        PARAMS_APPLY_0_15(cfg->csrMask, ~params, romask_pmpcfg,  mask_pmpcfg);
+        PARAMS_APPLY_0_63(cfg->csrMask, ~params, romask_pmpaddr, mask_pmpaddr);
+    }
+
+    cfg->PMP_initialparams    = params->PMP_initialparams;
+    if (cfg->PMP_initialparams) {
+        PARAMS_APPLY_0_15(cfg->csr, params, pmpcfg,  pmpcfg);
+        PARAMS_APPLY_0_63(cfg->csr, params, pmpaddr, pmpaddr);
+    }
+
     cfg->cmomp_bytes          = powerOfTwo(params->cmomp_bytes, "cmomp_bytes");
     cfg->cmoz_bytes           = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
     cfg->Sv_modes             = params->Sv_modes | RISCV_VMM_BARE;
@@ -661,10 +725,13 @@ static void applyParamsSMP(
     cfg->debug_address        = params->debug_address;
     cfg->dexc_address         = params->dexc_address;
     cfg->debug_eret_mode      = params->debug_eret_mode;
+    cfg->debug_priority       = params->debug_priority;
     cfg->updatePTEA           = params->updatePTEA;
     cfg->updatePTED           = params->updatePTED;
+    cfg->unaligned_low_pri    = params->unaligned_low_pri;
     cfg->unaligned            = params->unaligned;
     cfg->unalignedAMO         = params->unalignedAMO;
+    cfg->unalignedV           = params->unalignedV;
     cfg->wfi_is_nop           = params->wfi_is_nop;
     cfg->mtvec_is_ro          = params->mtvec_is_ro;
     cfg->counteren_mask       = params->counteren_mask;
@@ -757,7 +824,7 @@ static void applyParamsSMP(
         // modify configuration for 64-bit cores
 
         // mask valid VM modes
-        cfg->Sv_modes &= RISCV_VMM_64;
+        cfg->Sv_modes &= RISCV_VMM_64 | RISCV_VMM_SV64;
     }
 
     // get explicit extensions and extension mask
@@ -1011,19 +1078,62 @@ static void applyParamsSMP(
     // COMPRESSED EXTENSION CONFIGURATION
     ////////////////////////////////////////////////////////////////////////////
 
-    // Zceb is incompatible with D extension unless Zfinx is also specified
-    if(Zceb(riscv) && (cfg->arch&ISA_D) && !Zfinx(riscv)) {
-        vmiMessage("W", CPU_PREFIX"_ZCEBNA",
-            "Zceb cannot be used with D extension - ignored"
-        );
-        cfg->Zceb_version = RVZCEB_NA;
-    }
+    Bool addZcd = (cfg->arch&ISA_D) && !Zfinx(riscv);
 
-    // handle compressed profile parameters
     cfg->compress_present = 0;
-    ADD_C_SET(riscv, cfg, params, Zcea);
-    ADD_C_SET(riscv, cfg, params, Zceb);
-    ADD_C_SET(riscv, cfg, params, Zcee);
+
+    if(!cfg->compress_version) {
+
+        // legacy instructions: force Zcb and Zcf to be present
+        cfg->compress_present |= RVCS_Zca;
+        cfg->compress_present |= RVCS_Zcf;
+
+        // force Zcd to be present if Zceb is absent or D is present and Zfinx
+        // absent
+        if(!Zceb(riscv) || addZcd) {
+            cfg->compress_present |= RVCS_Zcd;
+        }
+
+        // Zceb is incompatible with D extension unless Zfinx is also specified
+        if(Zceb(riscv) && addZcd) {
+            vmiMessage("W", CPU_PREFIX"_ZCEBNA",
+                "Zceb cannot be used with D extension - ignored"
+            );
+            cfg->Zceb_version = RVZCEB_NA;
+        }
+
+        // handle legacy compressed profile parameters
+        ADD_CLEG_SET(riscv, cfg, params, Zcea);
+        ADD_CLEG_SET(riscv, cfg, params, Zceb);
+        ADD_CLEG_SET(riscv, cfg, params, Zcee);
+
+    } else {
+
+        // handle new compressed profile parameters
+        ADD_CNEW_SET(riscv, cfg, params, Zca);
+        ADD_CNEW_SET(riscv, cfg, params, Zcb);
+        ADD_CNEW_SET(riscv, cfg, params, Zcf);
+        ADD_CNEW_SET(riscv, cfg, params, Zcmb);
+        ADD_CNEW_SET(riscv, cfg, params, Zcmp);
+        ADD_CNEW_SET(riscv, cfg, params, Zcmpe);
+        ADD_CNEW_SET(riscv, cfg, params, Zcmt);
+
+        // notional Zcd is incompatible with Zcm* extensions (note that Zcd is
+        // really part of Zca if implemented)
+        if(!cfg->compress_present) {
+            cfg->compress_present |= (RVCS_Zca|RVCS_Zcd|RVCS_Zcf);
+        } else if(!(cfg->compress_present & RVCS_Zca)) {
+            // notional Zcd absent if Zca not implemented
+        } else if(!(cfg->compress_present & RVCS_ZcNotD)) {
+            cfg->compress_present |= RVCS_Zcd;
+        } else if(!addZcd) {
+            // use conflicting Zcm* extensions
+        } else {
+            vmiMessage("W", CPU_PREFIX"_ZCFNA",
+                "Zcd cannot be used with Zcm* extensions - ignored"
+            );
+        }
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // DSP EXTENSION CONFIGURATION

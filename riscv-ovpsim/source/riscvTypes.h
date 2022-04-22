@@ -22,6 +22,9 @@
 // basic number types
 #include "hostapi/impTypes.h"
 
+// Model header files
+#include "riscvVMConstants.h"
+
 //
 // Type used for addresses in the model
 //
@@ -40,16 +43,6 @@ typedef enum riscvTLBIdE {
     RISCV_TLB_LAST
 
 } riscvTLBId;
-
-//
-// Enumeration of supported translation modes
-//
-typedef enum riscvVAModeE {
-    VAM_Sv32 =  1,  // Sv32 translation (32-bit VA)
-    VAM_Sv39 =  8,  // Sv39 translation (39-bit VA)
-    VAM_Sv48 =  9,  // Sv48 translation (48-bit VA)
-    VAM_Sv57 = 10,  // Sv57 translation (57-bit VA)
-} riscvVAMode;
 
 //
 // Processor disable reasons (bitmask)
@@ -85,6 +78,7 @@ typedef enum atomicCodeE {
     ACODE_SWAP,
     ACODE_LR,
     ACODE_SC,
+    ACODE_CUSTOM,   // first custom code
 } atomicCode;
 
 //

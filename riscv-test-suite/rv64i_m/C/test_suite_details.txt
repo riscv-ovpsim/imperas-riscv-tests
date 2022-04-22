@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,23 +20,23 @@ Architectural Test Suite Data for RV64C C Compressed Integer Instructions:
     33 test source files
     8 different instruction categories
     42 different instructions
-    60,907 total instructions
+    61,720 total instructions
 
 Instruction category: arithmetic 
   c-lui : 2,537
-  c-addw : 274
   c-li : 3,421
-  c-addi : 2,713
+  c-addi : 2,712
   c-addiw : 1,224
+  c-addw : 274
   c-add : 2,466
-  c-mv : 274
+  c-mv : 510
   c-sub : 275
   c-subw : 274
 Instruction category: logical 
   c-and : 274
-  c-or : 274
   c-andi : 274
   c-xor : 274
+  c-or : 274
 Instruction category: branch 
   c-beqz : 274
   c-bnez : 274
@@ -50,7 +50,7 @@ Instruction category: load
   c-ldsp : 274
   c-lwsp : 274
 Instruction category: store 
-  c-sdsp : 533
+  c-sdsp : 560
   c-swsp : 274
 Instruction category: shift 
   c-slli : 4,801
@@ -60,17 +60,17 @@ Instruction category: shift
 Other instructions (those not the focus of this suite)
   addiw : 6,457
   csrrs : 101
-  auipc : 3,520
-  addi : 11,407
+  auipc : 3,816
+  addi : 11,473
   csrrw : 69
   mret : 34
   lui : 2,794
   slli : 2,739
-  sd : 8,509
+  sd : 8,482
   fence : 33
   ecall : 33
   beq : 99
-  jal : 496
+  jal : 712
   lw : 274
   ld : 1,370
   sw : 310

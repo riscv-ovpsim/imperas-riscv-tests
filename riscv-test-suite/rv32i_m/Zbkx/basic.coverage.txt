@@ -16,8 +16,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -26,6 +24,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -52,8 +52,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -62,6 +60,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -88,8 +88,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -98,6 +96,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -126,8 +126,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -136,6 +134,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -162,8 +162,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -172,6 +170,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -198,8 +198,6 @@ Extension : Zbkx, instructions: 2
                 ra           0/1 :   0.00% ZERO
                 s0           0/1 :   0.00% ZERO
                 s1           0/1 :   0.00% ZERO
-                s10          0/1 :   0.00% ZERO
-                s11          0/1 :   0.00% ZERO
                 s2           0/1 :   0.00% ZERO
                 s3           0/1 :   0.00% ZERO
                 s4           0/1 :   0.00% ZERO
@@ -208,6 +206,8 @@ Extension : Zbkx, instructions: 2
                 s7           0/1 :   0.00% ZERO
                 s8           0/1 :   0.00% ZERO
                 s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
                 sp           0/1 :   0.00% ZERO
                 t0           0/1 :   0.00% ZERO
                 t1           0/1 :   0.00% ZERO
@@ -234,8 +234,6 @@ Coverage points missed:
   xperm4/rd/gpr/ra
   xperm4/rd/gpr/s0
   xperm4/rd/gpr/s1
-  xperm4/rd/gpr/s10
-  xperm4/rd/gpr/s11
   xperm4/rd/gpr/s2
   xperm4/rd/gpr/s3
   xperm4/rd/gpr/s4
@@ -244,6 +242,8 @@ Coverage points missed:
   xperm4/rd/gpr/s7
   xperm4/rd/gpr/s8
   xperm4/rd/gpr/s9
+  xperm4/rd/gpr/s10
+  xperm4/rd/gpr/s11
   xperm4/rd/gpr/sp
   xperm4/rd/gpr/t0
   xperm4/rd/gpr/t1
@@ -266,8 +266,6 @@ Coverage points missed:
   xperm4/rs1/gpr/ra
   xperm4/rs1/gpr/s0
   xperm4/rs1/gpr/s1
-  xperm4/rs1/gpr/s10
-  xperm4/rs1/gpr/s11
   xperm4/rs1/gpr/s2
   xperm4/rs1/gpr/s3
   xperm4/rs1/gpr/s4
@@ -276,6 +274,8 @@ Coverage points missed:
   xperm4/rs1/gpr/s7
   xperm4/rs1/gpr/s8
   xperm4/rs1/gpr/s9
+  xperm4/rs1/gpr/s10
+  xperm4/rs1/gpr/s11
   xperm4/rs1/gpr/sp
   xperm4/rs1/gpr/t0
   xperm4/rs1/gpr/t1
@@ -298,8 +298,6 @@ Coverage points missed:
   xperm4/rs2/gpr/ra
   xperm4/rs2/gpr/s0
   xperm4/rs2/gpr/s1
-  xperm4/rs2/gpr/s10
-  xperm4/rs2/gpr/s11
   xperm4/rs2/gpr/s2
   xperm4/rs2/gpr/s3
   xperm4/rs2/gpr/s4
@@ -308,6 +306,8 @@ Coverage points missed:
   xperm4/rs2/gpr/s7
   xperm4/rs2/gpr/s8
   xperm4/rs2/gpr/s9
+  xperm4/rs2/gpr/s10
+  xperm4/rs2/gpr/s11
   xperm4/rs2/gpr/sp
   xperm4/rs2/gpr/t0
   xperm4/rs2/gpr/t1
@@ -330,8 +330,6 @@ Coverage points missed:
   xperm8/rd/gpr/ra
   xperm8/rd/gpr/s0
   xperm8/rd/gpr/s1
-  xperm8/rd/gpr/s10
-  xperm8/rd/gpr/s11
   xperm8/rd/gpr/s2
   xperm8/rd/gpr/s3
   xperm8/rd/gpr/s4
@@ -340,6 +338,8 @@ Coverage points missed:
   xperm8/rd/gpr/s7
   xperm8/rd/gpr/s8
   xperm8/rd/gpr/s9
+  xperm8/rd/gpr/s10
+  xperm8/rd/gpr/s11
   xperm8/rd/gpr/sp
   xperm8/rd/gpr/t0
   xperm8/rd/gpr/t1
@@ -362,8 +362,6 @@ Coverage points missed:
   xperm8/rs1/gpr/ra
   xperm8/rs1/gpr/s0
   xperm8/rs1/gpr/s1
-  xperm8/rs1/gpr/s10
-  xperm8/rs1/gpr/s11
   xperm8/rs1/gpr/s2
   xperm8/rs1/gpr/s3
   xperm8/rs1/gpr/s4
@@ -372,6 +370,8 @@ Coverage points missed:
   xperm8/rs1/gpr/s7
   xperm8/rs1/gpr/s8
   xperm8/rs1/gpr/s9
+  xperm8/rs1/gpr/s10
+  xperm8/rs1/gpr/s11
   xperm8/rs1/gpr/sp
   xperm8/rs1/gpr/t0
   xperm8/rs1/gpr/t1
@@ -394,8 +394,6 @@ Coverage points missed:
   xperm8/rs2/gpr/ra
   xperm8/rs2/gpr/s0
   xperm8/rs2/gpr/s1
-  xperm8/rs2/gpr/s10
-  xperm8/rs2/gpr/s11
   xperm8/rs2/gpr/s2
   xperm8/rs2/gpr/s3
   xperm8/rs2/gpr/s4
@@ -404,6 +402,8 @@ Coverage points missed:
   xperm8/rs2/gpr/s7
   xperm8/rs2/gpr/s8
   xperm8/rs2/gpr/s9
+  xperm8/rs2/gpr/s10
+  xperm8/rs2/gpr/s11
   xperm8/rs2/gpr/sp
   xperm8/rs2/gpr/t0
   xperm8/rs2/gpr/t1

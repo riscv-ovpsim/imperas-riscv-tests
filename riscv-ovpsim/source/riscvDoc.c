@@ -54,11 +54,12 @@ inline static riscvP getChild(riscvP riscv) {
 static const char *getSvMode(Uns32 index) {
 
     static const char *map[16] = {
-        [0]  = "bare",
-        [1]  = "Sv32",
-        [8]  = "Sv39",
-        [9]  = "Sv48",
-        [10] = "Sv57",
+        [VAM_Bare] = "bare",
+        [VAM_Sv32] = "Sv32",
+        [VAM_Sv39] = "Sv39",
+        [VAM_Sv48] = "Sv48",
+        [VAM_Sv57] = "Sv57",
+        [VAM_Sv64] = "Sv64",
     };
 
     return map[index] ? : "unknown";
@@ -224,6 +225,28 @@ static void addBFeature(
 // Add documentation of a C-extension subset parameter
 //
 static void addCFeature(
+    riscvConfigCP  cfg,
+    vmiDocNodeP    Parameters,
+    char          *string,
+    Uns32          stringLen,
+    riscvCryptoSet feature,
+    const char    *name,
+    const char    *desc
+) {
+    snprintf(
+        string, stringLen,
+        "Parameter %s is used to specify that %s instructions are present. "
+        "By default, %s is set to %u in this variant. Updates to this "
+        "parameter require a commercial product license.",
+        name, desc, name, (cfg->compress_present & feature) && True
+    );
+    vmidocAddText(Parameters, string);
+}
+
+//
+// Add documentation of a C-extension subset parameter
+//
+static void addLegacyCFeature(
     riscvConfigCP cfg,
     vmiDocNodeP   Parameters,
     char         *string,
@@ -234,8 +257,8 @@ static void addCFeature(
     snprintf(
         string, stringLen,
         "Parameter %s_version is used to specify the version of %s "
-        "instructions  present. By default, %s_version is set to \"%s\" in "
-        "this variant.  Updates to this parameter require a commercial product "
+        "instructions present. By default, %s_version is set to \"%s\" in "
+        "this variant. Updates to this parameter require a commercial product "
         "license.",
         name, name, name, value
     );
@@ -833,19 +856,18 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSION master
+        // CLIC VERSION 0.9-draft-20220315
         ////////////////////////////////////////////////////////////////////////
 
         {
             vmiDocNodeP Version = vmidocAddSection(
-                CLIC, "Version master"
+                CLIC, "Version 0.9-draft-20220315"
             );
 
             vmidocAddText(
                 Version,
-                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
-                RVCLC_MASTER_TAG"), with these changes compared to version "
-                "0.9-draft-20191208:"
+                "Stable 0.9 version of March 15 2022, with these changes "
+                "compared to version 0.9-draft-20191208"
             );
             vmidocAddText(
                 Version,
@@ -862,6 +884,22 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
                 Version,
                 "- if the xinhv bit is set, the target address for an xret "
                 "instruction is obtained by a load from address xepc."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
+                RVCLC_MASTER_TAG"), currently identical to 0.9-draft-20220315."
             );
         }
     }
@@ -1466,13 +1504,27 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     "\"unalignedAMO\" to \"T\" to enable such accesses."
                 );
             }
+
+            // document misaligned exception priority
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Address misaligned exceptions are %s priority than "
+                "page fault or access fault exceptions on this variant. "
+                "Set parameter \"unaligned_low_pri\" to \"%s\" to specify "
+                "that they are %s priority instead.",
+                cfg->unaligned_low_pri ? "lower" : "higher",
+                cfg->unaligned_low_pri ? "F" : "T",
+                cfg->unaligned_low_pri ? "higher" : "lower"
+            );
+            vmidocAddText(sub, string);
         }
+
+        vmiDocNodeP pmp = vmidocAddSection(Features, "PMP");
 
         // document PMP regions
         if(cfg->PMP_registers) {
 
-            vmiDocNodeP sub        = vmidocAddSection(Features, "PMP");
-            Uns64       grainBytes = 4ULL<<cfg->PMP_grain;
+            Uns64 grainBytes = 4ULL<<cfg->PMP_grain;
 
             snprintf(
                 SNPRINTF_TGT(string),
@@ -1484,18 +1536,24 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "\"PMP_grain\" to specify a different grain size if required. "
                 "Unaligned PMP accesses are %sdecomposed into separate aligned "
                 "accesses; use parameter \"PMP_decompose\" to modify this "
-                "behavior if required.",
+                "behavior if required. Parameters to change the write masks for "
+                "the PMP CSRs are %senabled; use parameter \"PMP_maskparams\" "
+                "to modify this behavior if required. Parameters to change the reset values "
+                "for the PMP CSRs are %senabled; use parameter \"PMP_initialparams\" "
+                "to modify this behavior if required",
                 cfg->PMP_registers,
                 cfg->PMP_grain,
                 grainBytes,
-                cfg->PMP_decompose ? "" : "not "
+                cfg->PMP_decompose     ? "" : "not ",
+                cfg->PMP_maskparams    ? "" : "not ",
+                cfg->PMP_initialparams ? "" : "not "
             );
 
-            vmidocAddText(sub, string);
+            vmidocAddText(pmp, string);
 
             if(cfg->Smepmp_version) {
                 vmidocAddText(
-                    sub,
+                    pmp,
                     "This variant implements the Smepmp extension with version "
                     "specified in the References section of this document. "
                     "Note that parameter \"Smepmp_version\" can be used to "
@@ -1505,13 +1563,29 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
         } else {
 
-            vmiDocNodeP sub = vmidocAddSection(Features, "PMP");
-
             vmidocAddText(
-                sub,
+                pmp,
                 "A PMP unit is not implemented by this variant. Set parameter "
                 "\"PMP_registers\" to indicate that the unit should be "
                 "implemented with that number of PMP entries."
+            );
+        }
+
+        if(cfg->PMP_undefined) {
+            vmidocAddText(
+                pmp,
+                "Accesses to unimplemented PMP registers cause Illegal "
+                "Instruction exceptions on this variant. Set parameter "
+                "\"PMP_undefined\" to False to indicate that these registers "
+                "are hard-wired to zero instead."
+            );
+        } else {
+            vmidocAddText(
+                pmp,
+                "Accesses to unimplemented PMP registers are write-ignored "
+                "and read as zero on this variant. Set parameter "
+                "\"PMP_undefined\" to True to indicate that such accesses "
+                "should cause Illegal Instruction exceptions instead."
             );
         }
 
@@ -1540,34 +1614,79 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
         vmiDocNodeP Features = vmidocAddSection(Root, "Compressed Extension");
 
-        vmidocAddText(
-            Features,
-            "Standard compressed instructions are present in this variant."
-        );
+        if(RISCV_COMPRESS_VERSION(riscv)) {
 
-        addCFeature(
-            cfg,
-            Features,
-            SNPRINTF_TGT(string),
-            "Zcea",
-            riscvGetZceaVersionName(riscv)
-        );
+            vmidocAddText(
+                Features,
+                "This variant implements the compressed extension with version "
+                "specified in the References section of this document. Note that "
+                "parameter \"compress_version\" can be used to select the "
+                "required architecture version."
+            );
 
-        addCFeature(
-            cfg,
-            Features,
-            SNPRINTF_TGT(string),
-            "Zceb",
-            riscvGetZcebVersionName(riscv)
-        );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zca, "Zca",
+                "basic C extension"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcf, "Zcf",
+                "floating point load/store"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcb, "Zcb",
+                "additional simple operation"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmb, "Zcmb",
+                "load/store byte/half"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmp, "Zcmp",
+                "push/pop and double move"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmpe, "Zcmpe",
+                "E-extension push/pop"
+            );
+            addCFeature(
+                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmt, "Zcmt",
+                "table jump"
+            );
 
-        addCFeature(
-            cfg,
-            Features,
-            SNPRINTF_TGT(string),
-            "Zcee",
-            riscvGetZceeVersionName(riscv)
-        );
+        } else {
+
+            vmidocAddText(
+                Features,
+                "Standard compressed instructions are present in this variant. "
+                "Legacy compressed extension features may also be configured using "
+                "parameters described below. Use parameter \"commpress_version\" "
+                "to enable more recent compressed extension features if required."
+            );
+
+            addLegacyCFeature(
+                cfg,
+                Features,
+                SNPRINTF_TGT(string),
+                "Zcea",
+                riscvGetZceaVersionName(riscv)
+            );
+
+            addLegacyCFeature(
+                cfg,
+                Features,
+                SNPRINTF_TGT(string),
+                "Zceb",
+                riscvGetZcebVersionName(riscv)
+            );
+
+            addLegacyCFeature(
+                cfg,
+                Features,
+                SNPRINTF_TGT(string),
+                "Zcee",
+                riscvGetZceeVersionName(riscv)
+            );
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1773,17 +1892,16 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // PRIVILEGED ARCHITECTURE VERSION master
+        // PRIVILEGED ARCHITECTURE VERSION 20211203
         ////////////////////////////////////////////////////////////////////////
 
         {
-            vmiDocNodeP Version = vmidocAddSection(priv, "Version master");
+            vmiDocNodeP Version = vmidocAddSection(priv, "Version 20211203");
 
             vmidocAddText(
                 Version,
-                "Unstable master version corresponding to evolving 1.12 "
-                "specification, with these changes compared to version "
-                "20190608:"
+                "1.12 draft version of December 3 2021, with these changes "
+                "compared to version 20190608:"
             );
             vmidocAddText(
                 Version,
@@ -1802,6 +1920,32 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "- data endian is now configurable."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // PRIVILEGED ARCHITECTURE VERSION 1.12
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(priv, "Version 1.12");
+
+            vmidocAddText(
+                Version,
+                "Official 1.12 version, identical to 20211203."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // PRIVILEGED ARCHITECTURE VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(priv, "Version master");
+
+            vmidocAddText(
+                Version,
+                "Unstable master version, currently identical to 1.12."
             );
         }
     }
@@ -2653,6 +2797,18 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "when vtype.vma=1" :
                 "mask tails, vector tail elements and vector masked-off "
                 "elements all show undisturbed behavior"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document unalignedV
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter unalignedV is used to specify whether vector load "
+                "and store instructions support unaligned accesses. By "
+                "default, unalignedV is set to %u in this variant, meaning "
+                "unaligned accesses are %ssupported.",
+                riscv->configInfo.unalignedV,
+                riscv->configInfo.unalignedV ? "" : "not "
             );
             vmidocAddText(Parameters, string);
         }
@@ -3875,6 +4031,34 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // DEBUG EVENT PRIORITIES
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP DebugPriority = vmidocAddSection(
+                debugMode, "Debug Event Priorities"
+            );
+
+            vmidocAddText(
+                DebugPriority,
+                "The model supports two different models for determining which "
+                "debug exception occurs when multiple debug events are pending:"
+            );
+            vmidocAddText(
+                DebugPriority,
+                "1: original mode (when parameter \"debug_priority\"="
+                "\"original\");"
+            );
+            vmidocAddText(
+                DebugPriority,
+                "2: modified mode, as described in Debug Specification pull "
+                "request 693 (when parameter \"debug_priority\"=\"PR693\"). "
+                "This mode resolves some anomalous behavior of the original "
+                "specification."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // DEBUG PORTS
         ////////////////////////////////////////////////////////////////////////
 
@@ -4398,6 +4582,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             riscvGetPrivVersionDesc(riscv)
         );
         vmidocAddText(References, string);
+
+        if((cfg->arch&ISA_C) && RISCV_COMPRESS_VERSION(riscv)) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V \"C\" Compressed Extension (%s)",
+                riscvGetCompressedVersionDesc(riscv)
+            );
+            vmidocAddText(References, string);
+        }
 
         if(cfg->arch&ISA_B) {
             snprintf(

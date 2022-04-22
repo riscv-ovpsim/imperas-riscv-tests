@@ -29,13 +29,13 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 146
   xnor : 146
 Instruction category: OPB_PACK Packing
-  pack : 146
   packh : 146
+  pack : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
   rol : 146
-  rori : 146
   ror : 146
+  rori : 146
 
 Other instructions (those not the focus of this suite)
   jal : 11
@@ -49,7 +49,7 @@ Other instructions (those not the focus of this suite)
   fence : 11
   ecall : 11
   beq : 33
-  grevi : 146
   shfli : 146
+  grevi : 146
   unshfli : 146
 

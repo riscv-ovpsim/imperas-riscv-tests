@@ -583,6 +583,7 @@ typedef RISCV_GET_INTERRUPT_PRI_FN((*riscvGetInterruptPriFn));
 #define RISCV_GET_HANDLER_PC_FN(_NAME) Bool _NAME( \
     riscvP         riscv,       \
     Uns64          tvec,        \
+    riscvICMode    mode,        \
     riscvException exception,   \
     Uns32          ecode,       \
     Uns64         *handlerPCP,  \
@@ -733,6 +734,7 @@ typedef RISCV_FREE_ENTRY_NOTIFIER_FN((*riscvFreeEntryNotifierFn));
 
 //
 // Document extension-specific restrictions
+// - Note - these actually go in the "Limitations" section
 //
 #define RISCV_RESTRICTIONS_FN(_NAME) void _NAME( \
     riscvP      riscv,          \

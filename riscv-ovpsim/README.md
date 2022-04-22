@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 08 Feb 2022
+Date      : 21 Apr 2022
 
-Version   : 20220208.0
+Version   : 20220421.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -32,10 +32,11 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
 
 - RISC-V - Instruction Set Manual, Volume II: Privileged Architecture (priv_version)
     - Version 1.10 : Privileged Architecture Version 1.10
-    - Version 1.11 : Deprecated and equivalent to 20190608
+    - Version 1.11 : Privileged Architecture Version 1.11, equivalent to 20190608
     - Version 20190405 : Deprecated and equivalent to 20190608
     - Version 20190608 : Privileged Architecture Version Ratified-IMFDQC-and-Priv-v1.11
     - Version 20211203 : Privileged Architecture Version 20211203
+    - Version 1.12 : Privileged Architecture Version 1.12, equivalent to 20211203
     - Version master : Privileged Architecture Master Branch as of commit 6bdeb58 (this is subject to change)
 
 - RISC-V I Base ISA

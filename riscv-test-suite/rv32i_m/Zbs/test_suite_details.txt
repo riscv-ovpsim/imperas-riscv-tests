@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -23,13 +23,13 @@ Architectural Test Suite Data for RV32ZBS B Bit Manipulation:
     5,856 total instructions
 
 Instruction category: OPB_SBIT Single-Bit
-  bclr : 146
   bclri : 146
-  binv : 146
-  bexti : 146
   bseti : 146
   bset : 146
+  binv : 146
+  bexti : 146
   binvi : 146
+  bclr : 146
 Instruction category: OPB_EXDE Bit Extract/Deposit
   bext : 146
 

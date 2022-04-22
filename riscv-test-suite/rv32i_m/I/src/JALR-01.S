@@ -1,7 +1,7 @@
 // RISC-V Architectural Validation Test JALR-01
 //
 //
-// Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+// Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
 //
 // The contents of this file are provided under the Software License
 // Agreement that you accepted before downloading this file.

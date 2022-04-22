@@ -745,10 +745,11 @@ typedef enum customHActionE {
 // Get custom handler PC
 //
 static customHAction getCustomHandlerPC(
-    riscvP riscv,
-    Uns64  tvec,
-    Uns32  ecode,
-    Uns64 *handlerPCP
+    riscvP      riscv,
+    Uns64       tvec,
+    riscvICMode mode,
+    Uns32       ecode,
+    Uns64      *handlerPCP
 ) {
     customHAction  action    = CHA_NA;
     Bool           custom    = False;
@@ -761,7 +762,7 @@ static customHAction getCustomHandlerPC(
     ITER_EXT_CB_WHILE(
         riscv, extCB, getHandlerPC, !custom,
         custom = extCB->getHandlerPC(
-            riscv, tvec, exception, ecode, handlerPCP, extCB->clientData
+            riscv, tvec, mode, exception, ecode, handlerPCP, extCB->clientData
         );
     )
 
@@ -998,7 +999,7 @@ void riscvTakeException(
 
         // perform any custom handler PC lookup
         customHAction action = getCustomHandlerPC(
-            riscv, cxt.base, cxt.ecodeMod, &cxt.handlerPC
+            riscv, cxt.base, cxt.mode, cxt.ecodeMod, &cxt.handlerPC
         );
 
         if(action==CHA_OK) {
@@ -2810,6 +2811,27 @@ inline static Bool interruptStepDisable(riscvP riscv) {
 }
 
 //
+// Return an indication of whether haltreq is pending to enter debug Mode
+//
+static Bool getPendingAndEnabledResethaltreq(riscvP riscv) {
+    return (
+        riscv->netValue.resethaltreqS &&
+        !riscv->netValue.deferint
+    );
+}
+
+//
+// Return an indication of whether haltreq is pending to enter debug Mode
+//
+static Bool getPendingAndEnabledHaltreq(riscvP riscv) {
+    return (
+        riscv->netValue.haltreq &&
+        !inDebugMode(riscv) &&
+        !riscv->netValue.deferint
+    );
+}
+
+//
 // Return an indication of whether NMI is pending and enabled
 //
 static Bool getPendingAndEnabledNMI(riscvP riscv) {
@@ -2867,6 +2889,7 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     Uns64  thisPC   = address;
     Bool   fetchOK  = False;
     Bool   triggerX = riscv->currentArch & ISA_TM_X;
+    Bool   priOrig  = !riscv->configInfo.debug_priority;
 
     ////////////////////////////////////////////////////////////////////////////
     // actions *after* preceding instruction
@@ -2879,28 +2902,31 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     } else if(riscv->netValue.stepreq) {
 
         // enter Debug mode after instruction single-step (priority 0) unless
-        // haltreq was also pending, in which case apply that the the preceding
-        // instruction (priority 1) - this is an odd case because normally
-        // haltreq is lower priority than address trap (priority 4), but if we
-        // are stepping an instruction then an address trap on the next
-        // instruction is expressly forbidden (section 4.4.1 Step Bit In Dcsr)
+        // in "original" debug priority mode and haltreq was also pending, in
+        // which case apply that the the preceding instruction (priority 1) -
+        // this is an odd case because normally haltreq is lower priority than
+        // address trap (priority 4), but if we are stepping an instruction then
+        // an address trap on the next instruction is expressly forbidden
+        // (section 4.4.1 Step Bit In Dcsr)
         if(complete) {
+            Bool doHaltReq = priOrig && riscv->netValue.haltreq;
             riscv->netValue.stepreq = False;
-            enterDM(riscv, riscv->netValue.haltreq ? DMC_HALTREQ : DMC_STEP);
+            enterDM(riscv, doHaltReq ? DMC_HALTREQ : DMC_STEP);
         }
 
     ////////////////////////////////////////////////////////////////////////////
     // actions *before* next instruction
     ////////////////////////////////////////////////////////////////////////////
 
-    } else if(complete && triggerX && riscvTriggerX0(riscv, thisPC)) {
+    } else if(priOrig && complete && triggerX && riscvTriggerX0(riscv, thisPC)) {
 
-        // execute address trap (priority 4, handled in riscvTriggerX0 only if
-        // a lower-priority case below would otherwise cause an exception -
-        // normally, this is handled by a call to riscvTriggerX2 or
-        // riscvTriggerX4 just before the instruction is executed)
+        // if in in "original" debug priority mode, execute address trap
+        // (priority 4, handled in riscvTriggerX0 only if a lower-priority case
+        // below would otherwise cause an exception - normally, this is handled
+        // by a call to riscvTriggerX2 or riscvTriggerX4 just before the
+        // instruction is executed)
 
-    } else if(riscv->netValue.resethaltreqS) {
+    } else if(getPendingAndEnabledResethaltreq(riscv)) {
 
         // enter Debug mode out of reset (priority 2)
         if(complete) {
@@ -2908,7 +2934,7 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
             enterDM(riscv, DMC_RESETHALTREQ);
         }
 
-    } else if(riscv->netValue.haltreq && !inDebugMode(riscv)) {
+    } else if(getPendingAndEnabledHaltreq(riscv)) {
 
         // enter Debug mode (priority 1)
         if(complete) {
@@ -3304,11 +3330,23 @@ void riscvWFI(riscvP riscv) {
 }
 
 //
+// Are there pending and enabled interupts?
+//
+Bool riscvPendingAndEnabled(riscvP riscv) {
+    return (
+        (riscv->netValue.resethaltreqS) ||
+        (riscv->netValue.haltreq && !inDebugMode(riscv)) ||
+        getPendingAndEnabledNMI(riscv) ||
+        getPendingAndEnabled(riscv)
+    );
+}
+
+//
 // Handle any pending and enabled interrupts
 //
 static void handlePendingAndEnabled(riscvP riscv) {
 
-    if(getPendingAndEnabledNMI(riscv) || getPendingAndEnabled(riscv)) {
+    if(getPendingAndEnabledNMI(riscv) || getPendingAndEnabled(riscv) || getPendingAndEnabledHaltreq(riscv) || getPendingAndEnabledResethaltreq(riscv)) {
         doSynchronousInterrupt(riscv);
     }
 }

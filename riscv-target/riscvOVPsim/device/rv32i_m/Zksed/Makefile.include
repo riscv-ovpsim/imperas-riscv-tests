@@ -17,7 +17,7 @@ ifeq ($(RISCV_ASSERT),0)
 COVERENABLE=\
         --startcover rvtest_code_begin --finishcover rvtest_code_end \
         --cover $(COVERTYPE) \
-        --extensions K \
+        --extensions Zksed \
         --outputfile $(*).$(COVERTYPE).coverage.yaml
 else
 COVERENABLE=

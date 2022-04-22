@@ -701,9 +701,9 @@ typedef enum riscvITypeE {
     RV_IT_MULI_I,
     RV_IT_BEQI_B,
     RV_IT_BNEI_B,
-    RV_IT_TBLJ,
-    RV_IT_TBLJAL,
-    RV_IT_TBLJALM,
+    RV_IT_JT0,
+    RV_IT_JT8,
+    RV_IT_JT64,
     RV_IT_PUSH,
     RV_IT_POP,
     RV_IT_DECBNEZ,
@@ -882,7 +882,7 @@ typedef enum riscvAListDescE {
 } riscvAListDesc;
 
 //
-// This is used specify the argument register list for Zcea PUSH
+// This is used specify return value for Zcea POP
 //
 typedef enum riscvRetValDescE {
 
@@ -890,6 +890,7 @@ typedef enum riscvRetValDescE {
     RV_RV_0,                // {0}
     RV_RV_P1,               // {1}
     RV_RV_M1,               // {-1}
+    RV_RV_Z,                // explicit Z in opcode
 
 } riscvRetValDesc;
 

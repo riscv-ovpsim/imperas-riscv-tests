@@ -78,6 +78,7 @@ typedef struct riscvConfigS {
     riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
     riscvDSPVer       dsp_version;      // DSP architecture version
     riscvDSPSet       dsp_absent;       // DSP absent extensions
+    riscvCompressVer  compress_version; // compressed architecture version
     riscvCompressSet  compress_present; // compressed present extensions
     riscvHypVer       hyp_version;      // hypervisor architecture version
     riscvDebugVer     dbg_version;      // debugger architecture version
@@ -92,6 +93,7 @@ typedef struct riscvConfigS {
     riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
     riscvDMMode       debug_mode;       // is Debug mode implemented?
     riscvDERETMode    debug_eret_mode;  // debug mode MRET, SRET or DRET action
+    riscvDPriority    debug_priority;   // priority of simultaneous debug events
     const char      **members;          // cluster member variants
 
     // configuration not visible in CSR state
@@ -179,8 +181,10 @@ typedef struct riscvConfigS {
     Bool  noZifencei           : 1;     // whether Zifencei is absent
     Bool  updatePTEA           : 1;     // hardware update of PTE A bit?
     Bool  updatePTED           : 1;     // hardware update of PTE D bit?
+    Bool  unaligned_low_pri    : 1;     // low-priority unaligned exceptions
     Bool  unaligned            : 1;     // whether unaligned accesses supported
     Bool  unalignedAMO         : 1;     // whether AMO supports unaligned
+    Bool  unalignedV           : 1;     // whether vector supports unaligned
     Bool  wfi_is_nop           : 1;     // whether WFI is treated as NOP
     Bool  mtvec_is_ro          : 1;     // whether mtvec is read-only
     Bool  cycle_undefined      : 1;     // whether cycle CSR is undefined
@@ -192,6 +196,7 @@ typedef struct riscvConfigS {
     Bool  mcontext_undefined   : 1;     // whether mcontext CSR is undefined
     Bool  scontext_undefined   : 1;     // whether scontext CSR is undefined
     Bool  mscontext_undefined  : 1;     // whether mscontext CSR is undefined
+    Bool  scontext_0x5A8       : 1;     // whether scontext explicitly at 0x5A8
     Bool  hcontext_undefined   : 1;     // whether hcontext CSR is undefined
     Bool  mnoise_undefined     : 1;     // whether mnoise CSR is undefined
     Bool  amo_trigger          : 1;     // whether triggers used with AMO
@@ -212,7 +217,12 @@ typedef struct riscvConfigS {
     Bool  MPU_decompose        : 1;     // decompose unaligned MPU accesses
 #endif
     Bool  PMP_decompose        : 1;     // decompose unaligned PMP accesses
-    Bool  PMP_undefined        : 1;     // force all PMP registers undefined
+    Bool  PMP_undefined        : 1;     // unimplemented PMP CSR accesses cause
+                                        // exceptions
+    Bool  PMP_maskparams       : 1;     // enable parameters to change PMP CSR
+                                        // read-only masks
+    Bool  PMP_initialparams    : 1;     // enable parameters to change PMP CSR
+                                        // reset values
     Bool  external_int_id      : 1;     // enable external interrupt ID ports
     Bool  tval_zero            : 1;     // whether [smu]tval are always zero
     Bool  tval_zero_ebreak     : 1;     // whether [smu]tval always zero on ebreak
@@ -244,7 +254,7 @@ typedef struct riscvConfigS {
     Uns8  GEILEN;                       // number of guest external interrupts
     Bool  xtinst_basic;                 // only pseudo-instruction in xtinst
 
-    // CSR register values
+    // CSR configurable reset register values
     struct {
         CSR_REG_DECL (mvendorid);       // mvendorid value
         CSR_REG_DECL (marchid);         // marchid value
@@ -254,22 +264,27 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (mtvec);           // mtvec value
         CSR_REG_DECL (mstatus);         // mstatus reset value
         CSR_REG_DECL (mclicbase);       // mclicbase value
+        CSR_REG_DECL (mseccfg);         // mseccfg value
+        CSR_REG_DECL_0_15(pmpcfg);      // pmpcfg values
+        CSR_REG_DECL_0_63(pmpaddr);     // pmpaddr values
     } csr;
 
-    // CSR register masks
+    // CSR configurable register masks
     struct {
-        CSR_REG_DECL (mtvec);           // mtvec mask
-        CSR_REG_DECL (stvec);           // stvec mask
-        CSR_REG_DECL (utvec);           // utvec mask
-        CSR_REG_DECL (mtvt);            // mtvec mask
-        CSR_REG_DECL (stvt);            // stvec mask
-        CSR_REG_DECL (utvt);            // utvec mask
-        CSR_REG_DECL (tdata1);          // tdata1 mask
-        CSR_REG_DECL (mip);             // mip mask
-        CSR_REG_DECL (sip);             // sip mask
-        CSR_REG_DECL (uip);             // uip mask
-        CSR_REG_DECL (hip);             // hip mask
-        CSR_REG_DECL (envcfg);          // envcfg mask
+        CSR_REG_DECL (mtvec);               // mtvec mask
+        CSR_REG_DECL (stvec);               // stvec mask
+        CSR_REG_DECL (utvec);               // utvec mask
+        CSR_REG_DECL (mtvt);                // mtvec mask
+        CSR_REG_DECL (stvt);                // stvec mask
+        CSR_REG_DECL (utvt);                // utvec mask
+        CSR_REG_DECL (tdata1);              // tdata1 mask
+        CSR_REG_DECL (mip);                 // mip mask
+        CSR_REG_DECL (sip);                 // sip mask
+        CSR_REG_DECL (uip);                 // uip mask
+        CSR_REG_DECL (hip);                 // hip mask
+        CSR_REG_DECL (envcfg);              // envcfg mask
+        CSR_REG_DECL_0_15(romask_pmpcfg);   // pmpcfg read-only bit masks
+        CSR_REG_DECL_0_63(romask_pmpaddr);  // pmpaddr read-only bit masks
     } csrMask;
 
     // custom documentation

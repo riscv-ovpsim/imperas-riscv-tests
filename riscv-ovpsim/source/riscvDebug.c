@@ -135,6 +135,7 @@ typedef struct supDetailsS {
     Bool              noTraceChange;
     Bool              noSaveRestore;
     Bool              instrAttrIgnore;
+    void             *userData;
     isrPresentFn      present;
 } supDetails;
 
@@ -164,6 +165,24 @@ static ISR_PRESENT_FN(presentFFlagsI) {
 //
 static ISR_PRESENT_FN(presentCLINT) {
     return riscv->clint;
+}
+
+//
+// Is the pmpcfg register with index in userData present?
+// - 4 cfg entries per register, so multiply index by 4 before
+//   comparing with number of PMP entries
+//
+static ISR_PRESENT_FN(presentPMPCFG) {
+    Uns32 index = (Uns32)(UnsPS)this->userData * 4;
+    return (index < riscv->configInfo.PMP_registers);
+}
+
+//
+// Is the pmpaddr register with index in userData present?
+//
+static ISR_PRESENT_FN(presentPMPAddr) {
+    Uns32 index = (Uns32)(UnsPS)this->userData;
+    return (index < riscv->configInfo.PMP_registers);
 }
 
 //
@@ -257,6 +276,19 @@ static VMI_REG_READ_FN(readFFlagsI) {
 }
 
 //
+// Return indication of whether there are pending and enabled interrupts
+//
+static VMI_REG_READ_FN(readASYNCPE) {
+
+    riscvP riscv   = (riscvP)processor;
+    Uns8  *ASYNCPE = buffer;
+
+    *ASYNCPE = riscvPendingAndEnabled(riscv);
+
+    return True;
+}
+
+//
 // Read CLINT msip
 //
 static VMI_REG_READ_FN(readMSIP) {
@@ -338,21 +370,135 @@ static VMI_REG_WRITE_FN(writeMTIME) {
 }
 
 //
+// Read PMP CFG register write mask value
+// - invert read-only mask value stored internally to return as a writemask
+//
+static VMI_REG_READ_FN(readPMPCFGMask) {
+
+    riscvP riscv   = (riscvP)processor;
+    Uns32  index   = (Uns32)(UnsPS)reg->userData;
+
+    VMI_ASSERT(index < 16, "pmpcfgMask index out of range");
+
+    if(reg->bits == 32) {
+        Uns32 *pmpcfgMaskP = buffer;
+
+        *pmpcfgMaskP = ~riscv->romask_pmpcfg.u32[index];
+
+    } else if (reg->bits == 64) {
+        Uns64 *pmpcfgMaskP = buffer;
+
+        *pmpcfgMaskP = ~riscv->romask_pmpcfg.u64[index/2];
+
+    } else {
+
+        return False;
+
+    }
+
+    return True;
+}
+
+//
+// Read PMP Addr register write mask value
+// - invert read-only mask value stored internally to return as a writemask
+//
+static VMI_REG_READ_FN(readPMPAddrMask) {
+
+    riscvP                        riscv        = (riscvP)processor;
+    Uns32                         index        = (Uns32)(UnsPS)reg->userData;
+    CSR_REG_TYPE(romask_pmpaddr) *romasks      = &riscv->configInfo.csrMask.romask_pmpaddr0;
+    Uns64                        *pmpaddrMaskP = buffer;
+
+    VMI_ASSERT(index < 64, "pmpcfgMask index out of range");
+    VMI_ASSERT(reg->bits == 64, "%s register must be 64 bits", reg->name);
+
+    *pmpaddrMaskP = ~romasks[index].u64.bits;
+
+    return True;
+}
+
+//
+// Macros for "arrays" of PMP register write masks
+//
+#define PMP_CFG_EVEN(_I, _GDB_I_0) \
+    {"mask_pmpcfg"#_I,  "Write mask for pmpcfg"#_I,    0, (_GDB_I_0)+_I,  64, VMI_NOREG, readPMPCFGMask, 0, vmi_RA_R, RV_GROUP(INTEGRATION), 1, 1, 1, (void *)(UnsPS)_I, presentPMPCFG}
+
+#define PMP_CFG_ODD(_I, _GDB_I_0) \
+    {"mask_pmpcfg"#_I,  "Write mask for pmpcfg"#_I, RV32, (_GDB_I_0)+_I,  32, VMI_NOREG, readPMPCFGMask, 0, vmi_RA_R, RV_GROUP(INTEGRATION), 1, 1, 1, (void *)(UnsPS)_I, presentPMPCFG}
+
+#define PMP_CFG_0_15(_GDB_I_0) \
+    PMP_CFG_EVEN(0,  _GDB_I_0), \
+    PMP_CFG_ODD(1,   _GDB_I_0), \
+    PMP_CFG_EVEN(2,  _GDB_I_0), \
+    PMP_CFG_ODD(3,   _GDB_I_0), \
+    PMP_CFG_EVEN(4,  _GDB_I_0), \
+    PMP_CFG_ODD(5,   _GDB_I_0), \
+    PMP_CFG_EVEN(6,  _GDB_I_0), \
+    PMP_CFG_ODD(7,   _GDB_I_0), \
+    PMP_CFG_EVEN(8,  _GDB_I_0), \
+    PMP_CFG_ODD(9,   _GDB_I_0), \
+    PMP_CFG_EVEN(10, _GDB_I_0), \
+    PMP_CFG_ODD(11,  _GDB_I_0), \
+    PMP_CFG_EVEN(12, _GDB_I_0), \
+    PMP_CFG_ODD(13,  _GDB_I_0), \
+    PMP_CFG_EVEN(14, _GDB_I_0), \
+    PMP_CFG_ODD(15,  _GDB_I_0)
+
+#define PMP_ADDR(_I, _GDB_I_0) \
+    {"mask_pmpaddr"#_I, "Write mask for pmpaddr"#_I, 0, (_GDB_I_0)+_I, 64, VMI_NOREG, readPMPAddrMask, 0, vmi_RA_R, RV_GROUP(INTEGRATION), 1, 1, 1, (void *)(UnsPS)_I, presentPMPAddr}
+
+#define PMP_ADDR_0_9(_X,_GDB_I_0) \
+    PMP_ADDR(_X##0, _GDB_I_0), \
+    PMP_ADDR(_X##1, _GDB_I_0), \
+    PMP_ADDR(_X##2, _GDB_I_0), \
+    PMP_ADDR(_X##3, _GDB_I_0), \
+    PMP_ADDR(_X##4, _GDB_I_0), \
+    PMP_ADDR(_X##5, _GDB_I_0), \
+    PMP_ADDR(_X##6, _GDB_I_0), \
+    PMP_ADDR(_X##7, _GDB_I_0), \
+    PMP_ADDR(_X##8, _GDB_I_0), \
+    PMP_ADDR(_X##9, _GDB_I_0)
+
+#define PMP_ADDR_0_63(_GDB_I_0) \
+        PMP_ADDR(0, _GDB_I_0), \
+        PMP_ADDR(1, _GDB_I_0), \
+        PMP_ADDR(2, _GDB_I_0), \
+        PMP_ADDR(3, _GDB_I_0), \
+        PMP_ADDR(4, _GDB_I_0), \
+        PMP_ADDR(5, _GDB_I_0), \
+        PMP_ADDR(6, _GDB_I_0), \
+        PMP_ADDR(7, _GDB_I_0), \
+        PMP_ADDR(8, _GDB_I_0), \
+        PMP_ADDR(9, _GDB_I_0), \
+        PMP_ADDR_0_9(1, _GDB_I_0), \
+        PMP_ADDR_0_9(2, _GDB_I_0), \
+        PMP_ADDR_0_9(3, _GDB_I_0), \
+        PMP_ADDR_0_9(4, _GDB_I_0), \
+        PMP_ADDR_0_9(5, _GDB_I_0), \
+        PMP_ADDR(60, _GDB_I_0), \
+        PMP_ADDR(61, _GDB_I_0), \
+        PMP_ADDR(62, _GDB_I_0), \
+        PMP_ADDR(63, _GDB_I_0)
+//
 // List of supplemental registers
 //
 static const supDetails supRegs[] = {
 
-    {"LRSCAddress",  "LR/SC active lock address",               ISA_A,  0,  0, RISCV_EA_TAG,     0,                0,             vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, 0             },
-    {"DM",           "Debug mode active",                       0,      1,  8, RISCV_DM,         0,                writeDM,       vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, presentDM     },
-    {"DMStall",      "Debug mode stalled",                      0,      2,  8, RISCV_DM_STALL,   0,                writeDMStall,  vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, presentDMStall},
-    {"commercial",   "Commercial feature in use",               0,      3,  8, RISCV_COMMERCIAL, 0,                0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 0, 0             },
-    {"PTWStage",     "PTW active stage (0:none 1:HS 2:VS 3:G)", ISA_S,  4,  8, VMI_NOREG,        readPTWStage,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
-    {"PTWInputAddr", "PTW input address",                       ISA_S,  5, 64, VMI_NOREG,        readPTWInputAddr, 0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
-    {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0             },
-    {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 1, presentFFlagsI},
-    {"msip",         "CLINT msip",                              0,     16,  8, VMI_NOREG,        readMSIP,         writeMSIP,     vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, presentCLINT  },
-    {"mtimecmp",     "CLINT mtimecmp",                          0,     17, 64, VMI_NOREG,        readMTIMECMP,     writeMTIMECMP, vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, presentCLINT  },
-    {"mtime",        "CLINT mtime",                             0,     18, 64, VMI_NOREG,        readMTIME,        writeMTIME,    vmi_RA_RW, RV_GROUP(CLINT),       1, 0, 0, presentCLINT  },
+    {"LRSCAddress",  "LR/SC active lock address",               ISA_A,  0,  0, RISCV_EA_TAG,     0,                0,             vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, 0, 0             },
+    {"DM",           "Debug mode active",                       0,      1,  8, RISCV_DM,         0,                writeDM,       vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, 0, presentDM     },
+    {"DMStall",      "Debug mode stalled",                      0,      2,  8, RISCV_DM_STALL,   0,                writeDMStall,  vmi_RA_RW, RV_GROUP(INTEGRATION), 0, 0, 0, 0, presentDMStall},
+    {"commercial",   "Commercial feature in use",               0,      3,  8, RISCV_COMMERCIAL, 0,                0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 0, 0, 0             },
+    {"PTWStage",     "PTW active stage (0:none 1:HS 2:VS 3:G)", ISA_S,  4,  8, VMI_NOREG,        readPTWStage,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
+    {"PTWInputAddr", "PTW input address",                       ISA_S,  5, 64, VMI_NOREG,        readPTWInputAddr, 0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
+    {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
+    {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 1, 0, presentFFlagsI},
+    {"ASYNCPE",      "Asynchronous Event Pending & Enabled",    0,      8,  8, VMI_NOREG,        readASYNCPE,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
+    {"msip",         "CLINT msip",                              0,     16,  8, VMI_NOREG,        readMSIP,         writeMSIP,     vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, 0, presentCLINT  },
+    {"mtimecmp",     "CLINT mtimecmp",                          0,     17, 64, VMI_NOREG,        readMTIMECMP,     writeMTIMECMP, vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, 0, presentCLINT  },
+    {"mtime",        "CLINT mtime",                             0,     18, 64, VMI_NOREG,        readMTIME,        writeMTIME,    vmi_RA_RW, RV_GROUP(CLINT),       1, 0, 0, 0, presentCLINT  },
+    PMP_CFG_0_15(19),
+    PMP_ADDR_0_63(35),
 
     // KEEP LAST
     {0}
@@ -667,6 +813,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst->noTraceChange   = supDetails->noTraceChange;
             dst->noSaveRestore   = supDetails->noSaveRestore;
             dst->instrAttrIgnore = supDetails->instrAttrIgnore;
+            dst->userData        = supDetails->userData;
             dst++;
         }
     }

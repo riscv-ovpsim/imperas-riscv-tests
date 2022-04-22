@@ -18,7 +18,7 @@ fi
 
 echo "Running ${XLEN} ${RISCV_DEVICE}"
 
-WORK_DIR=work/rv${XLEN}${RISCV_BASE}_m/${RISCV_DEVICE}
+WORK_DIR=work/rv${XLEN}${RISCV_BASE}_${RISCV_MODE}/${RISCV_DEVICE}
 
 ${TARGET_SIM} \
     --variant RV32GCK  \

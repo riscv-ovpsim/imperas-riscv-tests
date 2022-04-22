@@ -366,6 +366,7 @@ typedef struct riscvS {
     memDomainP         tmDomain;        // transaction mode domain
     memDomainP         CLICDomain;      // CLIC domain
     riscvPMPCFG        pmpcfg;          // pmpcfg registers
+    riscvPMPCFG        romask_pmpcfg;   // pmpcfg register read-only bit masks
     Uns64             *pmpaddr;         // pmpaddr registers
 #if(ENABLE_SSMPU)
     riscvPMPCFG        mpucfg;          // mpucfg registers
@@ -702,21 +703,35 @@ inline static riscvZfinxVer Zfinx(riscvP riscv) {
 }
 
 //
-// Is Zcea configured?
+// Is notional Zcd configured?
+//
+inline static riscvZceeVer Zcd(riscvP riscv) {
+    return riscv->configInfo.compress_present & RVCS_Zcd;
+}
+
+//
+// Is Zcmt configured?
+//
+inline static riscvZceeVer Zcmt(riscvP riscv) {
+    return riscv->configInfo.compress_present & RVCS_Zcmt;
+}
+
+//
+// Is legacy Zcea configured?
 //
 inline static riscvZceaVer Zcea(riscvP riscv) {
     return RISCV_ZCEA_VERSION(riscv);
 }
 
 //
-// Is Zceb configured?
+// Is legacy Zceb configured?
 //
 inline static riscvZcebVer Zceb(riscvP riscv) {
     return RISCV_ZCEB_VERSION(riscv);
 }
 
 //
-// Is Zcee configured?
+// Is legacy Zcee configured?
 //
 inline static riscvZceeVer Zcee(riscvP riscv) {
     return RISCV_ZCEE_VERSION(riscv);

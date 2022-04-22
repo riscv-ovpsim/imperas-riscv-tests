@@ -33,11 +33,13 @@
     .user_version     = RVUV_DEFAULT,                           \
     .priv_version     = RVPV_DEFAULT,                           \
     .bitmanip_version = RVBV_DEFAULT,                           \
+    .compress_version = RVCV_DEFAULT,                           \
     .crypto_version   = RVKV_DEFAULT,                           \
     .hyp_version      = RVHV_DEFAULT,                           \
     .vect_version     = RVVV_DEFAULT,                           \
     .dbg_version      = RVDBG_DEFAULT,                          \
     .CLIC_version     = RVCLC_DEFAULT,                          \
+    .debug_priority   = RVDP_693,                               \
     .Zvlsseg          = 1,                                      \
     .Zvamo            = 1,                                      \
     .Zvediv           = 0,                                      \
@@ -83,6 +85,7 @@ static const riscvConfig configList[] = {
     RISC_VARIANT("RV32GCV",     16, 0, 0, 0, 0, ISA_U|ISA_S|RV32GCV ),
     RISC_VARIANT("RV32E",       16, 0, 0, 0, 0, ISA_U|ISA_S|RV32E   ),
     RISC_VARIANT("RV32EC",      16, 0, 0, 0, 0, ISA_U|ISA_S|RV32EC  ),
+    RISC_VARIANT("RV32EM",      16, 0, 0, 0, 0, ISA_U|ISA_S|RV32EM  ),
 
     // RV64 variants
     RISC_VARIANT("RV64I",       16, 0, 0, 0, 0, ISA_U|ISA_S|RV64I   ),

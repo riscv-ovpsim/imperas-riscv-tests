@@ -36,9 +36,9 @@ Instruction category: OPB_PACK Packing
   pack : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 146
-  rol : 146
   rori : 146
+  rol : 146
+  ror : 146
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
   sm3p1 : 146
   sm3p0 : 146

@@ -134,6 +134,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (vxrm),         // 0x00A
     CSR_ID      (vcsr),         // 0x00F
     CSR_ID      (seed),         // 0x015
+    CSR_ID      (jvt),          // 0x017
     CSR_ID      (uscratch),     // 0x040
     CSR_ID      (uepc),         // 0x041
     CSR_ID      (ucause),       // 0x042
@@ -1261,11 +1262,11 @@ typedef struct {
     Uns32 _u1        :  5;
     Uns32 USEED_SKES :  1;
     Uns32 SSEED      :  1;
-    Uns32 _u2        : 22;
-} CSR_REG_TYPE_32(mseccfg);
+    Uns64 _u2        : 54;
+} CSR_REG_TYPE_64(mseccfg);
 
 // define 32 bit type
-CSR_REG_STRUCT_DECL_32(mseccfg);
+CSR_REG_STRUCT_DECL_64(mseccfg);
 
 // define write masks
 #define WM_mseccfg_MML      (1ULL<<0)
@@ -1367,11 +1368,29 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mclicbase);
 #define WM64_mclicbase 0x00000000
 
 // -----------------------------------------------------------------------------
-// pmpcfg       (id 0x3A0-0x3A3)
+// pmpcfg       (id 0x3A0-0x3AF)
 // -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(pmpcfg);
+
+// for use in riscvConfig.csrMasks
+// - non-standard name clarifies this is a read-only mask,not a write mask
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(romask_pmpcfg);
 
 // define write masks
 #define WM64_pmpcfg 0x9f9f9f9f9f9f9f9fULL
+
+// -----------------------------------------------------------------------------
+// pmpaddr      (id 0x3B0-0x3EF)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(pmpaddr);
+
+// for use in riscvConfig.csrMasks
+// - non-standard name clarifies this is a read-only mask,not a write mask
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(romask_pmpaddr);
 
 // -----------------------------------------------------------------------------
 // mpucfg       (id 0x1A0-0x1A3?)
@@ -1429,13 +1448,17 @@ typedef struct {
 CSR_REG_STRUCT_DECL_32_64(hgatp);
 
 // -----------------------------------------------------------------------------
+// jvt          (id 0x017)
 // tbljalvec    (id 0x800)
 // -----------------------------------------------------------------------------
 
 // define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(jvt);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tbljalvec);
 
 // define write masks
+#define WM32_jvt       -64
+#define WM64_jvt       -64
 #define WM32_tbljalvec -64
 #define WM64_tbljalvec -64
 
@@ -2107,6 +2130,11 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 #define CSR_REG_DECL_V(_N)  CSR_REG_TYPE(_N) _N, v##_N
 
 //
+// Use this to define a register entry in riscvCSRs below with two named aliases
+//
+#define CSR_REG_DECL_A(_N1, _N2) union {CSR_REG_DECL(_N1); CSR_REG_DECL(_N2);}
+
+//
 // Use this to define a register read-only mask in riscvCSRs below
 //
 #define CSR_RO_DECL(_N)     CSR_REG_TYPE(_N) _N##_RO
@@ -2115,6 +2143,68 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 // Use this to define four register entries in riscvCSRs below
 //
 #define CSR_REG_DECLx4(_N)  CSR_REG_TYPE(_N) _N[4]
+
+//
+// Use this to define an indexed register entry in riscvCSRs below
+//
+#define CSR_REG_DECL_I(_R, _I)    CSR_REG_TYPE(_R) _R##_I
+
+//
+// Construct reg declarations with indices  0..9
+//
+#define CSR_REG_DECL_0_9(_R) \
+    CSR_REG_DECL_I(_R, 0);   \
+    CSR_REG_DECL_I(_R, 1);   \
+    CSR_REG_DECL_I(_R, 2);   \
+    CSR_REG_DECL_I(_R, 3);   \
+    CSR_REG_DECL_I(_R, 4);   \
+    CSR_REG_DECL_I(_R, 5);   \
+    CSR_REG_DECL_I(_R, 6);   \
+    CSR_REG_DECL_I(_R, 7);   \
+    CSR_REG_DECL_I(_R, 8);   \
+    CSR_REG_DECL_I(_R, 9)
+
+//
+// Construct reg declarations with indices 0..15
+//
+#define CSR_REG_DECL_0_15(_R) \
+    CSR_REG_DECL_0_9(_R);     \
+    CSR_REG_DECL_I(_R, 10);   \
+    CSR_REG_DECL_I(_R, 11);   \
+    CSR_REG_DECL_I(_R, 12);   \
+    CSR_REG_DECL_I(_R, 13);   \
+    CSR_REG_DECL_I(_R, 14);   \
+    CSR_REG_DECL_I(_R, 15)
+
+//
+// Construct reg declarations with indices  x0..x9
+//
+#define CSR_REG_DECL_X0_X9(_R, _X) \
+    CSR_REG_DECL_I(_R, _X##0);   \
+    CSR_REG_DECL_I(_R, _X##1);   \
+    CSR_REG_DECL_I(_R, _X##2);   \
+    CSR_REG_DECL_I(_R, _X##3);   \
+    CSR_REG_DECL_I(_R, _X##4);   \
+    CSR_REG_DECL_I(_R, _X##5);   \
+    CSR_REG_DECL_I(_R, _X##6);   \
+    CSR_REG_DECL_I(_R, _X##7);   \
+    CSR_REG_DECL_I(_R, _X##8);   \
+    CSR_REG_DECL_I(_R, _X##9)
+
+//
+// Construct reg declarations with indices 0..63
+//
+#define CSR_REG_DECL_0_63(_R)   \
+    CSR_REG_DECL_0_9(_R);       \
+    CSR_REG_DECL_X0_X9(_R, 1);  \
+    CSR_REG_DECL_X0_X9(_R, 2);  \
+    CSR_REG_DECL_X0_X9(_R, 3);  \
+    CSR_REG_DECL_X0_X9(_R, 4);  \
+    CSR_REG_DECL_X0_X9(_R, 5);  \
+    CSR_REG_DECL_I(_R, 60);     \
+    CSR_REG_DECL_I(_R, 61);     \
+    CSR_REG_DECL_I(_R, 62);     \
+    CSR_REG_DECL_I(_R, 63)
 
 //
 // This type defines the CSRs implemented as true registers in the processor
@@ -2130,12 +2220,12 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (vxsat);          // 0x009
     CSR_REG_DECL  (vxrm);           // 0x00A
     CSR_REG_DECL  (vcsr);           // 0x00E
+    CSR_REG_DECL_A(jvt, tbljalvec); // 0x017 or 0x800
     CSR_REG_DECL  (uscratch);       // 0x040
     CSR_REG_DECL  (uepc);           // 0x041
     CSR_REG_DECL  (ucause);         // 0x042
     CSR_REG_DECL  (utval);          // 0x043
     CSR_REG_DECL  (uintthresh);     // 0x04A
-    CSR_REG_DECL  (tbljalvec);      // 0x800
     CSR_REG_DECL  (ucode);          // 0x801
     CSR_REG_DECL  (vl);             // 0xC20
     CSR_REG_DECL  (vtype);          // 0xC21

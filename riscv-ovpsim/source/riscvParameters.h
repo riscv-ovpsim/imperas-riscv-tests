@@ -27,6 +27,68 @@
 #include "riscvFeatures.h"
 #include "riscvTypeRefs.h"
 
+#define PMP_CFG_PARAMS_64(_I) \
+    VMI_UNS64_PARAM(mask_pmpcfg##_I); \
+    VMI_UNS64_PARAM(pmpcfg##_I)
+
+#define PMP_CFG_PARAMS_32(_I) \
+    VMI_UNS32_PARAM(mask_pmpcfg##_I); \
+    VMI_UNS32_PARAM(pmpcfg##_I)
+
+#define PMP_CFG_PARAMS_0_15 \
+    PMP_CFG_PARAMS_64(0); \
+    PMP_CFG_PARAMS_32(1); \
+    PMP_CFG_PARAMS_64(2); \
+    PMP_CFG_PARAMS_32(3); \
+    PMP_CFG_PARAMS_64(4); \
+    PMP_CFG_PARAMS_32(5); \
+    PMP_CFG_PARAMS_64(6); \
+    PMP_CFG_PARAMS_32(7); \
+    PMP_CFG_PARAMS_64(8); \
+    PMP_CFG_PARAMS_32(9); \
+    PMP_CFG_PARAMS_64(10); \
+    PMP_CFG_PARAMS_32(11); \
+    PMP_CFG_PARAMS_64(12); \
+    PMP_CFG_PARAMS_32(13); \
+    PMP_CFG_PARAMS_64(14); \
+    PMP_CFG_PARAMS_32(15)
+
+#define PMP_ADDR_PARAMS(_I) \
+    VMI_UNS64_PARAM(mask_pmpaddr##_I); \
+    VMI_UNS64_PARAM(pmpaddr##_I)
+
+#define PMP_ADDR_PARAMS_0_9(_I) \
+    PMP_ADDR_PARAMS(_I##0); \
+    PMP_ADDR_PARAMS(_I##1); \
+    PMP_ADDR_PARAMS(_I##2); \
+    PMP_ADDR_PARAMS(_I##3); \
+    PMP_ADDR_PARAMS(_I##4); \
+    PMP_ADDR_PARAMS(_I##5); \
+    PMP_ADDR_PARAMS(_I##6); \
+    PMP_ADDR_PARAMS(_I##7); \
+    PMP_ADDR_PARAMS(_I##8); \
+    PMP_ADDR_PARAMS(_I##9)
+
+#define PMP_ADDR_PARAMS_0_63 \
+    PMP_ADDR_PARAMS(0); \
+    PMP_ADDR_PARAMS(1); \
+    PMP_ADDR_PARAMS(2); \
+    PMP_ADDR_PARAMS(3); \
+    PMP_ADDR_PARAMS(4); \
+    PMP_ADDR_PARAMS(5); \
+    PMP_ADDR_PARAMS(6); \
+    PMP_ADDR_PARAMS(7); \
+    PMP_ADDR_PARAMS(8); \
+    PMP_ADDR_PARAMS(9); \
+    PMP_ADDR_PARAMS_0_9(1); \
+    PMP_ADDR_PARAMS_0_9(2); \
+    PMP_ADDR_PARAMS_0_9(3); \
+    PMP_ADDR_PARAMS_0_9(4); \
+    PMP_ADDR_PARAMS_0_9(5); \
+    PMP_ADDR_PARAMS(60); \
+    PMP_ADDR_PARAMS(61); \
+    PMP_ADDR_PARAMS(62); \
+    PMP_ADDR_PARAMS(63)
 
 //
 // Define model parameters
@@ -49,6 +111,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(priv_version);
     VMI_ENUM_PARAM(vector_version);
     VMI_ENUM_PARAM(bitmanip_version);
+    VMI_ENUM_PARAM(compress_version);
     VMI_ENUM_PARAM(hypervisor_version);
     VMI_ENUM_PARAM(crypto_version);
     VMI_ENUM_PARAM(dsp_version);
@@ -63,11 +126,14 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(debug_address);
     VMI_UNS64_PARAM(dexc_address);
     VMI_ENUM_PARAM(debug_eret_mode);
+    VMI_ENUM_PARAM(debug_priority);
     VMI_UNS32_PARAM(dcsr_ebreak_mask);
     VMI_BOOL_PARAM(updatePTEA);
     VMI_BOOL_PARAM(updatePTED);
+    VMI_BOOL_PARAM(unaligned_low_pri);
     VMI_BOOL_PARAM(unaligned);
     VMI_BOOL_PARAM(unalignedAMO);
+    VMI_BOOL_PARAM(unalignedV);
     VMI_BOOL_PARAM(wfi_is_nop);
     VMI_BOOL_PARAM(mtvec_is_ro);
     VMI_UNS32_PARAM(counteren_mask);
@@ -136,10 +202,6 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(MPU_registers);
     VMI_BOOL_PARAM(MPU_decompose);
 #endif
-    VMI_UNS32_PARAM(PMP_grain);
-    VMI_UNS32_PARAM(PMP_registers);
-    VMI_UNS32_PARAM(PMP_max_page);
-    VMI_BOOL_PARAM(PMP_decompose);
     VMI_UNS32_PARAM(cmomp_bytes);
     VMI_UNS32_PARAM(cmoz_bytes);
     VMI_UNS32_PARAM(Sv_modes);
@@ -176,6 +238,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(mhartid);
     VMI_UNS64_PARAM(mconfigptr);
     VMI_UNS64_PARAM(mtvec);
+    VMI_UNS64_PARAM(mseccfg);
     VMI_UNS64_PARAM(Svnapot_page_mask);
     VMI_UNS32_PARAM(mstatus_FS);
     VMI_UNS32_PARAM(mstatus_VS);
@@ -233,6 +296,13 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(Zcea_version);
     VMI_ENUM_PARAM(Zceb_version);
     VMI_ENUM_PARAM(Zcee_version);
+    VMI_BOOL_PARAM(Zca);
+    VMI_BOOL_PARAM(Zcb);
+    VMI_BOOL_PARAM(Zcf);
+    VMI_BOOL_PARAM(Zcmb);
+    VMI_BOOL_PARAM(Zcmp);
+    VMI_BOOL_PARAM(Zcmpe);
+    VMI_BOOL_PARAM(Zcmt);
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);
@@ -258,6 +328,17 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(GEILEN);
     VMI_BOOL_PARAM(xtinst_basic);
 
+    // PMP configuration
+    VMI_UNS32_PARAM(PMP_grain);
+    VMI_UNS32_PARAM(PMP_registers);
+    VMI_UNS32_PARAM(PMP_max_page);
+    VMI_BOOL_PARAM(PMP_decompose);
+    VMI_BOOL_PARAM(PMP_undefined);
+    VMI_BOOL_PARAM(PMP_maskparams);
+    VMI_BOOL_PARAM(PMP_initialparams);
+    PMP_CFG_PARAMS_0_15;
+    PMP_ADDR_PARAMS_0_63;
+    
 } riscvParamValues;
 
 //
@@ -284,6 +365,11 @@ const char *riscvGetUserVersionDesc(riscvP riscv);
 // Return Vector Architecture description
 //
 const char *riscvGetVectorVersionDesc(riscvP riscv);
+
+//
+// Return Compressed Architecture description
+//
+const char *riscvGetCompressedVersionDesc(riscvP riscv);
 
 //
 // Return Bit Manipulation Architecture description

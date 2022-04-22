@@ -11,6 +11,48 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+Date 2022-April-21
+Release 20220420.0
+===
+
+- An issue has been corrected that caused incorrect behavior for vector
+  narrowing operations when tail agnostic behavior is enabled.
+- New parameter unaligned_low_pri indicates that address misaligned faults
+  are lower priority than page fault or access fault exceptions.
+- New parameter PMP_undefined indicates whether accesses to unimplemented PMP
+  registers should cause Illegal Instruction exceptions. By default, such
+  accesses read as zero and are write-ignored.
+- When Debug mode is implemented, new parameter debug_priority allows a modified
+  exception priority order to be specified, as described in Debug Specification
+  pull request 693. This mode resolves some anomalous behavior of the original
+  specification.
+- Smclic version 0.9-draft-20220315 is now implemented.
+- Smepmp version 1.0 is now implemented.
+- Compressed extension version 0.70.1 is now implemented if parameter
+  compress_version is set to "0.70.1". Parameters Zca, Zcb, Zcf, Zcmb, Zcmp, 
+  Zcmpe and Zcm are used to specify the presence of each subset.
+- When the vector extension is implemented, behavior for fractional LMUL has
+  been modified to allow all legal options for the vector configuration;
+  previously, only the minimal mandatory set was supported.
+- When the vector extension is implemented, an error has been corrected in
+  calculated values for VFRSQRTE instructions when SEW=16.
+- Privileged Version 1.12 has been added (equivalent to the existing 20211203
+  version).
+- When the vector extension is implemented, new parameter unalignedV specifies
+  whether unaligned vector load/stores are allowed - previously, only aligned
+  accesses were permitted.
+- When the vector extension is implemented, segment load instructions with
+  fractional LMUL are now always reserved if the destination register group
+  overlaps the source vector register group - previously, some cases were
+  allowed.
+- When the vector extension is implemented, segment load and store instructions
+  for which the vector register numbers accessed would increment past 31 are
+  reserved - previously, indexes wrapped around.
+
+Date 2022-February-9
+Release 20220208.0
+===
+
 - When the vector extension is implemented and XLEN<SEW, values from X registers
   are now sign-extended (previously, they were zero-extended).
 

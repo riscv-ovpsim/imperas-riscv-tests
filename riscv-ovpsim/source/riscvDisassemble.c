@@ -610,6 +610,11 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
         putString(result, "ret");
     }
 
+    // emit return zero modifier if required
+    if(info->retval==RV_RV_Z) {
+        putChar(result, 'z');
+    }
+
     // emit embedded modifier if required
     if(info->rlist>=RV_RL_E_RA_S0_2) {
         putString(result, ".e");

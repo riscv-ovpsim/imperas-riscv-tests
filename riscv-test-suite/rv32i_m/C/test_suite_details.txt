@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,20 +20,20 @@ Architectural Test Suite Data for RV32C C Compressed Integer Instructions:
     27 test source files
     8 different instruction categories
     34 different instructions
-    21,499 total instructions
+    21,994 total instructions
 
 Instruction category: arithmetic 
   c-lui : 1,658
-  c-addi : 1,334
-  c-li : 1,082
   c-add : 730
-  c-mv : 146
+  c-li : 1,082
+  c-addi : 1,335
+  c-mv : 212
   c-sub : 147
 Instruction category: logical 
   c-or : 146
   c-and : 146
-  c-xor : 146
   c-andi : 146
+  c-xor : 146
 Instruction category: branch 
   c-beqz : 146
   c-bnez : 146
@@ -42,28 +42,28 @@ Instruction category: OPI_IMN
 Instruction category: jump 
   c-j : 173
   c-jal : 146
-  c-jalr : 146
   c-jr : 146
+  c-jalr : 146
 Instruction category: load 
   c-lwsp : 146
 Instruction category: store 
-  c-swsp : 363
+  c-swsp : 404
 Instruction category: shift 
-  c-slli : 146
   c-srai : 146
+  c-slli : 146
   c-srli : 146
 
 Other instructions (those not the focus of this suite)
-  addi : 5,485
+  addi : 5,590
   csrrs : 83
-  auipc : 1,475
+  auipc : 1,646
   csrrw : 57
   mret : 28
   lui : 2,331
-  sw : 3,615
+  sw : 3,574
   fence : 27
   ecall : 27
   beq : 81
-  jal : 320
+  jal : 472
   lw : 438
 

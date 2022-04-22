@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -29,8 +29,8 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 274
   xnor : 274
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
-  ctz : 274
   clz : 274
+  ctz : 274
   clzw : 274
   ctzw : 274
 Instruction category: OPB_CNTB Count Bits
@@ -38,19 +38,19 @@ Instruction category: OPB_CNTB Count Bits
   cpopw : 274
 Instruction category: OPB_MNMX Min/Max
   max : 274
-  min : 274
   minu : 274
   maxu : 274
+  min : 274
 Instruction category: OPB_SEXT Sign Extend
   sext.b : 274
   sext.h : 274
 Instruction category: OPB_ROTS Rotations
-  rori : 274
   rol : 274
   ror : 274
+  rori : 274
   rolw : 274
-  rorw : 274
   roriw : 274
+  rorw : 274
 
 Other instructions (those not the focus of this suite)
   jal : 24
@@ -66,7 +66,7 @@ Other instructions (those not the focus of this suite)
   fence : 24
   ecall : 24
   beq : 72
-  grevi : 274
   gorci : 274
+  grevi : 274
   packw : 274
 

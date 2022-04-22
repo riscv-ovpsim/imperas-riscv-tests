@@ -28,12 +28,12 @@ Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
   aes32dsi : 402
   aes32dsmi : 402
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes32esmi : 402
   aes32esi : 402
+  aes32esmi : 402
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 146
   orn : 146
   xnor : 146
+  andn : 146
 Instruction category: OPB_CLML Carry-less Multiply
   clmulh : 146
   clmul : 146
@@ -42,18 +42,18 @@ Instruction category: OPB_PACK Packing
   packh : 146
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
+  ror : 146
   rori : 146
   rol : 146
-  ror : 146
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
   sha256sum0 : 146
-  sha512sig0h : 146
-  sha256sig0 : 146
-  sha512sig1l : 146
-  sha256sum1 : 146
-  sha512sig1h : 146
-  sha256sig1 : 146
   sha512sig0l : 146
+  sha256sum1 : 146
+  sha512sig0h : 146
+  sha512sig1h : 146
+  sha256sig0 : 146
+  sha256sig1 : 146
+  sha512sig1l : 146
   sha512sum0r : 146
   sha512sum1r : 146
 Instruction category: OPB_XBAR Crossbar Permutation
@@ -71,6 +71,6 @@ Other instructions (those not the focus of this suite)
   ecall : 31
   beq : 93
   grevi : 146
-  shfli : 146
   unshfli : 146
+  shfli : 146
 

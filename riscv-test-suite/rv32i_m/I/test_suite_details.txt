@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2021 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -26,21 +26,21 @@ Instruction category: arithmetic
   lui : 6,758
   addi : 14,138
   auipc : 3,166
-  sub : 440
   add : 1,358
+  sub : 440
 Instruction category: logical 
   andi : 170
   ori : 147
   xori : 147
+  xor : 147
   or : 147
   and : 147
-  xor : 147
 Instruction category: branch 
   bltu : 149
   beq : 293
+  blt : 180
   bne : 149
   bge : 149
-  blt : 180
   bgeu : 149
 Instruction category: OPI_IMN 
   ecall : 49
@@ -51,8 +51,8 @@ Instruction category: jump
   jal : 616
   jalr : 155
 Instruction category: load 
-  lh : 151
   lb : 147
+  lh : 151
   lw : 599
   lhu : 152
   lbu : 152
@@ -64,14 +64,14 @@ Instruction category: shift
   srli : 147
   slli : 178
   srai : 147
+  srl : 147
   sll : 147
   sra : 147
-  srl : 147
 Instruction category: compare 
   sltiu : 147
-  slt : 147
-  sltu : 147
   slti : 147
+  sltu : 147
+  slt : 147
 
 Other instructions (those not the focus of this suite)
   csrrs : 217

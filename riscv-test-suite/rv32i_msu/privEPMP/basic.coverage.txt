@@ -1,0 +1,408 @@
+Imperas RISC-V Instruction Coverage Report
+
+Extension : privPMP,privEPMP, instructions: 1
+    csrrw          
+        implicit       
+            csr            
+                mseccfg        
+                    fields         
+                        mml            
+                            cleared    2751/1 : 100.00%
+                            set        2894/1 : 100.00%
+                        mml 2/2 : 100.00%
+                        mmwp           
+                            denied       0/1 :   0.00% ZERO
+                            ignored    5645/1 : 100.00%
+                        mmwp 1/2 :  50.00%
+                        rlb            
+                            bypass     5477/1 : 100.00%
+                            locked     168/1 : 100.00%
+                        rlb 2/2 : 100.00%
+                    fields 5/6 :  83.33%
+                mseccfg 5/6 :  83.33%
+                pmpcfg0        
+                    fields         
+                        pmp0cfg_a      
+                            NA4        362/1 : 100.00%
+                            NAPOT      4593/1 : 100.00%
+                            TOR          0/1 :   0.00% ZERO
+                            off        690/1 : 100.00%
+                        pmp0cfg_a 3/4 :  75.00%
+                        pmp0cfg_l      
+                            locked     4251/1 : 100.00%
+                            unlocked   1394/1 : 100.00%
+                        pmp0cfg_l 2/2 : 100.00%
+                        pmp0cfg_xwr    
+                            ---        630/1 : 100.00%
+                            --R        721/1 : 100.00%
+                            -W-        2001/1 : 100.00%
+                            -WR          0/1 :   0.00% ZERO
+                            X--        356/1 : 100.00%
+                            X-R          0/1 :   0.00% ZERO
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        1937/1 : 100.00%
+                        pmp0cfg_xwr 5/8 :  62.50%
+                        pmp1cfg_a      
+                            NA4          0/1 :   0.00% ZERO
+                            NAPOT      5093/1 : 100.00%
+                            TOR          0/1 :   0.00% ZERO
+                            off        552/1 : 100.00%
+                        pmp1cfg_a 2/4 :  50.00%
+                        pmp1cfg_l      
+                            locked     4320/1 : 100.00%
+                            unlocked   1325/1 : 100.00%
+                        pmp1cfg_l 2/2 : 100.00%
+                        pmp1cfg_xwr    
+                            ---        468/1 : 100.00%
+                            --R          0/1 :   0.00% ZERO
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        592/1 : 100.00%
+                            X--        3800/1 : 100.00%
+                            X-R          0/1 :   0.00% ZERO
+                            XW-        785/1 : 100.00%
+                            XWR          0/1 :   0.00% ZERO
+                        pmp1cfg_xwr 4/8 :  50.00%
+                        pmp2cfg_a      
+                            NA4          0/1 :   0.00% ZERO
+                            NAPOT      4835/1 : 100.00%
+                            TOR          0/1 :   0.00% ZERO
+                            off        810/1 : 100.00%
+                        pmp2cfg_a 2/4 :  50.00%
+                        pmp2cfg_l      
+                            locked     2954/1 : 100.00%
+                            unlocked   2691/1 : 100.00%
+                        pmp2cfg_l 2/2 : 100.00%
+                        pmp2cfg_xwr    
+                            ---        726/1 : 100.00%
+                            --R          0/1 :   0.00% ZERO
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        1499/1 : 100.00%
+                            X--        1509/1 : 100.00%
+                            X-R          0/1 :   0.00% ZERO
+                            XW-        1911/1 : 100.00%
+                            XWR          0/1 :   0.00% ZERO
+                        pmp2cfg_xwr 4/8 :  50.00%
+                        pmp3cfg_a      
+                            NA4        323/1 : 100.00%
+                            NAPOT      3197/1 : 100.00%
+                            TOR        642/1 : 100.00%
+                            off        1483/1 : 100.00%
+                        pmp3cfg_a 4/4 : 100.00%
+                        pmp3cfg_l      
+                            locked     3237/1 : 100.00%
+                            unlocked   2408/1 : 100.00%
+                        pmp3cfg_l 2/2 : 100.00%
+                        pmp3cfg_xwr    
+                            ---        1791/1 : 100.00%
+                            --R        323/1 : 100.00%
+                            -W-        749/1 : 100.00%
+                            -WR          0/1 :   0.00% ZERO
+                            X--        959/1 : 100.00%
+                            X-R        314/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        1509/1 : 100.00%
+                        pmp3cfg_xwr 6/8 :  75.00%
+                    fields 38/56 :  67.86%
+                pmpcfg0 38/56 :  67.86%
+                pmpcfg1        
+                    fields         
+                        pmp4cfg_a      
+                            NA4        625/1 : 100.00%
+                            NAPOT      2763/1 : 100.00%
+                            TOR        618/1 : 100.00%
+                            off        1639/1 : 100.00%
+                        pmp4cfg_a 4/4 : 100.00%
+                        pmp4cfg_l      
+                            locked     2793/1 : 100.00%
+                            unlocked   2852/1 : 100.00%
+                        pmp4cfg_l 2/2 : 100.00%
+                        pmp4cfg_xwr    
+                            ---        2219/1 : 100.00%
+                            --R        965/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        311/1 : 100.00%
+                            X--        300/1 : 100.00%
+                            X-R        923/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        927/1 : 100.00%
+                        pmp4cfg_xwr 6/8 :  75.00%
+                        pmp5cfg_a      
+                            NA4        601/1 : 100.00%
+                            NAPOT      2655/1 : 100.00%
+                            TOR        594/1 : 100.00%
+                            off        1795/1 : 100.00%
+                        pmp5cfg_a 4/4 : 100.00%
+                        pmp5cfg_l      
+                            locked     2382/1 : 100.00%
+                            unlocked   3263/1 : 100.00%
+                        pmp5cfg_l 2/2 : 100.00%
+                        pmp5cfg_xwr    
+                            ---        2361/1 : 100.00%
+                            --R        881/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        929/1 : 100.00%
+                            X--        299/1 : 100.00%
+                            X-R        288/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        887/1 : 100.00%
+                        pmp5cfg_xwr 6/8 :  75.00%
+                        pmp6cfg_a      
+                            NA4        577/1 : 100.00%
+                            NAPOT      2547/1 : 100.00%
+                            TOR        570/1 : 100.00%
+                            off        1951/1 : 100.00%
+                        pmp6cfg_a 4/4 : 100.00%
+                        pmp6cfg_l      
+                            locked     2573/1 : 100.00%
+                            unlocked   3072/1 : 100.00%
+                        pmp6cfg_l 2/2 : 100.00%
+                        pmp6cfg_xwr    
+                            ---        2489/1 : 100.00%
+                            --R        855/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        845/1 : 100.00%
+                            X--        893/1 : 100.00%
+                            X-R        287/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        276/1 : 100.00%
+                        pmp6cfg_xwr 6/8 :  75.00%
+                        pmp7cfg_a      
+                            NA4        553/1 : 100.00%
+                            NAPOT      2439/1 : 100.00%
+                            TOR        546/1 : 100.00%
+                            off        2107/1 : 100.00%
+                        pmp7cfg_a 4/4 : 100.00%
+                        pmp7cfg_l      
+                            locked     2178/1 : 100.00%
+                            unlocked   3467/1 : 100.00%
+                        pmp7cfg_l 2/2 : 100.00%
+                        pmp7cfg_xwr    
+                            ---        2070/1 : 100.00%
+                            --R        815/1 : 100.00%
+                            -WR        819/1 : 100.00%
+                            X--        809/1 : 100.00%
+                            X-R        857/1 : 100.00%
+                            XWR        275/1 : 100.00%
+                        pmp7cfg_xwr 6/6 : 100.00%
+                    fields 48/54 :  88.89%
+                pmpcfg1 48/54 :  88.89%
+                pmpcfg2        
+                    fields         
+                        pmp8cfg_a      
+                            NA4        529/1 : 100.00%
+                            NAPOT      2331/1 : 100.00%
+                            TOR        522/1 : 100.00%
+                            off        2263/1 : 100.00%
+                        pmp8cfg_a 4/4 : 100.00%
+                        pmp8cfg_l      
+                            locked     2119/1 : 100.00%
+                            unlocked   3526/1 : 100.00%
+                        pmp8cfg_l 2/2 : 100.00%
+                        pmp8cfg_xwr    
+                            ---        2237/1 : 100.00%
+                            --R        252/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        779/1 : 100.00%
+                            X--        783/1 : 100.00%
+                            X-R        773/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        821/1 : 100.00%
+                        pmp8cfg_xwr 6/8 :  75.00%
+                        pmp9cfg_a      
+                            NA4        505/1 : 100.00%
+                            NAPOT      2223/1 : 100.00%
+                            TOR        498/1 : 100.00%
+                            off        2419/1 : 100.00%
+                        pmp9cfg_a 4/4 : 100.00%
+                        pmp9cfg_l      
+                            locked     2253/1 : 100.00%
+                            unlocked   3392/1 : 100.00%
+                        pmp9cfg_l 2/2 : 100.00%
+                        pmp9cfg_xwr    
+                            ---        2927/1 : 100.00%
+                            --R        251/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        240/1 : 100.00%
+                            X--        743/1 : 100.00%
+                            X-R        747/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        737/1 : 100.00%
+                        pmp9cfg_xwr 6/8 :  75.00%
+                        pmp10cfg_a     
+                            NA4        481/1 : 100.00%
+                            NAPOT      2115/1 : 100.00%
+                            TOR        474/1 : 100.00%
+                            off        2575/1 : 100.00%
+                        pmp10cfg_a 4/4 : 100.00%
+                        pmp10cfg_l     
+                            locked     1902/1 : 100.00%
+                            unlocked   3743/1 : 100.00%
+                        pmp10cfg_l 2/2 : 100.00%
+                        pmp10cfg_xwr   
+                            ---        3011/1 : 100.00%
+                            --R        749/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        239/1 : 100.00%
+                            X--        228/1 : 100.00%
+                            X-R        707/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        711/1 : 100.00%
+                        pmp10cfg_xwr 6/8 :  75.00%
+                        pmp11cfg_a     
+                            NA4        457/1 : 100.00%
+                            NAPOT      2007/1 : 100.00%
+                            TOR        450/1 : 100.00%
+                            off        2731/1 : 100.00%
+                        pmp11cfg_a 4/4 : 100.00%
+                        pmp11cfg_l     
+                            locked     2033/1 : 100.00%
+                            unlocked   3612/1 : 100.00%
+                        pmp11cfg_l 2/2 : 100.00%
+                        pmp11cfg_xwr   
+                            ---        3153/1 : 100.00%
+                            --R        665/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        713/1 : 100.00%
+                            X--        227/1 : 100.00%
+                            X-R        216/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        671/1 : 100.00%
+                        pmp11cfg_xwr 6/8 :  75.00%
+                    fields 48/56 :  85.71%
+                pmpcfg2 48/56 :  85.71%
+                pmpcfg3        
+                    fields         
+                        pmp12cfg_a     
+                            NA4        433/1 : 100.00%
+                            NAPOT      1899/1 : 100.00%
+                            TOR        426/1 : 100.00%
+                            off        2887/1 : 100.00%
+                        pmp12cfg_a 4/4 : 100.00%
+                        pmp12cfg_l     
+                            locked     1698/1 : 100.00%
+                            unlocked   3947/1 : 100.00%
+                        pmp12cfg_l 2/2 : 100.00%
+                        pmp12cfg_xwr   
+                            ---        3281/1 : 100.00%
+                            --R        639/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        629/1 : 100.00%
+                            X--        677/1 : 100.00%
+                            X-R        215/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        204/1 : 100.00%
+                        pmp12cfg_xwr 6/8 :  75.00%
+                        pmp13cfg_a     
+                            NA4        409/1 : 100.00%
+                            NAPOT      1791/1 : 100.00%
+                            TOR        402/1 : 100.00%
+                            off        3043/1 : 100.00%
+                        pmp13cfg_a 4/4 : 100.00%
+                        pmp13cfg_l     
+                            locked     1639/1 : 100.00%
+                            unlocked   4006/1 : 100.00%
+                        pmp13cfg_l 2/2 : 100.00%
+                        pmp13cfg_xwr   
+                            ---        3006/1 : 100.00%
+                            --R        599/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        603/1 : 100.00%
+                            X--        593/1 : 100.00%
+                            X-R        641/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        203/1 : 100.00%
+                        pmp13cfg_xwr 6/8 :  75.00%
+                        pmp14cfg_a     
+                            NA4        385/1 : 100.00%
+                            NAPOT      1683/1 : 100.00%
+                            TOR        378/1 : 100.00%
+                            off        3199/1 : 100.00%
+                        pmp14cfg_a 4/4 : 100.00%
+                        pmp14cfg_l     
+                            locked     1713/1 : 100.00%
+                            unlocked   3932/1 : 100.00%
+                        pmp14cfg_l 2/2 : 100.00%
+                        pmp14cfg_xwr   
+                            ---        3173/1 : 100.00%
+                            --R        180/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        563/1 : 100.00%
+                            X--        567/1 : 100.00%
+                            X-R        557/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        605/1 : 100.00%
+                        pmp14cfg_xwr 6/8 :  75.00%
+                        pmp15cfg_a     
+                            NA4        361/1 : 100.00%
+                            NAPOT      1575/1 : 100.00%
+                            TOR        354/1 : 100.00%
+                            off        3355/1 : 100.00%
+                        pmp15cfg_a 4/4 : 100.00%
+                        pmp15cfg_l     
+                            locked     1422/1 : 100.00%
+                            unlocked   4223/1 : 100.00%
+                        pmp15cfg_l 2/2 : 100.00%
+                        pmp15cfg_xwr   
+                            ---        3719/1 : 100.00%
+                            --R        179/1 : 100.00%
+                            -W-          0/1 :   0.00% ZERO
+                            -WR        168/1 : 100.00%
+                            X--        527/1 : 100.00%
+                            X-R        531/1 : 100.00%
+                            XW-          0/1 :   0.00% ZERO
+                            XWR        521/1 : 100.00%
+                        pmp15cfg_xwr 6/8 :  75.00%
+                    fields 48/56 :  85.71%
+                pmpcfg3 48/56 :  85.71%
+            csr 187/228 :  82.02%
+        implicit 187/228 :  82.02%
+    csrrw 187/228 :  82.02%
+Coverage points missed:
+  csrrw/implicit/csr/mseccfg/fields/mmwp/denied
+  csrrw/implicit/csr/pmpcfg0/fields/pmp0cfg_a/TOR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp0cfg_xwr/-WR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp0cfg_xwr/X-R
+  csrrw/implicit/csr/pmpcfg0/fields/pmp0cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_a/NA4
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_a/TOR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_xwr/--R
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_xwr/X-R
+  csrrw/implicit/csr/pmpcfg0/fields/pmp1cfg_xwr/XWR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_a/NA4
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_a/TOR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_xwr/--R
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_xwr/X-R
+  csrrw/implicit/csr/pmpcfg0/fields/pmp2cfg_xwr/XWR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp3cfg_xwr/-WR
+  csrrw/implicit/csr/pmpcfg0/fields/pmp3cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp4cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp4cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp5cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp5cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp6cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg1/fields/pmp6cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp8cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp8cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp9cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp9cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp10cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp10cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp11cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg2/fields/pmp11cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp12cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp12cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp13cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp13cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp14cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp14cfg_xwr/XW-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp15cfg_xwr/-W-
+  csrrw/implicit/csr/pmpcfg3/fields/pmp15cfg_xwr/XW-
+Coverage points missed: 41/228
+
+Info TOTAL INSTRUCTION COVERAGE : privPMP,privEPMP
+Info   Threshold             : 1
+Info   Instructions counted  : 0
+Info   Unique instructions   : 1/1 : 100.00%
+Info   Coverage points hit   : 187/228 :  82.02%

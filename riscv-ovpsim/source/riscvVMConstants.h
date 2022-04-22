@@ -30,22 +30,38 @@
 #define RISCV_PAGE_SIZE (1<<RISCV_PAGE_SHIFT)
 
 //
-// These define virtual memory mode settings
-//
-#define RISCV_VMM_BARE  (1<< 0)
-#define RISCV_VMM_SV32  (1<< 1)
-#define RISCV_VMM_SV39  (1<< 8)
-#define RISCV_VMM_SV48  (1<< 9)
-#define RISCV_VMM_SV57  (1<<10)
-
-//
-// These define composite virtual memory mode settings
-//
-#define RISCV_VMM_32    (RISCV_VMM_BARE|RISCV_VMM_SV32)
-#define RISCV_VMM_64    (RISCV_VMM_BARE|RISCV_VMM_SV39|RISCV_VMM_SV48|RISCV_VMM_SV57)
-
-//
 // This is the assumed cache line size
 //
 #define RISCV_CBYTES 32
+
+//
+// Enumeration of supported translation modes
+//
+typedef enum riscvVAModeE {
+    VAM_Bare =  0,  // bare mode
+    VAM_Sv32 =  1,  // Sv32 translation (32-bit VA)
+    VAM_Sv39 =  8,  // Sv39 translation (39-bit VA)
+    VAM_Sv48 =  9,  // Sv48 translation (48-bit VA)
+    VAM_Sv57 = 10,  // Sv57 translation (57-bit VA)
+    VAM_Sv64 = 11,  // Sv64 translation (64-bit VA)
+} riscvVAMode;
+
+//
+// Enumeration of supported translation modes as bitmask
+//
+typedef enum riscvVAModeBitE {
+
+    // basic entries
+    RISCV_VMM_BARE = (1<<VAM_Bare),
+    RISCV_VMM_SV32 = (1<<VAM_Sv32),
+    RISCV_VMM_SV39 = (1<<VAM_Sv39),
+    RISCV_VMM_SV48 = (1<<VAM_Sv48),
+    RISCV_VMM_SV57 = (1<<VAM_Sv57),
+    RISCV_VMM_SV64 = (1<<VAM_Sv64),
+
+    // composite entries
+    RISCV_VMM_32 = (RISCV_VMM_BARE|RISCV_VMM_SV32),
+    RISCV_VMM_64 = (RISCV_VMM_BARE|RISCV_VMM_SV39|RISCV_VMM_SV48|RISCV_VMM_SV57)
+
+} riscvVAModeBit;
 
