@@ -162,14 +162,14 @@ Instruction category: OPV_IWMA widening integer multiply-add
   vwmaccsu.vv : 140
   vwmaccsu.vx : 140
   vwmaccu.vv : 140
-  vwmaccu.vx : 140
   vwmaccus.vx : 140
+  vwmaccu.vx : 140
 Instruction category: OPV_IWMU widening integer multiply
   vwmul.vv : 140
   vwmul.vx : 140
   vwmulsu.vv : 140
-  vwmulu.vv : 140
   vwmulsu.vx : 140
+  vwmulu.vv : 140
   vwmulu.vx : 140
 
 Other instructions (those not the focus of this suite)
@@ -187,8 +187,8 @@ Other instructions (those not the focus of this suite)
   fence : 1,402
   ecall : 1,402
   beq : 4,206
-  vle32.v : 36,465
-  vse32.v : 12,236
   vle16.v : 36,265
   vse16.v : 12,576
+  vle32.v : 36,465
+  vse32.v : 12,236
 

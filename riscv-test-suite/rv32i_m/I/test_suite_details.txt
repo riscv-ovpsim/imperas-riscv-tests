@@ -31,17 +31,17 @@ Instruction category: arithmetic
 Instruction category: logical 
   ori : 171
   andi : 194
-  xori : 171
   xor : 173
+  xori : 171
   or : 173
   and : 173
 Instruction category: branch 
   beq : 318
-  bne : 174
-  bltu : 174
-  blt : 205
   bge : 174
   bgeu : 174
+  bltu : 174
+  blt : 205
+  bne : 174
 Instruction category: OPI_IMN 
   ecall : 49
   ebreak : 1
@@ -51,9 +51,9 @@ Instruction category: jump
   jal : 712
   jalr : 178
 Instruction category: load 
+  lh : 174
   lw : 691
   lb : 170
-  lh : 174
   lbu : 175
   lhu : 175
 Instruction category: store 
@@ -61,17 +61,17 @@ Instruction category: store
   sb : 169
   sh : 173
 Instruction category: shift 
-  srli : 171
   slli : 202
+  srli : 171
   srai : 171
   sll : 173
-  srl : 173
   sra : 173
+  srl : 173
 Instruction category: compare 
   slti : 171
-  sltu : 173
-  slt : 173
   sltiu : 171
+  slt : 173
+  sltu : 173
 
 Other instructions (those not the focus of this suite)
   csrrs : 217

@@ -6,7 +6,7 @@ In the RISC-V world, Imperas simulators are used by most companies and organizat
 
 The following is a list of some of the companies and organizations that rely on Imperas simulators as their RISC-V reference:
 
-Mellanox/Nvidia, Seagate, NSITEXE/Denso, Google Cloud, Chips Alliance, lowRISC, OpenHW Group, Codasip, SiFive, Andes, Valtrix, Nagra/Kudelski, Silicon Labs, Incore Semi, NXP, Dolphin Integration, RISC-V Compliance Working Group, ...
+Mellanox/Nvidia, Seagate, MIPS, NSITEXE/Denso, Google Cloud, Chips Alliance, lowRISC, OpenHW Group, Codasip, SiFive, Andes, Valtrix, Nagra/Kudelski, Silicon Labs, Incore Semi, NXP, Dolphin Integration, RISC-V Compliance Working Group, ...
 
 This download contains a binary of the Imperas configurable reference simulator, a test framework to run the simulator or your device-under-test, and tests to run on several targets. Use the tests to check ISA compliance of your device.
 

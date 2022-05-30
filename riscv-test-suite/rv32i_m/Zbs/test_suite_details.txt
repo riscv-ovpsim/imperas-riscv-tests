@@ -27,9 +27,9 @@ Instruction category: OPB_SBIT Single-Bit
   binv : 172
   bclr : 172
   binvi : 170
-  bseti : 170
-  bexti : 170
   bset : 172
+  bexti : 170
+  bseti : 170
 Instruction category: OPB_EXDE Bit Extract/Deposit
   bext : 172
 

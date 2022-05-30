@@ -10,6 +10,13 @@ See the ChangeLog.md files in the simulator directories for their changes.
 Date 2022-May-30
 Release 20220527.0
 
+As a service to our users we have now included the RISC-V International Architectural Compliance Tests as test suites.
+
+This includes:
+  rv32e_m-RVI/C rv32e_m-RVI/E rv32e_m-RVI/M
+  rv32i_m-RVI/C rv32i_m-RVI/F rv32i_m-RVI/I rv32i_m-RVI/K rv32i_m-RVI/M rv32i_m-RVI/Zifencei rv32i_m-RVI/privM 
+  rv64i_m-RVI/C rv64i_m-RVI/D rv64i_m-RVI/I rv64i_m-RVI/K rv64i_m-RVI/M rv64i_m-RVI/Zifencei rv64i_m-RVI/privM
+
 Added new test suites for RV32E, RV32EM, RV32EC
 These are for version 1.9
 

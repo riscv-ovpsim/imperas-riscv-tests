@@ -19,11 +19,71 @@
 
 
 Architectural Test Suite Data for RV64K K Crypto/Scalar:
-    0 test source files
+    64 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    60 different instructions
+    162,849 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  c-j : 64
+  c-lui : 288
+  addiw : 20,185
+  csrrs : 192
+  auipc : 452
+  addi : 45,794
+  csrrw : 128
+  mret : 64
+  lui : 18,713
+  slli : 38,098
+  aes64es : 109
+  sd : 11,498
+  fence : 64
+  ecall : 64
+  c-li : 338
+  beq : 192
+  c-slli : 8,883
+  aes64im : 259
+  sw : 2,377
+  c-addi : 691
+  c-addiw : 275
+  aes64ks1i : 86
+  aes64esm : 109
+  xor : 774
+  aes64ds : 109
+  c-xor : 28
+  ld : 308
+  andn : 524
+  c-sdsp : 124
+  clmulh : 525
+  aes64dsm : 109
+  aes64ks2 : 220
+  xori : 594
+  add : 594
+  clmul : 525
+  orn : 525
+  pack : 524
+  packh : 525
+  grevi : 780
+  rol : 525
+  rolw : 525
+  packw : 525
+  rori : 289
+  sha256sig0 : 259
+  ror : 525
+  rorw : 525
+  roriw : 286
+  sha256sig1 : 259
+  sha256sum0 : 259
+  sha256sum1 : 259
+  c-swsp : 53
+  sha512sig0 : 259
+  sha512sig1 : 259
+  sha512sum0 : 259
+  sha512sum1 : 259
+  sm3p0 : 259
+  sm3p1 : 259
+  sm4ed : 385
+  sm4ks : 385
+  xnor : 525
 

@@ -33,16 +33,16 @@ Instruction category: OPB_CNTB Count Bits
   cpop : 170
 Instruction category: OPB_MNMX Min/Max
   min : 172
-  max : 172
   maxu : 172
+  max : 172
   minu : 172
 Instruction category: OPB_SEXT Sign Extend
-  sext.b : 170
   sext.h : 170
+  sext.b : 170
 Instruction category: OPB_ROTS Rotations
-  ror : 172
-  rori : 170
   rol : 172
+  rori : 170
+  ror : 172
 
 Other instructions (those not the focus of this suite)
   jal : 18
@@ -56,7 +56,7 @@ Other instructions (those not the focus of this suite)
   fence : 18
   ecall : 18
   beq : 54
-  gorci : 170
   grevi : 170
+  gorci : 170
   pack : 170
 

@@ -17,11 +17,53 @@
 
 
 Architectural Test Suite Data for RV32I Base Integer Instruction Set:
-    0 test source files
+    38 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    42 different instructions
+    80,072 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 7,681
+  lui : 15,597
+  addi : 30,715
+  csrrs : 114
+  auipc : 772
+  csrrw : 76
+  mret : 38
+  sw : 12,501
+  fence : 39
+  ecall : 38
+  beq : 699
+  and : 584
+  andi : 627
+  bne : 584
+  bge : 590
+  bgeu : 726
+  lw : 33
+  add : 588
+  sub : 930
+  jalr : 97
+  xori : 631
+  lb : 33
+  lbu : 32
+  blt : 580
+  bltu : 726
+  lh : 32
+  lhu : 32
+  or : 587
+  ori : 560
+  sh : 71
+  sb : 70
+  slli : 88
+  sll : 89
+  slt : 584
+  sltiu : 699
+  slti : 560
+  srai : 87
+  srli : 90
+  sra : 90
+  srl : 92
+  sltu : 722
+  xor : 588
 

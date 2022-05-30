@@ -17,11 +17,37 @@
 
 
 Architectural Test Suite Data for RV32PRIVM Base Integer Instruction Set:
-    0 test source files
+    16 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    26 different instructions
+    3,011 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 86
+  lui : 522
+  addi : 944
+  csrrs : 165
+  auipc : 304
+  csrrw : 153
+  mret : 35
+  jalr : 38
+  sw : 278
+  beq : 65
+  lw : 168
+  sub : 83
+  blt : 39
+  andi : 22
+  sll : 29
+  bne : 18
+  fence : 16
+  ecall : 17
+  xori : 3
+  lhu : 1
+  bge : 20
+  sh : 1
+  ebreak : 1
+  bgeu : 1
+  bltu : 1
+  lh : 1
 

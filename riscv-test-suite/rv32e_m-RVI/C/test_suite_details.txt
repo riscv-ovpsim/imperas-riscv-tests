@@ -17,11 +17,47 @@
 
 
 Architectural Test Suite Data for RV32C Base Embedded (Integer) Instruction Set:
-    0 test source files
+    26 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    36 different instructions
+    24,094 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  c-j : 229
+  c-lui : 41
+  addi : 7,925
+  csrrs : 78
+  auipc : 276
+  csrrw : 52
+  mret : 26
+  lui : 5,513
+  c-andi : 385
+  sw : 4,365
+  fence : 26
+  ecall : 26
+  c-li : 95
+  beq : 78
+  c-and : 586
+  c-addi : 878
+  c-add : 580
+  c-bnez : 84
+  jal : 160
+  c-beqz : 84
+  c-jalr : 15
+  xori : 48
+  sub : 187
+  andi : 37
+  c-swsp : 173
+  c-jal : 18
+  c-lwsp : 15
+  c-jr : 15
+  lw : 13
+  c-mv : 85
+  c-or : 582
+  c-srai : 85
+  c-srli : 87
+  c-sub : 581
+  c-xor : 580
+  c-slli : 86
 

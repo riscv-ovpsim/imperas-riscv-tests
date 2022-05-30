@@ -17,11 +17,25 @@
 
 
 Architectural Test Suite Data for RV32ZIFENCEI Base Integer Instruction Set:
-    0 test source files
+    1 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    14 different instructions
+    103 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 1
+  lui : 30
+  addi : 42
+  csrrs : 3
+  auipc : 9
+  csrrw : 2
+  mret : 1
+  lw : 3
+  sw : 5
+  fence.i : 1
+  add : 1
+  fence : 1
+  ecall : 1
+  beq : 3
 

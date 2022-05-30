@@ -17,11 +17,27 @@
 
 
 Architectural Test Suite Data for RV64ZIFENCEI RV64I Base Integer Instruction Set:
-    0 test source files
+    1 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    16 different instructions
+    269 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 1
+  lui : 30
+  addiw : 30
+  csrrs : 3
+  auipc : 9
+  addi : 95
+  csrrw : 2
+  mret : 1
+  slli : 83
+  lw : 3
+  sw : 5
+  fence.i : 1
+  add : 1
+  fence : 1
+  ecall : 1
+  beq : 3
 

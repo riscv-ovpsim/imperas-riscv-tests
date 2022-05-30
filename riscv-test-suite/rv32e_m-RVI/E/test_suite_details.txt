@@ -17,11 +17,53 @@
 
 
 Architectural Test Suite Data for RV32E Base Embedded (Integer) Instruction Set:
-    0 test source files
+    37 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    42 different instructions
+    78,170 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 7,684
+  lui : 14,988
+  addi : 29,873
+  csrrs : 111
+  auipc : 640
+  csrrw : 74
+  mret : 37
+  add : 583
+  sw : 12,372
+  fence : 37
+  ecall : 37
+  beq : 716
+  lbu : 17
+  sub : 907
+  jalr : 59
+  xori : 602
+  andi : 597
+  bltu : 727
+  bgeu : 728
+  lh : 16
+  bne : 585
+  bge : 586
+  and : 588
+  blt : 586
+  lb : 18
+  lhu : 16
+  lw : 16
+  sb : 78
+  ori : 557
+  or : 589
+  sh : 71
+  sll : 88
+  slli : 89
+  slti : 561
+  slt : 581
+  sltiu : 697
+  sra : 90
+  sltu : 722
+  srai : 87
+  srl : 89
+  srli : 88
+  xor : 583
 

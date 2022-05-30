@@ -17,11 +17,60 @@
 
 
 Architectural Test Suite Data for RV64C C Compressed Integer Instructions:
-    0 test source files
+    33 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    49 different instructions
+    77,911 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  c-j : 349
+  c-lui : 64
+  addiw : 9,665
+  csrrs : 105
+  auipc : 450
+  addi : 22,550
+  csrrw : 73
+  mret : 34
+  lui : 8,126
+  slli : 18,806
+  c-addi : 1,926
+  sd : 7,329
+  fence : 33
+  ecall : 33
+  c-li : 131
+  beq : 100
+  c-add : 669
+  c-addw : 678
+  c-addiw : 438
+  c-sdsp : 255
+  c-and : 671
+  c-andi : 466
+  c-beqz : 149
+  jal : 261
+  jalr : 2
+  c-ebreak : 1
+  ld : 22
+  sub : 593
+  blt : 2
+  andi : 36
+  sll : 1
+  sw : 133
+  bne : 1
+  c-bnez : 149
+  c-jalr : 31
+  xori : 62
+  c-jr : 31
+  c-ldsp : 31
+  lw : 13
+  c-or : 680
+  c-mv : 149
+  c-slli : 148
+  c-lwsp : 31
+  c-srai : 148
+  c-srli : 149
+  c-sub : 671
+  c-swsp : 133
+  c-subw : 670
+  c-xor : 663
 

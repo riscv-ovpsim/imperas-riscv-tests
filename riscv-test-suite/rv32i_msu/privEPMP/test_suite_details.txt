@@ -33,6 +33,6 @@ Other instructions (those not the focus of this suite)
   bne : 9,588
   FETCH : 795
   ecall : 84
-  fence : 28
   csrrc : 28
+  fence : 28
 

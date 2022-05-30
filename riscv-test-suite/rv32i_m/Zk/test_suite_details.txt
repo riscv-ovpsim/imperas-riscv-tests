@@ -25,37 +25,37 @@ Architectural Test Suite Data for RV32ZK K Crypto/Scalar:
     30,650 total instructions
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
-  aes32dsi : 428
   aes32dsmi : 428
+  aes32dsi : 428
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
   aes32esi : 428
   aes32esmi : 428
 Instruction category: OPB_LWNE Logic With Negate
   andn : 172
-  orn : 172
   xnor : 172
+  orn : 172
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 172
   clmulh : 172
+  clmul : 172
 Instruction category: OPB_PACK Packing
   pack : 172
   packh : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 172
   rol : 172
   rori : 170
+  ror : 172
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
-  sha256sum0 : 170
-  sha256sum1 : 170
   sha512sig0l : 172
-  sha512sig1l : 172
-  sha512sig1h : 172
-  sha256sig1 : 170
-  sha512sig0h : 172
   sha256sig0 : 170
-  sha512sum0r : 172
+  sha256sum1 : 170
+  sha256sum0 : 170
+  sha512sig1h : 172
+  sha512sig0h : 172
+  sha256sig1 : 170
+  sha512sig1l : 172
   sha512sum1r : 172
+  sha512sum0r : 172
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
@@ -70,7 +70,7 @@ Other instructions (those not the focus of this suite)
   fence : 31
   ecall : 31
   beq : 93
+  unshfli : 170
   grevi : 170
   shfli : 170
-  unshfli : 170
 

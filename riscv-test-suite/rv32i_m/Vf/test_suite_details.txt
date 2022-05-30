@@ -76,8 +76,8 @@ Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.f.xu.w : 70
   vfncvt.x.f.w : 70
   vfncvt.rtz.x.f.w : 70
-  vfncvt.rtz.xu.f.w : 70
   vfncvt.xu.f.w : 70
+  vfncvt.rtz.xu.f.w : 70
 Instruction category: OPV_RECE floating-point reciprocal estimate
   vfrec7.v : 202
 Instruction category: OPV_SQRT floating-point square-root
@@ -96,25 +96,25 @@ Instruction category: OPV_WFAS widening floating-point add/subtract
   vfwadd.wf : 70
   vfwadd.wv : 70
   vfwsub.vf : 70
-  vfwsub.wf : 70
   vfwsub.vv : 70
+  vfwsub.wf : 70
   vfwsub.wv : 70
 Instruction category: OPV_WFITC widening floating-point/integer type-convert
   vfwcvt.f.f.v : 70
-  vfwcvt.f.xu.v : 70
   vfwcvt.x.f.v : 70
   vfwcvt.rtz.x.f.v : 70
+  vfwcvt.f.xu.v : 70
   vfwcvt.f.x.v : 70
   vfwcvt.xu.f.v : 70
   vfwcvt.rtz.xu.f.v : 70
 Instruction category: OPV_WFFMA widening floating-point fused multiply-add
   vfwmacc.vf : 70
-  vfwmacc.vv : 70
   vfwmsac.vf : 70
   vfwmsac.vv : 70
+  vfwmacc.vv : 70
   vfwnmacc.vf : 70
-  vfwnmacc.vv : 70
   vfwnmsac.vf : 70
+  vfwnmacc.vv : 70
   vfwnmsac.vv : 70
 Instruction category: OPV_WFM widening floating-point multiply
   vfwmul.vf : 70
@@ -142,11 +142,11 @@ Other instructions (those not the focus of this suite)
   fmv.s.x : 6,106
   vsetvli : 49,101
   add : 56,192
-  vle32.v : 23,053
-  vse32.v : 7,619
+  vle16.v : 16,648
+  vse16.v : 6,429
   fence : 563
   ecall : 563
   beq : 1,689
-  vle16.v : 16,648
-  vse16.v : 6,429
+  vle32.v : 23,053
+  vse32.v : 7,619
 

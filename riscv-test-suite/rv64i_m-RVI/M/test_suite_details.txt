@@ -17,11 +17,37 @@
 
 
 Architectural Test Suite Data for RV64M M Integer Multiplication and Division:
-    0 test source files
+    13 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    26 different instructions
+    104,702 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 13
+  lui : 11,446
+  addiw : 13,852
+  csrrs : 39
+  auipc : 126
+  addi : 31,892
+  csrrw : 26
+  mret : 13
+  slli : 28,106
+  remuw : 818
+  sd : 9,562
+  fence : 13
+  ecall : 13
+  beq : 39
+  rem : 666
+  mul : 682
+  divw : 671
+  mulh : 677
+  mulw : 672
+  remw : 676
+  divuw : 821
+  remu : 822
+  div : 678
+  mulhu : 814
+  mulhsu : 741
+  divu : 824
 

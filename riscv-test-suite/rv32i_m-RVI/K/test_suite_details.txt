@@ -19,11 +19,57 @@
 
 
 Architectural Test Suite Data for RV32K K Crypto/Scalar:
-    0 test source files
+    62 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    46 different instructions
+    49,132 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 62
+  lui : 12,638
+  addi : 15,185
+  csrrs : 186
+  auipc : 423
+  csrrw : 124
+  mret : 62
+  aes32dsmi : 385
+  sw : 9,756
+  fence : 62
+  ecall : 62
+  beq : 186
+  aes32dsi : 385
+  aes32esmi : 384
+  aes32esi : 383
+  andn : 269
+  grevi : 264
+  packh : 269
+  clmul : 269
+  clmulh : 269
+  pack : 269
+  orn : 269
+  rol : 269
+  ror : 269
+  rori : 158
+  xor : 648
+  sha256sig0 : 195
+  xori : 648
+  add : 648
+  lw : 492
+  sha256sig1 : 195
+  sha256sum0 : 195
+  sha256sum1 : 195
+  sha512sig0h : 227
+  sha512sig0l : 229
+  sha512sig1h : 228
+  sha512sig1l : 229
+  sha512sum0r : 229
+  sha512sum1r : 228
+  sm3p0 : 195
+  sm3p1 : 195
+  sm4ks : 383
+  unshfli : 132
+  sm4ed : 383
+  shfli : 132
+  xnor : 269
 

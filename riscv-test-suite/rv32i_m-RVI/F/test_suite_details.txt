@@ -17,11 +17,56 @@
 
 
 Architectural Test Suite Data for RV32F RV32F Single-Precision Floating-Point:
-    0 test source files
+    146 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    45 different instructions
+    2,147,792 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 146
+  lui : 4,555
+  addi : 8,857
+  csrrs : 584
+  auipc : 2,261
+  csrrw : 292
+  mret : 146
+  csrrwi : 268,181
+  flw : 769,536
+  fadd.s : 11,529
+  fsflags : 272,965
+  fsw : 267,096
+  sw : 278,834
+  fence : 146
+  ecall : 146
+  beq : 438
+  fclass.s : 33
+  add : 184
+  lw : 460
+  fcvt.s.w : 197
+  fcvt.s.wu : 197
+  fcvt.w.s : 372
+  fcvt.wu.s : 372
+  fdiv.s : 6,433
+  fle.s : 1,650
+  feq.s : 1,650
+  flt.s : 1,566
+  fmadd.s : 56,525
+  fmax.s : 1,537
+  fmsub.s : 56,526
+  fmin.s : 1,573
+  fmul.s : 5,650
+  fmv.s.x : 98
+  fmv.x.s : 226
+  fnmadd.s : 56,529
+  fnmsub.s : 56,528
+  fsgnjn.s : 576
+  fneg.s : 2
+  fsgnjx.s : 576
+  fabs.s : 2
+  fsgnj.s : 576
+  fmv.s : 2
+  fsqrt.s : 483
+  fsub.s : 11,525
+  sub : 32
 

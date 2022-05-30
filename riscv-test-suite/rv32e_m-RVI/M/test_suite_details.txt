@@ -17,11 +17,30 @@
 
 
 Architectural Test Suite Data for RV32M Base Embedded (Integer) Instruction Set:
-    0 test source files
+    8 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    19 different instructions
+    27,976 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 8
+  lui : 7,451
+  addi : 10,007
+  csrrs : 24
+  auipc : 72
+  csrrw : 16
+  mret : 8
+  divu : 729
+  sw : 5,175
+  fence : 8
+  ecall : 8
+  beq : 24
+  mul : 585
+  div : 581
+  mulh : 591
+  mulhu : 724
+  rem : 586
+  mulhsu : 654
+  remu : 725
 

@@ -17,11 +17,42 @@
 
 
 Architectural Test Suite Data for RV64PRIVM RV64I Base Integer Instruction Set:
-    0 test source files
+    19 test source files
     0 different instruction categories
-    0 different instructions
-    0 total instructions
+    31 different instructions
+    7,632 total instructions
 
 
 Other instructions (those not the focus of this suite)
+  jal : 126
+  lui : 603
+  addiw : 650
+  csrrs : 265
+  auipc : 424
+  addi : 2,247
+  csrrw : 222
+  mret : 55
+  jalr : 58
+  sd : 484
+  beq : 77
+  slli : 1,655
+  bltu : 1
+  ld : 297
+  sub : 158
+  blt : 73
+  andi : 39
+  sll : 63
+  bne : 21
+  fence : 19
+  ecall : 20
+  bge : 54
+  ebreak : 1
+  sw : 7
+  bgeu : 1
+  xori : 3
+  lhu : 1
+  lh : 1
+  sh : 1
+  lwu : 3
+  lw : 3
 

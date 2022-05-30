@@ -23,19 +23,19 @@ Architectural Test Suite Data for RV64M M Integer Multiplication and Division:
     31,918 total instructions
 
 Instruction category: arithmetic 
-  mulhsu : 300
-  mulhu : 300
   mulh : 300
-  div : 300
   mul : 300
-  remu : 300
-  mulw : 300
+  mulhu : 300
   rem : 300
-  divw : 300
-  remuw : 300
-  divuw : 300
+  mulhsu : 300
+  mulw : 300
+  remu : 300
   remw : 300
+  remuw : 300
+  divw : 300
   divu : 300
+  div : 300
+  divuw : 300
 
 Other instructions (those not the focus of this suite)
   jal : 13
