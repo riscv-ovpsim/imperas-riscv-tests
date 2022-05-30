@@ -1621,8 +1621,9 @@ typedef enum riscvIType32E {
 // Structure defining one 32-bit decode table entry
 //
 typedef struct decodeEntry32S {
-    riscvIType32 type;      // entry type
-    const char  *pattern;   // decode pattern
+    riscvIType32 type   : 16;   // entry type
+    Bool         pseudo :  1;   // is this a pseudo-instruction?
+    const char  *pattern;       // decode pattern
 } decodeEntry32;
 
 //
@@ -1631,10 +1632,19 @@ typedef struct decodeEntry32S {
 DEFINE_CS(decodeEntry32);
 
 //
-// Create one entry in decodeEntries32 table
+// Create a true instruction entry in decodeEntries32 table
 //
 #define DECODE32_ENTRY(_NAME, _PATTERN) { \
     type    : IT32_##_NAME, \
+    pattern : _PATTERN      \
+}
+
+//
+// Create a pseudo-instruction entry in decodeEntries32 table
+//
+#define PSEUDO32_ENTRY(_NAME, _PATTERN) { \
+    type    : IT32_##_NAME, \
+    pseudo  : True,         \
     pattern : _PATTERN      \
 }
 
@@ -1647,14 +1657,14 @@ const static decodeEntry32 decodeCommon32[] = {
     //                               | funct7|  rs2|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(          ADD_R, "|0000000|.....|.....|000|.....|011.011|"),
     DECODE32_ENTRY(          AND_R, "|0000000|.....|.....|111|.....|0110011|"),
-    DECODE32_ENTRY(          NEG_R, "|0100000|.....|00000|000|.....|011.011|"),
+    PSEUDO32_ENTRY(          NEG_R, "|0100000|.....|00000|000|.....|011.011|"),
     DECODE32_ENTRY(           OR_R, "|0000000|.....|.....|110|.....|0110011|"),
-    DECODE32_ENTRY(         SGTZ_R, "|0000000|.....|00000|010|.....|0110011|"),
+    PSEUDO32_ENTRY(         SGTZ_R, "|0000000|.....|00000|010|.....|0110011|"),
     DECODE32_ENTRY(          SLL_R, "|0000000|.....|.....|001|.....|011.011|"),
     DECODE32_ENTRY(          SLT_R, "|0000000|.....|.....|010|.....|0110011|"),
     DECODE32_ENTRY(         SLTU_R, "|0000000|.....|.....|011|.....|0110011|"),
-    DECODE32_ENTRY(         SLTZ_R, "|0000000|00000|.....|010|.....|0110011|"),
-    DECODE32_ENTRY(         SNEZ_R, "|0000000|.....|00000|011|.....|0110011|"),
+    PSEUDO32_ENTRY(         SLTZ_R, "|0000000|00000|.....|010|.....|0110011|"),
+    PSEUDO32_ENTRY(         SNEZ_R, "|0000000|.....|00000|011|.....|0110011|"),
     DECODE32_ENTRY(          SRA_R, "|0100000|.....|.....|101|.....|011.011|"),
     DECODE32_ENTRY(          SRL_R, "|0000000|.....|.....|101|.....|011.011|"),
     DECODE32_ENTRY(          SUB_R, "|0100000|.....|.....|000|.....|011.011|"),
@@ -1675,17 +1685,17 @@ const static decodeEntry32 decodeCommon32[] = {
     //                               |       imm32|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(         ADDI_I, "|............|.....|000|.....|001.011|"),
     DECODE32_ENTRY(         ANDI_I, "|............|.....|111|.....|0010011|"),
-    DECODE32_ENTRY(           JR_I, "|............|.....|000|00000|1100111|"),
-    DECODE32_ENTRY(          JR0_I, "|000000000000|.....|000|00000|1100111|"),
+    PSEUDO32_ENTRY(           JR_I, "|............|.....|000|00000|1100111|"),
+    PSEUDO32_ENTRY(          JR0_I, "|000000000000|.....|000|00000|1100111|"),
     DECODE32_ENTRY(         JALR_I, "|............|.....|000|.....|1100111|"),
-    DECODE32_ENTRY(        JALR0_I, "|000000000000|.....|000|.....|1100111|"),
-    DECODE32_ENTRY(           MV_I, "|000000000000|.....|000|.....|0010011|"),
-    DECODE32_ENTRY(          NOP_I, "|000000000000|00000|000|00000|0010011|"),
-    DECODE32_ENTRY(          NOT_I, "|111111111111|.....|100|.....|0010011|"),
+    PSEUDO32_ENTRY(        JALR0_I, "|000000000000|.....|000|.....|1100111|"),
+    PSEUDO32_ENTRY(           MV_I, "|000000000000|.....|000|.....|0010011|"),
+    PSEUDO32_ENTRY(          NOP_I, "|000000000000|00000|000|00000|0010011|"),
+    PSEUDO32_ENTRY(          NOT_I, "|111111111111|.....|100|.....|0010011|"),
     DECODE32_ENTRY(          ORI_I, "|............|.....|110|.....|0010011|"),
     DECODE32_ENTRY(          RET_I, "|000000000000|00001|000|00000|1100111|"),
-    DECODE32_ENTRY(         SEQZ_I, "|000000000001|.....|011|.....|0010011|"),
-    DECODE32_ENTRY(        SEXTW_I, "|000000000000|.....|000|.....|0011011|"),
+    PSEUDO32_ENTRY(         SEQZ_I, "|000000000001|.....|011|.....|0010011|"),
+    PSEUDO32_ENTRY(        SEXTW_I, "|000000000000|.....|000|.....|0011011|"),
     DECODE32_ENTRY(         SLLI_I, "|000000......|.....|001|.....|001.011|"),
     DECODE32_ENTRY(         SLTI_I, "|............|.....|010|.....|0010011|"),
     DECODE32_ENTRY(        SLTIU_I, "|............|.....|011|.....|0010011|"),
@@ -1715,21 +1725,21 @@ const static decodeEntry32 decodeCommon32[] = {
     DECODE32_ENTRY(        CSRRC_I, "|............|.....|011|.....|1110011|"),
     DECODE32_ENTRY(        CSRRS_I, "|............|.....|010|.....|1110011|"),
     DECODE32_ENTRY(        CSRRW_I, "|............|.....|001|.....|1110011|"),
-    DECODE32_ENTRY(         CSRR_I, "|............|00000|010|.....|1110011|"),
-    DECODE32_ENTRY(         CSRC_I, "|............|.....|011|00000|1110011|"),
-    DECODE32_ENTRY(         CSRS_I, "|............|.....|010|00000|1110011|"),
-    DECODE32_ENTRY(         CSRW_I, "|............|.....|001|00000|1110011|"),
-    DECODE32_ENTRY(         RDX1_I, "|1100.000000.|00000|010|.....|1110011|"),
-    DECODE32_ENTRY(         RDX2_I, "|1100.0000010|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(         CSRR_I, "|............|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(         CSRC_I, "|............|.....|011|00000|1110011|"),
+    PSEUDO32_ENTRY(         CSRS_I, "|............|.....|010|00000|1110011|"),
+    PSEUDO32_ENTRY(         CSRW_I, "|............|.....|001|00000|1110011|"),
+    PSEUDO32_ENTRY(         RDX1_I, "|1100.000000.|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(         RDX2_I, "|1100.0000010|00000|010|.....|1110011|"),
 
     // base I-type instructions for CSR access (constant)
     //                               |         CSR| uimm|fun|   rd| opcode|
     DECODE32_ENTRY(       CSRRCI_I, "|............|.....|111|.....|1110011|"),
     DECODE32_ENTRY(       CSRRSI_I, "|............|.....|110|.....|1110011|"),
     DECODE32_ENTRY(       CSRRWI_I, "|............|.....|101|.....|1110011|"),
-    DECODE32_ENTRY(        CSRCI_I, "|............|.....|111|00000|1110011|"),
-    DECODE32_ENTRY(        CSRSI_I, "|............|.....|110|00000|1110011|"),
-    DECODE32_ENTRY(        CSRWI_I, "|............|.....|101|00000|1110011|"),
+    PSEUDO32_ENTRY(        CSRCI_I, "|............|.....|111|00000|1110011|"),
+    PSEUDO32_ENTRY(        CSRSI_I, "|............|.....|110|00000|1110011|"),
+    PSEUDO32_ENTRY(        CSRWI_I, "|............|.....|101|00000|1110011|"),
 
     // miscellaneous system I-type instructions
     //                               |          SY|b10_0|fun|b10_0| opcode|
@@ -1763,21 +1773,21 @@ const static decodeEntry32 decodeCommon32[] = {
     // base B-type
     //                               |i| imm32|  rs2|  rs1|fun|imm3|i| opcode|
     DECODE32_ENTRY(          BEQ_B, "|.|......|.....|.....|000|....|.|1100011|"),
-    DECODE32_ENTRY(         BEQZ_B, "|.|......|00000|.....|000|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BEQZ_B, "|.|......|00000|.....|000|....|.|1100011|"),
     DECODE32_ENTRY(          BGE_B, "|.|......|.....|.....|101|....|.|1100011|"),
-    DECODE32_ENTRY(         BGEZ_B, "|.|......|00000|.....|101|....|.|1100011|"),
-    DECODE32_ENTRY(         BLEZ_B, "|.|......|.....|00000|101|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BGEZ_B, "|.|......|00000|.....|101|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BLEZ_B, "|.|......|.....|00000|101|....|.|1100011|"),
     DECODE32_ENTRY(         BGEU_B, "|.|......|.....|.....|111|....|.|1100011|"),
     DECODE32_ENTRY(          BLT_B, "|.|......|.....|.....|100|....|.|1100011|"),
-    DECODE32_ENTRY(         BLTZ_B, "|.|......|00000|.....|100|....|.|1100011|"),
-    DECODE32_ENTRY(         BGTZ_B, "|.|......|.....|00000|100|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BLTZ_B, "|.|......|00000|.....|100|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BGTZ_B, "|.|......|.....|00000|100|....|.|1100011|"),
     DECODE32_ENTRY(         BLTU_B, "|.|......|.....|.....|110|....|.|1100011|"),
     DECODE32_ENTRY(          BNE_B, "|.|......|.....|.....|001|....|.|1100011|"),
-    DECODE32_ENTRY(         BNEZ_B, "|.|......|00000|.....|001|....|.|1100011|"),
+    PSEUDO32_ENTRY(         BNEZ_B, "|.|......|00000|.....|001|....|.|1100011|"),
 
     // base J-type
     //                               |i|     imm32|i|   imm32|   rd| opcode|
-    DECODE32_ENTRY(            J_J, "|.|..........|.|........|00000|1101111|"),
+    PSEUDO32_ENTRY(            J_J, "|.|..........|.|........|00000|1101111|"),
     DECODE32_ENTRY(          JAL_J, "|.|..........|.|........|.....|1101111|"),
 
     // A-extension R-type
@@ -1841,12 +1851,12 @@ const static decodeEntry32 decodeCommon32[] = {
 
     // F-extension and D-extension I-type instructions for CSR access
     //                               |         CSR|  rs1|fun|   rd| opcode|
-    DECODE32_ENTRY(         FRSR_I, "|000000000011|00000|010|.....|1110011|"),
-    DECODE32_ENTRY(      FRFLAGS_I, "|000000000001|00000|010|.....|1110011|"),
-    DECODE32_ENTRY(         FRRM_I, "|000000000010|00000|010|.....|1110011|"),
-    DECODE32_ENTRY(         FSSR_I, "|000000000011|.....|001|.....|1110011|"),
-    DECODE32_ENTRY(      FSFLAGS_I, "|000000000001|.....|001|.....|1110011|"),
-    DECODE32_ENTRY(         FSRM_I, "|000000000010|.....|001|.....|1110011|"),
+    PSEUDO32_ENTRY(         FRSR_I, "|000000000011|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(      FRFLAGS_I, "|000000000001|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(         FRRM_I, "|000000000010|00000|010|.....|1110011|"),
+    PSEUDO32_ENTRY(         FSSR_I, "|000000000011|.....|001|.....|1110011|"),
+    PSEUDO32_ENTRY(      FSFLAGS_I, "|000000000001|.....|001|.....|1110011|"),
+    PSEUDO32_ENTRY(         FSRM_I, "|000000000010|.....|001|.....|1110011|"),
 
     // X-extension Type, custom instructions
     DECODE32_ENTRY(        CUSTOM1, "|............|.....|...|.....|0001011|"),
@@ -4738,31 +4748,37 @@ const static opAttrs attrsArray32[] = {
 static void insertEntry32(
     vmidDecodeTableP table,
     decodeEntry32CP  decEntry,
-    const char      *pattern
+    const char      *pattern,
+    Bool             noPseudo
 ) {
     riscvIType32 type  = decEntry->type;
     opAttrsCP    entry = &attrsArray32[type];
 
     VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
 
-    vmidNewEntryFmtBin(
-        table,
-        entry->opcode,
-        type,
-        pattern,
-        VMID_DERIVE_PRIORITY + entry->priDelta
-    );
+    if(!(noPseudo && decEntry->pseudo)) {
+        vmidNewEntryFmtBin(
+            table,
+            entry->opcode,
+            type,
+            pattern,
+            VMID_DERIVE_PRIORITY + entry->priDelta
+        );
+    }
 }
 
 //
 // Insert 32-bit instruction decode table entries from the given decode table
 //
-static void insertEntries32(vmidDecodeTableP table, decodeEntry32CP decEntries) {
-
+static void insertEntries32(
+    vmidDecodeTableP table,
+    decodeEntry32CP decEntries,
+    Bool            noPseudo
+) {
     decodeEntry32CP decEntry;
 
     for(decEntry=decEntries; decEntry->pattern; decEntry++) {
-        insertEntry32(table, decEntry, decEntry->pattern);
+        insertEntry32(table, decEntry, decEntry->pattern, noPseudo);
     }
 }
 
@@ -4773,7 +4789,8 @@ static void insertEntries32(vmidDecodeTableP table, decodeEntry32CP decEntries) 
 static void insertEntries32OpPrefix(
     vmidDecodeTableP table,
     decodeEntry32CP  decEntries,
-    const char      *major
+    const char      *major,
+    Bool            noPseudo
 ) {
     decodeEntry32CP decEntry;
 
@@ -4784,7 +4801,7 @@ static void insertEntries32OpPrefix(
         strcpy(pattern, decEntry->pattern);
         strcat(pattern, major);
 
-        insertEntry32(table, decEntry, pattern);
+        insertEntry32(table, decEntry, pattern, noPseudo);
     }
 }
 
@@ -4808,7 +4825,8 @@ typedef union decodeKey32U {
         Bool             Zicbop           : 1;
         Bool             Zicboz           : 1;
         Bool             Svinval          : 1;
-        Uns32            _unused          : 5;
+        Bool             noPseudo         : 1;
+        Uns32            _unused          : 4;
     } f;
 
 } decodeKey32;
@@ -4818,10 +4836,11 @@ typedef union decodeKey32U {
 //
 static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
-    vmidDecodeTableP table = vmidNewDecodeTable(32, IT32_LAST);
+    vmidDecodeTableP table    = vmidNewDecodeTable(32, IT32_LAST);
+    Bool             noPseudo = key.f.noPseudo;
 
     // insert common table entries
-    insertEntries32(table, &decodeCommon32[0]);
+    insertEntries32(table, &decodeCommon32[0], noPseudo);
 
     ////////////////////////////////////////////////////////////////////////////
     // COMPRESSED EXTENSION
@@ -4829,14 +4848,14 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // legacy compressed extension decodes that conflict with notional Zcd
     if(key.f.Zcd) {
-        insertEntries32(table, &decodeZcd32[0]);
+        insertEntries32(table, &decodeZcd32[0], noPseudo);
     } else if(!key.f.compress_version) {
-        insertEntries32(table, &decodeLegacyNotZcd32[0]);
+        insertEntries32(table, &decodeLegacyNotZcd32[0], noPseudo);
     }
 
     // legacy compressed extension decodes that do not conflict
     if(!key.f.compress_version) {
-        insertEntries32(table, &decodeLegacyZcea32[0]);
+        insertEntries32(table, &decodeLegacyZcea32[0], noPseudo);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4845,54 +4864,54 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // handle bitmanip-extension-dependent table entries until/after 0.90
     if(key.f.bitmanip_version<=RVBV_0_90) {
-        insertEntries32(table, &decodeBUntilV090[0]);
+        insertEntries32(table, &decodeBUntilV090[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeBPostV090[0]);
+        insertEntries32(table, &decodeBPostV090[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.91
     if(key.f.bitmanip_version<=RVBV_0_91) {
-        insertEntries32(table, &decodeBUntilV091[0]);
+        insertEntries32(table, &decodeBUntilV091[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeBPostV091[0]);
+        insertEntries32(table, &decodeBPostV091[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.91 only
     if(key.f.bitmanip_version==RVBV_0_91) {
-        insertEntries32(table, &decodeBV091[0]);
+        insertEntries32(table, &decodeBV091[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries after 0.92
     if(key.f.bitmanip_version>RVBV_0_92) {
-        insertEntries32(table, &decodeBPostV092[0]);
+        insertEntries32(table, &decodeBPostV092[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.92 only
     if(key.f.bitmanip_version==RVBV_0_92) {
-        insertEntries32(table, &decodeBV092[0]);
+        insertEntries32(table, &decodeBV092[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries until/after 0.93-draft
     if(key.f.bitmanip_version<=RVBV_0_93_DRAFT) {
-        insertEntries32(table, &decodeBUntilV093Draft[0]);
+        insertEntries32(table, &decodeBUntilV093Draft[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeBPostV093Draft[0]);
+        insertEntries32(table, &decodeBPostV093Draft[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.93-draft
     // only
     if(key.f.bitmanip_version==RVBV_0_93_DRAFT) {
-        insertEntries32(table, &decodeBV093Draft[0]);
+        insertEntries32(table, &decodeBV093Draft[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries after 0.93
     if(key.f.bitmanip_version>RVBV_0_93) {
-        insertEntries32(table, &decodeBPostV093[0]);
+        insertEntries32(table, &decodeBPostV093[0], noPseudo);
     }
 
     // handle bitmanip-extension-dependent table entries for version 0.93 only
     if(key.f.bitmanip_version==RVBV_0_93) {
-        insertEntries32(table, &decodeBV093[0]);
+        insertEntries32(table, &decodeBV093[0], noPseudo);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4901,18 +4920,18 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // insert version-specific Cryptographic extension decodes
     if(key.f.crypto_version==RVKV_0_7_2) {
-        insertEntries32(table, &decodeKV072[0]);
+        insertEntries32(table, &decodeKV072[0], noPseudo);
     } else if(key.f.crypto_version<RVKV_0_9_2) {
-        insertEntries32(table, &decodeKVFrom081[0]);
-        insertEntries32(table, &decodeKV081[0]);
+        insertEntries32(table, &decodeKVFrom081[0], noPseudo);
+        insertEntries32(table, &decodeKV081[0], noPseudo);
         // NOTE: also insert conflicting 64-bit decodes as these are a
         // lower-priority non-subset of 32-bit decodes in this version only
-        insertEntries32(table, &decodeKVFrom081_64[0]);
+        insertEntries32(table, &decodeKVFrom081_64[0], noPseudo);
     } else if(key.f.crypto_version<RVKV_1_0_0_RC1) {
-        insertEntries32(table, &decodeKVFrom081[0]);
-        insertEntries32(table, &decodeKV092[0]);
+        insertEntries32(table, &decodeKVFrom081[0], noPseudo);
+        insertEntries32(table, &decodeKV092[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeKV100RC[0]);
+        insertEntries32(table, &decodeKV100RC[0], noPseudo);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4928,13 +4947,13 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         const char *major = (dsp_version>RVDSPV_0_5_2) ? "1110111" : "1111111";
 
         // shared entries in all versions
-        insertEntries32OpPrefix(table, &decodePCommon[0], major);
+        insertEntries32OpPrefix(table, &decodePCommon[0], major, noPseudo);
 
         // version-specific entries
         if(dsp_version==RVDSPV_0_5_2) {
-            insertEntries32OpPrefix(table, &decodeP052[0], major);
+            insertEntries32OpPrefix(table, &decodeP052[0], major, noPseudo);
         } else {
-            insertEntries32OpPrefix(table, &decodeP096[0], major);
+            insertEntries32OpPrefix(table, &decodeP096[0], major, noPseudo);
         }
     }
 
@@ -4945,11 +4964,11 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
     if(key.f.K) {
 
         // shared entries in all versions
-        insertEntries32(table, &decodeBPartialKAll[0]);
+        insertEntries32(table, &decodeBPartialKAll[0], noPseudo);
 
         // shared entries prior to version 0.9.0
         if(key.f.crypto_version<RVKV_0_9_0) {
-            insertEntries32(table, &decodeBPartialKPreV090[0]);
+            insertEntries32(table, &decodeBPartialKPreV090[0], noPseudo);
         }
     }
 
@@ -4959,76 +4978,76 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // insert vector-extension-dependent table entries before/after 0.7.1
     if(key.f.vect_version>RVVV_0_7_1) {
-        insertEntries32(table, &decodeVPost071[0]);
+        insertEntries32(table, &decodeVPost071[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVV071[0]);
+        insertEntries32(table, &decodeVV071[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries after 0.7.1 until 20210608
     if((key.f.vect_version>RVVV_0_7_1) && (key.f.vect_version<=RVVV_1_0_20210608)) {
-        insertEntries32(table, &decodeVPost071Pre1_0_20210608[0]);
+        insertEntries32(table, &decodeVPost071Pre1_0_20210608[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries after 0.7.1+
     if((key.f.vect_version>RVVV_0_7_1_P) && (key.f.vect_version<=RVVV_0_8)) {
-        insertEntries32(table, &decodeVV071P[0]);
+        insertEntries32(table, &decodeVV071P[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries before/after 20190906
     if(key.f.vect_version>RVVV_0_8_20190906) {
-        insertEntries32(table, &decodeVPost20190906[0]);
+        insertEntries32(table, &decodeVPost20190906[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVPre20190906[0]);
+        insertEntries32(table, &decodeVPre20190906[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries specific to release
     // 20191004 (deleted thereafter)
     if(key.f.vect_version==RVVV_0_8_20191004) {
-        insertEntries32(table, &decodeV20191004[0]);
+        insertEntries32(table, &decodeV20191004[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries before/after 20191004
     if(key.f.vect_version>RVVV_0_8_20191004) {
-        insertEntries32(table, &decodeVPost20191004[0]);
+        insertEntries32(table, &decodeVPost20191004[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVPre20191004[0]);
+        insertEntries32(table, &decodeVPre20191004[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries introduced with 20191117
     // but deleted after 0.8
     if((key.f.vect_version>=RVVV_0_8_20191117) && (key.f.vect_version<=RVVV_0_8)) {
-        insertEntries32(table, &decodeVLate08[0]);
+        insertEntries32(table, &decodeVLate08[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries before/after 0.8
     if(key.f.vect_version<=RVVV_0_8) {
-        insertEntries32(table, &decodeVPre09[0]);
+        insertEntries32(table, &decodeVPre09[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVInitial09[0]);
+        insertEntries32(table, &decodeVInitial09[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries for version 0.9 only
     if(key.f.vect_version==RVVV_0_9) {
-        insertEntries32(table, &decodeVV09[0]);
+        insertEntries32(table, &decodeVV09[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries after 0.9
     if(key.f.vect_version>RVVV_0_9) {
-        insertEntries32(table, &decodeVInitial10[0]);
+        insertEntries32(table, &decodeVInitial10[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries before/after 1.0-20210130
     if(key.f.vect_version>RVVV_1_0_20210130) {
-        insertEntries32(table, &decodeVPost1_0_20210130[0]);
+        insertEntries32(table, &decodeVPost1_0_20210130[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVPre1_0_20210130[0]);
+        insertEntries32(table, &decodeVPre1_0_20210130[0], noPseudo);
     }
 
     // insert vector-extension-dependent table entries before/after 1.0-20210608
     if(key.f.vect_version>RVVV_1_0_20210608) {
-        insertEntries32(table, &decodeVPost1_0_20210608[0]);
+        insertEntries32(table, &decodeVPost1_0_20210608[0], noPseudo);
     } else {
-        insertEntries32(table, &decodeVPre1_0_20210608[0]);
+        insertEntries32(table, &decodeVPre1_0_20210608[0], noPseudo);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -5037,22 +5056,22 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
 
     // handle Zicbom extension instructions
     if(key.f.Zicbom) {
-        insertEntries32(table, &decodeZicbom[0]);
+        insertEntries32(table, &decodeZicbom[0], noPseudo);
     }
 
     // handle Zicbop extension instructions
     if(key.f.Zicbop) {
-        insertEntries32(table, &decodeZicbop[0]);
+        insertEntries32(table, &decodeZicbop[0], noPseudo);
     }
 
     // handle Zicboz extension instructions
     if(key.f.Zicboz) {
-        insertEntries32(table, &decodeZicboz[0]);
+        insertEntries32(table, &decodeZicboz[0], noPseudo);
     }
 
     // handle Svinval extension instructions
     if(key.f.Svinval) {
-        insertEntries32(table, &decodeSvinval[0]);
+        insertEntries32(table, &decodeSvinval[0], noPseudo);
     }
 
     return table;
@@ -5071,7 +5090,11 @@ static riscvIType32 getInstructionType32Higher64(
 
     if(!tableH64) {
         tableH64 = vmidNewDecodeTable(32, IT32_LAST);
-        insertEntries32(tableH64, &decodeKVFrom081_64[0]);
+        insertEntries32(
+            tableH64,
+            &decodeKVFrom081_64[0],
+            riscv->configInfo.no_pseudo_inst
+        );
     }
 
     riscvIType32 resultH64 = vmidDecode(tableH64, info->instruction);
@@ -5113,6 +5136,7 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
             Zicbop           : riscv->configInfo.Zicbop,
             Zicboz           : riscv->configInfo.Zicboz,
             Svinval          : riscv->configInfo.Svinval,
+            noPseudo         : riscv->configInfo.no_pseudo_inst,
         }
     };
 
@@ -5302,8 +5326,9 @@ typedef enum riscvIType16E {
 // Structure defining one 16-bit decode table entry
 //
 typedef struct decodeEntry16S {
-    riscvIType16 type;      // entry type
-    const char  *pattern;   // decode pattern
+    riscvIType16 type   : 16;   // entry type
+    Bool         pseudo :  1;   // is this a pseudo-instruction?
+    const char  *pattern;       // decode pattern
 } decodeEntry16;
 
 //
@@ -5312,10 +5337,19 @@ typedef struct decodeEntry16S {
 DEFINE_CS(decodeEntry16);
 
 //
-// Create one entry in decodeEntries32 table
+// Create a true instruction entry in decodeEntries32 table
 //
 #define DECODE16_ENTRY(_NAME, _PATTERN) { \
     type    : IT16_##_NAME, \
+    pattern : _PATTERN      \
+}
+
+//
+// Create a true instruction entry in decodeEntries32 table
+//
+#define PSEUDO16_ENTRY(_NAME, _PATTERN) { \
+    type    : IT16_##_NAME, \
+    pseudo  : True,         \
     pattern : _PATTERN      \
 }
 
@@ -5650,31 +5684,37 @@ const static opAttrs attrsArray16[] = {
 static void insertEntry16(
     vmidDecodeTableP table,
     decodeEntry16CP  decEntry,
-    const char      *pattern
+    const char      *pattern,
+    Bool             noPseudo
 ) {
     riscvIType32 type  = decEntry->type;
     opAttrsCP    entry = &attrsArray16[type];
 
     VMI_ASSERT(entry->opcode, "invalid attribute entry (type %u)", type);
 
-    vmidNewEntryFmtBin(
-        table,
-        entry->opcode,
-        type,
-        pattern,
-        VMID_DERIVE_PRIORITY + entry->priDelta
-    );
+    if(!(noPseudo && decEntry->pseudo)) {
+        vmidNewEntryFmtBin(
+            table,
+            entry->opcode,
+            type,
+            pattern,
+            VMID_DERIVE_PRIORITY + entry->priDelta
+        );
+    }
 }
 
 //
 // Insert 16-bit instruction decode table entries from the given decode table
 //
-static void insertEntries16(vmidDecodeTableP table, decodeEntry16CP decEntries) {
-
+static void insertEntries16(
+    vmidDecodeTableP table,
+    decodeEntry16CP  decEntries,
+    Bool             noPseudo
+) {
     decodeEntry16CP decEntry;
 
     for(decEntry=decEntries; decEntry->pattern; decEntry++) {
-        insertEntry16(table, decEntry, decEntry->pattern);
+        insertEntry16(table, decEntry, decEntry->pattern, noPseudo);
     }
 }
 
@@ -5689,7 +5729,8 @@ typedef union decodeKey16U {
         riscvCompressVer compress_version :  4;
         Bool             RV64             :  1;
         Bool             Zcd              :  1;
-        Uns32           _unused           : 26;
+        Bool             noPseudo         :  1;
+        Uns32           _unused           : 25;
     } f;
 
 } decodeKey16;
@@ -5699,19 +5740,20 @@ typedef union decodeKey16U {
 //
 static vmidDecodeTableP createDecodeTable16(decodeKey16 key) {
 
-    vmidDecodeTableP table = vmidNewDecodeTable(16, IT16_LAST);
+    vmidDecodeTableP table    = vmidNewDecodeTable(16, IT16_LAST);
+    Bool             noPseudo = key.f.noPseudo;
 
     // insert common table entries
-    insertEntries16(table, &decodeCommon16[0]);
+    insertEntries16(table, &decodeCommon16[0], noPseudo);
 
     ////////////////////////////////////////////////////////////////////////////
     // DECODES SPECIFIC TO RV32/RV64
     ////////////////////////////////////////////////////////////////////////////
 
     if(key.f.RV64) {
-        insertEntries16(table, &decodeRV6416[0]);
+        insertEntries16(table, &decodeRV6416[0], noPseudo);
     } else {
-        insertEntries16(table, &decodeRV3216[0]);
+        insertEntries16(table, &decodeRV3216[0], noPseudo);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -5720,18 +5762,18 @@ static vmidDecodeTableP createDecodeTable16(decodeKey16 key) {
 
     // compressed extension decodes that conflict with Zca (notional Zcd)
     if(key.f.Zcd) {
-        insertEntries16(table, &decodeZcd16[0]);
+        insertEntries16(table, &decodeZcd16[0], noPseudo);
     } else if(key.f.compress_version) {
-        insertEntries16(table, &decodeZcm16[0]);
+        insertEntries16(table, &decodeZcm16[0], noPseudo);
     } else {
-        insertEntries16(table, &decodeLegacyNotZcd16[0]);
+        insertEntries16(table, &decodeLegacyNotZcd16[0], noPseudo);
     }
 
     // legacy compressed extension decodes that do not conflict with Zca
     if(key.f.compress_version) {
-        insertEntries16(table, &decodeZcb16[0]);
+        insertEntries16(table, &decodeZcb16[0], noPseudo);
     } else {
-        insertEntries16(table, &decodeLegacyZceaZcee16[0]);
+        insertEntries16(table, &decodeLegacyZceaZcee16[0], noPseudo);
     }
 
     return table;
@@ -5758,6 +5800,7 @@ static vmidDecodeTableP createDecodeTable16Key(riscvP riscv) {
             compress_version : RISCV_COMPRESS_VERSION(riscv),
             RV64             : (getXLenBits(riscv)==64),
             Zcd              : Zcd(riscv),
+            noPseudo         : riscv->configInfo.no_pseudo_inst,
         }
     };
 
@@ -7604,13 +7647,16 @@ static void unpackExtInstruction(
     riscvExtInstrPattern pattern
 ) {
     static const riscvIType32 map[] = {
-
         // GPR INSTRUCTIONS
-        [RVIP_RD_RS1_RS2]        = IT32_ADD_R,
-        [RVIP_RD_RS1_SI]         = IT32_ADDI_I,
-        [RVIP_RD_RS1_SHIFT]      = IT32_SLLI_I,
-        [RVIP_RD_RS1_RS2_RS3]    = IT32_CMIX_R4,
-        [RVIP_RD_RS1_RS3_SHIFT]  = IT32_FSRI_R3I,
+        [RVIP_RD_RS1_RS2]        = IT32_ADD_R,      // R-Type
+        [RVIP_RD_RS1_SI]         = IT32_ADDI_I,     // I-Type
+        [RVIP_RD_RS1_SHIFT]      = IT32_SLLI_I,     // I-Type - 5 or 6 bit shift amount
+        [RVIP_BASE_RS2_OFFSET]   = IT32_SW_I,       // S-Type
+        [RVIP_RS1_RS2_OFFSET]    = IT32_BEQ_B,      // B-Type
+        [RVIP_RD_SI]             = IT32_LUI_U,      // U-Type
+        [RVIP_RD_OFFSET]         = IT32_JAL_J,      // J-Type
+        [RVIP_RD_RS1_RS2_RS3]    = IT32_CMIX_R4,    // R4-Type
+        [RVIP_RD_RS1_RS3_SHIFT]  = IT32_FSRI_R3I,   // Non-Standard
 
         // FPR INSTRUCTIONS
         [RVIP_FD_FS1_FS2]        = IT32_FMAX_R,
@@ -7642,7 +7688,6 @@ static void unpackExtInstruction(
     interpretInstruction(riscv, &info, &attrsArray32[map[pattern]]);
 
     // fill result with interpreted fields
-    instrInfo->arch = info.arch;
     instrInfo->r[0] = info.r[0];
     instrInfo->r[1] = info.r[1];
     instrInfo->r[2] = info.r[2];
@@ -7650,6 +7695,7 @@ static void unpackExtInstruction(
     instrInfo->mask = info.mask;
     instrInfo->rm   = info.rm;
     instrInfo->c    = info.c;
+    instrInfo->tgt  = info.tgt;
 }
 
 //
@@ -7684,6 +7730,7 @@ Uns32 riscvExtFetchInstruction(
 
         info->opcode = match->opcode;
         info->format = match->format;
+        info->arch   = match->arch;
 
         unpackExtInstruction(riscv, info, match->pattern);
     }

@@ -20,43 +20,43 @@ Architectural Test Suite Data for RV32ZBB B Bit Manipulation:
     18 test source files
     6 different instruction categories
     29 different instructions
-    13,176 total instructions
+    15,476 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 146
-  orn : 146
-  xnor : 146
+  andn : 172
+  orn : 172
+  xnor : 172
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
-  clz : 146
-  ctz : 146
+  clz : 170
+  ctz : 170
 Instruction category: OPB_CNTB Count Bits
-  cpop : 146
+  cpop : 170
 Instruction category: OPB_MNMX Min/Max
-  min : 146
-  maxu : 146
-  max : 146
-  minu : 146
+  min : 172
+  max : 172
+  maxu : 172
+  minu : 172
 Instruction category: OPB_SEXT Sign Extend
-  sext.b : 146
-  sext.h : 146
+  sext.b : 170
+  sext.h : 170
 Instruction category: OPB_ROTS Rotations
-  ror : 146
-  rori : 146
-  rol : 146
+  ror : 172
+  rori : 170
+  rol : 172
 
 Other instructions (those not the focus of this suite)
   jal : 18
-  lui : 2,808
-  addi : 4,266
+  lui : 3,402
+  addi : 4,991
   csrrs : 54
-  auipc : 630
+  auipc : 711
   csrrw : 36
   mret : 18
-  sw : 2,628
+  sw : 3,078
   fence : 18
   ecall : 18
   beq : 54
-  grevi : 146
-  gorci : 146
-  pack : 146
+  gorci : 170
+  grevi : 170
+  pack : 170
 

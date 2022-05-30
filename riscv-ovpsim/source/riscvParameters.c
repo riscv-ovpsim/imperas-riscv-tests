@@ -861,6 +861,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(mscontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(hcontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mnoise_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(amo_trigger);
+static RISCV_BOOL_PDEFAULT_CFG_FN(amo_aborts_lr_sc);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_hit);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_sselect_2);
 static RISCV_BOOL_PDEFAULT_CFG_FN(enable_CSR_bus);
@@ -905,6 +906,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(Smstateen);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Svpbmt);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Svinval);
 static RISCV_BOOL_PDEFAULT_CFG_FN(use_hw_reg_names);
+static RISCV_BOOL_PDEFAULT_CFG_FN(no_pseudo_inst);
 
 //
 // Set default value of raw negated Bool parameters
@@ -1716,6 +1718,7 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   0,         default_debug_priority,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_priority,          DebugPriorities,           RV_GROUP(DBG),   "Specify relative priorities of simultaneous debug events")},
     {  RVPV_DEBUG,   0,         default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,        0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
     {  RVPV_ALL,     0,         default_use_hw_reg_names,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, use_hw_reg_names,        False,                     RV_GROUP(ARTIF), "Specify whether to use hardware register names x0-x31 and f0-f31 instead of ABI register names")},
+    {  RVPV_ALL,     0,         default_no_pseudo_inst,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_pseudo_inst,          False,                     RV_GROUP(ARTIF), "Specify whether pseudo-instructions should not be reported in trace and disassembly")},
     {  RVPV_D,       0,         default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                   False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
     {  RVPV_ALL,     0,         0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, verbose,                 False,                     RV_GROUP(ARTIF), "Specify verbose output messages")},
     {  RVPV_ALL,     0,         0,                            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, traceVolatile,           False,                     RV_GROUP(ARTIF), "Specify whether volatile registers (e.g. minstret) should be shown in change trace")},
@@ -1767,6 +1770,7 @@ static riscvParameter parameters[] = {
     {  RVPV_TRIG_H,  0,         default_hcontext_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, hcontext_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the hcontext CSR is undefined")},
     {  RVPV_K,       0,         default_mnoise_undefined,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mnoise_undefined,        False,                     RV_GROUP(K),     "Specify that the mnoise CSR is undefined")},
     {  RVPV_TRIG,    0,         default_amo_trigger,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, amo_trigger,             False,                     RV_GROUP(TRIG),  "Specify whether AMO load/store operations activate triggers")},
+    {  RVPV_A,       0,         default_amo_aborts_lr_sc,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, amo_aborts_lr_sc,        False,                     RV_GROUP(MEM),   "Specify whether AMO operations abort any active LR/SC pair")},
     {  RVPV_TRIG,    0,         default_no_hit,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_hit,                  False,                     RV_GROUP(TRIG),  "Specify that tdata1.hit is unimplemented")},
     {  RVPV_TRIG_S,  0,         default_no_sselect_2,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_sselect_2,            False,                     RV_GROUP(TRIG),  "Specify that textra.sselect=2 is not supported (no trigger match by ASID)")},
     {  RVPV_ALL,     0,         default_enable_CSR_bus,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, enable_CSR_bus,          False,                     RV_GROUP(ARTIF), "Add artifact CSR bus port, allowing CSR registers to be externally implemented")},

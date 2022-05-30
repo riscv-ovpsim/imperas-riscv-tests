@@ -973,8 +973,6 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
 // MEMORY ACCESS TRACE ELABORATION
 ////////////////////////////////////////////////////////////////////////////////
 
-#if(ENABLE_MEM_TRACE_ATTRS)
-
 //
 // Return elaboration string for memory accesses
 //
@@ -990,8 +988,6 @@ VMI_TRACE_MEM_ATTRS_FN(riscvTraceMemAttrs) {
 
     return attrs;
 }
-
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

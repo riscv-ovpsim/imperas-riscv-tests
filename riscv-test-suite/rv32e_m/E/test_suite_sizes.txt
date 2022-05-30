@@ -1,0 +1,63 @@
+# Imperas RISC-V Architecture Tests for RV32E_M/E
+
+    #
+    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    #
+    # The contents of this file are provided under the Software License
+    # Agreement that you accepted before downloading this file.
+    #
+    # This source forms part of the Software and can be used for educational,
+    # training, and demonstration purposes but cannot be used for derivative
+    # works except in cases where the derivative works require OVP technology
+    # to run.
+    #
+    # For open source models released under licenses that you can use for
+    # derivative works, please visit www.OVPworld.org or www.imperas.com
+    # for the location of the open source models.
+    #
+    
+
+
+| Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+| ADDI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| AUIPC-01                           |     5,124 |       4,148  |           688  |               1,014  |
+| ANDI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| ORI-01                             |     5,124 |       3,120  |           688  |                 754  |
+| LUI-01                             |     5,124 |       2,096  |           688  |                 506  |
+| JAL-01                             |     5,124 |       4,976  |           704  |                 876  |
+| BEQ-01                             |     5,124 |       6,828  |           704  |               1,657  |
+| JALR-01                            |     5,124 |       7,984  |           688  |               1,632  |
+| BLT-01                             |     5,124 |       6,828  |           704  |               1,513  |
+| BGE-01                             |     5,124 |       6,828  |           704  |               1,499  |
+| BLTU-01                            |     5,124 |       6,828  |           704  |               1,547  |
+| LH-01                              |     5,380 |       5,492  |           688  |               1,354  |
+| LW-01                              |     5,380 |       5,492  |           688  |               1,354  |
+| LB-01                              |     5,124 |       5,492  |           688  |               1,354  |
+| BNE-01                             |     5,124 |       6,828  |           704  |               1,355  |
+| LHU-01                             |     5,380 |       5,492  |           688  |               1,354  |
+| BGEU-01                            |     5,124 |       6,828  |           704  |               1,465  |
+| SB-01                              |     5,124 |       5,672  |           688  |               1,406  |
+| LBU-01                             |     5,124 |       5,492  |           688  |               1,354  |
+| SH-01                              |     5,124 |       5,672  |           688  |               1,406  |
+| SLTIU-01                           |     5,124 |       3,120  |           688  |                 754  |
+| SLTI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| SW-01                              |     5,124 |       5,672  |           688  |               1,406  |
+| SRLI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| ADD-01                             |     5,124 |       4,080  |           704  |                 994  |
+| SRAI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| SUB-01                             |     5,124 |       4,080  |           704  |                 994  |
+| XOR-01                             |     5,124 |       4,080  |           704  |                 994  |
+| SRL-01                             |     5,124 |       4,080  |           704  |                 994  |
+| SLT-01                             |     5,124 |       4,080  |           704  |                 994  |
+| SLTU-01                            |     5,124 |       4,080  |           704  |                 994  |
+| XORI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| SLL-01                             |     5,124 |       4,080  |           704  |                 994  |
+| SLLI-01                            |     5,124 |       3,120  |           688  |                 754  |
+| AND-01                             |     5,124 |       4,080  |           704  |                 994  |
+| OR-01                              |     5,124 |       4,080  |           704  |                 994  |
+| SRA-01                             |     5,124 |       4,080  |           704  |                 994  |
+| ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
+
+
+

@@ -157,6 +157,7 @@ typedef struct riscvConfigS {
     Bool  enable_expanded      : 1;     // enable expanded instructions
     Bool  endianFixed          : 1;     // endianness is fixed (UBE/SBE/MBE r/o)
     Bool  use_hw_reg_names     : 1;     // use hardware names for X/F registers
+    Bool  no_pseudo_inst       : 1;     // don't report pseudo-instructions
     Bool  ABI_d                : 1;     // ABI uses D registers for parameters
     Bool  agnostic_ones        : 1;     // when agnostic elements set to 1
     Bool  MXL_writable         : 1;     // writable bits in misa.MXL
@@ -200,6 +201,7 @@ typedef struct riscvConfigS {
     Bool  hcontext_undefined   : 1;     // whether hcontext CSR is undefined
     Bool  mnoise_undefined     : 1;     // whether mnoise CSR is undefined
     Bool  amo_trigger          : 1;     // whether triggers used with AMO
+    Bool  amo_aborts_lr_sc     : 1;     // whether AMO aborts active LR/SC
     Bool  no_hit               : 1;     // whether tdata1.hit is unimplemented
     Bool  no_sselect_2         : 1;     // whether textra.sselect=2 is illegal
     Bool  d_requires_f         : 1;     // whether misa D requires F to be set

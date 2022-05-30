@@ -20,75 +20,75 @@ Architectural Test Suite Data for RV64I RV64I Base Integer Instruction Set:
     60 test source files
     10 different instruction categories
     57 different instructions
-    105,765 total instructions
+    120,892 total instructions
 
 Instruction category: arithmetic 
-  lui : 9,676
-  addiw : 14,055
-  auipc : 6,923
-  addi : 29,033
-  sub : 824
-  add : 3,332
-  subw : 274
-  addw : 274
+  lui : 11,143
+  addiw : 15,982
+  auipc : 7,477
+  addi : 33,926
+  sub : 896
+  add : 3,611
+  addw : 300
+  subw : 300
 Instruction category: logical 
-  andi : 298
-  ori : 275
-  xori : 275
-  or : 275
-  and : 275
-  xor : 275
+  andi : 322
+  ori : 299
+  xori : 299
+  xor : 301
+  or : 301
+  and : 301
 Instruction category: branch 
-  beq : 457
-  blt : 308
-  bne : 277
-  bge : 277
-  bltu : 277
-  bgeu : 277
+  beq : 482
+  blt : 333
+  bge : 302
+  bltu : 302
+  bgeu : 302
+  bne : 302
 Instruction category: OPI_IMN 
   ecall : 61
   ebreak : 1
 Instruction category: synch 
   fence : 60
 Instruction category: jump 
-  jal : 1,128
-  jalr : 283
+  jal : 1,224
+  jalr : 306
 Instruction category: load 
-  lw : 280
-  lb : 275
-  lh : 279
-  ld : 1,379
-  lbu : 280
-  lhu : 280
-  lwu : 274
+  lh : 302
+  lb : 298
+  lw : 303
+  lbu : 303
+  lhu : 303
+  ld : 1,494
+  lwu : 297
 Instruction category: store 
-  sd : 13,776
-  sb : 274
-  sh : 278
-  sw : 462
+  sd : 14,998
+  sh : 301
+  sw : 485
+  sb : 297
 Instruction category: shift 
-  slli : 13,571
-  srli : 275
-  srai : 275
-  sll : 275
-  srl : 275
-  sra : 275
-  srliw : 274
-  srlw : 274
-  sraiw : 274
-  sllw : 274
-  sraw : 274
-  slliw : 274
+  slli : 17,385
+  srli : 299
+  srai : 299
+  sll : 301
+  srl : 301
+  sra : 301
+  slliw : 298
+  sraw : 300
+  srliw : 298
+  srlw : 300
+  sraiw : 298
+  sllw : 300
 Instruction category: compare 
-  sltiu : 275
-  slti : 275
-  sltu : 275
-  slt : 275
+  slti : 299
+  slt : 301
+  sltu : 301
+  sltiu : 299
 
 Other instructions (those not the focus of this suite)
   csrrs : 253
   csrrw : 153
   mret : 85
-  sext.w : 276
+  sext.w : 6
   csrrci : 1
 

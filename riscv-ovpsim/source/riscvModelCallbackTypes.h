@@ -48,20 +48,26 @@ typedef struct riscvExtInstrInfoS {
     riscvRegDesc      mask;         // mask register (vector instructions)
     riscvRMDesc       rm;           // rounding mode
     Uns64             c;            // constant value
+    Addr              tgt;          // target address calculated relative to the PC
     void             *userData;     // client-specific data
 } riscvExtInstrInfo;
 
 //
 // Standard instruction patterns
+// (See doc/ovp/OVP_RISCV_Model_Custom_Extension_Guide.pdf for more details)
 //
 typedef enum riscvExtInstrPatternE {
 
                             // GPR INSTRUCTIONS
-    RVIP_RD_RS1_RS2,        // op   xd, xs1, xs2
-    RVIP_RD_RS1_SI,         // op   xd, xs1, imm
-    RVIP_RD_RS1_SHIFT,      // op   xd, xs1, shift
-    RVIP_RD_RS1_RS2_RS3,    // op   xd, xs1, xs2, xs3
-    RVIP_RD_RS1_RS3_SHIFT,  // op   xd, xs1, xs2, shift
+    RVIP_RD_RS1_RS2,        // op   xd, xs1, xs2        (R-Type)
+    RVIP_RD_RS1_SI,         // op   xd, xs1, imm        (I-Type)
+    RVIP_RD_RS1_SHIFT,      // op   xd, xs1, shift      (I-Type - 5 or 6 bit shift)
+    RVIP_BASE_RS2_OFFSET,   // op   base, xs2, offset   (S-Type)
+    RVIP_RS1_RS2_OFFSET,    // op   xs1, xs2, offset    (B-Type)
+    RVIP_RD_SI,             // op   xd, imm             (U-Type)
+    RVIP_RD_OFFSET,         // op   xd, offset          (J-Type)
+    RVIP_RD_RS1_RS2_RS3,    // op   xd, xs1, xs2, xs3   (R4-Type)
+    RVIP_RD_RS1_RS3_SHIFT,  // op   xd, xs1, xs2, shift (Non-Standard)
 
                             // FPR INSTRUCTIONS
     RVIP_FD_FS1_FS2,        // op   fd, fs1, fs2

@@ -20,21 +20,6 @@
 #pragma once
 
 //
-// Use this to enable P extension
-//
-#define ENABLE_P_EXT 1
-
-//
-// Use this to enable memory trace attributes
-//
-#define ENABLE_MEM_TRACE_ATTRS 1
-
-//
-// Use this to enable intercept type code
-//
-#define ENABLE_INTERCEPT_TYPE 1
-
-//
 // Use this to enable Ssmpu extension (under development)
 //
 #define ENABLE_SSMPU 0

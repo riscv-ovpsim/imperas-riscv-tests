@@ -2328,11 +2328,12 @@ static memDomainP getLoadStoreDomainMT(
 
     } else if(!isFeaturePresentMT(riscv, ISA_VVM)) {
 
-        // HLV, HLVX or HSV when virtual TLB disabled
+        // HLV, HLVX or HSV when virtual TLB disabled - always access data
+        // domain
         Bool      SPVP = isFeaturePresentMT(riscv, ISA_SPVP);
         riscvMode mode = SPVP ? RISCV_MODE_S : RISCV_MODE_U;
 
-        result = riscv->physDomains[mode][isCode];
+        result = riscv->physDomains[mode][False];
 
     } else if(isCode) {
 
@@ -2744,10 +2745,8 @@ static Bool isSQBinop(vmiBinop op) {
         case vmi_SUBSQ:
         case vmi_RSUBSQ:
         case vmi_SHLSQ:
-#if(ENABLE_P_EXT)
         case vmi_ADCSQ:
         case vmi_SBBSQ:
-#endif
             result = True;
             break;
 
@@ -2771,10 +2770,8 @@ static Bool isUQBinop(vmiBinop op) {
         case vmi_SUBUQ:
         case vmi_RSUBUQ:
         case vmi_SHLUQ:
-#if(ENABLE_P_EXT)
         case vmi_ADCUQ:
         case vmi_SBBUQ:
-#endif
             result = True;
             break;
 
@@ -3272,27 +3269,14 @@ static RISCV_MORPH_FN(emitJALR) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// ATOMIC MEMORY OPERATIONS
+// LR/SC INSTRUCTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Get atomic operation code for current binop
+// Check function for externally-implemented LR/SC
 //
-static atomicCode getBinopAtomicCode(riscvMorphStateP state) {
-
-    static const atomicCode map[] = {
-        [vmi_IMIN] = ACODE_MIN,
-        [vmi_IMAX] = ACODE_MAX,
-        [vmi_MIN]  = ACODE_MINU,
-        [vmi_MAX]  = ACODE_MAXU,
-        [vmi_ADD]  = ACODE_ADD,
-        [vmi_XOR]  = ACODE_XOR,
-        [vmi_OR]   = ACODE_OR,
-        [vmi_AND]  = ACODE_AND,
-    };
-
-    return map[state->attrs->binop];
-}
+#define RV_LR_SC_FN(_NAME) void _NAME(riscvP riscv, Uns64 address)
+typedef RV_LR_SC_FN((*riscvLRSCFn));
 
 //
 // Emit atomic code operation if required
@@ -3312,163 +3296,6 @@ static void emitAtomicCode(riscvP riscv, atomicCode code) {
         vmimtCallAttrs((vmiCallFn)vmirtWriteNetPort, VMCA_NO_INVALIDATE);
     }
 }
-
-//
-// Function type implement generic AMO operation
-//
-#define AMO_FN(_NAME) void _NAME( \
-    riscvMorphStateP state, \
-    Uns32            bits,  \
-    vmiReg           rd,    \
-    vmiReg           ra,    \
-    vmiReg           rb     \
-)
-typedef AMO_FN((*amoCB));
-
-//
-// Atomic memory operation (internal interface)
-//
-static void emitAMOCommonInt(
-    riscvMorphStateP state,
-    amoCB            opCB,
-    vmiReg           rd,
-    vmiReg           rs,
-    vmiReg           ra,
-    Uns32            bits,
-    atomicCode       code
-) {
-    riscvP        riscv      = state->riscv;
-    Bool          doLSTrig   = riscv->configInfo.amo_trigger;
-    Bool          triggerLA  = doLSTrig && triggerLoadAddressMT(riscv);
-    Bool          triggerLV  = doLSTrig && triggerLoadValueMT(riscv);
-    Bool          triggerS   = doLSTrig && triggerStoreMT(riscv);
-    memConstraint constraint = getLoadStoreConstraintAMO(state);
-    vmiReg        tmp1       = RISCV_TRIGGER_LV;
-    vmiReg        tmp2       = newTmp(state);
-    Uns32         memBits    = state->info.memBits;
-
-    // allow derived model to validate atomic operation if required
-    ITER_EXT_CB(
-        riscv, extCB, AMOCheck,
-        extCB->AMOCheck(riscv, extCB->clientData);
-    )
-
-    // emit operation atomic code
-    emitAtomicCode(riscv, code);
-
-    // for this instruction, memBits is bits if unspecified or SEW
-    if(!memBits || (memBits==-1)) {
-        memBits = state->info.memBits = bits;
-    }
-
-    // generate trigger VA if required
-    if(triggerLA || triggerLV || triggerS) {
-        Uns64 offset = 0;
-        emitTriggerVA(riscv, &ra, &offset);
-    }
-
-    // invoke load address trigger if required
-    emitTriggerLA(triggerLA, memBits);
-
-    // this is an atomic operation
-    vmimtAtomic();
-
-    // generate Store/AMO exception in preference to Load exception
-    emitTryStoreCommon(state, ra, constraint);
-
-    // allow derived model to modify atomic operation if required
-    ITER_EXT_CB(
-        riscv, extCB, AMOMorph,
-        extCB->AMOMorph(riscv, extCB->clientData);
-    )
-
-    // disable load/store triggers in emitLoadCommon/emitStoreCommon
-    riscv->blockState->doLSTrig = False;
-
-    // do initial load
-    emitLoadCommon(state, tmp1, bits, ra, constraint);
-
-    // invoke load value trigger if required
-    emitTriggerLV(triggerLV, tmp1, bits, memBits);
-
-    // do AMO operation
-    opCB(state, bits, tmp2, tmp1, rs);
-
-    // invoke store address/value trigger if required
-    emitTriggerS(triggerS, rs, memBits);
-
-    // do store
-    emitStoreCommon(state, tmp2, ra, constraint);
-
-    // commit result
-    vmimtMoveRR(bits, rd, tmp1);
-
-    // enable load/store triggers in emitLoadCommon/emitStoreCommon
-    riscv->blockState->doLSTrig = True;
-
-    // free temporaries
-    freeTmp(state);
-
-    // indicate end of atomic operation
-    emitAtomicCode(riscv, ACODE_NONE);
-}
-
-//
-// Atomic memory operation (GPR arguments)
-//
-static void emitAMOCommonRRR(
-    riscvMorphStateP state,
-    amoCB            opCB,
-    atomicCode       code
-) {
-    unpackedReg rd   = unpackRX(state, 0);
-    unpackedReg rs   = unpackRX(state, 1);
-    unpackedReg ra   = unpackRX(state, 2);
-    Uns32       bits = rd.bits;
-
-    emitAMOCommonInt(state, opCB, rd.r, rs.r, ra.r, bits, code);
-
-    writeUnpacked(rd);
-}
-
-//
-// AMO binop callback
-//
-static AMO_FN(emitAMOBinopRRRCB) {
-    vmimtBinopRRR(bits, state->attrs->binop, rd, ra, rb, 0);
-}
-
-//
-// AMO swap callback
-//
-static AMO_FN(emitAMOSwapRRRCB) {
-    vmimtMoveRR(bits, rd, rb);
-}
-
-//
-// Atomic memory operation using defined VMI binop
-//
-static RISCV_MORPH_FN(emitAMOBinopRRR) {
-    emitAMOCommonRRR(state, emitAMOBinopRRRCB, getBinopAtomicCode(state));
-}
-
-//
-// Atomic memory operation using swap
-//
-static RISCV_MORPH_FN(emitAMOSwapRRR) {
-    emitAMOCommonRRR(state, emitAMOSwapRRRCB, ACODE_SWAP);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// LR/SC INSTRUCTIONS
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// Check function for externally-implemented LR/SC
-//
-#define RV_LR_SC_FN(_NAME) void _NAME(riscvP riscv, Uns64 address)
-typedef RV_LR_SC_FN((*riscvLRSCFn));
 
 //
 // This defines exclusive tag bits
@@ -3695,6 +3522,181 @@ static RISCV_MORPH_FN(emitSC) {
 
     // indicate end of atomic operation
     emitAtomicCode(riscv, ACODE_NONE);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ATOMIC MEMORY OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Get atomic operation code for current binop
+//
+static atomicCode getBinopAtomicCode(riscvMorphStateP state) {
+
+    static const atomicCode map[] = {
+        [vmi_IMIN] = ACODE_MIN,
+        [vmi_IMAX] = ACODE_MAX,
+        [vmi_MIN]  = ACODE_MINU,
+        [vmi_MAX]  = ACODE_MAXU,
+        [vmi_ADD]  = ACODE_ADD,
+        [vmi_XOR]  = ACODE_XOR,
+        [vmi_OR]   = ACODE_OR,
+        [vmi_AND]  = ACODE_AND,
+    };
+
+    return map[state->attrs->binop];
+}
+
+//
+// Function type implement generic AMO operation
+//
+#define AMO_FN(_NAME) void _NAME( \
+    riscvMorphStateP state, \
+    Uns32            bits,  \
+    vmiReg           rd,    \
+    vmiReg           ra,    \
+    vmiReg           rb     \
+)
+typedef AMO_FN((*amoCB));
+
+//
+// Atomic memory operation (internal interface)
+//
+static void emitAMOCommonInt(
+    riscvMorphStateP state,
+    amoCB            opCB,
+    vmiReg           rd,
+    vmiReg           rs,
+    vmiReg           ra,
+    Uns32            bits,
+    atomicCode       code
+) {
+    riscvP        riscv      = state->riscv;
+    Bool          doLSTrig   = riscv->configInfo.amo_trigger;
+    Bool          triggerLA  = doLSTrig && triggerLoadAddressMT(riscv);
+    Bool          triggerLV  = doLSTrig && triggerLoadValueMT(riscv);
+    Bool          triggerS   = doLSTrig && triggerStoreMT(riscv);
+    memConstraint constraint = getLoadStoreConstraintAMO(state);
+    vmiReg        tmp1       = RISCV_TRIGGER_LV;
+    vmiReg        tmp2       = newTmp(state);
+    Uns32         memBits    = state->info.memBits;
+
+    // allow derived model to validate atomic operation if required
+    ITER_EXT_CB(
+        riscv, extCB, AMOCheck,
+        extCB->AMOCheck(riscv, extCB->clientData);
+    )
+
+    // emit operation atomic code
+    emitAtomicCode(riscv, code);
+
+    // for this instruction, memBits is bits if unspecified or SEW
+    if(!memBits || (memBits==-1)) {
+        memBits = state->info.memBits = bits;
+    }
+
+    // generate trigger VA if required
+    if(triggerLA || triggerLV || triggerS) {
+        Uns64 offset = 0;
+        emitTriggerVA(riscv, &ra, &offset);
+    }
+
+    // invoke load address trigger if required
+    emitTriggerLA(triggerLA, memBits);
+
+    // this is an atomic operation
+    vmimtAtomic();
+
+    // terminate any active LR/SC pair if required
+    if(riscv->configInfo.amo_aborts_lr_sc) {
+        clearEAMT(state);
+    }
+
+    // generate Store/AMO exception in preference to Load exception
+    emitTryStoreCommon(state, ra, constraint);
+
+    // allow derived model to modify atomic operation if required
+    ITER_EXT_CB(
+        riscv, extCB, AMOMorph,
+        extCB->AMOMorph(riscv, extCB->clientData);
+    )
+
+    // disable load/store triggers in emitLoadCommon/emitStoreCommon
+    riscv->blockState->doLSTrig = False;
+
+    // do initial load
+    emitLoadCommon(state, tmp1, bits, ra, constraint);
+
+    // invoke load value trigger if required
+    emitTriggerLV(triggerLV, tmp1, bits, memBits);
+
+    // do AMO operation
+    opCB(state, bits, tmp2, tmp1, rs);
+
+    // invoke store address/value trigger if required
+    emitTriggerS(triggerS, rs, memBits);
+
+    // do store
+    emitStoreCommon(state, tmp2, ra, constraint);
+
+    // commit result
+    vmimtMoveRR(bits, rd, tmp1);
+
+    // enable load/store triggers in emitLoadCommon/emitStoreCommon
+    riscv->blockState->doLSTrig = True;
+
+    // free temporaries
+    freeTmp(state);
+
+    // indicate end of atomic operation
+    emitAtomicCode(riscv, ACODE_NONE);
+}
+
+//
+// Atomic memory operation (GPR arguments)
+//
+static void emitAMOCommonRRR(
+    riscvMorphStateP state,
+    amoCB            opCB,
+    atomicCode       code
+) {
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs   = unpackRX(state, 1);
+    unpackedReg ra   = unpackRX(state, 2);
+    Uns32       bits = rd.bits;
+
+    emitAMOCommonInt(state, opCB, rd.r, rs.r, ra.r, bits, code);
+
+    writeUnpacked(rd);
+}
+
+//
+// AMO binop callback
+//
+static AMO_FN(emitAMOBinopRRRCB) {
+    vmimtBinopRRR(bits, state->attrs->binop, rd, ra, rb, 0);
+}
+
+//
+// AMO swap callback
+//
+static AMO_FN(emitAMOSwapRRRCB) {
+    vmimtMoveRR(bits, rd, rb);
+}
+
+//
+// Atomic memory operation using defined VMI binop
+//
+static RISCV_MORPH_FN(emitAMOBinopRRR) {
+    emitAMOCommonRRR(state, emitAMOBinopRRRCB, getBinopAtomicCode(state));
+}
+
+//
+// Atomic memory operation using swap
+//
+static RISCV_MORPH_FN(emitAMOSwapRRR) {
+    emitAMOCommonRRR(state, emitAMOSwapRRRCB, ACODE_SWAP);
 }
 
 
@@ -9510,11 +9512,15 @@ static void emitVSetVLRR0MaxVL(riscvMorphStateP state) {
     riscvVType       vtype      = state->info.vtype;
     riscvSEWMt       SEW        = riscvValidVType(riscv, vtype);
     riscvVLMULx8Mt   VLMULx8    = vtypeToVLMULx8(vtype);
+    Bool             vta        = getVTypeVTA(vtype);
+    Bool             vma        = getVTypeVMA(vtype);
 
     if(
-        (blockState->SEWMt     == SEW)   &&
+        (blockState->SEWMt     == SEW) &&
         (blockState->VLMULx8Mt == VLMULx8) &&
-        (blockState->VLClassMt == VLCLASSMT_MAX)
+        (blockState->VLClassMt == VLCLASSMT_MAX) &&
+        (blockState->vtaMt     == vta) &&
+        (blockState->vmaMt     == vma)
     ) {
         // no change to previous state
         unpackedReg rd   = unpackRX(state, 0);
@@ -9539,10 +9545,12 @@ static void emitVSetVLRR0MaxVL(riscvMorphStateP state) {
             blockState->VSetTopMt[VTZ_GROUP]  = 0;
         }
 
-        // update morph-time VLClass, SEW and VLMUL, which are now known
+        // update morph-time VLClass, SEW, VLMUL, vma and vta which are now known
         blockState->VLClassMt = VLCLASSMT_MAX;
         blockState->SEWMt     = SEW;
         blockState->VLMULx8Mt = VLMULx8;
+        blockState->vtaMt     = vta;
+        blockState->vmaMt     = vma;
     }
 }
 
@@ -9556,9 +9564,15 @@ static void emitVSetVLRR0SameVL(riscvMorphStateP state) {
     riscvVType       vtype      = state->info.vtype;
     riscvSEWMt       SEW        = riscvValidVType(riscv, vtype);
     riscvVLMULx8Mt   VLMULx8    = vtypeToVLMULx8(vtype);
+    Bool             vta        = getVTypeVTA(vtype);
+    Bool             vma        = getVTypeVMA(vtype);
 
-    if((blockState->SEWMt == SEW) && (blockState->VLMULx8Mt == VLMULx8)) {
-
+    if(
+        (blockState->SEWMt     == SEW) &&
+        (blockState->VLMULx8Mt == VLMULx8) &&
+        (blockState->vtaMt     == vta) &&
+        (blockState->vmaMt     == vma)
+    ) {
         // no change to previous state
         unpackedReg rd   = unpackRX(state, 0);
         Uns32       bits = 32;
@@ -9571,6 +9585,10 @@ static void emitVSetVLRR0SameVL(riscvMorphStateP state) {
 
         // update to different configuration
         emitVSetVLRRCCB(state);
+
+        // update morph-time vma and vta which are now known
+        blockState->vtaMt = vta;
+        blockState->vmaMt = vma;
     }
 }
 
@@ -11962,8 +11980,6 @@ static RISCV_CHECKV_FN(emitEDIVCheckCB) {
 // P EXTENSION
 ////////////////////////////////////////////////////////////////////////////////
 
-#if(ENABLE_P_EXT)
-
 //
 // Macro returning members of an array
 //
@@ -13487,8 +13503,6 @@ static RISCV_MORPH_FN(emitWEXTI) {
     writeUnpacked(rd);
 }
 
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // CBO EXTENSION
@@ -14195,8 +14209,6 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VZEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_UU},
     [RV_IT_VSEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_SS},
 
-#if(ENABLE_P_EXT)
-
     // P-extension instructions (RV32 and RV64)
     [RV_IT_ADD_Sx]           = {morph:emitBinopRRR_Sx,   binop:vmi_ADD,                                                                             iClass:OCL_IC_INTEGER},
     [RV_IT_AVE]              = {morph:emitBinopRRR,      binop:vmi_ADDSHR,                                                                          iClass:OCL_IC_INTEGER},
@@ -14342,8 +14354,6 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_SMDRS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUB,                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
     [RV_IT_SMXDS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
 
-    #endif
-
     // code size reduction instructions
     [RV_IT_NOT_R]            = {morph:emitUnopRR,   unop :vmi_NOT,  iClass:OCL_IC_INTEGER},
     [RV_IT_NEG_R]            = {morph:emitUnopRR,   unop :vmi_NEG,  iClass:OCL_IC_INTEGER},
@@ -14379,6 +14389,7 @@ VMI_START_END_BLOCK_FN(riscvStartBlock) {
     riscvP           riscv     = (riscvP)processor;
     riscvBlockStateP thisState = blockState;
     riscvBlockStateP prevState = riscv->blockState;
+    riscvVType       vtype     = getCurrentVType(riscv);
 
     // save currently-active block state and set new state
     thisState->prevState = prevState;
@@ -14396,15 +14407,19 @@ VMI_START_END_BLOCK_FN(riscvStartBlock) {
     thisState->SEWMt                 = SEWMT_UNKNOWN;
     thisState->VLMULx8Mt             = VLMULx8MT_UNKNOWN;
     thisState->VLClassMt             = VLCLASSMT_UNKNOWN;
+    thisState->vtaMt                 = getVTypeVTA(vtype);
+    thisState->vmaMt                 = getVTypeVMA(vtype);
     thisState->VSetTopMt[VTZ_SINGLE] = 0;
     thisState->VSetTopMt[VTZ_GROUP]  = 0;
     thisState->VStartZeroMt          = forceVStart0(riscv);
 
-    // inherit any previously-active SEW, VLMUL and VLClass
+    // inherit any previously-active SEW, VLMUL, VLClass, vta and vma
     if(prevState) {
         thisState->SEWMt     = prevState->SEWMt;
         thisState->VLMULx8Mt = prevState->VLMULx8Mt;
         thisState->VLClassMt = prevState->VLClassMt;
+        thisState->vtaMt     = prevState->vtaMt;
+        thisState->vmaMt     = prevState->vmaMt;
     }
 }
 

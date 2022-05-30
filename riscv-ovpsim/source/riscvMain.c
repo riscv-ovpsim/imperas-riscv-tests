@@ -49,6 +49,103 @@
 #include "riscvVM.h"
 
 
+#define DEBUG_FLAGS_NAME "debugflags"
+
+//
+// Handle print or update of processor debug flags
+//
+static VMIRT_COMMAND_PARSE_FN(debugFlags) {
+
+    riscvP       riscv  = (riscvP)processor;
+    vmiArgValueP argSet = vmirtFindArgValue(argc, argv, "set");
+    vmiArgValueP argGet = vmirtFindArgValue(argc, argv, "get");
+    vmiArgValueP argMsk = vmirtFindArgValue(argc, argv, "mask");
+    Bool         found  = False;
+
+    // handle "set" argument
+    if(argSet && argSet->isSet) {
+
+        Uns32 newFlags = argSet->u.int32 &= RISCV_DEBUG_UPDATE_MASK;
+
+        riscv->flags |= newFlags;                               // set flags
+        riscv->flags &= (newFlags | ~RISCV_DEBUG_UPDATE_MASK);  // cleared flags
+
+        vmiPrintf(
+            "%s: Debug flags are now 0x%08x on '%s'\n",
+            DEBUG_FLAGS_NAME, riscv->flags, vmirtProcessorName(processor)
+        );
+
+        found = True;
+    }
+
+    // handle "get" argument
+    if(argGet && argGet->isSet) {
+
+        vmiPrintf(
+             "%s: Current debug flags 0x%08x on '%s'\n",
+             DEBUG_FLAGS_NAME, riscv->flags, vmirtProcessorName(processor)
+        );
+
+        found = True;
+    }
+
+    // handle "mask" argument
+    if(argMsk && argMsk->isSet) {
+
+        vmiPrintf(
+            "%s: Debug flags valid bits 0x%08x\n",
+            DEBUG_FLAGS_NAME, RISCV_DEBUG_UPDATE_MASK
+        );
+
+        found = True;
+    }
+
+    if(!found) {
+
+        vmiPrintf(
+            "%s: -set <new value> -get -mask   : "
+            "Note only flags 0x%08x can be modified\n",
+            DEBUG_FLAGS_NAME, RISCV_DEBUG_UPDATE_MASK
+        );
+
+        // error status
+        return NULL;
+    }
+
+    return "1";
+}
+
+//
+// Add command for debug flag update
+//
+static void addDebugCommand(riscvP riscv) {
+
+    // add debugflags command to the command interpreter
+    vmiCommandP cmd = vmirtAddCommandParse(
+        (vmiProcessorP)riscv,
+        DEBUG_FLAGS_NAME,
+        "show or modify the processor debug flags",
+        debugFlags,
+        VMI_CT_DEFAULT|VMI_CO_DIAG|VMI_CA_REPORT
+    );
+
+    // define help strings
+    char        setHelp[256];
+    const char *getHelp = "print current processor flags value";
+    const char *mskHelp = "print valid debug flag bits";
+
+    sprintf(
+        setHelp,
+        "new processor flags (only flags 0x%08x can be modified)",
+        RISCV_DEBUG_UPDATE_MASK
+    );
+
+    // add arguments
+    vmirtAddArg(cmd, "set",  setHelp, VMI_CA_INT32, VMI_CAA_MENU,    False, 0);
+    vmirtAddArg(cmd, "get",  getHelp, VMI_CA_BOOL,  VMI_CAA_DEFAULT, False, 0);
+    vmirtAddArg(cmd, "mask", mskHelp, VMI_CA_BOOL,  VMI_CAA_DEFAULT, False, 0);
+}
+
 //
 // Initialize enhanced model support callbacks that apply at all levels
 //
@@ -648,6 +745,7 @@ static void applyParamsSMP(
     cfg->enable_expanded      = params->enable_expanded;
     cfg->endianFixed          = params->endianFixed;
     cfg->use_hw_reg_names     = params->use_hw_reg_names;
+    cfg->no_pseudo_inst       = params->no_pseudo_inst;
     cfg->ABI_d                = params->ABI_d;
     cfg->user_version         = params->user_version;
     cfg->priv_version         = params->priv_version;
@@ -752,6 +850,7 @@ static void applyParamsSMP(
     cfg->hcontext_undefined   = params->hcontext_undefined;
     cfg->mnoise_undefined     = params->mnoise_undefined;
     cfg->amo_trigger          = params->amo_trigger;
+    cfg->amo_aborts_lr_sc     = params->amo_aborts_lr_sc;
     cfg->no_hit               = params->no_hit;
     cfg->no_sselect_2         = params->no_sselect_2;
     cfg->enable_CSR_bus       = params->enable_CSR_bus;
@@ -1286,6 +1385,7 @@ VMI_CONSTRUCTOR_FN(riscvConstructor) {
 
         // add CSR commands
         if(!isPSE(riscv)) {
+            addDebugCommand(riscv);
             riscvAddCSRCommands(riscv);
         }
 

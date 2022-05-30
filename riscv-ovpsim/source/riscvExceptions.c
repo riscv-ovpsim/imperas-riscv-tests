@@ -113,6 +113,12 @@ static const riscvExceptionDesc exceptions[] = {
     RISCV_EXCEPTION (CSIP,                         1, 0,     "CLIC software interrupt"),
 
     ////////////////////////////////////////////////////////////////////
+    // NMI
+    ////////////////////////////////////////////////////////////////////
+
+    RISCV_EXCEPTION (GenericNMI,                   0, 0,     "Generic NMI"),
+
+    ////////////////////////////////////////////////////////////////////
     // TERMINATOR
     ////////////////////////////////////////////////////////////////////
 
@@ -2664,9 +2670,10 @@ static void refreshPendingAndEnabledBasic(riscvP riscv) {
     // select highest-priority pending-and-enabled interrupt
     if(pendingEnabled) {
 
-        riscvPendEnabP selected = &riscv->pendEnab;
-        Int32          id       = 0;
-        Uns8           selPri   = 0;
+        riscvPendEnabP selected  = &riscv->pendEnab;
+        Int32          id        = 0;
+        Uns8           selPri    = 0;
+        Uns32          selIntPri = 0;
 
         do {
 
@@ -2678,18 +2685,21 @@ static void refreshPendingAndEnabledBasic(riscvP riscv) {
                 };
 
                 // get relative priority of candidate interrupt
-                Uns8 tryPri = mode5Priority(try.priv);
+                Uns8  tryPri = mode5Priority(try.priv);
+                Uns32 tryIntPri;
 
                 if(selPri < tryPri) {
                     // higher destination privilege mode
                     *selected = try;
                     selPri    = tryPri;
+                    selIntPri = getIntPri(riscv, try.id);
                 } else if(selPri > tryPri) {
                     // lower destination privilege mode
-                } else if(getIntPri(riscv, selected->id)<=getIntPri(riscv, try.id)) {
+                } else if(selIntPri<=(tryIntPri=getIntPri(riscv, try.id))) {
                     // higher fixed priority order and same destination mode
                     *selected = try;
                     selPri    = tryPri;
+                    selIntPri = tryIntPri;
                 }
             }
 
@@ -2990,7 +3000,9 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
 //
 Bool riscvHasStandardException(riscvP riscv, riscvException code) {
 
-    if((code==riscv_E_CSIP) && CLICPresent(riscv)) {
+    if(code==riscv_E_GenericNMI) {
+        return !riscv->configInfo.ecode_nmi;
+    } else if((code==riscv_E_CSIP) && CLICPresent(riscv)) {
         return True;
     } else if(!isInterrupt(code)) {
         return riscv->exceptionMask & (1ULL<<code);
@@ -3247,6 +3259,8 @@ void riscvSetExceptionMask(riscvP riscv) {
 
         if((arch&required)!=required) {
             // not implemented by this variant
+        } else if(code==riscv_E_GenericNMI) {
+            // ignore generic NMI
         } else if((code==riscv_E_SGEIInterrupt) && !getGEILEN(riscv)) {
             // absent if GEILEN=0
         } else if((code==riscv_E_CSIP) && CLICPresent(riscv)) {
@@ -3402,7 +3416,7 @@ void riscvReset(riscvP riscv) {
         extCB->resetNotifier(riscv, extCB->clientData);
     )
 
-    // indicate the taken exception
+    // indicate no taken exception
     riscv->exception = 0;
 
     // set address at which to execute
@@ -3417,8 +3431,9 @@ void riscvReset(riscvP riscv) {
 //
 static void doNMI(riscvP riscv) {
 
-    riscvMode MPP = getCurrentMode3(riscv);
-    Bool      MPV = inVMode(riscv);
+    riscvMode MPP       = getCurrentMode3(riscv);
+    Bool      MPV       = inVMode(riscv);
+    Uns64     ecode_nmi = riscv->configInfo.ecode_nmi;
 
     // do custom NMI behavior if required
     ITER_EXT_CB(
@@ -3438,7 +3453,7 @@ static void doNMI(riscvP riscv) {
         WR_CSR_FIELDC(riscv, mnstatus, MIE, 0);
 
         // update mcause register
-        WR_CSR_M(riscv, mncause, riscv->configInfo.ecode_nmi);
+        WR_CSR_M(riscv, mncause, ecode_nmi);
 
         // NMI sets mcause.Interrupt=1
         WR_CSR_FIELD_M(riscv, mncause, Interrupt, 1);
@@ -3461,7 +3476,7 @@ static void doNMI(riscvP riscv) {
         WR_CSR_FIELDC(riscv, dcsr, nmip, 0);
 
         // update mcause register
-        WR_CSR_M(riscv, mcause, riscv->configInfo.ecode_nmi);
+        WR_CSR_M(riscv, mcause, ecode_nmi);
 
         // NMI sets mcause.Interrupt=1
         WR_CSR_FIELD_M(riscv, mcause, Interrupt, 1);
@@ -3471,7 +3486,7 @@ static void doNMI(riscvP riscv) {
     }
 
     // indicate the taken exception
-    riscv->exception = intToException(riscv->configInfo.ecode_nmi);
+    riscv->exception = ecode_nmi ? intToException(ecode_nmi) : riscv_E_GenericNMI;
 
     // set address at which to execute
     setPCException(riscv, riscv->configInfo.nmi_address);

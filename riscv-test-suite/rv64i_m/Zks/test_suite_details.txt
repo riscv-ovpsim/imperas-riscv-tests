@@ -22,54 +22,54 @@ Architectural Test Suite Data for RV64ZKS K Crypto/Scalar:
     21 test source files
     8 different instruction categories
     38 different instructions
-    42,126 total instructions
+    48,803 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  orn : 274
-  andn : 274
-  xnor : 274
+  orn : 300
+  andn : 300
+  xnor : 300
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 274
-  clmulh : 274
+  clmulh : 300
+  clmul : 300
 Instruction category: OPB_PACK Packing
-  packh : 274
-  pack : 274
-  packw : 274
+  packh : 300
+  pack : 300
+  packw : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 274
-  ror : 274
-  rori : 274
-  rolw : 274
-  rorw : 274
-  roriw : 274
+  rol : 300
+  ror : 300
+  rori : 298
+  rolw : 300
+  rorw : 300
+  roriw : 298
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p1 : 274
-  sm3p0 : 274
+  sm3p0 : 298
+  sm3p1 : 298
 Instruction category: OPK_Zkse 
-  sm4ks : 530
-  sm4ed : 530
+  sm4ed : 556
+  sm4ks : 556
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
   c-j : 21
-  c-lui : 93
-  addiw : 6,202
+  c-lui : 105
+  addiw : 6,933
   csrrs : 63
-  auipc : 1,254
-  addi : 10,471
+  auipc : 1,349
+  addi : 12,625
   csrrw : 42
   mret : 21
-  lui : 3,907
-  slli : 7,554
-  sd : 5,508
-  c-sdsp : 210
+  lui : 4,545
+  slli : 9,433
+  sd : 5,842
+  c-sdsp : 360
+  c-addi : 224
   fence : 21
   ecall : 21
-  c-li : 135
+  c-li : 144
   beq : 63
-  c-slli : 510
-  c-addiw : 114
-  c-addi : 198
-  grevi : 274
+  c-slli : 669
+  grevi : 298
+  c-addiw : 120
 

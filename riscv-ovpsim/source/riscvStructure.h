@@ -42,7 +42,6 @@
 #define RISCV_DISASSEMBLE_MASK      0x00000001
 #define RISCV_DEBUG_MMU_MASK        0x00000002
 #define RISCV_DEBUG_EXCEPT_MASK     0x00000004
-#define RISCV_DEBUG_TRIGGER_MASK    0x00000008
 
 //
 // Processor flag selection macros
@@ -50,7 +49,6 @@
 #define RISCV_DISASSEMBLE(_P)   ((_P)->flags & RISCV_DISASSEMBLE_MASK)
 #define RISCV_DEBUG_MMU(_P)     ((_P)->flags & RISCV_DEBUG_MMU_MASK)
 #define RISCV_DEBUG_EXCEPT(_P)  ((_P)->flags & RISCV_DEBUG_EXCEPT_MASK)
-#define RISCV_DEBUG_TRIGGER(_P) ((_P)->flags & RISCV_DEBUG_TRIGGER_MASK)
 
 //
 // Debug flags that should be disabled during save/restore
@@ -300,7 +298,7 @@ typedef struct riscvS {
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
     riscvCLINTP        clint;           // CLINT state
     riscvCLIC          clic;            // source interrupt indicated from CLIC
-    riscvException     exception : 16;  // last activated exception
+    riscvException     exception;       // last activated exception
     riscvICMode        MIMode    :  2;  // custom M interrupt mode
     riscvICMode        SIMode    :  2;  // custom S interrupt mode
     riscvICMode        HIMode    :  2;  // custom H interrupt mode

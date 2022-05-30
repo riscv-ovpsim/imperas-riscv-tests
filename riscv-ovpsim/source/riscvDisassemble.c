@@ -914,6 +914,7 @@ const char *riscvDisassembleInstruction(
     info.mask        = instrInfo->mask;
     info.rm          = instrInfo->rm;
     info.c           = instrInfo->c;
+    info.tgt         = instrInfo->tgt;
 
     // do disassembly
     return disassembleInfo(riscv, &info, attrs);

@@ -21,28 +21,29 @@
 Architectural Test Suite Data for RV64ZKSED K Crypto/Scalar:
     4 test source files
     1 different instruction categories
-    18 different instructions
-    10,444 total instructions
+    19 different instructions
+    11,290 total instructions
 
 Instruction category: OPK_Zkse 
-  sm4ks : 530
-  sm4ed : 530
+  sm4ks : 556
+  sm4ed : 556
 
 Other instructions (those not the focus of this suite)
   c-j : 4
   c-lui : 4
-  addiw : 1,398
+  addiw : 1,490
   csrrs : 12
-  auipc : 234
-  addi : 2,948
+  auipc : 244
+  addi : 3,236
   csrrw : 8
   mret : 4
-  lui : 1,240
-  slli : 2,440
-  sd : 1,020
-  c-sdsp : 40
+  lui : 1,320
+  slli : 2,710
+  sd : 982
+  c-sdsp : 130
   fence : 4
   ecall : 4
   c-li : 12
   beq : 12
+  c-addi : 2
 

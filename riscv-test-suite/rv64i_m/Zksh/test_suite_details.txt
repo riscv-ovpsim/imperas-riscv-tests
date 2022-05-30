@@ -22,29 +22,29 @@ Architectural Test Suite Data for RV64ZKSH K Crypto/Scalar:
     2 test source files
     1 different instruction categories
     21 different instructions
-    3,040 total instructions
+    3,458 total instructions
 
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p1 : 274
-  sm3p0 : 274
+  sm3p1 : 298
+  sm3p0 : 298
 
 Other instructions (those not the focus of this suite)
   c-j : 2
-  c-lui : 50
-  addiw : 360
+  c-lui : 58
+  addiw : 398
   csrrs : 6
-  auipc : 120
-  addi : 418
+  auipc : 130
+  addi : 526
   csrrw : 4
   mret : 2
-  lui : 198
-  slli : 172
-  c-slli : 340
-  sd : 528
-  c-li : 54
+  lui : 226
+  slli : 178
+  c-slli : 446
+  sd : 576
+  c-addiw : 80
+  c-addi : 140
   c-sdsp : 20
-  c-addiw : 76
-  c-addi : 132
+  c-li : 60
   fence : 2
   ecall : 2
   beq : 6

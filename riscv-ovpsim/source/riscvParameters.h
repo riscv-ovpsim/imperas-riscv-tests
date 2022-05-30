@@ -99,6 +99,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(variant);
     VMI_STRING_PARAM(clusterVariants);
     VMI_BOOL_PARAM(use_hw_reg_names);
+    VMI_BOOL_PARAM(no_pseudo_inst);
     VMI_BOOL_PARAM(ABI_d);
     VMI_BOOL_PARAM(verbose);
     VMI_BOOL_PARAM(traceVolatile);
@@ -175,6 +176,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(hcontext_undefined);
     VMI_BOOL_PARAM(mnoise_undefined);
     VMI_BOOL_PARAM(amo_trigger);
+    VMI_BOOL_PARAM(amo_aborts_lr_sc);
     VMI_BOOL_PARAM(no_hit);
     VMI_BOOL_PARAM(no_sselect_2);
     VMI_BOOL_PARAM(enable_CSR_bus);

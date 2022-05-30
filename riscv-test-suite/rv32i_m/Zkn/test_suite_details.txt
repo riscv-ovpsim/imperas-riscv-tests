@@ -22,55 +22,55 @@ Architectural Test Suite Data for RV32ZKN K Crypto/Scalar:
     31 test source files
     9 different instruction categories
     38 different instructions
-    26,874 total instructions
+    30,650 total instructions
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
-  aes32dsi : 402
-  aes32dsmi : 402
+  aes32dsi : 428
+  aes32dsmi : 428
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes32esmi : 402
-  aes32esi : 402
+  aes32esi : 428
+  aes32esmi : 428
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 146
-  orn : 146
-  xnor : 146
+  xnor : 172
+  orn : 172
+  andn : 172
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 146
-  clmul : 146
+  clmulh : 172
+  clmul : 172
 Instruction category: OPB_PACK Packing
-  packh : 146
-  pack : 146
+  packh : 172
+  pack : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 146
-  ror : 146
-  rori : 146
+  rol : 172
+  rori : 170
+  ror : 172
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
-  sha512sig0h : 146
-  sha512sig1h : 146
-  sha256sig0 : 146
-  sha256sig1 : 146
-  sha256sum1 : 146
-  sha512sig0l : 146
-  sha512sig1l : 146
-  sha256sum0 : 146
-  sha512sum1r : 146
-  sha512sum0r : 146
+  sha256sig0 : 170
+  sha256sig1 : 170
+  sha256sum1 : 170
+  sha256sum0 : 170
+  sha512sig0h : 172
+  sha512sig1l : 172
+  sha512sig0l : 172
+  sha512sig1h : 172
+  sha512sum1r : 172
+  sha512sum0r : 172
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
   jal : 31
-  lui : 6,424
-  addi : 8,973
+  lui : 7,451
+  addi : 10,223
   csrrs : 93
-  auipc : 1,173
+  auipc : 1,300
   csrrw : 62
   mret : 31
-  sw : 4,966
+  sw : 5,652
   fence : 31
   ecall : 31
   beq : 93
-  grevi : 146
-  shfli : 146
-  unshfli : 146
+  shfli : 170
+  grevi : 170
+  unshfli : 170
 

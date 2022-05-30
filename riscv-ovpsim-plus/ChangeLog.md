@@ -11,8 +11,23 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
-Date 2022-April-21
-Release 20220420.0
+- New Boolean parameter amo_aborts_lr_sc indicates that execution of AMO
+  instructions will abort any currently-active LR/SC pair.
+
+Date 2022-May-26
+Release 20220525.0
+===
+
+- New Boolean parameter no_pseudo_inst disables generation of pseudo-
+  instructions in disassembly and trace and enables architectural instructions
+  instead.
+- An issue has been corrected that caused some accesses the the seed CSR to
+  be permitted when an Illegal Instruction trap should have been raised.
+- An issue has been corrected that caused updates to Vector Extension vta/vma 
+  bits to be ignored in some cases.
+
+Date 2022-April-22
+Release 20220421.0
 ===
 
 - An issue has been corrected that caused incorrect behavior for vector

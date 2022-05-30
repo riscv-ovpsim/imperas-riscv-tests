@@ -1,0 +1,20 @@
+Imperas RISC-V Instruction Coverage Report
+
+Extension : privM, instructions: 3
+    ebreak         
+    ebreak 0/1 :   0.00%
+    ecall          
+    ecall 0/1 :   0.00%
+    mret           
+    mret 0/1 :   0.00%
+Coverage points missed:
+  ebreak
+  ecall
+  mret
+Coverage points missed: 3/3
+
+Info TOTAL INSTRUCTION COVERAGE : privM
+Info   Threshold             : 1
+Info   Instructions counted  : 0
+Info   Unique instructions   : 0/3 :   0.00%
+Info   Coverage points hit   : 0/3 :   0.00%

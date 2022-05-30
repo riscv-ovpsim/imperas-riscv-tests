@@ -22,66 +22,66 @@ Architectural Test Suite Data for RV64ZKN K Crypto/Scalar:
     37 test source files
     9 different instruction categories
     49 different instructions
-    84,021 total instructions
+    81,476 total instructions
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
-  aes64dsm : 530
-  aes64ds : 530
-  aes64im : 530
+  aes64ds : 556
+  aes64dsm : 556
+  aes64im : 554
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes64es : 530
-  aes64ks1i : 530
-  aes64ks2 : 530
-  aes64esm : 530
+  aes64es : 556
+  aes64ks2 : 556
+  aes64ks1i : 554
+  aes64esm : 556
 Instruction category: OPB_LWNE Logic With Negate
-  andn : 274
-  orn : 274
-  xnor : 274
+  orn : 300
+  andn : 300
+  xnor : 300
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 274
-  clmul : 274
+  clmulh : 300
+  clmul : 300
 Instruction category: OPB_PACK Packing
-  packh : 274
-  pack : 274
-  packw : 274
+  pack : 300
+  packh : 300
+  packw : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 274
-  rori : 274
-  ror : 274
-  roriw : 274
-  rolw : 274
-  rorw : 274
+  rol : 300
+  rori : 298
+  ror : 300
+  rolw : 300
+  roriw : 298
+  rorw : 300
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
-  sha256sig0 : 274
-  sha256sig1 : 274
-  sha256sum0 : 274
-  sha512sig0 : 274
-  sha256sum1 : 274
-  sha512sig1 : 274
-  sha512sum0 : 274
-  sha512sum1 : 274
+  sha256sig1 : 298
+  sha256sig0 : 298
+  sha256sum1 : 298
+  sha512sum1 : 298
+  sha512sig0 : 298
+  sha256sum0 : 298
+  sha512sum0 : 298
+  sha512sig1 : 298
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
   c-j : 37
-  c-lui : 301
-  addiw : 11,135
+  c-lui : 317
+  addiw : 10,897
   csrrs : 111
-  auipc : 2,199
-  addi : 21,889
+  auipc : 2,349
+  addi : 20,717
   csrrw : 74
   mret : 37
-  lui : 7,595
-  slli : 16,591
-  sd : 9,642
-  c-sdsp : 370
+  lui : 7,237
+  slli : 13,741
+  sd : 10,061
+  c-sdsp : 705
   fence : 37
   ecall : 37
-  c-li : 353
+  c-li : 381
   beq : 111
-  c-slli : 2,448
-  c-addiw : 380
-  c-addi : 662
-  grevi : 274
+  c-addi : 719
+  c-slli : 2,742
+  c-addiw : 400
+  grevi : 298
 

@@ -21,26 +21,27 @@
 Architectural Test Suite Data for RV64ZBKC K Crypto/Scalar:
     2 test source files
     1 different instruction categories
-    18 different instructions
-    4,014 total instructions
+    19 different instructions
+    4,812 total instructions
 
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 274
-  clmulh : 274
+  clmulh : 300
+  clmul : 300
 
 Other instructions (those not the focus of this suite)
   c-j : 2
   c-lui : 2
-  addiw : 638
+  addiw : 728
   csrrs : 6
-  auipc : 120
-  addi : 1,050
+  auipc : 130
+  addi : 1,314
   csrrw : 4
   mret : 2
-  lui : 354
-  slli : 724
-  sd : 528
-  c-sdsp : 20
+  lui : 434
+  slli : 972
+  sd : 570
+  c-sdsp : 30
+  c-addi : 2
   fence : 2
   ecall : 2
   c-li : 6

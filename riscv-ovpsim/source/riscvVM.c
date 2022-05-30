@@ -396,8 +396,8 @@ static void setPMPPriv(
 
         // get privileges for data and code domains (NOTE: include RW
         // permissions in code domain to allow application load)
-        memPriv privRW = priv&MEM_PRIV_RW;
-        memPriv privX  = priv&MEM_PRIV_X ? MEM_PRIV_RWX : MEM_PRIV_NONE;
+        memPriv privRW = priv&MEM_PRIV_RW ? priv&~MEM_PRIV_X : MEM_PRIV_NONE;
+        memPriv privX  = priv&MEM_PRIV_X  ? priv             : MEM_PRIV_NONE;
 
         // set permissions in data domain if required
         if(!updatePriv || (priv==MEM_PRIV_NONE) || privRW) {
@@ -4559,9 +4559,10 @@ static void mapTLBEntry(
     if(riscv->hlvxActive && (priv&MEM_PRIV_X)) {
 
         memDomainP hlvxDomain = getHLVXDomain(riscv, domainV);
+        memDomainP dataDomain = getPMPDomainPriv(riscv, mode, MEM_PRIV_R);
 
         vmirtAliasMemoryVM(
-            domainP, hlvxDomain, lowPA, highPA, lowVA, 0, MEM_PRIV_R,
+            dataDomain, hlvxDomain, lowPA, highPA, lowVA, 0, MEM_PRIV_R,
             ASIDMask, ASID
         );
 
@@ -4947,11 +4948,15 @@ static memDomainP createDomain(
 //
 // Create new PMA domain for the given mode
 //
-static Bool createPMADomain(riscvP riscv, riscvMode mode, Bool isCode) {
-
+static Bool createPMADomain(
+    riscvP    riscv,
+    riscvMode mode,
+    Bool      isCode,
+    Bool      separate
+) {
     memDomainP extDomain   = riscv->extDomains[isCode];
     memDomainP otherDomain = riscv->extDomains[!isCode];
-    Bool       unified     = (extDomain==otherDomain);
+    Bool       unified     = !separate && (extDomain==otherDomain);
     Uns32      pmaBits     = 64;
     Uns64      extMask     = getAddressMask(riscv->extBits);
 
@@ -4972,11 +4977,15 @@ static Bool createPMADomain(riscvP riscv, riscvMode mode, Bool isCode) {
 //
 // Create new PMP domain for the given mode
 //
-static Bool createPMPDomain(riscvP riscv, riscvMode mode, Bool isCode) {
-
+static Bool createPMPDomain(
+    riscvP    riscv,
+    riscvMode mode,
+    Bool      isCode,
+    Bool      separate
+) {
     memDomainP pmaDomain   = getPMADomainCorD(riscv, mode,  isCode);
     memDomainP otherDomain = getPMADomainCorD(riscv, mode, !isCode);
-    Bool       unified     = (pmaDomain==otherDomain);
+    Bool       unified     = !separate && (pmaDomain==otherDomain);
     memDomainP pmpDomain   = pmaDomain;
 
     // create PMP domain only if PMP registers are implemented
@@ -5001,11 +5010,15 @@ static Bool createPMPDomain(riscvP riscv, riscvMode mode, Bool isCode) {
 //
 // Create new physical domain for the given mode
 //
-static Bool createPhysicalDomain(riscvP riscv, riscvMode mode, Bool isCode) {
-
+static Bool createPhysicalDomain(
+    riscvP    riscv,
+    riscvMode mode,
+    Bool      isCode,
+    Bool      separate
+) {
     memDomainP pmpDomain   = getPMPDomainCorD(riscv, mode,  isCode);
     memDomainP otherDomain = getPMPDomainCorD(riscv, mode, !isCode);
-    Bool       unified     = (pmpDomain==otherDomain);
+    Bool       unified     = !separate && (pmpDomain==otherDomain);
     Uns32      physBits    = riscvGetXlenArch(riscv);
     Uns64      physMask    = getAddressMask(physBits);
 
@@ -5026,12 +5039,16 @@ static Bool createPhysicalDomain(riscvP riscv, riscvMode mode, Bool isCode) {
 //
 // Create new virtual domain for the given mode
 //
-static Bool createVirtualDomain(riscvP riscv, riscvVMMode vmMode, Bool isCode) {
-
+static Bool createVirtualDomain(
+    riscvP      riscv,
+    riscvVMMode vmMode,
+    Bool        isCode,
+    Bool        separate
+) {
     riscvMode  mode     = vmmodeToMode(vmMode);
     memDomainP pmpCode  = getPMPDomainCorD(riscv, mode, True);
     memDomainP pmpData  = getPMPDomainCorD(riscv, mode, False);
-    Bool       unified  = (pmpCode==pmpData);
+    Bool       unified  = !separate && (pmpCode==pmpData);
     Uns32      xlenBits = riscvGetXlenArch(riscv);
 
     // create virtual domain if not already done (if XLEN is writable)
@@ -5138,34 +5155,49 @@ static void createTMDomain(riscvP riscv) {
 }
 
 //
-// Create PMA and PMP domains if required
+// Does any extension require distinct physical memory domains?
 //
-static void createPMAPMPDomains(riscvP riscv, riscvMode mode) {
+static Bool requireDistinctPhysMem(riscvP riscv) {
 
-    // create PMA data and code domains for this mode
-    if(createPMADomain(riscv, mode, False)) {
-        riscv->pmaDomains[mode][1] = riscv->pmaDomains[mode][0];
-    } else {
-        createPMADomain(riscv, mode, True);
-    }
+    Bool distinctPhysMem = False;
 
-    // create PMP data and code domains for this mode
-    if(createPMPDomain(riscv, mode, False)) {
-        riscv->pmpDomains[mode][1] = riscv->pmpDomains[mode][0];
-    } else {
-        createPMPDomain(riscv, mode, True);
-    }
+    ITER_EXT_CB_WHILE(
+        riscv, extCB, distinctPhysMem, !distinctPhysMem,
+        distinctPhysMem = extCB->distinctPhysMem(riscv, extCB->clientData)
+    )
+
+    return distinctPhysMem;
 }
 
 //
-// Create physical domains
+// Create PMA, PMP and physical domains
 //
 static void createPhysicalDomains(riscvP riscv, riscvMode mode) {
 
-    if(createPhysicalDomain(riscv, mode, False)) {
+    // if an extension implements custom physical memory extensions (e.g.
+    // local memory blocks) then separate PMA/PMP code/data domains must be
+    // created in case these are modified in different ways
+    Bool distinctPhysMem = requireDistinctPhysMem(riscv);
+
+    // create PMA data and code domains for this mode
+    if(createPMADomain(riscv, mode, False, distinctPhysMem)) {
+        riscv->pmaDomains[mode][1] = riscv->pmaDomains[mode][0];
+    } else {
+        createPMADomain(riscv, mode, True, distinctPhysMem);
+    }
+
+    // create PMP data and code domains for this mode
+    if(createPMPDomain(riscv, mode, False, distinctPhysMem)) {
+        riscv->pmpDomains[mode][1] = riscv->pmpDomains[mode][0];
+    } else {
+        createPMPDomain(riscv, mode, True, distinctPhysMem);
+    }
+
+    // create physical data and code domains for this mode
+    if(createPhysicalDomain(riscv, mode, False, distinctPhysMem)) {
         riscv->physDomains[mode][1] = riscv->physDomains[mode][0];
     } else {
-        createPhysicalDomain(riscv, mode, True);
+        createPhysicalDomain(riscv, mode, True, distinctPhysMem);
     }
 }
 
@@ -5174,10 +5206,15 @@ static void createPhysicalDomains(riscvP riscv, riscvMode mode) {
 //
 static void createVirtualDomains(riscvP riscv, riscvVMMode vmMode) {
 
-    if(createVirtualDomain(riscv, vmMode, False)) {
+    // if an extension implements custom physical memory extensions (e.g.
+    // local memory blocks) then separate PMA/PMP code/data domains must be
+    // created in case these are modified in different ways
+    Bool distinctPhysMem = requireDistinctPhysMem(riscv);
+
+    if(createVirtualDomain(riscv, vmMode, False, distinctPhysMem)) {
         riscv->vmDomains[vmMode][1] = riscv->vmDomains[vmMode][0];
     } else {
-        createVirtualDomain(riscv, vmMode, True);
+        createVirtualDomain(riscv, vmMode, True, distinctPhysMem);
     }
 }
 
@@ -5214,9 +5251,7 @@ VMI_VMINIT_FN(riscvVMInit) {
     riscv->extDomains[1] = codeDomain;
 
     // create M/S mode PMA, PMP and physical domains if required
-    createPMAPMPDomains  (riscv, RISCV_MODE_S);
     createPhysicalDomains(riscv, RISCV_MODE_S);
-    createPMAPMPDomains  (riscv, RISCV_MODE_M);
     createPhysicalDomains(riscv, RISCV_MODE_M);
 
     // use S mode PMA and PMP domains for U mode

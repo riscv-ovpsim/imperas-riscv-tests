@@ -7,6 +7,13 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
+Date 2022-May-30
+Release 20220527.0
+
+Added new test suites for RV32E, RV32EM, RV32EC
+These are for version 1.9
+
+---
 Date 2022-April-22
 Release 20220421.0
 

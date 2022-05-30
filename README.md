@@ -6,11 +6,14 @@ In the RISC-V world, Imperas simulators are used by most companies and organizat
 
 The following is a list of some of the companies and organizations that rely on Imperas simulators as their RISC-V reference:
 
-Mellanox/Nvidia, Seagate, NSITEXE/Denso, Google Cloud, Chips Alliance, lowRISC, OpenHW Group, Andes, Valtrix, Nagra/Kudelski, Silicon Labs, Incore Semi, RISC-V Compliance Working Group, Symbiotic EDA, Thales, Hensoldt Cyber, Invia, ...
+Mellanox/Nvidia, Seagate, NSITEXE/Denso, Google Cloud, Chips Alliance, lowRISC, OpenHW Group, Codasip, SiFive, Andes, Valtrix, Nagra/Kudelski, Silicon Labs, Incore Semi, NXP, Dolphin Integration, RISC-V Compliance Working Group, ...
 
 This download contains a binary of the Imperas configurable reference simulator, a test framework to run the simulator or your device-under-test, and tests to run on several targets. Use the tests to check ISA compliance of your device.
 
-This Imperas test framework has formed the basis of the RISC-V International (riscv.org) Compliance Working Group's test suite since 2018. It is based on simple Makefiles and simple bash scripts and so requires no complex installations, version issues, or any changing dependencies. You simple select a test suite, a target, and run.
+This Imperas test framework has formed the basis of the RISC-V International (riscv.org) Compliance Working Group's test suite since 2018. It is based on simple Makefiles and simple bash scripts and so requires no complex installations, version issues, or any changing dependencies. You simple select a test suite, a target, and run. 
+
+In May 2022 RISC-V International's Architectural Test SIG (formerly the compliance working group) has moved to using a Python program/framework v3.0 to run compliance testing and no longer provides signatures or scripts to run targets against their tests. As a service to RISC-V processor developers, Imperas ports the RVI tests to the Imperas test framework and makes them available as part of the Imperas test downloads. This means you can use all of the Imperas tests and all of the RVI tests from one simple make/bash framework. The RISC-V International tests have the -RVI suffix to their test suite dirs. See below to access these tests.
+
 
 ### About the riscvOVPsim simulators
 The **riscvOVPsim** simulators implement the full and complete functionality of the RISC-V Foundation's public User and Privilege specifications.
@@ -28,12 +31,12 @@ This simulator is for use in running tests - especially the RISC-V compliance te
 
 It includes full commercial features including variant selection, semi-hosting, functional coverage reporting, and RISC-V International compliance suite signature dump facilities. 
 
-RISC-V 32 and 64bit ratified instruction extensions are selectable (including IMAFDCNSUE). 
+RISC-V 32 and 64bit ratified instruction extensions are selectable (including IMAFDCSUE). 
 See the GitHub [riscv-ovpsim/README.md](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim/README.md) and 
            [riscvOVPsim_User_Guide.pdf](https://github.com/riscv-ovpsim/imperas-riscv-tests/blob/master/riscv-ovpsim/doc/riscvOVPsim_User_Guide.pdf) for more information.
 
 #### riscvOVPsimPlus
-This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also 'near-ratified' ISA extensions: V-vector, B-bitmanip, K-crypto(scalar), P-SIMD/DSP, Zfinx, Zmmul. 
+This extends the functionality of riscvOVPsim and provides many more features including full configurable instruction trace, GDB/Eclipse debug, and memory configuration options. Additionally in the model are: CLIC, Debug Module/Mode, multi-hart, H-hypervisor simulation, and also the recently ratified ISA extensions: V-vector, B-bitmanip, K-crypto(scalar), and Zfinx, and the 'near-ratified' P-SIMD/DSP, Zmmul. 
 
 (Extensions still with a lot to be developed before ratification including K-crypto (vector), Zce (code size reduction), and user custom extensions, are available in Imperas simulators from [Imperas](https://www.imperas.com/riscv)).
 
@@ -51,12 +54,18 @@ Imperas have developed a directed RISC-V test generator, functional coverage mea
 
 For the RISC-V vector instructions and vector engines there are many configuration options and the vector test suites need to be created for each specific set of options. We have included one configured test suite as an example - for other configurations, please contact info@imperas.com.
 
-The riscvOVPsim package only includes the RV32I suite, and the riscvOVPsimPlus package includes all current released publicly available test suites.
+We have also developed a suite of tests for PMP and like the vector tests they are configurable for different designs so please contact Imperas for more information.
+
+The riscvOVPsim package only includes the RV32I suite, and the riscvOVPsimPlus packages include all current released publicly available test suites.
 
 To review the tests suites view: [riscv-test-suite/README.md](riscv-test-suite/README.md).
 
 To view the details of the specific test suites, look in the test suite directories, 
 for example: [riscv-test-suite/rv32i_m/I/README.md](riscv-test-suite/rv32i_m/I/README.md)
+
+### RISC-V International Architectural Validation tests are now included in Imperas test suites
+As a service to Imperas users, we have imported the current suite of RVI compliance tests and have them working in our make/bash framework. We also run them through our reference simulator and generate reference signatures so you can easily compare our golden signatures with your DUT generated signatures.
+The RVI test suites all have the suffix -RVI in their names, for example rv32i_m-RVI.
 
 ### Using the test suites
 In the [riscv-target](riscv-target) is a directory for each target simulator/device.
@@ -132,6 +141,7 @@ Here is a list of some of the technologies/tools/products that Imperas provides 
 * custom ISA test suites configured for specific customer requirements
 * Vector ISA test suite (7,000+ tests) generated for customer specific VLEN, SLEN, ELEN, XLEN, and vector versions
     * e.g.:  RV32V_8192_8192_32, RV64V_256_256_64, RV64_512_512_32, RV64V_256_256_32, ...
+* Privilege mode PMP test suites customized to customer specific options
 
 Please visit [imperas.com/riscv](https://www.imperas.com/riscv) for more information or contact info@imperas.com.
 

@@ -22,35 +22,35 @@ Architectural Test Suite Data for RV64ZKNH K Crypto/Scalar:
     8 test source files
     1 different instruction categories
     27 different instructions
-    12,160 total instructions
+    13,832 total instructions
 
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
-  sha256sum0 : 274
-  sha256sig0 : 274
-  sha256sum1 : 274
-  sha512sig0 : 274
-  sha512sum0 : 274
-  sha256sig1 : 274
-  sha512sig1 : 274
-  sha512sum1 : 274
+  sha512sig0 : 298
+  sha256sum1 : 298
+  sha256sum0 : 298
+  sha512sig1 : 298
+  sha256sig1 : 298
+  sha256sig0 : 298
+  sha512sum1 : 298
+  sha512sum0 : 298
 
 Other instructions (those not the focus of this suite)
   c-j : 8
-  c-lui : 200
-  addiw : 1,440
+  c-lui : 232
+  addiw : 1,592
   csrrs : 24
-  auipc : 480
-  addi : 1,672
+  auipc : 520
+  addi : 2,104
   csrrw : 16
   mret : 8
-  lui : 792
-  slli : 688
-  c-slli : 1,360
-  sd : 2,112
-  c-li : 216
+  lui : 904
+  slli : 712
+  c-slli : 1,784
+  sd : 2,304
+  c-addiw : 320
+  c-addi : 560
   c-sdsp : 80
-  c-addiw : 304
-  c-addi : 528
+  c-li : 240
   fence : 8
   ecall : 8
   beq : 24

@@ -29,17 +29,17 @@ Instruction category: OPV1_LDST load / store
   vse16.v : 2,956
   vle32.v : 6,846
   vse32.v : 3,500
-  vl2re8.v : 32
   vl1re16.v : 32
+  vl1re32.v : 32
   vl2re16.v : 32
+  vl1re8.v : 32
+  vl2re32.v : 32
+  vl2re8.v : 32
   vl4re16.v : 32
   vl4re32.v : 32
-  vl1re8.v : 32
-  vl1re32.v : 32
-  vl2re32.v : 32
   vl8re32.v : 16
-  vl8re8.v : 16
   vl4re8.v : 32
+  vl8re8.v : 16
   vle16ff.v : 202
   vle32ff.v : 101
   vle8ff.v : 303
@@ -53,9 +53,9 @@ Instruction category: OPV1_LDST load / store
   vloxei8.v : 303
   vloxei16.v : 272
   vloxei32.v : 211
+  vs1r.v : 32
   vs2r.v : 32
   vs4r.v : 32
-  vs1r.v : 32
   vs8r.v : 16
   vsm.v : 336
   vsse16.v : 202

@@ -22,22 +22,22 @@ Architectural Test Suite Data for RV32ZKND K Crypto/Scalar:
     4 test source files
     2 different instruction categories
     13 different instructions
-    4,704 total instructions
+    5,024 total instructions
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
-  aes32dsmi : 402
-  aes32dsi : 402
+  aes32dsi : 428
+  aes32dsmi : 428
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
 
 Other instructions (those not the focus of this suite)
   jal : 4
-  lui : 1,320
-  addi : 1,544
+  lui : 1,412
+  addi : 1,658
   csrrs : 12
-  auipc : 184
+  auipc : 194
   csrrw : 8
   mret : 4
-  sw : 804
+  sw : 856
   fence : 4
   ecall : 4
   beq : 12

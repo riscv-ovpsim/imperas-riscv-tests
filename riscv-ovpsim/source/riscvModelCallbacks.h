@@ -646,6 +646,15 @@ typedef RISCV_TLOAD_FN((*riscvTLoadFn));
 typedef RISCV_TSTORE_FN((*riscvTStoreFn));
 
 //
+// Are separate code and data physical memory views required?
+//
+#define RISCV_DISTINCT_PHYS_MEM_FN(_NAME) Bool _NAME( \
+    riscvP riscv,               \
+    void  *clientData           \
+)
+typedef RISCV_DISTINCT_PHYS_MEM_FN((*riscvDistinctPhysMemFn));
+
+//
 // Install custom physical memory domains if required
 //
 #define RISCV_PHYS_MEM_FN(_NAME) void _NAME( \
@@ -862,6 +871,7 @@ typedef struct riscvExtCBS {
     riscvTStoreFn             tStore;
 
     // physical memory actions
+    riscvDistinctPhysMemFn    distinctPhysMem;
     riscvPhysMemFn            installPhysMem;
 
     // PMP support actions

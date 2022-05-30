@@ -1,0 +1,1777 @@
+Imperas RISC-V Instruction Coverage Report
+
+Extension : C, instructions: 31
+    c_add          
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        rs2 0/34 :   0.00%
+    c_add 0/66 :   0.00%
+    c_addi         
+        imm            
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        imm 0/2 :   0.00%
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_addi 0/34 :   0.00%
+    c_addiw        
+        imm            
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        imm 0/2 :   0.00%
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_addiw 0/34 :   0.00%
+    c_addw         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        rs2 0/34 :   0.00%
+    c_addw 0/66 :   0.00%
+    c_and          
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_and 0/16 :   0.00%
+    c_andi         
+        imm            
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        imm 0/2 :   0.00%
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+    c_andi 0/10 :   0.00%
+    c_beqz         
+        offset         
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            sign 0/3 :   0.00%
+        offset 0/3 :   0.00%
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+    c_beqz 0/11 :   0.00%
+    c_bnez         
+        offset         
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            sign 0/3 :   0.00%
+        offset 0/3 :   0.00%
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+    c_bnez 0/11 :   0.00%
+    c_ebreak       
+    c_ebreak 0/1 :   0.00%
+    c_j            
+        offset         
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            sign 0/3 :   0.00%
+        offset 0/3 :   0.00%
+    c_j 0/3 :   0.00%
+    c_jalr         
+        rs1            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        rs1 0/34 :   0.00%
+    c_jalr 0/34 :   0.00%
+    c_jr           
+        rs1            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs1 0/32 :   0.00%
+    c_jr 0/32 :   0.00%
+    c_ld           
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+    c_ld 0/16 :   0.00%
+    c_ldsp         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_ldsp 0/32 :   0.00%
+    c_li           
+        imm            
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        imm 0/2 :   0.00%
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_li 0/34 :   0.00%
+    c_lui          
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_lui 0/32 :   0.00%
+    c_lw           
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+    c_lw 0/16 :   0.00%
+    c_lwsp         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_lwsp 0/32 :   0.00%
+    c_mv           
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+            sign           
+                neg          0/1 :   0.00% ZERO
+                pos          0/1 :   0.00% ZERO
+            sign 0/2 :   0.00%
+        rs2 0/34 :   0.00%
+    c_mv 0/66 :   0.00%
+    c_nop          
+    c_nop 0/1 :   0.00%
+    c_or           
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_or 0/16 :   0.00%
+    c_sd           
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_sd 0/16 :   0.00%
+    c_sdsp         
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs2 0/32 :   0.00%
+    c_sdsp 0/32 :   0.00%
+    c_slli         
+        rd             
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rd 0/32 :   0.00%
+    c_slli 0/32 :   0.00%
+    c_srai         
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+    c_srai 0/8 :   0.00%
+    c_srli         
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+    c_srli 0/8 :   0.00%
+    c_sub          
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_sub 0/16 :   0.00%
+    c_subw         
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_subw 0/16 :   0.00%
+    c_sw           
+        rs1p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs1p 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_sw 0/16 :   0.00%
+    c_swsp         
+        rs2            
+            gpr            
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                a6           0/1 :   0.00% ZERO
+                a7           0/1 :   0.00% ZERO
+                gp           0/1 :   0.00% ZERO
+                ra           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+                s2           0/1 :   0.00% ZERO
+                s3           0/1 :   0.00% ZERO
+                s4           0/1 :   0.00% ZERO
+                s5           0/1 :   0.00% ZERO
+                s6           0/1 :   0.00% ZERO
+                s7           0/1 :   0.00% ZERO
+                s8           0/1 :   0.00% ZERO
+                s9           0/1 :   0.00% ZERO
+                s10          0/1 :   0.00% ZERO
+                s11          0/1 :   0.00% ZERO
+                sp           0/1 :   0.00% ZERO
+                t0           0/1 :   0.00% ZERO
+                t1           0/1 :   0.00% ZERO
+                t2           0/1 :   0.00% ZERO
+                t3           0/1 :   0.00% ZERO
+                t4           0/1 :   0.00% ZERO
+                t5           0/1 :   0.00% ZERO
+                t6           0/1 :   0.00% ZERO
+                tp           0/1 :   0.00% ZERO
+                zero         0/1 :   0.00% ZERO
+            gpr 0/32 :   0.00%
+        rs2 0/32 :   0.00%
+    c_swsp 0/32 :   0.00%
+    c_xor          
+        rdp            
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rdp 0/8 :   0.00%
+        rs2p           
+            gprp           
+                a0           0/1 :   0.00% ZERO
+                a1           0/1 :   0.00% ZERO
+                a2           0/1 :   0.00% ZERO
+                a3           0/1 :   0.00% ZERO
+                a4           0/1 :   0.00% ZERO
+                a5           0/1 :   0.00% ZERO
+                s0           0/1 :   0.00% ZERO
+                s1           0/1 :   0.00% ZERO
+            gprp 0/8 :   0.00%
+        rs2p 0/8 :   0.00%
+    c_xor 0/16 :   0.00%
+Coverage points missed:
+  c_add/rd/gpr/a0
+  c_add/rd/gpr/a1
+  c_add/rd/gpr/a2
+  c_add/rd/gpr/a3
+  c_add/rd/gpr/a4
+  c_add/rd/gpr/a5
+  c_add/rd/gpr/a6
+  c_add/rd/gpr/a7
+  c_add/rd/gpr/gp
+  c_add/rd/gpr/ra
+  c_add/rd/gpr/s0
+  c_add/rd/gpr/s1
+  c_add/rd/gpr/s2
+  c_add/rd/gpr/s3
+  c_add/rd/gpr/s4
+  c_add/rd/gpr/s5
+  c_add/rd/gpr/s6
+  c_add/rd/gpr/s7
+  c_add/rd/gpr/s8
+  c_add/rd/gpr/s9
+  c_add/rd/gpr/s10
+  c_add/rd/gpr/s11
+  c_add/rd/gpr/sp
+  c_add/rd/gpr/t0
+  c_add/rd/gpr/t1
+  c_add/rd/gpr/t2
+  c_add/rd/gpr/t3
+  c_add/rd/gpr/t4
+  c_add/rd/gpr/t5
+  c_add/rd/gpr/t6
+  c_add/rd/gpr/tp
+  c_add/rd/gpr/zero
+  c_add/rs2/gpr/a0
+  c_add/rs2/gpr/a1
+  c_add/rs2/gpr/a2
+  c_add/rs2/gpr/a3
+  c_add/rs2/gpr/a4
+  c_add/rs2/gpr/a5
+  c_add/rs2/gpr/a6
+  c_add/rs2/gpr/a7
+  c_add/rs2/gpr/gp
+  c_add/rs2/gpr/ra
+  c_add/rs2/gpr/s0
+  c_add/rs2/gpr/s1
+  c_add/rs2/gpr/s2
+  c_add/rs2/gpr/s3
+  c_add/rs2/gpr/s4
+  c_add/rs2/gpr/s5
+  c_add/rs2/gpr/s6
+  c_add/rs2/gpr/s7
+  c_add/rs2/gpr/s8
+  c_add/rs2/gpr/s9
+  c_add/rs2/gpr/s10
+  c_add/rs2/gpr/s11
+  c_add/rs2/gpr/sp
+  c_add/rs2/gpr/t0
+  c_add/rs2/gpr/t1
+  c_add/rs2/gpr/t2
+  c_add/rs2/gpr/t3
+  c_add/rs2/gpr/t4
+  c_add/rs2/gpr/t5
+  c_add/rs2/gpr/t6
+  c_add/rs2/gpr/tp
+  c_add/rs2/gpr/zero
+  c_add/rs2/sign/neg
+  c_add/rs2/sign/pos
+  c_addi/imm/sign/neg
+  c_addi/imm/sign/pos
+  c_addi/rd/gpr/a0
+  c_addi/rd/gpr/a1
+  c_addi/rd/gpr/a2
+  c_addi/rd/gpr/a3
+  c_addi/rd/gpr/a4
+  c_addi/rd/gpr/a5
+  c_addi/rd/gpr/a6
+  c_addi/rd/gpr/a7
+  c_addi/rd/gpr/gp
+  c_addi/rd/gpr/ra
+  c_addi/rd/gpr/s0
+  c_addi/rd/gpr/s1
+  c_addi/rd/gpr/s2
+  c_addi/rd/gpr/s3
+  c_addi/rd/gpr/s4
+  c_addi/rd/gpr/s5
+  c_addi/rd/gpr/s6
+  c_addi/rd/gpr/s7
+  c_addi/rd/gpr/s8
+  c_addi/rd/gpr/s9
+  c_addi/rd/gpr/s10
+  c_addi/rd/gpr/s11
+  c_addi/rd/gpr/sp
+  c_addi/rd/gpr/t0
+  c_addi/rd/gpr/t1
+  c_addi/rd/gpr/t2
+  c_addi/rd/gpr/t3
+  c_addi/rd/gpr/t4
+  c_addi/rd/gpr/t5
+  c_addi/rd/gpr/t6
+  c_addi/rd/gpr/tp
+  c_addi/rd/gpr/zero
+  c_addiw/imm/sign/neg
+  c_addiw/imm/sign/pos
+  c_addiw/rd/gpr/a0
+  c_addiw/rd/gpr/a1
+  c_addiw/rd/gpr/a2
+  c_addiw/rd/gpr/a3
+  c_addiw/rd/gpr/a4
+  c_addiw/rd/gpr/a5
+  c_addiw/rd/gpr/a6
+  c_addiw/rd/gpr/a7
+  c_addiw/rd/gpr/gp
+  c_addiw/rd/gpr/ra
+  c_addiw/rd/gpr/s0
+  c_addiw/rd/gpr/s1
+  c_addiw/rd/gpr/s2
+  c_addiw/rd/gpr/s3
+  c_addiw/rd/gpr/s4
+  c_addiw/rd/gpr/s5
+  c_addiw/rd/gpr/s6
+  c_addiw/rd/gpr/s7
+  c_addiw/rd/gpr/s8
+  c_addiw/rd/gpr/s9
+  c_addiw/rd/gpr/s10
+  c_addiw/rd/gpr/s11
+  c_addiw/rd/gpr/sp
+  c_addiw/rd/gpr/t0
+  c_addiw/rd/gpr/t1
+  c_addiw/rd/gpr/t2
+  c_addiw/rd/gpr/t3
+  c_addiw/rd/gpr/t4
+  c_addiw/rd/gpr/t5
+  c_addiw/rd/gpr/t6
+  c_addiw/rd/gpr/tp
+  c_addiw/rd/gpr/zero
+  c_addw/rd/gpr/a0
+  c_addw/rd/gpr/a1
+  c_addw/rd/gpr/a2
+  c_addw/rd/gpr/a3
+  c_addw/rd/gpr/a4
+  c_addw/rd/gpr/a5
+  c_addw/rd/gpr/a6
+  c_addw/rd/gpr/a7
+  c_addw/rd/gpr/gp
+  c_addw/rd/gpr/ra
+  c_addw/rd/gpr/s0
+  c_addw/rd/gpr/s1
+  c_addw/rd/gpr/s2
+  c_addw/rd/gpr/s3
+  c_addw/rd/gpr/s4
+  c_addw/rd/gpr/s5
+  c_addw/rd/gpr/s6
+  c_addw/rd/gpr/s7
+  c_addw/rd/gpr/s8
+  c_addw/rd/gpr/s9
+  c_addw/rd/gpr/s10
+  c_addw/rd/gpr/s11
+  c_addw/rd/gpr/sp
+  c_addw/rd/gpr/t0
+  c_addw/rd/gpr/t1
+  c_addw/rd/gpr/t2
+  c_addw/rd/gpr/t3
+  c_addw/rd/gpr/t4
+  c_addw/rd/gpr/t5
+  c_addw/rd/gpr/t6
+  c_addw/rd/gpr/tp
+  c_addw/rd/gpr/zero
+  c_addw/rs2/gpr/a0
+  c_addw/rs2/gpr/a1
+  c_addw/rs2/gpr/a2
+  c_addw/rs2/gpr/a3
+  c_addw/rs2/gpr/a4
+  c_addw/rs2/gpr/a5
+  c_addw/rs2/gpr/a6
+  c_addw/rs2/gpr/a7
+  c_addw/rs2/gpr/gp
+  c_addw/rs2/gpr/ra
+  c_addw/rs2/gpr/s0
+  c_addw/rs2/gpr/s1
+  c_addw/rs2/gpr/s2
+  c_addw/rs2/gpr/s3
+  c_addw/rs2/gpr/s4
+  c_addw/rs2/gpr/s5
+  c_addw/rs2/gpr/s6
+  c_addw/rs2/gpr/s7
+  c_addw/rs2/gpr/s8
+  c_addw/rs2/gpr/s9
+  c_addw/rs2/gpr/s10
+  c_addw/rs2/gpr/s11
+  c_addw/rs2/gpr/sp
+  c_addw/rs2/gpr/t0
+  c_addw/rs2/gpr/t1
+  c_addw/rs2/gpr/t2
+  c_addw/rs2/gpr/t3
+  c_addw/rs2/gpr/t4
+  c_addw/rs2/gpr/t5
+  c_addw/rs2/gpr/t6
+  c_addw/rs2/gpr/tp
+  c_addw/rs2/gpr/zero
+  c_addw/rs2/sign/neg
+  c_addw/rs2/sign/pos
+  c_and/rdp/gprp/a0
+  c_and/rdp/gprp/a1
+  c_and/rdp/gprp/a2
+  c_and/rdp/gprp/a3
+  c_and/rdp/gprp/a4
+  c_and/rdp/gprp/a5
+  c_and/rdp/gprp/s0
+  c_and/rdp/gprp/s1
+  c_and/rs2p/gprp/a0
+  c_and/rs2p/gprp/a1
+  c_and/rs2p/gprp/a2
+  c_and/rs2p/gprp/a3
+  c_and/rs2p/gprp/a4
+  c_and/rs2p/gprp/a5
+  c_and/rs2p/gprp/s0
+  c_and/rs2p/gprp/s1
+  c_andi/imm/sign/neg
+  c_andi/imm/sign/pos
+  c_andi/rdp/gprp/a0
+  c_andi/rdp/gprp/a1
+  c_andi/rdp/gprp/a2
+  c_andi/rdp/gprp/a3
+  c_andi/rdp/gprp/a4
+  c_andi/rdp/gprp/a5
+  c_andi/rdp/gprp/s0
+  c_andi/rdp/gprp/s1
+  c_beqz/offset/sign/neg
+  c_beqz/offset/sign/pos
+  c_beqz/offset/sign/zero
+  c_beqz/rs1p/gprp/a0
+  c_beqz/rs1p/gprp/a1
+  c_beqz/rs1p/gprp/a2
+  c_beqz/rs1p/gprp/a3
+  c_beqz/rs1p/gprp/a4
+  c_beqz/rs1p/gprp/a5
+  c_beqz/rs1p/gprp/s0
+  c_beqz/rs1p/gprp/s1
+  c_bnez/offset/sign/neg
+  c_bnez/offset/sign/pos
+  c_bnez/offset/sign/zero
+  c_bnez/rs1p/gprp/a0
+  c_bnez/rs1p/gprp/a1
+  c_bnez/rs1p/gprp/a2
+  c_bnez/rs1p/gprp/a3
+  c_bnez/rs1p/gprp/a4
+  c_bnez/rs1p/gprp/a5
+  c_bnez/rs1p/gprp/s0
+  c_bnez/rs1p/gprp/s1
+  c_ebreak
+  c_j/offset/sign/neg
+  c_j/offset/sign/pos
+  c_j/offset/sign/zero
+  c_jalr/rs1/gpr/a0
+  c_jalr/rs1/gpr/a1
+  c_jalr/rs1/gpr/a2
+  c_jalr/rs1/gpr/a3
+  c_jalr/rs1/gpr/a4
+  c_jalr/rs1/gpr/a5
+  c_jalr/rs1/gpr/a6
+  c_jalr/rs1/gpr/a7
+  c_jalr/rs1/gpr/gp
+  c_jalr/rs1/gpr/ra
+  c_jalr/rs1/gpr/s0
+  c_jalr/rs1/gpr/s1
+  c_jalr/rs1/gpr/s2
+  c_jalr/rs1/gpr/s3
+  c_jalr/rs1/gpr/s4
+  c_jalr/rs1/gpr/s5
+  c_jalr/rs1/gpr/s6
+  c_jalr/rs1/gpr/s7
+  c_jalr/rs1/gpr/s8
+  c_jalr/rs1/gpr/s9
+  c_jalr/rs1/gpr/s10
+  c_jalr/rs1/gpr/s11
+  c_jalr/rs1/gpr/sp
+  c_jalr/rs1/gpr/t0
+  c_jalr/rs1/gpr/t1
+  c_jalr/rs1/gpr/t2
+  c_jalr/rs1/gpr/t3
+  c_jalr/rs1/gpr/t4
+  c_jalr/rs1/gpr/t5
+  c_jalr/rs1/gpr/t6
+  c_jalr/rs1/gpr/tp
+  c_jalr/rs1/gpr/zero
+  c_jalr/rs1/sign/neg
+  c_jalr/rs1/sign/pos
+  c_jr/rs1/gpr/a0
+  c_jr/rs1/gpr/a1
+  c_jr/rs1/gpr/a2
+  c_jr/rs1/gpr/a3
+  c_jr/rs1/gpr/a4
+  c_jr/rs1/gpr/a5
+  c_jr/rs1/gpr/a6
+  c_jr/rs1/gpr/a7
+  c_jr/rs1/gpr/gp
+  c_jr/rs1/gpr/ra
+  c_jr/rs1/gpr/s0
+  c_jr/rs1/gpr/s1
+  c_jr/rs1/gpr/s2
+  c_jr/rs1/gpr/s3
+  c_jr/rs1/gpr/s4
+  c_jr/rs1/gpr/s5
+  c_jr/rs1/gpr/s6
+  c_jr/rs1/gpr/s7
+  c_jr/rs1/gpr/s8
+  c_jr/rs1/gpr/s9
+  c_jr/rs1/gpr/s10
+  c_jr/rs1/gpr/s11
+  c_jr/rs1/gpr/sp
+  c_jr/rs1/gpr/t0
+  c_jr/rs1/gpr/t1
+  c_jr/rs1/gpr/t2
+  c_jr/rs1/gpr/t3
+  c_jr/rs1/gpr/t4
+  c_jr/rs1/gpr/t5
+  c_jr/rs1/gpr/t6
+  c_jr/rs1/gpr/tp
+  c_jr/rs1/gpr/zero
+  c_ld/rdp/gprp/a0
+  c_ld/rdp/gprp/a1
+  c_ld/rdp/gprp/a2
+  c_ld/rdp/gprp/a3
+  c_ld/rdp/gprp/a4
+  c_ld/rdp/gprp/a5
+  c_ld/rdp/gprp/s0
+  c_ld/rdp/gprp/s1
+  c_ld/rs1p/gprp/a0
+  c_ld/rs1p/gprp/a1
+  c_ld/rs1p/gprp/a2
+  c_ld/rs1p/gprp/a3
+  c_ld/rs1p/gprp/a4
+  c_ld/rs1p/gprp/a5
+  c_ld/rs1p/gprp/s0
+  c_ld/rs1p/gprp/s1
+  c_ldsp/rd/gpr/a0
+  c_ldsp/rd/gpr/a1
+  c_ldsp/rd/gpr/a2
+  c_ldsp/rd/gpr/a3
+  c_ldsp/rd/gpr/a4
+  c_ldsp/rd/gpr/a5
+  c_ldsp/rd/gpr/a6
+  c_ldsp/rd/gpr/a7
+  c_ldsp/rd/gpr/gp
+  c_ldsp/rd/gpr/ra
+  c_ldsp/rd/gpr/s0
+  c_ldsp/rd/gpr/s1
+  c_ldsp/rd/gpr/s2
+  c_ldsp/rd/gpr/s3
+  c_ldsp/rd/gpr/s4
+  c_ldsp/rd/gpr/s5
+  c_ldsp/rd/gpr/s6
+  c_ldsp/rd/gpr/s7
+  c_ldsp/rd/gpr/s8
+  c_ldsp/rd/gpr/s9
+  c_ldsp/rd/gpr/s10
+  c_ldsp/rd/gpr/s11
+  c_ldsp/rd/gpr/sp
+  c_ldsp/rd/gpr/t0
+  c_ldsp/rd/gpr/t1
+  c_ldsp/rd/gpr/t2
+  c_ldsp/rd/gpr/t3
+  c_ldsp/rd/gpr/t4
+  c_ldsp/rd/gpr/t5
+  c_ldsp/rd/gpr/t6
+  c_ldsp/rd/gpr/tp
+  c_ldsp/rd/gpr/zero
+  c_li/imm/sign/neg
+  c_li/imm/sign/pos
+  c_li/rd/gpr/a0
+  c_li/rd/gpr/a1
+  c_li/rd/gpr/a2
+  c_li/rd/gpr/a3
+  c_li/rd/gpr/a4
+  c_li/rd/gpr/a5
+  c_li/rd/gpr/a6
+  c_li/rd/gpr/a7
+  c_li/rd/gpr/gp
+  c_li/rd/gpr/ra
+  c_li/rd/gpr/s0
+  c_li/rd/gpr/s1
+  c_li/rd/gpr/s2
+  c_li/rd/gpr/s3
+  c_li/rd/gpr/s4
+  c_li/rd/gpr/s5
+  c_li/rd/gpr/s6
+  c_li/rd/gpr/s7
+  c_li/rd/gpr/s8
+  c_li/rd/gpr/s9
+  c_li/rd/gpr/s10
+  c_li/rd/gpr/s11
+  c_li/rd/gpr/sp
+  c_li/rd/gpr/t0
+  c_li/rd/gpr/t1
+  c_li/rd/gpr/t2
+  c_li/rd/gpr/t3
+  c_li/rd/gpr/t4
+  c_li/rd/gpr/t5
+  c_li/rd/gpr/t6
+  c_li/rd/gpr/tp
+  c_li/rd/gpr/zero
+  c_lui/rd/gpr/a0
+  c_lui/rd/gpr/a1
+  c_lui/rd/gpr/a2
+  c_lui/rd/gpr/a3
+  c_lui/rd/gpr/a4
+  c_lui/rd/gpr/a5
+  c_lui/rd/gpr/a6
+  c_lui/rd/gpr/a7
+  c_lui/rd/gpr/gp
+  c_lui/rd/gpr/ra
+  c_lui/rd/gpr/s0
+  c_lui/rd/gpr/s1
+  c_lui/rd/gpr/s2
+  c_lui/rd/gpr/s3
+  c_lui/rd/gpr/s4
+  c_lui/rd/gpr/s5
+  c_lui/rd/gpr/s6
+  c_lui/rd/gpr/s7
+  c_lui/rd/gpr/s8
+  c_lui/rd/gpr/s9
+  c_lui/rd/gpr/s10
+  c_lui/rd/gpr/s11
+  c_lui/rd/gpr/sp
+  c_lui/rd/gpr/t0
+  c_lui/rd/gpr/t1
+  c_lui/rd/gpr/t2
+  c_lui/rd/gpr/t3
+  c_lui/rd/gpr/t4
+  c_lui/rd/gpr/t5
+  c_lui/rd/gpr/t6
+  c_lui/rd/gpr/tp
+  c_lui/rd/gpr/zero
+  c_lw/rdp/gprp/a0
+  c_lw/rdp/gprp/a1
+  c_lw/rdp/gprp/a2
+  c_lw/rdp/gprp/a3
+  c_lw/rdp/gprp/a4
+  c_lw/rdp/gprp/a5
+  c_lw/rdp/gprp/s0
+  c_lw/rdp/gprp/s1
+  c_lw/rs1p/gprp/a0
+  c_lw/rs1p/gprp/a1
+  c_lw/rs1p/gprp/a2
+  c_lw/rs1p/gprp/a3
+  c_lw/rs1p/gprp/a4
+  c_lw/rs1p/gprp/a5
+  c_lw/rs1p/gprp/s0
+  c_lw/rs1p/gprp/s1
+  c_lwsp/rd/gpr/a0
+  c_lwsp/rd/gpr/a1
+  c_lwsp/rd/gpr/a2
+  c_lwsp/rd/gpr/a3
+  c_lwsp/rd/gpr/a4
+  c_lwsp/rd/gpr/a5
+  c_lwsp/rd/gpr/a6
+  c_lwsp/rd/gpr/a7
+  c_lwsp/rd/gpr/gp
+  c_lwsp/rd/gpr/ra
+  c_lwsp/rd/gpr/s0
+  c_lwsp/rd/gpr/s1
+  c_lwsp/rd/gpr/s2
+  c_lwsp/rd/gpr/s3
+  c_lwsp/rd/gpr/s4
+  c_lwsp/rd/gpr/s5
+  c_lwsp/rd/gpr/s6
+  c_lwsp/rd/gpr/s7
+  c_lwsp/rd/gpr/s8
+  c_lwsp/rd/gpr/s9
+  c_lwsp/rd/gpr/s10
+  c_lwsp/rd/gpr/s11
+  c_lwsp/rd/gpr/sp
+  c_lwsp/rd/gpr/t0
+  c_lwsp/rd/gpr/t1
+  c_lwsp/rd/gpr/t2
+  c_lwsp/rd/gpr/t3
+  c_lwsp/rd/gpr/t4
+  c_lwsp/rd/gpr/t5
+  c_lwsp/rd/gpr/t6
+  c_lwsp/rd/gpr/tp
+  c_lwsp/rd/gpr/zero
+  c_mv/rd/gpr/a0
+  c_mv/rd/gpr/a1
+  c_mv/rd/gpr/a2
+  c_mv/rd/gpr/a3
+  c_mv/rd/gpr/a4
+  c_mv/rd/gpr/a5
+  c_mv/rd/gpr/a6
+  c_mv/rd/gpr/a7
+  c_mv/rd/gpr/gp
+  c_mv/rd/gpr/ra
+  c_mv/rd/gpr/s0
+  c_mv/rd/gpr/s1
+  c_mv/rd/gpr/s2
+  c_mv/rd/gpr/s3
+  c_mv/rd/gpr/s4
+  c_mv/rd/gpr/s5
+  c_mv/rd/gpr/s6
+  c_mv/rd/gpr/s7
+  c_mv/rd/gpr/s8
+  c_mv/rd/gpr/s9
+  c_mv/rd/gpr/s10
+  c_mv/rd/gpr/s11
+  c_mv/rd/gpr/sp
+  c_mv/rd/gpr/t0
+  c_mv/rd/gpr/t1
+  c_mv/rd/gpr/t2
+  c_mv/rd/gpr/t3
+  c_mv/rd/gpr/t4
+  c_mv/rd/gpr/t5
+  c_mv/rd/gpr/t6
+  c_mv/rd/gpr/tp
+  c_mv/rd/gpr/zero
+  c_mv/rs2/gpr/a0
+  c_mv/rs2/gpr/a1
+  c_mv/rs2/gpr/a2
+  c_mv/rs2/gpr/a3
+  c_mv/rs2/gpr/a4
+  c_mv/rs2/gpr/a5
+  c_mv/rs2/gpr/a6
+  c_mv/rs2/gpr/a7
+  c_mv/rs2/gpr/gp
+  c_mv/rs2/gpr/ra
+  c_mv/rs2/gpr/s0
+  c_mv/rs2/gpr/s1
+  c_mv/rs2/gpr/s2
+  c_mv/rs2/gpr/s3
+  c_mv/rs2/gpr/s4
+  c_mv/rs2/gpr/s5
+  c_mv/rs2/gpr/s6
+  c_mv/rs2/gpr/s7
+  c_mv/rs2/gpr/s8
+  c_mv/rs2/gpr/s9
+  c_mv/rs2/gpr/s10
+  c_mv/rs2/gpr/s11
+  c_mv/rs2/gpr/sp
+  c_mv/rs2/gpr/t0
+  c_mv/rs2/gpr/t1
+  c_mv/rs2/gpr/t2
+  c_mv/rs2/gpr/t3
+  c_mv/rs2/gpr/t4
+  c_mv/rs2/gpr/t5
+  c_mv/rs2/gpr/t6
+  c_mv/rs2/gpr/tp
+  c_mv/rs2/gpr/zero
+  c_mv/rs2/sign/neg
+  c_mv/rs2/sign/pos
+  c_nop
+  c_or/rdp/gprp/a0
+  c_or/rdp/gprp/a1
+  c_or/rdp/gprp/a2
+  c_or/rdp/gprp/a3
+  c_or/rdp/gprp/a4
+  c_or/rdp/gprp/a5
+  c_or/rdp/gprp/s0
+  c_or/rdp/gprp/s1
+  c_or/rs2p/gprp/a0
+  c_or/rs2p/gprp/a1
+  c_or/rs2p/gprp/a2
+  c_or/rs2p/gprp/a3
+  c_or/rs2p/gprp/a4
+  c_or/rs2p/gprp/a5
+  c_or/rs2p/gprp/s0
+  c_or/rs2p/gprp/s1
+  c_sd/rs1p/gprp/a0
+  c_sd/rs1p/gprp/a1
+  c_sd/rs1p/gprp/a2
+  c_sd/rs1p/gprp/a3
+  c_sd/rs1p/gprp/a4
+  c_sd/rs1p/gprp/a5
+  c_sd/rs1p/gprp/s0
+  c_sd/rs1p/gprp/s1
+  c_sd/rs2p/gprp/a0
+  c_sd/rs2p/gprp/a1
+  c_sd/rs2p/gprp/a2
+  c_sd/rs2p/gprp/a3
+  c_sd/rs2p/gprp/a4
+  c_sd/rs2p/gprp/a5
+  c_sd/rs2p/gprp/s0
+  c_sd/rs2p/gprp/s1
+  c_sdsp/rs2/gpr/a0
+  c_sdsp/rs2/gpr/a1
+  c_sdsp/rs2/gpr/a2
+  c_sdsp/rs2/gpr/a3
+  c_sdsp/rs2/gpr/a4
+  c_sdsp/rs2/gpr/a5
+  c_sdsp/rs2/gpr/a6
+  c_sdsp/rs2/gpr/a7
+  c_sdsp/rs2/gpr/gp
+  c_sdsp/rs2/gpr/ra
+  c_sdsp/rs2/gpr/s0
+  c_sdsp/rs2/gpr/s1
+  c_sdsp/rs2/gpr/s2
+  c_sdsp/rs2/gpr/s3
+  c_sdsp/rs2/gpr/s4
+  c_sdsp/rs2/gpr/s5
+  c_sdsp/rs2/gpr/s6
+  c_sdsp/rs2/gpr/s7
+  c_sdsp/rs2/gpr/s8
+  c_sdsp/rs2/gpr/s9
+  c_sdsp/rs2/gpr/s10
+  c_sdsp/rs2/gpr/s11
+  c_sdsp/rs2/gpr/sp
+  c_sdsp/rs2/gpr/t0
+  c_sdsp/rs2/gpr/t1
+  c_sdsp/rs2/gpr/t2
+  c_sdsp/rs2/gpr/t3
+  c_sdsp/rs2/gpr/t4
+  c_sdsp/rs2/gpr/t5
+  c_sdsp/rs2/gpr/t6
+  c_sdsp/rs2/gpr/tp
+  c_sdsp/rs2/gpr/zero
+  c_slli/rd/gpr/a0
+  c_slli/rd/gpr/a1
+  c_slli/rd/gpr/a2
+  c_slli/rd/gpr/a3
+  c_slli/rd/gpr/a4
+  c_slli/rd/gpr/a5
+  c_slli/rd/gpr/a6
+  c_slli/rd/gpr/a7
+  c_slli/rd/gpr/gp
+  c_slli/rd/gpr/ra
+  c_slli/rd/gpr/s0
+  c_slli/rd/gpr/s1
+  c_slli/rd/gpr/s2
+  c_slli/rd/gpr/s3
+  c_slli/rd/gpr/s4
+  c_slli/rd/gpr/s5
+  c_slli/rd/gpr/s6
+  c_slli/rd/gpr/s7
+  c_slli/rd/gpr/s8
+  c_slli/rd/gpr/s9
+  c_slli/rd/gpr/s10
+  c_slli/rd/gpr/s11
+  c_slli/rd/gpr/sp
+  c_slli/rd/gpr/t0
+  c_slli/rd/gpr/t1
+  c_slli/rd/gpr/t2
+  c_slli/rd/gpr/t3
+  c_slli/rd/gpr/t4
+  c_slli/rd/gpr/t5
+  c_slli/rd/gpr/t6
+  c_slli/rd/gpr/tp
+  c_slli/rd/gpr/zero
+  c_srai/rdp/gprp/a0
+  c_srai/rdp/gprp/a1
+  c_srai/rdp/gprp/a2
+  c_srai/rdp/gprp/a3
+  c_srai/rdp/gprp/a4
+  c_srai/rdp/gprp/a5
+  c_srai/rdp/gprp/s0
+  c_srai/rdp/gprp/s1
+  c_srli/rdp/gprp/a0
+  c_srli/rdp/gprp/a1
+  c_srli/rdp/gprp/a2
+  c_srli/rdp/gprp/a3
+  c_srli/rdp/gprp/a4
+  c_srli/rdp/gprp/a5
+  c_srli/rdp/gprp/s0
+  c_srli/rdp/gprp/s1
+  c_sub/rdp/gprp/a0
+  c_sub/rdp/gprp/a1
+  c_sub/rdp/gprp/a2
+  c_sub/rdp/gprp/a3
+  c_sub/rdp/gprp/a4
+  c_sub/rdp/gprp/a5
+  c_sub/rdp/gprp/s0
+  c_sub/rdp/gprp/s1
+  c_sub/rs2p/gprp/a0
+  c_sub/rs2p/gprp/a1
+  c_sub/rs2p/gprp/a2
+  c_sub/rs2p/gprp/a3
+  c_sub/rs2p/gprp/a4
+  c_sub/rs2p/gprp/a5
+  c_sub/rs2p/gprp/s0
+  c_sub/rs2p/gprp/s1
+  c_subw/rdp/gprp/a0
+  c_subw/rdp/gprp/a1
+  c_subw/rdp/gprp/a2
+  c_subw/rdp/gprp/a3
+  c_subw/rdp/gprp/a4
+  c_subw/rdp/gprp/a5
+  c_subw/rdp/gprp/s0
+  c_subw/rdp/gprp/s1
+  c_subw/rs2p/gprp/a0
+  c_subw/rs2p/gprp/a1
+  c_subw/rs2p/gprp/a2
+  c_subw/rs2p/gprp/a3
+  c_subw/rs2p/gprp/a4
+  c_subw/rs2p/gprp/a5
+  c_subw/rs2p/gprp/s0
+  c_subw/rs2p/gprp/s1
+  c_sw/rs1p/gprp/a0
+  c_sw/rs1p/gprp/a1
+  c_sw/rs1p/gprp/a2
+  c_sw/rs1p/gprp/a3
+  c_sw/rs1p/gprp/a4
+  c_sw/rs1p/gprp/a5
+  c_sw/rs1p/gprp/s0
+  c_sw/rs1p/gprp/s1
+  c_sw/rs2p/gprp/a0
+  c_sw/rs2p/gprp/a1
+  c_sw/rs2p/gprp/a2
+  c_sw/rs2p/gprp/a3
+  c_sw/rs2p/gprp/a4
+  c_sw/rs2p/gprp/a5
+  c_sw/rs2p/gprp/s0
+  c_sw/rs2p/gprp/s1
+  c_swsp/rs2/gpr/a0
+  c_swsp/rs2/gpr/a1
+  c_swsp/rs2/gpr/a2
+  c_swsp/rs2/gpr/a3
+  c_swsp/rs2/gpr/a4
+  c_swsp/rs2/gpr/a5
+  c_swsp/rs2/gpr/a6
+  c_swsp/rs2/gpr/a7
+  c_swsp/rs2/gpr/gp
+  c_swsp/rs2/gpr/ra
+  c_swsp/rs2/gpr/s0
+  c_swsp/rs2/gpr/s1
+  c_swsp/rs2/gpr/s2
+  c_swsp/rs2/gpr/s3
+  c_swsp/rs2/gpr/s4
+  c_swsp/rs2/gpr/s5
+  c_swsp/rs2/gpr/s6
+  c_swsp/rs2/gpr/s7
+  c_swsp/rs2/gpr/s8
+  c_swsp/rs2/gpr/s9
+  c_swsp/rs2/gpr/s10
+  c_swsp/rs2/gpr/s11
+  c_swsp/rs2/gpr/sp
+  c_swsp/rs2/gpr/t0
+  c_swsp/rs2/gpr/t1
+  c_swsp/rs2/gpr/t2
+  c_swsp/rs2/gpr/t3
+  c_swsp/rs2/gpr/t4
+  c_swsp/rs2/gpr/t5
+  c_swsp/rs2/gpr/t6
+  c_swsp/rs2/gpr/tp
+  c_swsp/rs2/gpr/zero
+  c_xor/rdp/gprp/a0
+  c_xor/rdp/gprp/a1
+  c_xor/rdp/gprp/a2
+  c_xor/rdp/gprp/a3
+  c_xor/rdp/gprp/a4
+  c_xor/rdp/gprp/a5
+  c_xor/rdp/gprp/s0
+  c_xor/rdp/gprp/s1
+  c_xor/rs2p/gprp/a0
+  c_xor/rs2p/gprp/a1
+  c_xor/rs2p/gprp/a2
+  c_xor/rs2p/gprp/a3
+  c_xor/rs2p/gprp/a4
+  c_xor/rs2p/gprp/a5
+  c_xor/rs2p/gprp/s0
+  c_xor/rs2p/gprp/s1
+Coverage points missed: 755/755
+
+Info TOTAL INSTRUCTION COVERAGE : C
+Info   Threshold             : 1
+Info   Instructions counted  : 0
+Info   Unique instructions   : 0/31 :   0.00%
+Info   Coverage points hit   : 0/755 :   0.00%

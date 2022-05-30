@@ -20,24 +20,24 @@ Architectural Test Suite Data for RV64ZBC B Bit Manipulation:
     3 test source files
     1 different instruction categories
     16 different instructions
-    6,018 total instructions
+    7,218 total instructions
 
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 274
-  clmulh : 274
-  clmulr : 274
+  clmulh : 300
+  clmulr : 300
+  clmul : 300
 
 Other instructions (those not the focus of this suite)
   jal : 3
-  lui : 534
-  addiw : 957
+  lui : 654
+  addiw : 1,092
   csrrs : 9
-  auipc : 180
-  addi : 1,581
+  auipc : 195
+  addi : 1,983
   csrrw : 6
   mret : 3
-  slli : 1,086
-  sd : 822
+  slli : 1,458
+  sd : 900
   fence : 3
   ecall : 3
   beq : 9

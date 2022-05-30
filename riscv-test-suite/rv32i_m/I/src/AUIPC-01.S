@@ -43,31 +43,31 @@ RVTEST_CODE_BEGIN
     
     RVTEST_CASE(0,"//check ISA:=regex(.*32.*);check ISA:=regex(.*I.*I.*);def TEST_CASE_1=True;",auipc)
 
-    RVTEST_SIGBASE(x4,signature_1_0)
+    RVTEST_SIGBASE(x1,signature_1_0)
 
-    # Testcase 0:  imm:0xbcc23, result rd:x1(0xbcc23000)
+    # Testcase 0:  imm:0xa01ef, result rd:x19(0xa01ef000)
 1: 
-    auipc x1, 0xbcc23
-    la x6, 1b
-    sub  x1,  x1, x6
-    sw  x1, 0(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x1, 0xbcc23000)
+    auipc x19, 0xa01ef
+    la x3, 1b
+    sub  x19,  x19, x3
+    sw  x19, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0xa01ef000)
 
-    # Testcase 1:  imm:0xd105b, result rd:x2(0xd105b000)
+    # Testcase 1:  imm:0x69d27, result rd:x28(0x69d27000)
 1: 
-    auipc x2, 0xd105b
-    la x6, 1b
-    sub  x2,  x2, x6
-    sw  x2, 4(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0xd105b000)
+    auipc x28, 0x69d27
+    la x3, 1b
+    sub  x28,  x28, x3
+    sw  x28, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0x69d27000)
 
-    # Testcase 2:  imm:0xaf2c0, result rd:x3(0xaf2c0000)
+    # Testcase 2:  imm:0xede3d, result rd:x30(0xede3d000)
 1: 
-    auipc x3, 0xaf2c0
-    la x6, 1b
-    sub  x3,  x3, x6
-    sw  x3, 8(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0xaf2c0000)
+    auipc x30, 0xede3d
+    la x3, 1b
+    sub  x30,  x30, x3
+    sw  x30, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x30, 0xede3d000)
 
 
 
@@ -75,29 +75,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_2_0)
 
-    # Testcase 3:  imm:0xbfbc3, result rd:x4(0xbfbc3000)
+    # Testcase 3:  imm:0x19a51, result rd:x20(0x19a51000)
 1: 
-    auipc x4, 0xbfbc3
+    auipc x20, 0x19a51
     la x3, 1b
-    sub  x4,  x4, x3
-    sw  x4, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xbfbc3000)
+    sub  x20,  x20, x3
+    sw  x20, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0x19a51000)
 
-    # Testcase 4:  imm:0xa10af, result rd:x5(0xa10af000)
+    # Testcase 4:  imm:0x8d5fd, result rd:x10(0x8d5fd000)
 1: 
-    auipc x5, 0xa10af
+    auipc x10, 0x8d5fd
     la x3, 1b
-    sub  x5,  x5, x3
-    sw  x5, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xa10af000)
+    sub  x10,  x10, x3
+    sw  x10, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0x8d5fd000)
 
-    # Testcase 5:  imm:0xd524f, result rd:x6(0xd524f000)
+    # Testcase 5:  imm:0xf6c65, result rd:x0(0x0)
 1: 
-    auipc x6, 0xd524f
+    auipc x0, 0xf6c65
     la x3, 1b
-    sub  x6,  x6, x3
-    sw  x6, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0xd524f000)
+    sub  x0,  x0, x3
+    sw  x0, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x0, 0x0)
 
 
 
@@ -105,29 +105,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_3_0)
 
-    # Testcase 6:  imm:0x99fcb, result rd:x7(0x99fcb000)
+    # Testcase 6:  imm:0x6250f, result rd:x3(0x6250f000)
 1: 
-    auipc x7, 0x99fcb
-    la x3, 1b
-    sub  x7,  x7, x3
-    sw  x7, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x99fcb000)
+    auipc x3, 0x6250f
+    la x4, 1b
+    sub  x3,  x3, x4
+    sw  x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0x6250f000)
 
-    # Testcase 7:  imm:0x1a8bb, result rd:x8(0x1a8bb000)
+    # Testcase 7:  imm:0xffa64, result rd:x31(0xffa64000)
 1: 
-    auipc x8, 0x1a8bb
-    la x3, 1b
-    sub  x8,  x8, x3
-    sw  x8, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0x1a8bb000)
+    auipc x31, 0xffa64
+    la x4, 1b
+    sub  x31,  x31, x4
+    sw  x31, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xffa64000)
 
-    # Testcase 8:  imm:0xfbec1, result rd:x9(0xfbec1000)
+    # Testcase 8:  imm:0x7ad3a, result rd:x29(0x7ad3a000)
 1: 
-    auipc x9, 0xfbec1
-    la x3, 1b
-    sub  x9,  x9, x3
-    sw  x9, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xfbec1000)
+    auipc x29, 0x7ad3a
+    la x4, 1b
+    sub  x29,  x29, x4
+    sw  x29, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0x7ad3a000)
 
 
 
@@ -135,29 +135,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_4_0)
 
-    # Testcase 9:  imm:0xa5195, result rd:x10(0xa5195000)
+    # Testcase 9:  imm:0xc8c1e, result rd:x5(0xc8c1e000)
 1: 
-    auipc x10, 0xa5195
+    auipc x5, 0xc8c1e
     la x3, 1b
-    sub  x10,  x10, x3
-    sw  x10, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0xa5195000)
+    sub  x5,  x5, x3
+    sw  x5, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xc8c1e000)
 
-    # Testcase 10:  imm:0xfffff, result rd:x11(0xfffff000)
+    # Testcase 10:  imm:0x660db, result rd:x0(0x0)
 1: 
-    auipc x11, 0xfffff
+    auipc x0, 0x660db
     la x3, 1b
-    sub  x11,  x11, x3
-    sw  x11, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xfffff000)
+    sub  x0,  x0, x3
+    sw  x0, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x0, 0x0)
 
-    # Testcase 11:  imm:0x7ffff, result rd:x12(0x7ffff000)
+    # Testcase 11:  imm:0x2dadf, result rd:x13(0x2dadf000)
 1: 
-    auipc x12, 0x7ffff
+    auipc x13, 0x2dadf
     la x3, 1b
-    sub  x12,  x12, x3
-    sw  x12, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0x7ffff000)
+    sub  x13,  x13, x3
+    sw  x13, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0x2dadf000)
 
 
 
@@ -165,59 +165,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_5_0)
 
-    # Testcase 12:  imm:0xbffff, result rd:x13(0xbffff000)
+    # Testcase 12:  imm:0x3c847, result rd:x4(0x3c847000)
 1: 
-    auipc x13, 0xbffff
-    la x6, 1b
-    sub  x13,  x13, x6
-    sw  x13, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x13, 0xbffff000)
+    auipc x4, 0x3c847
+    la x3, 1b
+    sub  x4,  x4, x3
+    sw  x4, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0x3c847000)
 
-    # Testcase 13:  imm:0xdffff, result rd:x14(0xdffff000)
+    # Testcase 13:  imm:0xa7ae7, result rd:x11(0xa7ae7000)
 1: 
-    auipc x14, 0xdffff
-    la x6, 1b
-    sub  x14,  x14, x6
-    sw  x14, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x14, 0xdffff000)
+    auipc x11, 0xa7ae7
+    la x3, 1b
+    sub  x11,  x11, x3
+    sw  x11, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xa7ae7000)
 
-    # Testcase 14:  imm:0xeffff, result rd:x15(0xeffff000)
+    # Testcase 14:  imm:0xb62bf, result rd:x25(0xb62bf000)
 1: 
-    auipc x15, 0xeffff
-    la x6, 1b
-    sub  x15,  x15, x6
-    sw  x15, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x15, 0xeffff000)
+    auipc x25, 0xb62bf
+    la x3, 1b
+    sub  x25,  x25, x3
+    sw  x25, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xb62bf000)
 
 
 
     
 
-    RVTEST_SIGBASE(x2,signature_6_0)
+    RVTEST_SIGBASE(x1,signature_6_0)
 
-    # Testcase 15:  imm:0xf7fff, result rd:x16(0xf7fff000)
+    # Testcase 15:  imm:0xa3d1, result rd:x2(0xa3d1000)
 1: 
-    auipc x16, 0xf7fff
+    auipc x2, 0xa3d1
     la x4, 1b
-    sub  x16,  x16, x4
-    sw  x16, 0(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x16, 0xf7fff000)
+    sub  x2,  x2, x4
+    sw  x2, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x2, 0xa3d1000)
 
-    # Testcase 16:  imm:0xfbfff, result rd:x17(0xfbfff000)
+    # Testcase 16:  imm:0x80fd4, result rd:x18(0x80fd4000)
 1: 
-    auipc x17, 0xfbfff
-    la x4, 1b
-    sub  x17,  x17, x4
-    sw  x17, 4(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x17, 0xfbfff000)
-
-    # Testcase 17:  imm:0xfdfff, result rd:x18(0xfdfff000)
-1: 
-    auipc x18, 0xfdfff
+    auipc x18, 0x80fd4
     la x4, 1b
     sub  x18,  x18, x4
-    sw  x18, 8(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x18, 0xfdfff000)
+    sw  x18, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x18, 0x80fd4000)
+
+    # Testcase 17:  imm:0xf5ff4, result rd:x18(0xf5ff4000)
+1: 
+    auipc x18, 0xf5ff4
+    la x4, 1b
+    sub  x18,  x18, x4
+    sw  x18, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x18, 0xf5ff4000)
 
 
 
@@ -225,29 +225,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_7_0)
 
-    # Testcase 18:  imm:0xfefff, result rd:x19(0xfefff000)
+    # Testcase 18:  imm:0x67ad9, result rd:x7(0x67ad9000)
 1: 
-    auipc x19, 0xfefff
+    auipc x7, 0x67ad9
     la x3, 1b
-    sub  x19,  x19, x3
-    sw  x19, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0xfefff000)
+    sub  x7,  x7, x3
+    sw  x7, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x67ad9000)
 
-    # Testcase 19:  imm:0xff7ff, result rd:x20(0xff7ff000)
+    # Testcase 19:  imm:0x454c0, result rd:x9(0x454c0000)
 1: 
-    auipc x20, 0xff7ff
+    auipc x9, 0x454c0
     la x3, 1b
-    sub  x20,  x20, x3
-    sw  x20, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xff7ff000)
+    sub  x9,  x9, x3
+    sw  x9, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0x454c0000)
 
-    # Testcase 20:  imm:0xffbff, result rd:x21(0xffbff000)
+    # Testcase 20:  imm:0xd3492, result rd:x31(0xd3492000)
 1: 
-    auipc x21, 0xffbff
+    auipc x31, 0xd3492
     la x3, 1b
-    sub  x21,  x21, x3
-    sw  x21, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xffbff000)
+    sub  x31,  x31, x3
+    sw  x31, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xd3492000)
 
 
 
@@ -255,29 +255,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_8_0)
 
-    # Testcase 21:  imm:0xffdff, result rd:x22(0xffdff000)
+    # Testcase 21:  imm:0xd663e, result rd:x17(0xd663e000)
 1: 
-    auipc x22, 0xffdff
+    auipc x17, 0xd663e
     la x3, 1b
-    sub  x22,  x22, x3
-    sw  x22, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xffdff000)
+    sub  x17,  x17, x3
+    sw  x17, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0xd663e000)
 
-    # Testcase 22:  imm:0xffeff, result rd:x23(0xffeff000)
+    # Testcase 22:  imm:0x3f1c5, result rd:x23(0x3f1c5000)
 1: 
-    auipc x23, 0xffeff
+    auipc x23, 0x3f1c5
     la x3, 1b
     sub  x23,  x23, x3
     sw  x23, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xffeff000)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0x3f1c5000)
 
-    # Testcase 23:  imm:0xfff7f, result rd:x24(0xfff7f000)
+    # Testcase 23:  imm:0xd39ae, result rd:x31(0xd39ae000)
 1: 
-    auipc x24, 0xfff7f
+    auipc x31, 0xd39ae
     la x3, 1b
-    sub  x24,  x24, x3
-    sw  x24, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xfff7f000)
+    sub  x31,  x31, x3
+    sw  x31, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xd39ae000)
 
 
 
@@ -285,29 +285,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_9_0)
 
-    # Testcase 24:  imm:0xfffbf, result rd:x25(0xfffbf000)
+    # Testcase 24:  imm:0x3a4dd, result rd:x21(0x3a4dd000)
 1: 
-    auipc x25, 0xfffbf
+    auipc x21, 0x3a4dd
     la x3, 1b
-    sub  x25,  x25, x3
-    sw  x25, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xfffbf000)
+    sub  x21,  x21, x3
+    sw  x21, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0x3a4dd000)
 
-    # Testcase 25:  imm:0xfffdf, result rd:x26(0xfffdf000)
+    # Testcase 25:  imm:0x83650, result rd:x0(0x0)
 1: 
-    auipc x26, 0xfffdf
+    auipc x0, 0x83650
     la x3, 1b
-    sub  x26,  x26, x3
-    sw  x26, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xfffdf000)
+    sub  x0,  x0, x3
+    sw  x0, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x0, 0x0)
 
-    # Testcase 26:  imm:0xfffef, result rd:x27(0xfffef000)
+    # Testcase 26:  imm:0xc88d5, result rd:x30(0xc88d5000)
 1: 
-    auipc x27, 0xfffef
+    auipc x30, 0xc88d5
     la x3, 1b
-    sub  x27,  x27, x3
-    sw  x27, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0xfffef000)
+    sub  x30,  x30, x3
+    sw  x30, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x30, 0xc88d5000)
 
 
 
@@ -315,59 +315,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_10_0)
 
-    # Testcase 27:  imm:0xffff7, result rd:x28(0xffff7000)
+    # Testcase 27:  imm:0xf4071, result rd:x0(0x0)
 1: 
-    auipc x28, 0xffff7
-    la x6, 1b
-    sub  x28,  x28, x6
-    sw  x28, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x28, 0xffff7000)
+    auipc x0, 0xf4071
+    la x3, 1b
+    sub  x0,  x0, x3
+    sw  x0, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x0, 0x0)
 
-    # Testcase 28:  imm:0xffffb, result rd:x29(0xffffb000)
+    # Testcase 28:  imm:0xb3c30, result rd:x17(0xb3c30000)
 1: 
-    auipc x29, 0xffffb
-    la x6, 1b
-    sub  x29,  x29, x6
-    sw  x29, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x29, 0xffffb000)
+    auipc x17, 0xb3c30
+    la x3, 1b
+    sub  x17,  x17, x3
+    sw  x17, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0xb3c30000)
 
-    # Testcase 29:  imm:0xffffd, result rd:x30(0xffffd000)
+    # Testcase 29:  imm:0xc7dd8, result rd:x31(0xc7dd8000)
 1: 
-    auipc x30, 0xffffd
-    la x6, 1b
-    sub  x30,  x30, x6
-    sw  x30, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x30, 0xffffd000)
+    auipc x31, 0xc7dd8
+    la x3, 1b
+    sub  x31,  x31, x3
+    sw  x31, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xc7dd8000)
 
 
 
     
 
-    RVTEST_SIGBASE(x3,signature_11_0)
+    RVTEST_SIGBASE(x1,signature_11_0)
 
-    # Testcase 30:  imm:0xffffe, result rd:x31(0xffffe000)
+    # Testcase 30:  imm:0x0, result rd:x6(0x0)
 1: 
-    auipc x31, 0xffffe
-    la x5, 1b
-    sub  x31,  x31, x5
-    sw  x31, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x31, 0xffffe000)
+    auipc x6, 0x0
+    la x3, 1b
+    sub  x6,  x6, x3
+    sw  x6, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0x0)
 
-    # Testcase 31:  imm:0x0, result rd:x1(0x0)
+    # Testcase 31:  imm:0xfffff, result rd:x11(0xfffff000)
 1: 
-    auipc x1, 0x0
-    la x5, 1b
-    sub  x1,  x1, x5
-    sw  x1, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x1, 0x0)
+    auipc x11, 0xfffff
+    la x3, 1b
+    sub  x11,  x11, x3
+    sw  x11, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xfffff000)
 
-    # Testcase 32:  imm:0x80000, result rd:x2(0x80000000)
+    # Testcase 32:  imm:0xfffff, result rd:x22(0xfffff000)
 1: 
-    auipc x2, 0x80000
-    la x5, 1b
-    sub  x2,  x2, x5
-    sw  x2, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x2, 0x80000000)
+    auipc x22, 0xfffff
+    la x3, 1b
+    sub  x22,  x22, x3
+    sw  x22, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xfffff000)
 
 
 
@@ -375,29 +375,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_12_0)
 
-    # Testcase 33:  imm:0x40000, result rd:x3(0x40000000)
+    # Testcase 33:  imm:0xfffff, result rd:x9(0xfffff000)
 1: 
-    auipc x3, 0x40000
-    la x6, 1b
-    sub  x3,  x3, x6
-    sw  x3, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0x40000000)
+    auipc x9, 0xfffff
+    la x4, 1b
+    sub  x9,  x9, x4
+    sw  x9, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x9, 0xfffff000)
 
-    # Testcase 34:  imm:0x20000, result rd:x4(0x20000000)
+    # Testcase 34:  imm:0x1, result rd:x2(0x1000)
 1: 
-    auipc x4, 0x20000
-    la x6, 1b
-    sub  x4,  x4, x6
-    sw  x4, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0x20000000)
+    auipc x2, 0x1
+    la x4, 1b
+    sub  x2,  x2, x4
+    sw  x2, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x2, 0x1000)
 
-    # Testcase 35:  imm:0x10000, result rd:x5(0x10000000)
+    # Testcase 35:  imm:0xfffff, result rd:x7(0xfffff000)
 1: 
-    auipc x5, 0x10000
-    la x6, 1b
-    sub  x5,  x5, x6
-    sw  x5, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0x10000000)
+    auipc x7, 0xfffff
+    la x4, 1b
+    sub  x7,  x7, x4
+    sw  x7, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x7, 0xfffff000)
 
 
 
@@ -405,59 +405,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_13_0)
 
-    # Testcase 36:  imm:0x8000, result rd:x6(0x8000000)
+    # Testcase 36:  imm:0xfffff, result rd:x13(0xfffff000)
 1: 
-    auipc x6, 0x8000
-    la x3, 1b
-    sub  x6,  x6, x3
-    sw  x6, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0x8000000)
+    auipc x13, 0xfffff
+    la x4, 1b
+    sub  x13,  x13, x4
+    sw  x13, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0xfffff000)
 
-    # Testcase 37:  imm:0x4000, result rd:x7(0x4000000)
+    # Testcase 37:  imm:0x0, result rd:x7(0x0)
 1: 
-    auipc x7, 0x4000
-    la x3, 1b
-    sub  x7,  x7, x3
+    auipc x7, 0x0
+    la x4, 1b
+    sub  x7,  x7, x4
     sw  x7, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x4000000)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x0)
 
-    # Testcase 38:  imm:0x2000, result rd:x8(0x2000000)
+    # Testcase 38:  imm:0x0, result rd:x3(0x0)
 1: 
-    auipc x8, 0x2000
-    la x3, 1b
-    sub  x8,  x8, x3
-    sw  x8, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0x2000000)
+    auipc x3, 0x0
+    la x4, 1b
+    sub  x3,  x3, x4
+    sw  x3, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0x0)
 
 
 
     
 
-    RVTEST_SIGBASE(x1,signature_14_0)
+    RVTEST_SIGBASE(x2,signature_14_0)
 
-    # Testcase 39:  imm:0x1000, result rd:x9(0x1000000)
+    # Testcase 39:  imm:0xfffff, result rd:x13(0xfffff000)
 1: 
-    auipc x9, 0x1000
-    la x3, 1b
-    sub  x9,  x9, x3
-    sw  x9, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0x1000000)
+    auipc x13, 0xfffff
+    la x4, 1b
+    sub  x13,  x13, x4
+    sw  x13, 0(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x13, 0xfffff000)
 
-    # Testcase 40:  imm:0x800, result rd:x10(0x800000)
+    # Testcase 40:  imm:0x1, result rd:x1(0x1000)
 1: 
-    auipc x10, 0x800
-    la x3, 1b
-    sub  x10,  x10, x3
-    sw  x10, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0x800000)
+    auipc x1, 0x1
+    la x4, 1b
+    sub  x1,  x1, x4
+    sw  x1, 4(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x1, 0x1000)
 
-    # Testcase 41:  imm:0x400, result rd:x11(0x400000)
+    # Testcase 41:  imm:0x2, result rd:x1(0x2000)
 1: 
-    auipc x11, 0x400
-    la x3, 1b
-    sub  x11,  x11, x3
-    sw  x11, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0x400000)
+    auipc x1, 0x2
+    la x4, 1b
+    sub  x1,  x1, x4
+    sw  x1, 8(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x1, 0x2000)
 
 
 
@@ -465,59 +465,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_15_0)
 
-    # Testcase 42:  imm:0x200, result rd:x12(0x200000)
+    # Testcase 42:  imm:0x4, result rd:x2(0x4000)
 1: 
-    auipc x12, 0x200
+    auipc x2, 0x4
     la x6, 1b
-    sub  x12,  x12, x6
-    sw  x12, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0x200000)
+    sub  x2,  x2, x6
+    sw  x2, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0x4000)
 
-    # Testcase 43:  imm:0x100, result rd:x13(0x100000)
+    # Testcase 43:  imm:0x8, result rd:x3(0x8000)
 1: 
-    auipc x13, 0x100
+    auipc x3, 0x8
     la x6, 1b
-    sub  x13,  x13, x6
-    sw  x13, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0x100000)
+    sub  x3,  x3, x6
+    sw  x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0x8000)
 
-    # Testcase 44:  imm:0x80, result rd:x14(0x80000)
+    # Testcase 44:  imm:0x10, result rd:x4(0x10000)
 1: 
-    auipc x14, 0x80
+    auipc x4, 0x10
     la x6, 1b
-    sub  x14,  x14, x6
-    sw  x14, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0x80000)
+    sub  x4,  x4, x6
+    sw  x4, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x4, 0x10000)
 
 
 
     
 
-    RVTEST_SIGBASE(x3,signature_16_0)
+    RVTEST_SIGBASE(x1,signature_16_0)
 
-    # Testcase 45:  imm:0x40, result rd:x15(0x40000)
+    # Testcase 45:  imm:0x20, result rd:x5(0x20000)
 1: 
-    auipc x15, 0x40
-    la x5, 1b
-    sub  x15,  x15, x5
-    sw  x15, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x15, 0x40000)
+    auipc x5, 0x20
+    la x3, 1b
+    sub  x5,  x5, x3
+    sw  x5, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0x20000)
 
-    # Testcase 46:  imm:0x20, result rd:x16(0x20000)
+    # Testcase 46:  imm:0x40, result rd:x6(0x40000)
 1: 
-    auipc x16, 0x20
-    la x5, 1b
-    sub  x16,  x16, x5
-    sw  x16, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x16, 0x20000)
+    auipc x6, 0x40
+    la x3, 1b
+    sub  x6,  x6, x3
+    sw  x6, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0x40000)
 
-    # Testcase 47:  imm:0x10, result rd:x17(0x10000)
+    # Testcase 47:  imm:0x80, result rd:x7(0x80000)
 1: 
-    auipc x17, 0x10
-    la x5, 1b
-    sub  x17,  x17, x5
-    sw  x17, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x17, 0x10000)
+    auipc x7, 0x80
+    la x3, 1b
+    sub  x7,  x7, x3
+    sw  x7, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x80000)
 
 
 
@@ -525,29 +525,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_17_0)
 
-    # Testcase 48:  imm:0x8, result rd:x18(0x8000)
+    # Testcase 48:  imm:0x100, result rd:x8(0x100000)
 1: 
-    auipc x18, 0x8
+    auipc x8, 0x100
     la x3, 1b
-    sub  x18,  x18, x3
-    sw  x18, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0x8000)
+    sub  x8,  x8, x3
+    sw  x8, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0x100000)
 
-    # Testcase 49:  imm:0x4, result rd:x19(0x4000)
+    # Testcase 49:  imm:0x200, result rd:x9(0x200000)
 1: 
-    auipc x19, 0x4
+    auipc x9, 0x200
     la x3, 1b
-    sub  x19,  x19, x3
-    sw  x19, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0x4000)
+    sub  x9,  x9, x3
+    sw  x9, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0x200000)
 
-    # Testcase 50:  imm:0x2, result rd:x20(0x2000)
+    # Testcase 50:  imm:0x400, result rd:x10(0x400000)
 1: 
-    auipc x20, 0x2
+    auipc x10, 0x400
     la x3, 1b
-    sub  x20,  x20, x3
-    sw  x20, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0x2000)
+    sub  x10,  x10, x3
+    sw  x10, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0x400000)
 
 
 
@@ -555,29 +555,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_18_0)
 
-    # Testcase 51:  imm:0x1, result rd:x21(0x1000)
+    # Testcase 51:  imm:0x800, result rd:x11(0x800000)
 1: 
-    auipc x21, 0x1
+    auipc x11, 0x800
     la x3, 1b
-    sub  x21,  x21, x3
-    sw  x21, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0x1000)
+    sub  x11,  x11, x3
+    sw  x11, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0x800000)
 
-    # Testcase 52:  imm:0xbcc23, result rd:x22(0xbcc23000)
+    # Testcase 52:  imm:0x1000, result rd:x12(0x1000000)
 1: 
-    auipc x22, 0xbcc23
+    auipc x12, 0x1000
     la x3, 1b
-    sub  x22,  x22, x3
-    sw  x22, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xbcc23000)
+    sub  x12,  x12, x3
+    sw  x12, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0x1000000)
 
-    # Testcase 53:  imm:0xd105b, result rd:x23(0xd105b000)
+    # Testcase 53:  imm:0x2000, result rd:x13(0x2000000)
 1: 
-    auipc x23, 0xd105b
+    auipc x13, 0x2000
     la x3, 1b
-    sub  x23,  x23, x3
-    sw  x23, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xd105b000)
+    sub  x13,  x13, x3
+    sw  x13, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0x2000000)
 
 
 
@@ -585,29 +585,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_19_0)
 
-    # Testcase 54:  imm:0xaf2c0, result rd:x24(0xaf2c0000)
+    # Testcase 54:  imm:0x4000, result rd:x14(0x4000000)
 1: 
-    auipc x24, 0xaf2c0
+    auipc x14, 0x4000
     la x3, 1b
-    sub  x24,  x24, x3
-    sw  x24, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xaf2c0000)
+    sub  x14,  x14, x3
+    sw  x14, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0x4000000)
 
-    # Testcase 55:  imm:0xbfbc3, result rd:x25(0xbfbc3000)
+    # Testcase 55:  imm:0x8000, result rd:x15(0x8000000)
 1: 
-    auipc x25, 0xbfbc3
+    auipc x15, 0x8000
     la x3, 1b
-    sub  x25,  x25, x3
-    sw  x25, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xbfbc3000)
+    sub  x15,  x15, x3
+    sw  x15, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x15, 0x8000000)
 
-    # Testcase 56:  imm:0xa10af, result rd:x26(0xa10af000)
+    # Testcase 56:  imm:0x10000, result rd:x16(0x10000000)
 1: 
-    auipc x26, 0xa10af
+    auipc x16, 0x10000
     la x3, 1b
-    sub  x26,  x26, x3
-    sw  x26, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xa10af000)
+    sub  x16,  x16, x3
+    sw  x16, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x16, 0x10000000)
 
 
 
@@ -615,59 +615,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_20_0)
 
-    # Testcase 57:  imm:0xd524f, result rd:x27(0xd524f000)
+    # Testcase 57:  imm:0x20000, result rd:x17(0x20000000)
 1: 
-    auipc x27, 0xd524f
-    la x6, 1b
-    sub  x27,  x27, x6
-    sw  x27, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0xd524f000)
+    auipc x17, 0x20000
+    la x3, 1b
+    sub  x17,  x17, x3
+    sw  x17, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0x20000000)
 
-    # Testcase 58:  imm:0x99fcb, result rd:x28(0x99fcb000)
+    # Testcase 58:  imm:0x40000, result rd:x18(0x40000000)
 1: 
-    auipc x28, 0x99fcb
-    la x6, 1b
-    sub  x28,  x28, x6
-    sw  x28, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0x99fcb000)
+    auipc x18, 0x40000
+    la x3, 1b
+    sub  x18,  x18, x3
+    sw  x18, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0x40000000)
 
-    # Testcase 59:  imm:0x1a8bb, result rd:x29(0x1a8bb000)
+    # Testcase 59:  imm:0x80000, result rd:x19(0x80000000)
 1: 
-    auipc x29, 0x1a8bb
-    la x6, 1b
-    sub  x29,  x29, x6
-    sw  x29, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0x1a8bb000)
+    auipc x19, 0x80000
+    la x3, 1b
+    sub  x19,  x19, x3
+    sw  x19, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0x80000000)
 
 
 
     
 
-    RVTEST_SIGBASE(x3,signature_21_0)
+    RVTEST_SIGBASE(x1,signature_21_0)
 
-    # Testcase 60:  imm:0xfbec1, result rd:x30(0xfbec1000)
+    # Testcase 60:  imm:0xffffe, result rd:x20(0xffffe000)
 1: 
-    auipc x30, 0xfbec1
-    la x5, 1b
-    sub  x30,  x30, x5
-    sw  x30, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x30, 0xfbec1000)
+    auipc x20, 0xffffe
+    la x3, 1b
+    sub  x20,  x20, x3
+    sw  x20, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xffffe000)
 
-    # Testcase 61:  imm:0xa5195, result rd:x31(0xa5195000)
+    # Testcase 61:  imm:0xffffd, result rd:x21(0xffffd000)
 1: 
-    auipc x31, 0xa5195
-    la x5, 1b
-    sub  x31,  x31, x5
-    sw  x31, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x31, 0xa5195000)
+    auipc x21, 0xffffd
+    la x3, 1b
+    sub  x21,  x21, x3
+    sw  x21, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xffffd000)
 
-    # Testcase 62:  imm:0xfffff, result rd:x1(0xfffff000)
+    # Testcase 62:  imm:0xffffb, result rd:x22(0xffffb000)
 1: 
-    auipc x1, 0xfffff
-    la x5, 1b
-    sub  x1,  x1, x5
-    sw  x1, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x1, 0xfffff000)
+    auipc x22, 0xffffb
+    la x3, 1b
+    sub  x22,  x22, x3
+    sw  x22, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xffffb000)
 
 
 
@@ -675,29 +675,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_22_0)
 
-    # Testcase 63:  imm:0x7ffff, result rd:x2(0x7ffff000)
+    # Testcase 63:  imm:0xffff7, result rd:x23(0xffff7000)
 1: 
-    auipc x2, 0x7ffff
-    la x6, 1b
-    sub  x2,  x2, x6
-    sw  x2, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0x7ffff000)
+    auipc x23, 0xffff7
+    la x3, 1b
+    sub  x23,  x23, x3
+    sw  x23, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xffff7000)
 
-    # Testcase 64:  imm:0xbffff, result rd:x3(0xbffff000)
+    # Testcase 64:  imm:0xfffef, result rd:x24(0xfffef000)
 1: 
-    auipc x3, 0xbffff
-    la x6, 1b
-    sub  x3,  x3, x6
-    sw  x3, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0xbffff000)
+    auipc x24, 0xfffef
+    la x3, 1b
+    sub  x24,  x24, x3
+    sw  x24, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xfffef000)
 
-    # Testcase 65:  imm:0xdffff, result rd:x4(0xdffff000)
+    # Testcase 65:  imm:0xfffdf, result rd:x25(0xfffdf000)
 1: 
-    auipc x4, 0xdffff
-    la x6, 1b
-    sub  x4,  x4, x6
-    sw  x4, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x4, 0xdffff000)
+    auipc x25, 0xfffdf
+    la x3, 1b
+    sub  x25,  x25, x3
+    sw  x25, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xfffdf000)
 
 
 
@@ -705,29 +705,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_23_0)
 
-    # Testcase 66:  imm:0xeffff, result rd:x5(0xeffff000)
+    # Testcase 66:  imm:0xfffbf, result rd:x26(0xfffbf000)
 1: 
-    auipc x5, 0xeffff
+    auipc x26, 0xfffbf
     la x3, 1b
-    sub  x5,  x5, x3
-    sw  x5, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xeffff000)
+    sub  x26,  x26, x3
+    sw  x26, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xfffbf000)
 
-    # Testcase 67:  imm:0xf7fff, result rd:x6(0xf7fff000)
+    # Testcase 67:  imm:0xfff7f, result rd:x27(0xfff7f000)
 1: 
-    auipc x6, 0xf7fff
+    auipc x27, 0xfff7f
     la x3, 1b
-    sub  x6,  x6, x3
-    sw  x6, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0xf7fff000)
+    sub  x27,  x27, x3
+    sw  x27, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0xfff7f000)
 
-    # Testcase 68:  imm:0xfbfff, result rd:x7(0xfbfff000)
+    # Testcase 68:  imm:0xffeff, result rd:x28(0xffeff000)
 1: 
-    auipc x7, 0xfbfff
+    auipc x28, 0xffeff
     la x3, 1b
-    sub  x7,  x7, x3
-    sw  x7, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0xfbfff000)
+    sub  x28,  x28, x3
+    sw  x28, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0xffeff000)
 
 
 
@@ -735,89 +735,89 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_24_0)
 
-    # Testcase 69:  imm:0xfdfff, result rd:x8(0xfdfff000)
+    # Testcase 69:  imm:0xffdff, result rd:x29(0xffdff000)
 1: 
-    auipc x8, 0xfdfff
+    auipc x29, 0xffdff
     la x3, 1b
-    sub  x8,  x8, x3
-    sw  x8, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xfdfff000)
+    sub  x29,  x29, x3
+    sw  x29, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0xffdff000)
 
-    # Testcase 70:  imm:0xfefff, result rd:x9(0xfefff000)
+    # Testcase 70:  imm:0xffbff, result rd:x30(0xffbff000)
 1: 
-    auipc x9, 0xfefff
+    auipc x30, 0xffbff
     la x3, 1b
-    sub  x9,  x9, x3
-    sw  x9, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xfefff000)
+    sub  x30,  x30, x3
+    sw  x30, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x30, 0xffbff000)
 
-    # Testcase 71:  imm:0xff7ff, result rd:x10(0xff7ff000)
+    # Testcase 71:  imm:0xff7ff, result rd:x31(0xff7ff000)
 1: 
-    auipc x10, 0xff7ff
+    auipc x31, 0xff7ff
     la x3, 1b
-    sub  x10,  x10, x3
-    sw  x10, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0xff7ff000)
+    sub  x31,  x31, x3
+    sw  x31, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xff7ff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x1,signature_25_0)
+    RVTEST_SIGBASE(x3,signature_25_0)
 
-    # Testcase 72:  imm:0xffbff, result rd:x11(0xffbff000)
+    # Testcase 72:  imm:0xfefff, result rd:x1(0xfefff000)
 1: 
-    auipc x11, 0xffbff
-    la x3, 1b
-    sub  x11,  x11, x3
-    sw  x11, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xffbff000)
+    auipc x1, 0xfefff
+    la x5, 1b
+    sub  x1,  x1, x5
+    sw  x1, 0(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x1, 0xfefff000)
 
-    # Testcase 73:  imm:0xffdff, result rd:x12(0xffdff000)
+    # Testcase 73:  imm:0xfdfff, result rd:x1(0xfdfff000)
 1: 
-    auipc x12, 0xffdff
-    la x3, 1b
-    sub  x12,  x12, x3
-    sw  x12, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0xffdff000)
+    auipc x1, 0xfdfff
+    la x5, 1b
+    sub  x1,  x1, x5
+    sw  x1, 4(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x1, 0xfdfff000)
 
-    # Testcase 74:  imm:0xffeff, result rd:x13(0xffeff000)
+    # Testcase 74:  imm:0xfbfff, result rd:x2(0xfbfff000)
 1: 
-    auipc x13, 0xffeff
-    la x3, 1b
-    sub  x13,  x13, x3
-    sw  x13, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0xffeff000)
+    auipc x2, 0xfbfff
+    la x5, 1b
+    sub  x2,  x2, x5
+    sw  x2, 8(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x2, 0xfbfff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x4,signature_26_0)
+    RVTEST_SIGBASE(x1,signature_26_0)
 
-    # Testcase 75:  imm:0xfff7f, result rd:x14(0xfff7f000)
+    # Testcase 75:  imm:0xf7fff, result rd:x3(0xf7fff000)
 1: 
-    auipc x14, 0xfff7f
+    auipc x3, 0xf7fff
     la x6, 1b
-    sub  x14,  x14, x6
-    sw  x14, 0(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x14, 0xfff7f000)
+    sub  x3,  x3, x6
+    sw  x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xf7fff000)
 
-    # Testcase 76:  imm:0xfffbf, result rd:x15(0xfffbf000)
+    # Testcase 76:  imm:0xeffff, result rd:x4(0xeffff000)
 1: 
-    auipc x15, 0xfffbf
+    auipc x4, 0xeffff
     la x6, 1b
-    sub  x15,  x15, x6
-    sw  x15, 4(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x15, 0xfffbf000)
+    sub  x4,  x4, x6
+    sw  x4, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xeffff000)
 
-    # Testcase 77:  imm:0xfffdf, result rd:x16(0xfffdf000)
+    # Testcase 77:  imm:0xdffff, result rd:x5(0xdffff000)
 1: 
-    auipc x16, 0xfffdf
+    auipc x5, 0xdffff
     la x6, 1b
-    sub  x16,  x16, x6
-    sw  x16, 8(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x16, 0xfffdf000)
+    sub  x5,  x5, x6
+    sw  x5, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xdffff000)
 
 
 
@@ -825,29 +825,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_27_0)
 
-    # Testcase 78:  imm:0xfffef, result rd:x17(0xfffef000)
+    # Testcase 78:  imm:0xbffff, result rd:x6(0xbffff000)
 1: 
-    auipc x17, 0xfffef
+    auipc x6, 0xbffff
     la x3, 1b
-    sub  x17,  x17, x3
-    sw  x17, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0xfffef000)
+    sub  x6,  x6, x3
+    sw  x6, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0xbffff000)
 
-    # Testcase 79:  imm:0xffff7, result rd:x18(0xffff7000)
+    # Testcase 79:  imm:0x7ffff, result rd:x7(0x7ffff000)
 1: 
-    auipc x18, 0xffff7
+    auipc x7, 0x7ffff
     la x3, 1b
-    sub  x18,  x18, x3
-    sw  x18, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0xffff7000)
+    sub  x7,  x7, x3
+    sw  x7, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x7ffff000)
 
-    # Testcase 80:  imm:0xffffb, result rd:x19(0xffffb000)
+    # Testcase 80:  imm:0xffffe, result rd:x8(0xffffe000)
 1: 
-    auipc x19, 0xffffb
+    auipc x8, 0xffffe
     la x3, 1b
-    sub  x19,  x19, x3
-    sw  x19, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0xffffb000)
+    sub  x8,  x8, x3
+    sw  x8, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xffffe000)
 
 
 
@@ -855,29 +855,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_28_0)
 
-    # Testcase 81:  imm:0xffffd, result rd:x20(0xffffd000)
+    # Testcase 81:  imm:0xffffd, result rd:x9(0xffffd000)
 1: 
-    auipc x20, 0xffffd
+    auipc x9, 0xffffd
     la x3, 1b
-    sub  x20,  x20, x3
-    sw  x20, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xffffd000)
+    sub  x9,  x9, x3
+    sw  x9, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xffffd000)
 
-    # Testcase 82:  imm:0xffffe, result rd:x21(0xffffe000)
+    # Testcase 82:  imm:0xffffb, result rd:x10(0xffffb000)
 1: 
-    auipc x21, 0xffffe
+    auipc x10, 0xffffb
     la x3, 1b
-    sub  x21,  x21, x3
-    sw  x21, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xffffe000)
+    sub  x10,  x10, x3
+    sw  x10, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0xffffb000)
 
-    # Testcase 83:  imm:0x0, result rd:x22(0x0)
+    # Testcase 83:  imm:0xffff7, result rd:x11(0xffff7000)
 1: 
-    auipc x22, 0x0
+    auipc x11, 0xffff7
     la x3, 1b
-    sub  x22,  x22, x3
-    sw  x22, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0x0)
+    sub  x11,  x11, x3
+    sw  x11, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xffff7000)
 
 
 
@@ -885,29 +885,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_29_0)
 
-    # Testcase 84:  imm:0x80000, result rd:x23(0x80000000)
+    # Testcase 84:  imm:0xfffef, result rd:x12(0xfffef000)
 1: 
-    auipc x23, 0x80000
+    auipc x12, 0xfffef
     la x3, 1b
-    sub  x23,  x23, x3
-    sw  x23, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0x80000000)
+    sub  x12,  x12, x3
+    sw  x12, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0xfffef000)
 
-    # Testcase 85:  imm:0x40000, result rd:x24(0x40000000)
+    # Testcase 85:  imm:0xfffdf, result rd:x13(0xfffdf000)
 1: 
-    auipc x24, 0x40000
+    auipc x13, 0xfffdf
     la x3, 1b
-    sub  x24,  x24, x3
-    sw  x24, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0x40000000)
+    sub  x13,  x13, x3
+    sw  x13, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0xfffdf000)
 
-    # Testcase 86:  imm:0x20000, result rd:x25(0x20000000)
+    # Testcase 86:  imm:0xfffbf, result rd:x14(0xfffbf000)
 1: 
-    auipc x25, 0x20000
+    auipc x14, 0xfffbf
     la x3, 1b
-    sub  x25,  x25, x3
-    sw  x25, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0x20000000)
+    sub  x14,  x14, x3
+    sw  x14, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0xfffbf000)
 
 
 
@@ -915,89 +915,89 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_30_0)
 
-    # Testcase 87:  imm:0x10000, result rd:x26(0x10000000)
+    # Testcase 87:  imm:0xfff7f, result rd:x15(0xfff7f000)
 1: 
-    auipc x26, 0x10000
+    auipc x15, 0xfff7f
     la x3, 1b
-    sub  x26,  x26, x3
-    sw  x26, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0x10000000)
+    sub  x15,  x15, x3
+    sw  x15, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x15, 0xfff7f000)
 
-    # Testcase 88:  imm:0x8000, result rd:x27(0x8000000)
+    # Testcase 88:  imm:0xffeff, result rd:x16(0xffeff000)
 1: 
-    auipc x27, 0x8000
+    auipc x16, 0xffeff
     la x3, 1b
-    sub  x27,  x27, x3
-    sw  x27, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0x8000000)
+    sub  x16,  x16, x3
+    sw  x16, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x16, 0xffeff000)
 
-    # Testcase 89:  imm:0x4000, result rd:x28(0x4000000)
+    # Testcase 89:  imm:0xffdff, result rd:x17(0xffdff000)
 1: 
-    auipc x28, 0x4000
+    auipc x17, 0xffdff
     la x3, 1b
-    sub  x28,  x28, x3
-    sw  x28, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0x4000000)
+    sub  x17,  x17, x3
+    sw  x17, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0xffdff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x4,signature_31_0)
+    RVTEST_SIGBASE(x1,signature_31_0)
 
-    # Testcase 90:  imm:0x2000, result rd:x29(0x2000000)
+    # Testcase 90:  imm:0xffbff, result rd:x18(0xffbff000)
 1: 
-    auipc x29, 0x2000
-    la x6, 1b
-    sub  x29,  x29, x6
-    sw  x29, 0(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x29, 0x2000000)
+    auipc x18, 0xffbff
+    la x3, 1b
+    sub  x18,  x18, x3
+    sw  x18, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0xffbff000)
 
-    # Testcase 91:  imm:0x1000, result rd:x30(0x1000000)
+    # Testcase 91:  imm:0xff7ff, result rd:x19(0xff7ff000)
 1: 
-    auipc x30, 0x1000
-    la x6, 1b
-    sub  x30,  x30, x6
-    sw  x30, 4(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x30, 0x1000000)
+    auipc x19, 0xff7ff
+    la x3, 1b
+    sub  x19,  x19, x3
+    sw  x19, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0xff7ff000)
 
-    # Testcase 92:  imm:0x800, result rd:x31(0x800000)
+    # Testcase 92:  imm:0xfefff, result rd:x20(0xfefff000)
 1: 
-    auipc x31, 0x800
-    la x6, 1b
-    sub  x31,  x31, x6
-    sw  x31, 8(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x31, 0x800000)
+    auipc x20, 0xfefff
+    la x3, 1b
+    sub  x20,  x20, x3
+    sw  x20, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xfefff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x4,signature_32_0)
+    RVTEST_SIGBASE(x1,signature_32_0)
 
-    # Testcase 93:  imm:0x400, result rd:x1(0x400000)
+    # Testcase 93:  imm:0xfdfff, result rd:x21(0xfdfff000)
 1: 
-    auipc x1, 0x400
-    la x6, 1b
-    sub  x1,  x1, x6
-    sw  x1, 0(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x1, 0x400000)
+    auipc x21, 0xfdfff
+    la x3, 1b
+    sub  x21,  x21, x3
+    sw  x21, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xfdfff000)
 
-    # Testcase 94:  imm:0x200, result rd:x2(0x200000)
+    # Testcase 94:  imm:0xfbfff, result rd:x22(0xfbfff000)
 1: 
-    auipc x2, 0x200
-    la x6, 1b
-    sub  x2,  x2, x6
-    sw  x2, 4(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0x200000)
+    auipc x22, 0xfbfff
+    la x3, 1b
+    sub  x22,  x22, x3
+    sw  x22, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xfbfff000)
 
-    # Testcase 95:  imm:0x100, result rd:x3(0x100000)
+    # Testcase 95:  imm:0xf7fff, result rd:x23(0xf7fff000)
 1: 
-    auipc x3, 0x100
-    la x6, 1b
-    sub  x3,  x3, x6
-    sw  x3, 8(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0x100000)
+    auipc x23, 0xf7fff
+    la x3, 1b
+    sub  x23,  x23, x3
+    sw  x23, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xf7fff000)
 
 
 
@@ -1005,29 +1005,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_33_0)
 
-    # Testcase 96:  imm:0x80, result rd:x4(0x80000)
+    # Testcase 96:  imm:0xeffff, result rd:x24(0xeffff000)
 1: 
-    auipc x4, 0x80
+    auipc x24, 0xeffff
     la x3, 1b
-    sub  x4,  x4, x3
-    sw  x4, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0x80000)
+    sub  x24,  x24, x3
+    sw  x24, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xeffff000)
 
-    # Testcase 97:  imm:0x40, result rd:x5(0x40000)
+    # Testcase 97:  imm:0xdffff, result rd:x25(0xdffff000)
 1: 
-    auipc x5, 0x40
+    auipc x25, 0xdffff
     la x3, 1b
-    sub  x5,  x5, x3
-    sw  x5, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0x40000)
+    sub  x25,  x25, x3
+    sw  x25, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xdffff000)
 
-    # Testcase 98:  imm:0x20, result rd:x6(0x20000)
+    # Testcase 98:  imm:0xbffff, result rd:x26(0xbffff000)
 1: 
-    auipc x6, 0x20
+    auipc x26, 0xbffff
     la x3, 1b
-    sub  x6,  x6, x3
-    sw  x6, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0x20000)
+    sub  x26,  x26, x3
+    sw  x26, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xbffff000)
 
 
 
@@ -1035,119 +1035,119 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_34_0)
 
-    # Testcase 99:  imm:0x10, result rd:x7(0x10000)
+    # Testcase 99:  imm:0x7ffff, result rd:x27(0x7ffff000)
 1: 
-    auipc x7, 0x10
+    auipc x27, 0x7ffff
     la x3, 1b
-    sub  x7,  x7, x3
-    sw  x7, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x10000)
+    sub  x27,  x27, x3
+    sw  x27, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0x7ffff000)
 
-    # Testcase 100:  imm:0x8, result rd:x8(0x8000)
+    # Testcase 100:  imm:0xffffe, result rd:x28(0xffffe000)
 1: 
-    auipc x8, 0x8
+    auipc x28, 0xffffe
     la x3, 1b
-    sub  x8,  x8, x3
-    sw  x8, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0x8000)
+    sub  x28,  x28, x3
+    sw  x28, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0xffffe000)
 
-    # Testcase 101:  imm:0x4, result rd:x9(0x4000)
+    # Testcase 101:  imm:0xffffd, result rd:x29(0xffffd000)
 1: 
-    auipc x9, 0x4
+    auipc x29, 0xffffd
     la x3, 1b
-    sub  x9,  x9, x3
-    sw  x9, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0x4000)
+    sub  x29,  x29, x3
+    sw  x29, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0xffffd000)
 
 
 
     
 
-    RVTEST_SIGBASE(x1,signature_35_0)
+    RVTEST_SIGBASE(x2,signature_35_0)
 
-    # Testcase 102:  imm:0x2, result rd:x10(0x2000)
+    # Testcase 102:  imm:0xffffb, result rd:x30(0xffffb000)
 1: 
-    auipc x10, 0x2
-    la x3, 1b
-    sub  x10,  x10, x3
-    sw  x10, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0x2000)
+    auipc x30, 0xffffb
+    la x4, 1b
+    sub  x30,  x30, x4
+    sw  x30, 0(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x30, 0xffffb000)
 
-    # Testcase 103:  imm:0x1, result rd:x11(0x1000)
+    # Testcase 103:  imm:0xffff7, result rd:x31(0xffff7000)
 1: 
-    auipc x11, 0x1
-    la x3, 1b
-    sub  x11,  x11, x3
-    sw  x11, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0x1000)
+    auipc x31, 0xffff7
+    la x4, 1b
+    sub  x31,  x31, x4
+    sw  x31, 4(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x31, 0xffff7000)
 
-    # Testcase 104:  imm:0xbcc23, result rd:x12(0xbcc23000)
+    # Testcase 104:  imm:0x1, result rd:x1(0x1000)
 1: 
-    auipc x12, 0xbcc23
-    la x3, 1b
-    sub  x12,  x12, x3
-    sw  x12, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0xbcc23000)
+    auipc x1, 0x1
+    la x4, 1b
+    sub  x1,  x1, x4
+    sw  x1, 8(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x1, 0x1000)
 
 
 
     
 
-    RVTEST_SIGBASE(x1,signature_36_0)
+    RVTEST_SIGBASE(x4,signature_36_0)
 
-    # Testcase 105:  imm:0xd105b, result rd:x13(0xd105b000)
+    # Testcase 105:  imm:0x2, result rd:x1(0x2000)
 1: 
-    auipc x13, 0xd105b
+    auipc x1, 0x2
     la x6, 1b
-    sub  x13,  x13, x6
-    sw  x13, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x13, 0xd105b000)
+    sub  x1,  x1, x6
+    sw  x1, 0(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x1, 0x2000)
 
-    # Testcase 106:  imm:0xaf2c0, result rd:x14(0xaf2c0000)
+    # Testcase 106:  imm:0x4, result rd:x2(0x4000)
 1: 
-    auipc x14, 0xaf2c0
+    auipc x2, 0x4
     la x6, 1b
-    sub  x14,  x14, x6
-    sw  x14, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x14, 0xaf2c0000)
+    sub  x2,  x2, x6
+    sw  x2, 4(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0x4000)
 
-    # Testcase 107:  imm:0xbfbc3, result rd:x15(0xbfbc3000)
+    # Testcase 107:  imm:0x8, result rd:x3(0x8000)
 1: 
-    auipc x15, 0xbfbc3
+    auipc x3, 0x8
     la x6, 1b
-    sub  x15,  x15, x6
-    sw  x15, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x15, 0xbfbc3000)
+    sub  x3,  x3, x6
+    sw  x3, 8(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0x8000)
 
 
 
     
 
-    RVTEST_SIGBASE(x2,signature_37_0)
+    RVTEST_SIGBASE(x1,signature_37_0)
 
-    # Testcase 108:  imm:0xa10af, result rd:x16(0xa10af000)
+    # Testcase 108:  imm:0x10, result rd:x4(0x10000)
 1: 
-    auipc x16, 0xa10af
-    la x4, 1b
-    sub  x16,  x16, x4
-    sw  x16, 0(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x16, 0xa10af000)
+    auipc x4, 0x10
+    la x3, 1b
+    sub  x4,  x4, x3
+    sw  x4, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0x10000)
 
-    # Testcase 109:  imm:0xd524f, result rd:x17(0xd524f000)
+    # Testcase 109:  imm:0x20, result rd:x5(0x20000)
 1: 
-    auipc x17, 0xd524f
-    la x4, 1b
-    sub  x17,  x17, x4
-    sw  x17, 4(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x17, 0xd524f000)
+    auipc x5, 0x20
+    la x3, 1b
+    sub  x5,  x5, x3
+    sw  x5, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0x20000)
 
-    # Testcase 110:  imm:0x99fcb, result rd:x18(0x99fcb000)
+    # Testcase 110:  imm:0x40, result rd:x6(0x40000)
 1: 
-    auipc x18, 0x99fcb
-    la x4, 1b
-    sub  x18,  x18, x4
-    sw  x18, 8(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x18, 0x99fcb000)
+    auipc x6, 0x40
+    la x3, 1b
+    sub  x6,  x6, x3
+    sw  x6, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0x40000)
 
 
 
@@ -1155,29 +1155,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_38_0)
 
-    # Testcase 111:  imm:0x1a8bb, result rd:x19(0x1a8bb000)
+    # Testcase 111:  imm:0x80, result rd:x7(0x80000)
 1: 
-    auipc x19, 0x1a8bb
+    auipc x7, 0x80
     la x3, 1b
-    sub  x19,  x19, x3
-    sw  x19, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0x1a8bb000)
+    sub  x7,  x7, x3
+    sw  x7, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x80000)
 
-    # Testcase 112:  imm:0xfbec1, result rd:x20(0xfbec1000)
+    # Testcase 112:  imm:0x100, result rd:x8(0x100000)
 1: 
-    auipc x20, 0xfbec1
+    auipc x8, 0x100
     la x3, 1b
-    sub  x20,  x20, x3
-    sw  x20, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xfbec1000)
+    sub  x8,  x8, x3
+    sw  x8, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0x100000)
 
-    # Testcase 113:  imm:0xa5195, result rd:x21(0xa5195000)
+    # Testcase 113:  imm:0x200, result rd:x9(0x200000)
 1: 
-    auipc x21, 0xa5195
+    auipc x9, 0x200
     la x3, 1b
-    sub  x21,  x21, x3
-    sw  x21, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xa5195000)
+    sub  x9,  x9, x3
+    sw  x9, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0x200000)
 
 
 
@@ -1185,29 +1185,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_39_0)
 
-    # Testcase 114:  imm:0xfffff, result rd:x22(0xfffff000)
+    # Testcase 114:  imm:0x400, result rd:x10(0x400000)
 1: 
-    auipc x22, 0xfffff
+    auipc x10, 0x400
     la x3, 1b
-    sub  x22,  x22, x3
-    sw  x22, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xfffff000)
+    sub  x10,  x10, x3
+    sw  x10, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0x400000)
 
-    # Testcase 115:  imm:0x7ffff, result rd:x23(0x7ffff000)
+    # Testcase 115:  imm:0x800, result rd:x11(0x800000)
 1: 
-    auipc x23, 0x7ffff
+    auipc x11, 0x800
     la x3, 1b
-    sub  x23,  x23, x3
-    sw  x23, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0x7ffff000)
+    sub  x11,  x11, x3
+    sw  x11, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0x800000)
 
-    # Testcase 116:  imm:0xbffff, result rd:x24(0xbffff000)
+    # Testcase 116:  imm:0x1000, result rd:x12(0x1000000)
 1: 
-    auipc x24, 0xbffff
+    auipc x12, 0x1000
     la x3, 1b
-    sub  x24,  x24, x3
-    sw  x24, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xbffff000)
+    sub  x12,  x12, x3
+    sw  x12, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0x1000000)
 
 
 
@@ -1215,29 +1215,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_40_0)
 
-    # Testcase 117:  imm:0xdffff, result rd:x25(0xdffff000)
+    # Testcase 117:  imm:0x2000, result rd:x13(0x2000000)
 1: 
-    auipc x25, 0xdffff
+    auipc x13, 0x2000
     la x3, 1b
-    sub  x25,  x25, x3
-    sw  x25, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xdffff000)
+    sub  x13,  x13, x3
+    sw  x13, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0x2000000)
 
-    # Testcase 118:  imm:0xeffff, result rd:x26(0xeffff000)
+    # Testcase 118:  imm:0x4000, result rd:x14(0x4000000)
 1: 
-    auipc x26, 0xeffff
+    auipc x14, 0x4000
     la x3, 1b
-    sub  x26,  x26, x3
-    sw  x26, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xeffff000)
+    sub  x14,  x14, x3
+    sw  x14, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0x4000000)
 
-    # Testcase 119:  imm:0xf7fff, result rd:x27(0xf7fff000)
+    # Testcase 119:  imm:0x8000, result rd:x15(0x8000000)
 1: 
-    auipc x27, 0xf7fff
+    auipc x15, 0x8000
     la x3, 1b
-    sub  x27,  x27, x3
-    sw  x27, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0xf7fff000)
+    sub  x15,  x15, x3
+    sw  x15, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x15, 0x8000000)
 
 
 
@@ -1245,59 +1245,59 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_41_0)
 
-    # Testcase 120:  imm:0xfbfff, result rd:x28(0xfbfff000)
+    # Testcase 120:  imm:0x10000, result rd:x16(0x10000000)
 1: 
-    auipc x28, 0xfbfff
-    la x6, 1b
-    sub  x28,  x28, x6
-    sw  x28, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x28, 0xfbfff000)
+    auipc x16, 0x10000
+    la x3, 1b
+    sub  x16,  x16, x3
+    sw  x16, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x16, 0x10000000)
 
-    # Testcase 121:  imm:0xfdfff, result rd:x29(0xfdfff000)
+    # Testcase 121:  imm:0x20000, result rd:x17(0x20000000)
 1: 
-    auipc x29, 0xfdfff
-    la x6, 1b
-    sub  x29,  x29, x6
-    sw  x29, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x29, 0xfdfff000)
+    auipc x17, 0x20000
+    la x3, 1b
+    sub  x17,  x17, x3
+    sw  x17, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0x20000000)
 
-    # Testcase 122:  imm:0xfefff, result rd:x30(0xfefff000)
+    # Testcase 122:  imm:0x40000, result rd:x18(0x40000000)
 1: 
-    auipc x30, 0xfefff
-    la x6, 1b
-    sub  x30,  x30, x6
-    sw  x30, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x30, 0xfefff000)
+    auipc x18, 0x40000
+    la x3, 1b
+    sub  x18,  x18, x3
+    sw  x18, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0x40000000)
 
 
 
     
 
-    RVTEST_SIGBASE(x3,signature_42_0)
+    RVTEST_SIGBASE(x1,signature_42_0)
 
-    # Testcase 123:  imm:0xff7ff, result rd:x31(0xff7ff000)
+    # Testcase 123:  imm:0x80000, result rd:x19(0x80000000)
 1: 
-    auipc x31, 0xff7ff
-    la x5, 1b
-    sub  x31,  x31, x5
-    sw  x31, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x31, 0xff7ff000)
+    auipc x19, 0x80000
+    la x3, 1b
+    sub  x19,  x19, x3
+    sw  x19, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0x80000000)
 
-    # Testcase 124:  imm:0xffbff, result rd:x1(0xffbff000)
+    # Testcase 124:  imm:0xffffe, result rd:x20(0xffffe000)
 1: 
-    auipc x1, 0xffbff
-    la x5, 1b
-    sub  x1,  x1, x5
-    sw  x1, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x1, 0xffbff000)
+    auipc x20, 0xffffe
+    la x3, 1b
+    sub  x20,  x20, x3
+    sw  x20, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xffffe000)
 
-    # Testcase 125:  imm:0xffdff, result rd:x2(0xffdff000)
+    # Testcase 125:  imm:0xffffd, result rd:x21(0xffffd000)
 1: 
-    auipc x2, 0xffdff
-    la x5, 1b
-    sub  x2,  x2, x5
-    sw  x2, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x2, 0xffdff000)
+    auipc x21, 0xffffd
+    la x3, 1b
+    sub  x21,  x21, x3
+    sw  x21, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xffffd000)
 
 
 
@@ -1305,29 +1305,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_43_0)
 
-    # Testcase 126:  imm:0xffeff, result rd:x3(0xffeff000)
+    # Testcase 126:  imm:0xffffb, result rd:x22(0xffffb000)
 1: 
-    auipc x3, 0xffeff
-    la x6, 1b
-    sub  x3,  x3, x6
-    sw  x3, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xffeff000)
+    auipc x22, 0xffffb
+    la x3, 1b
+    sub  x22,  x22, x3
+    sw  x22, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xffffb000)
 
-    # Testcase 127:  imm:0xfff7f, result rd:x4(0xfff7f000)
+    # Testcase 127:  imm:0xffff7, result rd:x23(0xffff7000)
 1: 
-    auipc x4, 0xfff7f
-    la x6, 1b
-    sub  x4,  x4, x6
-    sw  x4, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xfff7f000)
+    auipc x23, 0xffff7
+    la x3, 1b
+    sub  x23,  x23, x3
+    sw  x23, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xffff7000)
 
-    # Testcase 128:  imm:0xfffbf, result rd:x5(0xfffbf000)
+    # Testcase 128:  imm:0xfffef, result rd:x24(0xfffef000)
 1: 
-    auipc x5, 0xfffbf
-    la x6, 1b
-    sub  x5,  x5, x6
-    sw  x5, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xfffbf000)
+    auipc x24, 0xfffef
+    la x3, 1b
+    sub  x24,  x24, x3
+    sw  x24, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xfffef000)
 
 
 
@@ -1335,29 +1335,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_44_0)
 
-    # Testcase 129:  imm:0xfffdf, result rd:x6(0xfffdf000)
+    # Testcase 129:  imm:0xfffdf, result rd:x25(0xfffdf000)
 1: 
-    auipc x6, 0xfffdf
+    auipc x25, 0xfffdf
     la x3, 1b
-    sub  x6,  x6, x3
-    sw  x6, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0xfffdf000)
+    sub  x25,  x25, x3
+    sw  x25, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xfffdf000)
 
-    # Testcase 130:  imm:0xfffef, result rd:x7(0xfffef000)
+    # Testcase 130:  imm:0xfffbf, result rd:x26(0xfffbf000)
 1: 
-    auipc x7, 0xfffef
+    auipc x26, 0xfffbf
     la x3, 1b
-    sub  x7,  x7, x3
-    sw  x7, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0xfffef000)
+    sub  x26,  x26, x3
+    sw  x26, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xfffbf000)
 
-    # Testcase 131:  imm:0xffff7, result rd:x8(0xffff7000)
+    # Testcase 131:  imm:0xfff7f, result rd:x27(0xfff7f000)
 1: 
-    auipc x8, 0xffff7
+    auipc x27, 0xfff7f
     la x3, 1b
-    sub  x8,  x8, x3
-    sw  x8, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xffff7000)
+    sub  x27,  x27, x3
+    sw  x27, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0xfff7f000)
 
 
 
@@ -1365,89 +1365,89 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_45_0)
 
-    # Testcase 132:  imm:0xffffb, result rd:x9(0xffffb000)
+    # Testcase 132:  imm:0xffeff, result rd:x28(0xffeff000)
 1: 
-    auipc x9, 0xffffb
+    auipc x28, 0xffeff
     la x3, 1b
-    sub  x9,  x9, x3
-    sw  x9, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xffffb000)
+    sub  x28,  x28, x3
+    sw  x28, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0xffeff000)
 
-    # Testcase 133:  imm:0xffffd, result rd:x10(0xffffd000)
+    # Testcase 133:  imm:0xffdff, result rd:x29(0xffdff000)
 1: 
-    auipc x10, 0xffffd
+    auipc x29, 0xffdff
     la x3, 1b
-    sub  x10,  x10, x3
-    sw  x10, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0xffffd000)
+    sub  x29,  x29, x3
+    sw  x29, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0xffdff000)
 
-    # Testcase 134:  imm:0xffffe, result rd:x11(0xffffe000)
+    # Testcase 134:  imm:0xffbff, result rd:x30(0xffbff000)
 1: 
-    auipc x11, 0xffffe
+    auipc x30, 0xffbff
     la x3, 1b
-    sub  x11,  x11, x3
-    sw  x11, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xffffe000)
+    sub  x30,  x30, x3
+    sw  x30, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x30, 0xffbff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x1,signature_46_0)
+    RVTEST_SIGBASE(x2,signature_46_0)
 
-    # Testcase 135:  imm:0x0, result rd:x12(0x0)
+    # Testcase 135:  imm:0xff7ff, result rd:x31(0xff7ff000)
 1: 
-    auipc x12, 0x0
-    la x6, 1b
-    sub  x12,  x12, x6
-    sw  x12, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0x0)
+    auipc x31, 0xff7ff
+    la x4, 1b
+    sub  x31,  x31, x4
+    sw  x31, 0(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x31, 0xff7ff000)
 
-    # Testcase 136:  imm:0x80000, result rd:x13(0x80000000)
+    # Testcase 136:  imm:0xfefff, result rd:x1(0xfefff000)
 1: 
-    auipc x13, 0x80000
-    la x6, 1b
-    sub  x13,  x13, x6
-    sw  x13, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0x80000000)
+    auipc x1, 0xfefff
+    la x4, 1b
+    sub  x1,  x1, x4
+    sw  x1, 4(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x1, 0xfefff000)
 
-    # Testcase 137:  imm:0x40000, result rd:x14(0x40000000)
+    # Testcase 137:  imm:0xfdfff, result rd:x1(0xfdfff000)
 1: 
-    auipc x14, 0x40000
-    la x6, 1b
-    sub  x14,  x14, x6
-    sw  x14, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0x40000000)
+    auipc x1, 0xfdfff
+    la x4, 1b
+    sub  x1,  x1, x4
+    sw  x1, 8(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x1, 0xfdfff000)
 
 
 
     
 
-    RVTEST_SIGBASE(x3,signature_47_0)
+    RVTEST_SIGBASE(x1,signature_47_0)
 
-    # Testcase 138:  imm:0x20000, result rd:x15(0x20000000)
+    # Testcase 138:  imm:0xfbfff, result rd:x2(0xfbfff000)
 1: 
-    auipc x15, 0x20000
-    la x5, 1b
-    sub  x15,  x15, x5
-    sw  x15, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x15, 0x20000000)
+    auipc x2, 0xfbfff
+    la x6, 1b
+    sub  x2,  x2, x6
+    sw  x2, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x2, 0xfbfff000)
 
-    # Testcase 139:  imm:0x10000, result rd:x16(0x10000000)
+    # Testcase 139:  imm:0xf7fff, result rd:x3(0xf7fff000)
 1: 
-    auipc x16, 0x10000
-    la x5, 1b
-    sub  x16,  x16, x5
-    sw  x16, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x16, 0x10000000)
+    auipc x3, 0xf7fff
+    la x6, 1b
+    sub  x3,  x3, x6
+    sw  x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x3, 0xf7fff000)
 
-    # Testcase 140:  imm:0x8000, result rd:x17(0x8000000)
+    # Testcase 140:  imm:0xeffff, result rd:x4(0xeffff000)
 1: 
-    auipc x17, 0x8000
-    la x5, 1b
-    sub  x17,  x17, x5
-    sw  x17, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x17, 0x8000000)
+    auipc x4, 0xeffff
+    la x6, 1b
+    sub  x4,  x4, x6
+    sw  x4, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x4, 0xeffff000)
 
 
 
@@ -1455,29 +1455,29 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_48_0)
 
-    # Testcase 141:  imm:0x4000, result rd:x18(0x4000000)
+    # Testcase 141:  imm:0xdffff, result rd:x5(0xdffff000)
 1: 
-    auipc x18, 0x4000
+    auipc x5, 0xdffff
     la x3, 1b
-    sub  x18,  x18, x3
-    sw  x18, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0x4000000)
+    sub  x5,  x5, x3
+    sw  x5, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xdffff000)
 
-    # Testcase 142:  imm:0x2000, result rd:x19(0x2000000)
+    # Testcase 142:  imm:0xbffff, result rd:x6(0xbffff000)
 1: 
-    auipc x19, 0x2000
+    auipc x6, 0xbffff
     la x3, 1b
-    sub  x19,  x19, x3
-    sw  x19, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0x2000000)
+    sub  x6,  x6, x3
+    sw  x6, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x6, 0xbffff000)
 
-    # Testcase 143:  imm:0x1000, result rd:x20(0x1000000)
+    # Testcase 143:  imm:0x7ffff, result rd:x7(0x7ffff000)
 1: 
-    auipc x20, 0x1000
+    auipc x7, 0x7ffff
     la x3, 1b
-    sub  x20,  x20, x3
-    sw  x20, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0x1000000)
+    sub  x7,  x7, x3
+    sw  x7, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x7, 0x7ffff000)
 
 
 
@@ -1485,21 +1485,253 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_49_0)
 
-    # Testcase 144:  imm:0x800, result rd:x21(0x800000)
+    # Testcase 144:  imm:0xffffe, result rd:x8(0xffffe000)
 1: 
-    auipc x21, 0x800
+    auipc x8, 0xffffe
+    la x3, 1b
+    sub  x8,  x8, x3
+    sw  x8, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xffffe000)
+
+    # Testcase 145:  imm:0xffffd, result rd:x9(0xffffd000)
+1: 
+    auipc x9, 0xffffd
+    la x3, 1b
+    sub  x9,  x9, x3
+    sw  x9, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xffffd000)
+
+    # Testcase 146:  imm:0xffffb, result rd:x10(0xffffb000)
+1: 
+    auipc x10, 0xffffb
+    la x3, 1b
+    sub  x10,  x10, x3
+    sw  x10, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x10, 0xffffb000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_50_0)
+
+    # Testcase 147:  imm:0xffff7, result rd:x11(0xffff7000)
+1: 
+    auipc x11, 0xffff7
+    la x3, 1b
+    sub  x11,  x11, x3
+    sw  x11, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x11, 0xffff7000)
+
+    # Testcase 148:  imm:0xfffef, result rd:x12(0xfffef000)
+1: 
+    auipc x12, 0xfffef
+    la x3, 1b
+    sub  x12,  x12, x3
+    sw  x12, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x12, 0xfffef000)
+
+    # Testcase 149:  imm:0xfffdf, result rd:x13(0xfffdf000)
+1: 
+    auipc x13, 0xfffdf
+    la x3, 1b
+    sub  x13,  x13, x3
+    sw  x13, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x13, 0xfffdf000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_51_0)
+
+    # Testcase 150:  imm:0xfffbf, result rd:x14(0xfffbf000)
+1: 
+    auipc x14, 0xfffbf
+    la x3, 1b
+    sub  x14,  x14, x3
+    sw  x14, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x14, 0xfffbf000)
+
+    # Testcase 151:  imm:0xfff7f, result rd:x15(0xfff7f000)
+1: 
+    auipc x15, 0xfff7f
+    la x3, 1b
+    sub  x15,  x15, x3
+    sw  x15, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x15, 0xfff7f000)
+
+    # Testcase 152:  imm:0xffeff, result rd:x16(0xffeff000)
+1: 
+    auipc x16, 0xffeff
+    la x3, 1b
+    sub  x16,  x16, x3
+    sw  x16, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x16, 0xffeff000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_52_0)
+
+    # Testcase 153:  imm:0xffdff, result rd:x17(0xffdff000)
+1: 
+    auipc x17, 0xffdff
+    la x3, 1b
+    sub  x17,  x17, x3
+    sw  x17, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x17, 0xffdff000)
+
+    # Testcase 154:  imm:0xffbff, result rd:x18(0xffbff000)
+1: 
+    auipc x18, 0xffbff
+    la x3, 1b
+    sub  x18,  x18, x3
+    sw  x18, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x18, 0xffbff000)
+
+    # Testcase 155:  imm:0xff7ff, result rd:x19(0xff7ff000)
+1: 
+    auipc x19, 0xff7ff
+    la x3, 1b
+    sub  x19,  x19, x3
+    sw  x19, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x19, 0xff7ff000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_53_0)
+
+    # Testcase 156:  imm:0xfefff, result rd:x20(0xfefff000)
+1: 
+    auipc x20, 0xfefff
+    la x3, 1b
+    sub  x20,  x20, x3
+    sw  x20, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x20, 0xfefff000)
+
+    # Testcase 157:  imm:0xfdfff, result rd:x21(0xfdfff000)
+1: 
+    auipc x21, 0xfdfff
     la x3, 1b
     sub  x21,  x21, x3
-    sw  x21, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0x800000)
+    sw  x21, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x21, 0xfdfff000)
 
-    # Testcase 145:  imm:0x400, result rd:x22(0x400000)
+    # Testcase 158:  imm:0xfbfff, result rd:x22(0xfbfff000)
 1: 
-    auipc x22, 0x400
+    auipc x22, 0xfbfff
     la x3, 1b
     sub  x22,  x22, x3
-    sw  x22, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0x400000)
+    sw  x22, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x22, 0xfbfff000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_54_0)
+
+    # Testcase 159:  imm:0xf7fff, result rd:x23(0xf7fff000)
+1: 
+    auipc x23, 0xf7fff
+    la x3, 1b
+    sub  x23,  x23, x3
+    sw  x23, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x23, 0xf7fff000)
+
+    # Testcase 160:  imm:0xeffff, result rd:x24(0xeffff000)
+1: 
+    auipc x24, 0xeffff
+    la x3, 1b
+    sub  x24,  x24, x3
+    sw  x24, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x24, 0xeffff000)
+
+    # Testcase 161:  imm:0xdffff, result rd:x25(0xdffff000)
+1: 
+    auipc x25, 0xdffff
+    la x3, 1b
+    sub  x25,  x25, x3
+    sw  x25, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x25, 0xdffff000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_55_0)
+
+    # Testcase 162:  imm:0xbffff, result rd:x26(0xbffff000)
+1: 
+    auipc x26, 0xbffff
+    la x3, 1b
+    sub  x26,  x26, x3
+    sw  x26, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x26, 0xbffff000)
+
+    # Testcase 163:  imm:0x7ffff, result rd:x27(0x7ffff000)
+1: 
+    auipc x27, 0x7ffff
+    la x3, 1b
+    sub  x27,  x27, x3
+    sw  x27, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x27, 0x7ffff000)
+
+    # Testcase 164:  imm:0xffffe, result rd:x28(0xffffe000)
+1: 
+    auipc x28, 0xffffe
+    la x3, 1b
+    sub  x28,  x28, x3
+    sw  x28, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x28, 0xffffe000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_56_0)
+
+    # Testcase 165:  imm:0xffffd, result rd:x29(0xffffd000)
+1: 
+    auipc x29, 0xffffd
+    la x3, 1b
+    sub  x29,  x29, x3
+    sw  x29, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x29, 0xffffd000)
+
+    # Testcase 166:  imm:0xffffb, result rd:x30(0xffffb000)
+1: 
+    auipc x30, 0xffffb
+    la x3, 1b
+    sub  x30,  x30, x3
+    sw  x30, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x30, 0xffffb000)
+
+    # Testcase 167:  imm:0xffff7, result rd:x31(0xffff7000)
+1: 
+    auipc x31, 0xffff7
+    la x3, 1b
+    sub  x31,  x31, x3
+    sw  x31, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x31, 0xffff7000)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_57_0)
+
+    # Testcase 168:  imm:0xa9522, result rd:x0(0x0)
+1: 
+    auipc x0, 0xa9522
+    la x3, 1b
+    sub  x0,  x0, x3
+    sw  x0, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x0, 0x0)
 
 	
 #endif
@@ -1620,6 +1852,22 @@ signature_47_0:
 signature_48_0:
 	.fill 3, 4, 0xdeadbeef
 signature_49_0:
+	.fill 3, 4, 0xdeadbeef
+signature_50_0:
+	.fill 3, 4, 0xdeadbeef
+signature_51_0:
+	.fill 3, 4, 0xdeadbeef
+signature_52_0:
+	.fill 3, 4, 0xdeadbeef
+signature_53_0:
+	.fill 3, 4, 0xdeadbeef
+signature_54_0:
+	.fill 3, 4, 0xdeadbeef
+signature_55_0:
+	.fill 3, 4, 0xdeadbeef
+signature_56_0:
+	.fill 3, 4, 0xdeadbeef
+signature_57_0:
 	.fill 3, 4, 0xdeadbeef
 
 

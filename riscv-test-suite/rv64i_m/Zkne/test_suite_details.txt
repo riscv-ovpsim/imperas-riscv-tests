@@ -21,28 +21,29 @@
 Architectural Test Suite Data for RV64ZKNE K Crypto/Scalar:
     8 test source files
     1 different instruction categories
-    20 different instructions
-    25,052 total instructions
+    21 different instructions
+    19,326 total instructions
 
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes64es : 530
-  aes64esm : 530
-  aes64ks2 : 530
-  aes64ks1i : 530
+  aes64esm : 556
+  aes64ks1i : 554
+  aes64ks2 : 556
+  aes64es : 556
 
 Other instructions (those not the focus of this suite)
   c-j : 8
   c-lui : 8
-  addiw : 3,073
+  addiw : 2,475
   csrrs : 24
-  auipc : 468
-  addi : 7,685
+  auipc : 488
+  addi : 5,705
   csrrw : 16
   mret : 8
-  lui : 2,548
-  slli : 6,910
-  sd : 2,040
-  c-sdsp : 80
+  lui : 1,932
+  slli : 4,150
+  sd : 1,982
+  c-sdsp : 240
+  c-addi : 4
   fence : 8
   ecall : 8
   c-li : 24

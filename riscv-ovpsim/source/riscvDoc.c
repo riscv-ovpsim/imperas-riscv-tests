@@ -3715,6 +3715,14 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             "exception-return instructions (e.g. MRET) will always mark any "
             "active LR/SC transaction as invalid."
         );
+        snprintf(
+            SNPRINTF_TGT(string),
+            "Parameter \"amo_aborts_lr_sc\" is used to specify whether AMO "
+            "operations abort any active LR/SC pair. In this variant, "
+            "\"amo_aborts_lr_sc\" is %u.",
+            riscv->configInfo.amo_aborts_lr_sc
+        );
+        vmidocAddText(LRSC, string);
 
         vmiDocNodeP ACODE = vmidocAddSection(
             Root, "Active Atomic Operation Indication"
@@ -4316,10 +4324,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         vmidocAddText(
             debugMask,
             "It is possible to enable model debug messages in various "
-            "categories. This can be done statically using the "
-            "\"override_debugMask\" parameter, or dynamically using the "
-            "\"debugflags\" command. Enabled messages are specified using a "
-            "bitmask value, as follows:"
+            "categories. This can be done statically using the \"debugflags\" "
+            "parameter, or dynamically using the \"debugflags\" command. "
+            "Enabled messages are specified using a bitmask value, as follows:"
         );
 
         // document memory debug

@@ -20,23 +20,23 @@ Architectural Test Suite Data for RV32ZMMUL Zmmul Integer Multiplication:
     4 test source files
     1 different instruction categories
     15 different instructions
-    3,448 total instructions
+    4,104 total instructions
 
 Instruction category: arithmetic 
-  mul : 146
-  mulh : 146
-  mulhsu : 146
-  mulhu : 146
+  mulh : 172
+  mul : 172
+  mulhu : 172
+  mulhsu : 172
 
 Other instructions (those not the focus of this suite)
   jal : 4
-  lui : 736
-  addi : 1,280
+  lui : 916
+  addi : 1,512
   csrrs : 12
-  auipc : 216
+  auipc : 252
   csrrw : 8
   mret : 4
-  sw : 584
+  sw : 688
   fence : 4
   ecall : 4
   beq : 12

@@ -4560,46 +4560,40 @@ static RISCV_CSR_READFN(mentropyR) {
 // This defined required behavior of entropy-reading instructions
 //
 typedef enum entropyActionE {
-    EA_ENTROPY, // return entropy
+    EA_VALID,   // entropy access valid
     EA_ILLEGAL, // take Illegal Instruction exception
     EA_VIRTUAL, // take Virtual Instruction exception
 } entropyAction;
 
 //
-// Handle read of entropy or take an appropriate exception
+// Take an appropriate exception if entropy is inaccessible
 //
-static Uns64 readEntropy(
+static Bool entropyAccessFault(
     riscvP        riscv,
     entropyAction action,
     const char   *reason
 ) {
-    Uns32 result = 0;
-
-    if(riscv->artifactAccess) {
-        // ignore value for artifact access
-    } else if(action==EA_ENTROPY) {
-        result = riscvPollEntropy(riscv);
-    } else if(action==EA_ILLEGAL) {
+    if(action==EA_ILLEGAL) {
         riscvIllegalInstructionMessage(riscv, reason);
     } else if(action==EA_VIRTUAL) {
         riscvVirtualInstructionMessage(riscv, reason);
     }
 
-    return result;
+    return (action==EA_VALID);
 }
 
 //
-// Read sentropy
+// Is access to entropy CSR legal in the current mode?
 //
-static RISCV_CSR_READFN(sentropyR) {
+static Bool accessEntropy(riscvP riscv) {
 
     riscvMode     mode   = getCurrentMode5(riscv);
-    entropyAction action = EA_ENTROPY;
+    entropyAction action = EA_VALID;
     const char   *reason = 0;
     Bool          SKES   = RD_CSR_FIELDC(riscv, mseccfg, USEED_SKES);
 
     if(riscv->artifactAccess) {
-        // ignore value for artifact access
+        // allow artifact access
     } else if(mode==RISCV_MODE_M) {
         // access always allowed
     } else if(inVMode(riscv)) {
@@ -4610,16 +4604,16 @@ static RISCV_CSR_READFN(sentropyR) {
         action = EA_ILLEGAL;
     }
 
-    return readEntropy(riscv, action, reason);
+    return entropyAccessFault(riscv, action, reason);
 }
 
 //
-// Read seed
+// Is access to seed CSR legal in the current mode?
 //
-static RISCV_CSR_READFN(seedR) {
+static Bool accessSeed(riscvP riscv) {
 
     riscvMode     mode   = getCurrentMode5(riscv);
-    entropyAction action = EA_ENTROPY;
+    entropyAction action = EA_VALID;
     const char   *reason = 0;
     Bool          SSEED  = RD_CSR_FIELDC(riscv, mseccfg, SSEED);
     Bool          USEED  = RD_CSR_FIELDC(riscv, mseccfg, USEED_SKES);
@@ -4639,13 +4633,53 @@ static RISCV_CSR_READFN(seedR) {
         action = EA_ILLEGAL;
     }
 
-    return readEntropy(riscv, action, reason);
+    return entropyAccessFault(riscv, action, reason);
 }
 
 //
-// Write sentropy (ignored)
+// Read sentropy
+//
+static RISCV_CSR_READFN(sentropyR) {
+
+    Uns32 result = 0;
+
+    if(accessEntropy(riscv)) {
+        result = riscvPollEntropy(riscv);
+    }
+
+    return result;
+}
+
+//
+// Write sentropy (ignored, apart from access check)
 //
 static RISCV_CSR_WRITEFN(sentropyW) {
+
+    accessEntropy(riscv);
+
+    return 0;
+}
+
+//
+// Read seed
+//
+static RISCV_CSR_READFN(seedR) {
+
+    Uns32 result = 0;
+
+    if(accessSeed(riscv)) {
+        result = riscvPollEntropy(riscv);
+    }
+
+    return result;
+}
+
+//
+// Write seed (ignored, apart from access check)
+//
+static RISCV_CSR_WRITEFN(seedW) {
+
+    accessSeed(riscv);
 
     return 0;
 }
@@ -5735,7 +5769,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TC_     (vxsat,        0x009, ISA_VP,      ISA_FSandV, 1_10,   0,0,0,0,0,0,0, "Fixed-Point Saturate Flag",                             vxsatP,      riscvWFSVS,  vxsatR,       0,        vxsatW        ),
     CSR_ATTR_TC_     (vxrm,         0x00A, ISA_V,       ISA_FSandV, 1_10,   0,0,0,0,0,0,0, "Fixed-Point Rounding Mode",                             0,           riscvWFSVS,  0,            0,        vxrmW         ),
     CSR_ATTR_T__     (vcsr,         0x00F, ISA_V,       0,          1_10,   1,0,0,0,0,0,0, "Vector Control and Status",                             vcsrP,       riscvWVCSR,  vcsrR,        0,        vcsrW         ),
-    CSR_ATTR_P__     (seed,         0x015, ISA_K,       0,          1_10,   0,1,0,0,1,0,0, "Poll Entropy",                                          seedP,       0,           sentropyRInv, seedR,    sentropyW     ),
+    CSR_ATTR_P__     (seed,         0x015, ISA_K,       0,          1_10,   0,1,0,0,1,0,0, "Poll Entropy",                                          seedP,       0,           sentropyRInv, seedR,    seedW         ),
     CSR_ATTR_TC_     (jvt,          0x017, ISA_C,       0,          1_10,   0,0,0,0,0,0,0, "Table Jump Base and Control",                           ZcmtP,       0,           0,            0,        0             ),
     CSR_ATTR_T__     (uscratch,     0x040, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Scratch",                                          0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (uepc,         0x041, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Exception Program Counter",                        0,           0,           uepcR,        0,        0             ),

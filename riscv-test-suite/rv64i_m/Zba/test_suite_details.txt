@@ -20,30 +20,30 @@ Architectural Test Suite Data for RV64ZBA B Bit Manipulation:
     8 test source files
     2 different instruction categories
     21 different instructions
-    15,560 total instructions
+    18,572 total instructions
 
 Instruction category: OPB_PRZE Prefix Zero-Extend
-  add.uw : 274
-  slli.uw : 274
+  add.uw : 300
+  slli.uw : 298
 Instruction category: OPB_ADDR Address Calculation
-  sh3add : 274
-  sh2add : 274
-  sh3add.uw : 274
-  sh2add.uw : 274
-  sh1add : 274
-  sh1add.uw : 274
+  sh2add : 300
+  sh1add : 300
+  sh1add.uw : 300
+  sh2add.uw : 300
+  sh3add : 300
+  sh3add.uw : 300
 
 Other instructions (those not the focus of this suite)
   jal : 8
-  lui : 1,370
-  addiw : 2,451
+  lui : 1,668
+  addiw : 2,787
   csrrs : 24
-  auipc : 480
-  addi : 3,989
+  auipc : 520
+  addi : 4,991
   csrrw : 16
   mret : 8
-  slli : 2,790
-  sd : 2,192
+  slli : 3,714
+  sd : 2,398
   fence : 8
   ecall : 8
   beq : 24

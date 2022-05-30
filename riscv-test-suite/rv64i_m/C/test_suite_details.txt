@@ -20,58 +20,58 @@ Architectural Test Suite Data for RV64C C Compressed Integer Instructions:
     33 test source files
     8 different instruction categories
     42 different instructions
-    61,720 total instructions
+    61,754 total instructions
 
 Instruction category: arithmetic 
-  c-lui : 2,537
-  c-li : 3,421
-  c-addi : 2,712
-  c-addiw : 1,224
-  c-addw : 274
-  c-add : 2,466
-  c-mv : 510
-  c-sub : 275
-  c-subw : 274
+  c-lui : 2,335
+  c-addi : 1,765
+  c-addiw : 661
+  c-li : 7,107
+  c-add : 2,666
+  c-mv : 552
+  c-addw : 296
+  c-subw : 296
+  c-sub : 297
 Instruction category: logical 
-  c-and : 274
-  c-andi : 274
-  c-xor : 274
-  c-or : 274
+  c-andi : 296
+  c-xor : 296
+  c-or : 296
+  c-and : 296
 Instruction category: branch 
-  c-beqz : 274
-  c-bnez : 274
+  c-beqz : 296
+  c-bnez : 296
 Instruction category: OPI_IMN 
   c-ebreak : 1
 Instruction category: jump 
-  c-j : 307
-  c-jalr : 274
-  c-jr : 274
+  c-j : 329
+  c-jr : 296
+  c-jalr : 296
 Instruction category: load 
-  c-ldsp : 274
-  c-lwsp : 274
+  c-lwsp : 296
+  c-ldsp : 296
 Instruction category: store 
-  c-sdsp : 560
-  c-swsp : 274
+  c-sdsp : 757
+  c-swsp : 297
 Instruction category: shift 
-  c-slli : 4,801
-  c-srai : 274
-  c-srli : 274
+  c-slli : 2,825
+  c-srai : 296
+  c-srli : 296
 
 Other instructions (those not the focus of this suite)
-  addiw : 6,457
+  addiw : 4,469
   csrrs : 101
-  auipc : 3,816
-  addi : 11,473
+  auipc : 4,119
+  addi : 12,502
   csrrw : 69
   mret : 34
-  lui : 2,794
-  slli : 2,739
-  sd : 8,482
+  lui : 1,900
+  slli : 2,769
+  sd : 9,014
   fence : 33
   ecall : 33
   beq : 99
-  jal : 712
-  lw : 274
-  ld : 1,370
-  sw : 310
+  jal : 766
+  lw : 296
+  ld : 1,482
+  sw : 332
 

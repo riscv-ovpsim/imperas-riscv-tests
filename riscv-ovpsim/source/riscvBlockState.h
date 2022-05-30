@@ -88,18 +88,20 @@ typedef enum riscvPMKE {
 //
 typedef struct riscvBlockStateS {
 
-    riscvBlockStateP prevState;     // previous block state
-    Uns32            fpNaNBoxMask[2];// mask of known NaN-boxed registers
-    Bool             FSDirty;       // is status.FS known to be dirty?
-    Bool             VSDirty;       // is status.VS known to be dirty?
-    riscvSEWMt       SEWMt;         // known active vector SEW
-    riscvVLMULx8Mt   VLMULx8Mt;     // known active vector VLMULx8
-    riscvVLClassMt   VLClassMt;     // known active vector VL zero/non-zero/max
-    Uns32            VSetTopMt[2];  // known vector registers with top set
-    Bool             VStartZeroMt;  // vstart known to be zero?
-    Bool             updateFFlags;  // whether to update fflags from fflags_i
-    Bool             doLSTrig;      // whether load/store triggers enabled
-    Bool             ZfhminOK;      // whether allowed by Zfhmin
+    riscvBlockStateP prevState;         // previous block state
+    Uns32            fpNaNBoxMask[2];   // mask of known NaN-boxed registers
+    Uns32            VSetTopMt[2];      // known vector registers with top set
+    riscvSEWMt       SEWMt        : 16; // known active vector SEW
+    riscvVLMULx8Mt   VLMULx8Mt    :  8; // known active vector VLMULx8
+    riscvVLClassMt   VLClassMt    :  2; // known active vector VL zero/non-zero/max
+    Bool             vtaMt        :  1; // known active vta
+    Bool             vmaMt        :  1; // known active vma
+    Bool             VStartZeroMt :  1; // vstart known to be zero?
+    Bool             updateFFlags :  1; // whether to update fflags from fflags_i
+    Bool             doLSTrig     :  1; // whether load/store triggers enabled
+    Bool             ZfhminOK     :  1; // whether allowed by Zfhmin
+    Bool             FSDirty      :  1; // is status.FS known to be dirty?
+    Bool             VSDirty      :  1; // is status.VS known to be dirty?
 
 } riscvBlockState;
 
@@ -116,6 +118,4 @@ inline static riscvVLMULx8Mt svlmulToVLMULx8(Int32 svlmul) {
 inline static riscvVLMULx8Mt vtypeToVLMULx8(riscvVType vtype) {
     return svlmulToVLMULx8(getVTypeSVLMUL(vtype));
 }
-
-
 
