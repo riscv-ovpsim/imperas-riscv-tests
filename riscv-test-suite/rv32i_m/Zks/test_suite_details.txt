@@ -36,15 +36,15 @@ Instruction category: OPB_PACK Packing
   packh : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 172
   rori : 170
   rol : 172
+  ror : 172
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
   sm3p1 : 170
   sm3p0 : 170
 Instruction category: OPK_Zkse 
-  sm4ed : 428
   sm4ks : 428
+  sm4ed : 428
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

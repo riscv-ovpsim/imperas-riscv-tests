@@ -103,7 +103,8 @@ typedef enum riscvParamVariantE {
     RVPV_32P       = RVPV_32|RVPV_P,
     RVPV_PMPINIT32 = RVPV_32|RVPV_PMPINIT,
     RVPV_PMPMASK32 = RVPV_32|RVPV_PMPMASK,
-    RVPV_C_CLEG    = RVPV_C|RVPV_CLEG
+    RVPV_C_CLEG    = RVPV_C|RVPV_CLEG,
+    RVPV_C_CNEW    = RVPV_C|RVPV_CNEW
 
 } riscvParamVariant;
 
@@ -262,6 +263,11 @@ static vmiEnumParameter compressedVariants[] = {
         .name        = "0.70.1",
         .value       = RVCV_0_70_1,
         .description = "Compressed Architecture Version 0.70.1",
+    },
+    [RVCV_0_70_5] = {
+        .name        = "0.70.5",
+        .value       = RVCV_0_70_5,
+        .description = "Compressed Architecture Version 0.70.5",
     },
     // KEEP LAST: terminator
     {0}
@@ -574,6 +580,11 @@ static vmiEnumParameter FSModes[] = {
         .value       = RVFS_ALWAYS_DIRTY,
         .description = "mstatus.fs is either off or dirty",
     },
+    [RVFS_FORCE_DIRTY] = {
+        .name        = "force_dirty",
+        .value       = RVFS_FORCE_DIRTY,
+        .description = "mstatus.fs is forced to dirty",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -665,6 +676,29 @@ static vmiEnumParameter SmepmpVariants[] = {
         .name        = "1.0",
         .value       = RVSP_1_0,
         .description = "Smepmp version 1.0",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
+// Memory constraints
+//
+static vmiEnumParameter memoryConstraints[] = {
+    [RVMC_NONE] = {
+        .name        = "none",
+        .value       = RVMC_NONE,
+        .description = "Memory access not constrained",
+    },
+    [RVMC_USER1] = {
+        .name        = "user1",
+        .value       = RVMC_USER1,
+        .description = "Memory access constrained by MEM_CONSTRAINT_USER1",
+    },
+    [RVMC_USER2] = {
+        .name        = "user2",
+        .value       = RVMC_USER2,
+        .description = "Memory access constrained by MEM_CONSTRAINT_USER2",
     },
     // KEEP LAST: terminator
     {0}
@@ -832,6 +866,9 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(mstatus_fs_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_eret_mode);
 static RISCV_ENUM_PDEFAULT_CFG_FN(debug_priority);
+static RISCV_ENUM_PDEFAULT_CFG_FN(lr_sc_constraint);
+static RISCV_ENUM_PDEFAULT_CFG_FN(amo_constraint);
+static RISCV_ENUM_PDEFAULT_CFG_FN(push_pop_constraint);
 
 
 //
@@ -848,11 +885,15 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(unalignedV);
 static RISCV_BOOL_PDEFAULT_CFG_FN(wfi_is_nop);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mtvec_is_ro);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero);
+static RISCV_BOOL_PDEFAULT_CFG_FN(nmi_is_latched);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_ii_code);
 static RISCV_BOOL_PDEFAULT_CFG_FN(cycle_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(mcycle_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(time_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(instret_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(minstret_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(hpmcounter_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(mhpmcounter_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tinfo_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mcontext_undefined);
@@ -1291,19 +1332,20 @@ static RISCV_CSR_PDEFAULT_64_CFG_FN(pmpaddr63)
 // Macro to define a function to set an Uns64 CSR mask value from the
 // configuration
 //
-#define RISCV_CSR_PMDEFAULT_CFG_FN(_NAME) RISCV_PDEFAULT_FN(default_##_NAME##_mask) { \
-    setUns64ParamDefault(param, cfg->csrMask._NAME._pad);  \
+#define RISCV_CSR_PMDEFAULT_CFG_FN(_NAME, _ZERO_VAL) RISCV_PDEFAULT_FN(default_##_NAME##_mask) { \
+    setUns64ParamDefault(param, cfg->csrMask._NAME._pad ? : _ZERO_VAL);  \
 }
 
 //
 // Set default value of CSR mask parameters
 //
-static RISCV_CSR_PMDEFAULT_CFG_FN(mtvec)
-static RISCV_CSR_PMDEFAULT_CFG_FN(stvec)
-static RISCV_CSR_PMDEFAULT_CFG_FN(utvec)
-static RISCV_CSR_PMDEFAULT_CFG_FN(mtvt)
-static RISCV_CSR_PMDEFAULT_CFG_FN(stvt)
-static RISCV_CSR_PMDEFAULT_CFG_FN(utvt)
+static RISCV_CSR_PMDEFAULT_CFG_FN(mtvec, 0)
+static RISCV_CSR_PMDEFAULT_CFG_FN(stvec, 0)
+static RISCV_CSR_PMDEFAULT_CFG_FN(utvec, 0)
+static RISCV_CSR_PMDEFAULT_CFG_FN(mtvt,  WM64_tvt)
+static RISCV_CSR_PMDEFAULT_CFG_FN(stvt,  WM64_tvt)
+static RISCV_CSR_PMDEFAULT_CFG_FN(utvt,  WM64_tvt)
+static RISCV_CSR_PMDEFAULT_CFG_FN(jvt,   WM64_jvt)
 
 //
 // Set default value of tdata1_mask
@@ -1332,7 +1374,7 @@ static RISCV_PDEFAULT_FN(default_hip_mask) {
 // Set default value of envcfg_mask
 //
 static RISCV_PDEFAULT_FN(default_envcfg_mask) {
-    setUns64ParamDefault(param, cfg->csrMask.envcfg.u64.bits ? : WM64_envcfg);
+    setUns64ParamDefault(param, cfg->csrMask.envcfg.u64.bits);
 }
 
 //
@@ -1717,6 +1759,9 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   0,         default_debug_eret_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_eret_mode,         DERETModes,                RV_GROUP(DBG),   "Specify behavior for MRET, SRET or URET in Debug mode (nop, jump to dexc_address or trap to dexc_address)")},
     {  RVPV_DEBUG,   0,         default_debug_priority,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_priority,          DebugPriorities,           RV_GROUP(DBG),   "Specify relative priorities of simultaneous debug events")},
     {  RVPV_DEBUG,   0,         default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,        0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
+    {  RVPV_A,       0,         default_lr_sc_constraint,     VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, lr_sc_constraint,        memoryConstraints,         RV_GROUP(DBG),   "Specify memory constraint for LR/SC instructions")},
+    {  RVPV_A,       0,         default_amo_constraint,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, amo_constraint,          memoryConstraints,         RV_GROUP(DBG),   "Specify memory constraint for AMO instructions")},
+    {  RVPV_C_CNEW,  0,         default_push_pop_constraint,  VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, push_pop_constraint,     memoryConstraints,         RV_GROUP(DBG),   "Specify memory constraint for PUSH/POP instructions")},
     {  RVPV_ALL,     0,         default_use_hw_reg_names,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, use_hw_reg_names,        False,                     RV_GROUP(ARTIF), "Specify whether to use hardware register names x0-x31 and f0-f31 instead of ABI register names")},
     {  RVPV_ALL,     0,         default_no_pseudo_inst,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_pseudo_inst,          False,                     RV_GROUP(ARTIF), "Specify whether pseudo-instructions should not be reported in trace and disassembly")},
     {  RVPV_D,       0,         default_ABI_d,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ABI_d,                   False,                     RV_GROUP(ARTIF), "Specify whether D registers are used for parameters (ABI SemiHosting)")},
@@ -1740,12 +1785,13 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC,    0,         default_mtvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mtvt_mask,               0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC mtvt register")},
     {  RVPV_CLIC_S,  0,         default_stvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, stvt_mask,               0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC stvt register")},
     {  RVPV_CLIC_N,  0,         default_utvt_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, utvt_mask,               0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in CLIC utvt register")},
+    {  RVPV_C_CNEW,  0,         default_jvt_mask,             VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, jvt_mask,                0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in Zcmt jvt register")},
     {  RVPV_TRIG,    0,         default_tdata1_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, tdata1_mask,             0, 0,          -1,         RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in Trigger Module tdata1 register")},
     {  RVPV_ALL,     0,         default_mip_mask,             VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mip_mask,                WM32_mip,    0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in mip register")},
     {  RVPV_S,       0,         default_sip_mask,             VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, sip_mask,                WM32_sip,    0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in sip register")},
     {  RVPV_N,       0,         default_uip_mask,             VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, uip_mask,                WM32_uip,    0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in uip register")},
     {  RVPV_H,       0,         default_hip_mask,             VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, hip_mask,                WM32_hip,    0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in hip register")},
-    {  RVPV_ALL,     RVPV_1_12, default_envcfg_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, envcfg_mask,             WM64_envcfg, 0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in envcfg registers")},
+    {  RVPV_ALL,     RVPV_1_12, default_envcfg_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, envcfg_mask,             0,           0, -1,        RV_GROUP(CSRMK), "Specify hardware-enforced mask of writable bits in envcfg registers")},
     {  RVPV_ALL,     0,         default_mtvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mtvec_sext,              False,                     RV_GROUP(CSRMK), "Specify whether mtvec is sign-extended from most-significant bit")},
     {  RVPV_S,       0,         default_stvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, stvec_sext,              False,                     RV_GROUP(CSRMK), "Specify whether stvec is sign-extended from most-significant bit")},
     {  RVPV_N,       0,         default_utvec_sext,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, utvec_sext,              False,                     RV_GROUP(CSRMK), "Specify whether utvec is sign-extended from most-significant bit")},
@@ -1755,13 +1801,17 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     0,         default_ecode_mask,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_mask,              0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in xcause.ExceptionCode")},
     {  RVPV_ALL,     0,         default_ecode_nmi,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi,               0, 0,          -1,         RV_GROUP(INTXC), "Specify xcause.ExceptionCode for NMI")},
     {  RVPV_RNMI,    0,         default_ecode_nmi_mask,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, ecode_nmi_mask,          0, 0,          -1,         RV_GROUP(INTXC), "Specify hardware-enforced mask of writable bits in mncause.ExceptionCode")},
+    {  RVPV_ALL,     0,         default_nmi_is_latched,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, nmi_is_latched,          False,                     RV_GROUP(INTXC), "Specify whether NMI input is latched on rising edge (if False, it is level-sensitive)")},
     {  RVPV_ALL,     0,         default_tval_zero,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero,               False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are hard wired to zero")},
     {  RVPV_ALL,     0,         default_tval_zero_ebreak,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_zero_ebreak,        False,                     RV_GROUP(INTXC), "Specify whether mtval/stval/utval are set to zero by an ebreak")},
     {  RVPV_ALL,     0,         default_tval_ii_code,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tval_ii_code,            False,                     RV_GROUP(INTXC), "Specify whether mtval/stval contain faulting instruction bits on illegal instruction exception")},
-    {  RVPV_ALL,     0,         default_cycle_undefined,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, cycle_undefined,         False,                     RV_GROUP(ICSRB), "Specify that the cycle CSR is undefined")},
+    {  RVPV_U,       0,         default_cycle_undefined,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, cycle_undefined,         False,                     RV_GROUP(ICSRB), "Specify that the cycle CSR is undefined")},
+    {  RVPV_ALL,     0,         default_mcycle_undefined,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mcycle_undefined,        False,                     RV_GROUP(ICSRB), "Specify that the mcycle CSR is undefined")},
     {  RVPV_ALL,     0,         default_time_undefined,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, time_undefined,          False,                     RV_GROUP(ICSRB), "Specify that the time CSR is undefined")},
-    {  RVPV_ALL,     0,         default_instret_undefined,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, instret_undefined,       False,                     RV_GROUP(ICSRB), "Specify that the instret CSR is undefined")},
-    {  RVPV_ALL,     0,         default_hpmcounter_undefined, VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, hpmcounter_undefined,    False,                     RV_GROUP(ICSRB), "Specify that the hpmcounter CSRs are undefined")},
+    {  RVPV_U,       0,         default_instret_undefined,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, instret_undefined,       False,                     RV_GROUP(ICSRB), "Specify that the instret CSR is undefined")},
+    {  RVPV_ALL,     0,         default_minstret_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, minstret_undefined,      False,                     RV_GROUP(ICSRB), "Specify that the minstret CSR is undefined")},
+    {  RVPV_U,       0,         default_hpmcounter_undefined, VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, hpmcounter_undefined,    False,                     RV_GROUP(ICSRB), "Specify that the hpmcounter CSRs are undefined")},
+    {  RVPV_ALL,     0,         default_mhpmcounter_undefined,VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mhpmcounter_undefined,   False,                     RV_GROUP(ICSRB), "Specify that the mhpmcounter CSRs are undefined")},
     {  RVPV_TRIG,    0,         default_tinfo_undefined,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tinfo_undefined,         False,                     RV_GROUP(TRIG),  "Specify that the tinfo CSR is undefined")},
     {  RVPV_TRIG,    0,         default_tcontrol_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tcontrol_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the tcontrol CSR is undefined")},
     {  RVPV_TRIG,    0,         default_mcontext_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mcontext_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the mcontext CSR is undefined")},
@@ -1909,13 +1959,13 @@ static riscvParameter parameters[] = {
     {  RVPV_C_CLEG,  0,         default_Zcea_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcea_version,            ZceaVariants,              RV_GROUP(C),     "Specify version of Zcea implemented (legacy only)")},
     {  RVPV_C_CLEG,  0,         default_Zceb_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zceb_version,            ZcebVariants,              RV_GROUP(C),     "Specify version of Zceb implemented (legacy only)")},
     {  RVPV_C_CLEG,  0,         default_Zcee_version,         VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, Zcee_version,            ZceeVariants,              RV_GROUP(C),     "Specify version of Zcee implemented (legacy only)")},
-    {  RVPV_CNEW,    0,         default_Zca,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zca,                     False,                     RV_GROUP(C),     "Specify that Zca is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcb,                     False,                     RV_GROUP(C),     "Specify that Zcb is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcf,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcf,                     False,                     RV_GROUP(C),     "Specify that Zcf is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcmb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmb,                    False,                     RV_GROUP(C),     "Specify that Zcmb is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcmp,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmp,                    False,                     RV_GROUP(C),     "Specify that Zcmp is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcmpe,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmpe,                   False,                     RV_GROUP(C),     "Specify that Zcmpe is implemented")},
-    {  RVPV_CNEW,    0,         default_Zcmt,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmt,                    False,                     RV_GROUP(C),     "Specify that Zcmt is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zca,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zca,                     False,                     RV_GROUP(C),     "Specify that Zca is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcb,                     False,                     RV_GROUP(C),     "Specify that Zcb is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcf,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcf,                     False,                     RV_GROUP(C),     "Specify that Zcf is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcmb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmb,                    False,                     RV_GROUP(C),     "Specify that Zcmb is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcmp,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmp,                    False,                     RV_GROUP(C),     "Specify that Zcmp is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcmpe,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmpe,                   False,                     RV_GROUP(C),     "Specify that Zcmpe is implemented")},
+    {  RVPV_C_CNEW,  0,         default_Zcmt,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmt,                    False,                     RV_GROUP(C),     "Specify that Zcmt is implemented")},
 
     // CLIC configuration
     {  RVPV_ROOTPRE, 0,         default_CLICLEVELS,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, CLICLEVELS,              0, 0,          256,        RV_GROUP(CLIC),  "Specify number of interrupt levels implemented by CLIC, or 0 if CLIC absent")},

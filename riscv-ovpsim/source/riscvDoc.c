@@ -968,6 +968,86 @@ static vmiDocNodeP docBoolParam(
 }
 
 //
+// Document a Boolean parameter making a CSR undefined
+//
+static void docUndefinedCSRParam(
+    vmiDocNodeP node,
+    const char *CSR,
+    const char *param,
+    Bool        undefined
+) {
+    char string[1024];
+
+    // add title
+    snprintf(SNPRINTF_TGT(string), "%s CSR", CSR);
+    vmiDocNodeP sub = vmidocAddSection(node, string);
+
+    if(undefined) {
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "The \"%s\" CSR is not implemented in this variant and accesses "
+            "will cause Illegal Instruction traps. Set parameter \"%s\" to "
+            "False to instead specify that \"%s\" is implemented.",
+            CSR, param, CSR
+        );
+
+     } else {
+
+         snprintf(
+             SNPRINTF_TGT(string),
+             "The \"%s\" CSR is implemented in this variant. Set parameter "
+             "\"%s\" to True to instead specify that \"%s\" is "
+             "unimplemented and accesses should cause Illegal Instruction "
+             "traps.",
+             CSR, param, CSR
+         );
+    }
+
+    vmidocAddText(sub, string);
+}
+
+//
+// Document a Boolean parameter making a set of CSRs undefined
+//
+static void docUndefinedCSRsParam(
+    vmiDocNodeP node,
+    const char *CSRs,
+    const char *param,
+    Bool        undefined
+) {
+    char string[1024];
+
+    // add title
+    snprintf(SNPRINTF_TGT(string), "%s CSR", CSRs);
+    vmiDocNodeP sub = vmidocAddSection(node, string);
+
+    if(undefined) {
+
+        snprintf(
+            SNPRINTF_TGT(string),
+            "The \"%s\" CSRs are not implemented in this variant and accesses "
+            "will cause Illegal Instruction traps. Set parameter \"%s\" to "
+            "False to instead specify that \"%s\" CSRs are implemented.",
+            CSRs, param, CSRs
+        );
+
+     } else {
+
+         snprintf(
+             SNPRINTF_TGT(string),
+             "The \"%s\" CSRs are implemented in this variant. Set parameter "
+             "\"%s\" to True to instead specify that \"%s\" CSRs are "
+             "unimplemented and accesses should cause Illegal Instruction "
+             "traps.",
+             CSRs, param, CSRs
+         );
+    }
+
+    vmidocAddText(sub, string);
+}
+
+//
 // Does configuration indicate that 64-bit S-mode is present?
 //
 inline static Bool cfgHas64S(riscvConfigCP cfg) {
@@ -1299,6 +1379,22 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 riscvGetRNMIVersionName(riscv)
             );
             vmidocAddText(sub, string);
+
+            if(cfg->nmi_is_latched) {
+                vmidocAddText(
+                    sub,
+                    "The NMI input is latched on the rising edge of the NMI "
+                    "signal. To instead specify that NMI input is level-"
+                    "sensitive, set parameter \"nmi_is_latched\" to False."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "The NMI input is level-sensitive. To instead specify that "
+                    "the NMI input is latched on the rising edge of the NMI "
+                    "signal, set parameter \"nmi_is_latched\" to True."
+                );
+            }
         }
 
         // document WFI behavior
@@ -1326,27 +1422,32 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             }
         }
 
-        // document whether cycle CSR is implemented
-        {
-            vmiDocNodeP sub = vmidocAddSection(Features, "cycle CSR");
+        // document undefined U-mode CSRs
+        if(cfg->arch&ISA_U) {
 
-            if(cfg->cycle_undefined) {
-                vmidocAddText(
-                    sub,
-                    "The \"cycle\" CSR is not implemented in this variant and "
-                    "reads of it will cause Illegal Instruction traps. Set "
-                    "parameter \"cycle_undefined\" to False to instead specify "
-                    "that \"cycle\" is implemented."
-                );
-            } else {
-                vmidocAddText(
-                    sub,
-                    "The \"cycle\" CSR is implemented in this variant. Set "
-                    "parameter \"cycle_undefined\" to True to instead specify "
-                    "that \"cycle\" is unimplemented and reads of it should "
-                    "cause Illegal Instruction traps."
-                );
-            }
+            // document undefined cycle CSR
+            docUndefinedCSRParam(
+                Features,
+                "cycle",
+                "cycle_undefined",
+                cfg->cycle_undefined
+            );
+
+            // document undefined instret CSR
+            docUndefinedCSRParam(
+                Features,
+                "instret",
+                "instret_undefined",
+                cfg->instret_undefined
+            );
+
+            // document undefined hpmcounter CSRs
+            docUndefinedCSRsParam(
+                Features,
+                "hpmcounter",
+                "hpmcounter_undefined",
+                cfg->hpmcounter_undefined
+            );
         }
 
         // document whether time CSR is implemented
@@ -1375,50 +1476,31 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             }
         }
 
-        // document whether instret CSR is implemented
+        // document undefined M-mode CSRs
         {
-            vmiDocNodeP sub = vmidocAddSection(Features, "instret CSR");
+            // document undefined mcycle CSR
+            docUndefinedCSRParam(
+                Features,
+                "mcycle",
+                "mcycle_undefined",
+                cfg->mcycle_undefined
+            );
 
-            if(cfg->instret_undefined) {
-                vmidocAddText(
-                    sub,
-                    "The \"instret\" CSR is not implemented in this variant "
-                    "and reads of it will cause Illegal Instruction traps. Set "
-                    "parameter \"instret_undefined\" to False to instead "
-                    "specify that \"instret\" is implemented."
-                );
-            } else {
-                vmidocAddText(
-                    sub,
-                    "The \"instret\" CSR is implemented in this variant. Set "
-                    "parameter \"instret_undefined\" to True to instead "
-                    "specify that \"instret\" is unimplemented and reads of it "
-                    "should cause Illegal Instruction traps."
-                );
-            }
-        }
+            // document undefined minstret CSR
+            docUndefinedCSRParam(
+                Features,
+                "minstret",
+                "minstret_undefined",
+                cfg->minstret_undefined
+            );
 
-        // document whether hpmcounter CSRs are implemented
-        {
-            vmiDocNodeP sub = vmidocAddSection(Features, "hpmcounter CSRs");
-
-            if(cfg->hpmcounter_undefined) {
-                vmidocAddText(
-                    sub,
-                    "\"hpmcounter\" CSRs are not implemented in this variant "
-                    "and reads of them will cause Illegal Instruction traps. "
-                    "Set parameter \"hpmcounter_undefined\" to False to "
-                    "instead specify that \"hpmcounter\" CSRs are implemented."
-                );
-            } else {
-                vmidocAddText(
-                    sub,
-                    "\"hpmcounter\" CSRs are implemented in this variant. Set "
-                    "parameter \"hpmcounter_undefined\" to True to instead "
-                    "specify that \"hpmcounter\" CSRs are unimplemented and "
-                    "reads of them should cause Illegal Instruction traps."
-                );
-            }
+            // document undefined mhpmcounter CSRs
+            docUndefinedCSRsParam(
+                Features,
+                "mhpmcounter",
+                "mhpmcounter_undefined",
+                cfg->mhpmcounter_undefined
+            );
         }
 
         // document address translation

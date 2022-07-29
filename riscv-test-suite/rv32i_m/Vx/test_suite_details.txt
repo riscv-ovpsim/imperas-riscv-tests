@@ -20,64 +20,64 @@ Architectural Test Suite Data for RV32VX RISC-V "V" Vector Extension:
     348 test source files
     6 different instruction categories
     50 different instructions
-    222,920 total instructions
+    277,504 total instructions
 
 Instruction category: OPV_SAVS single-width averaging add subtract
-  vaadd.vv : 303
-  vaadd.vx : 303
-  vasub.vv : 303
-  vasub.vx : 303
+  vaadd.vv : 336
+  vaadd.vx : 336
+  vasub.vv : 336
+  vasub.vx : 336
 Instruction category: OPV_SWI single-width average add, subtract unsigned
-  vaaddu.vv : 303
-  vaaddu.vx : 303
-  vasubu.vv : 303
-  vasubu.vx : 303
+  vaaddu.vv : 336
+  vaaddu.vx : 336
+  vasubu.vv : 336
+  vasubu.vx : 336
 Instruction category: OPV_NFPC narrowing fixed-point clip
-  vnclip.wi : 140
-  vnclip.wv : 140
-  vnclip.wx : 140
-  vnclipu.wi : 140
-  vnclipu.wv : 140
-  vnclipu.wx : 140
+  vnclip.wi : 160
+  vnclip.wv : 160
+  vnclip.wx : 160
+  vnclipu.wv : 160
+  vnclipu.wi : 160
+  vnclipu.wx : 160
 Instruction category: OPV_SAS single-width saturating add substract
-  vsadd.vi : 303
-  vsadd.vv : 303
-  vsadd.vx : 303
-  vsaddu.vi : 303
-  vsaddu.vv : 303
-  vsaddu.vx : 303
-  vssub.vv : 303
-  vssub.vx : 303
-  vssubu.vv : 303
-  vssubu.vx : 303
+  vsadd.vi : 336
+  vsadd.vv : 336
+  vsadd.vx : 336
+  vsaddu.vi : 336
+  vsaddu.vv : 336
+  vsaddu.vx : 336
+  vssub.vv : 336
+  vssub.vx : 336
+  vssubu.vv : 336
+  vssubu.vx : 336
 Instruction category: OPV_FMRS single-width fractional multiply with rounding and saturation
-  vsmul.vv : 303
-  vsmul.vx : 303
+  vsmul.vv : 336
+  vsmul.vx : 336
 Instruction category: OPV_SWSS single-width scaling shift
-  vssra.vi : 303
-  vssra.vv : 303
-  vssra.vx : 303
-  vssrl.vi : 303
-  vssrl.vv : 303
-  vssrl.vx : 303
+  vssra.vi : 336
+  vssra.vv : 336
+  vssra.vx : 336
+  vssrl.vi : 336
+  vssrl.vv : 336
+  vssrl.vx : 336
 
 Other instructions (those not the focus of this suite)
   jal : 348
   lui : 12,294
-  addi : 80,581
+  addi : 107,550
   csrrs : 1,392
-  auipc : 17,022
+  auipc : 18,708
   csrrw : 1,044
   mret : 348
-  vsetvli : 30,474
-  vle8.v : 7,663
-  add : 34,872
-  vse8.v : 3,046
+  vsetvli : 47,648
+  vle16.v : 9,872
+  add : 38,784
+  vse16.v : 3,392
   fence : 348
   ecall : 348
   beq : 1,044
-  vle16.v : 8,853
-  vse16.v : 3,046
-  vle32.v : 8,853
-  vse32.v : 2,626
+  vle8.v : 8,512
+  vse8.v : 3,392
+  vle32.v : 9,872
+  vse32.v : 2,912
 

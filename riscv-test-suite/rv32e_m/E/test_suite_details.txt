@@ -38,10 +38,10 @@ Instruction category: logical
 Instruction category: branch 
   beq : 282
   bne : 171
+  blt : 171
   bge : 171
   bgeu : 171
   bltu : 171
-  blt : 171
 Instruction category: OPI_IMN 
   ecall : 37
 Instruction category: synch 
@@ -51,17 +51,17 @@ Instruction category: jump
   jalr : 169
 Instruction category: load 
   lb : 169
-  lw : 676
   lh : 169
+  lw : 676
   lbu : 169
   lhu : 169
 Instruction category: store 
   sw : 6,475
-  sh : 169
   sb : 169
+  sh : 169
 Instruction category: shift 
-  slli : 170
   srli : 170
+  slli : 170
   srai : 170
   sll : 172
   srl : 172

@@ -1214,7 +1214,7 @@ void riscvEmitTrapTSR(riscvP riscv) {
 // Is mstatus.FS always dirty if enabled?
 //
 inline static Bool alwaysDirtyFS(riscvP riscv) {
-    return riscv->configInfo.mstatus_fs_mode==RVFS_ALWAYS_DIRTY;
+    return riscv->configInfo.mstatus_fs_mode>=RVFS_ALWAYS_DIRTY;
 }
 
 //
@@ -2986,10 +2986,19 @@ inline static memConstraint doAligned(Bool unaligned) {
 }
 
 //
-// Mark memory access constraint as atomic
+// Compose constraint from base and parameterised restriction
 //
-inline static memConstraint markAtomic(memConstraint constraint) {
-    return constraint | MEM_CONSTRAINT_USER1;
+inline static memConstraint composeConstraint(
+    memConstraint    base,
+    riscvMConstraint rvConstraint
+) {
+    static const memConstraint map[] = {
+        [RVMC_NONE]  = MEM_CONSTRAINT_NONE,
+        [RVMC_USER1] = MEM_CONSTRAINT_USER1,
+        [RVMC_USER2] = MEM_CONSTRAINT_USER2,
+    };
+
+    return base | map[rvConstraint];
 }
 
 //
@@ -3013,7 +3022,10 @@ static memConstraint getLoadStoreConstraintAMO(riscvMorphStateP state) {
     Bool   unaligned    = riscv->configInfo.unaligned;
     Bool   unalignedAMO = riscv->configInfo.unalignedAMO && unaligned;
 
-    return markAtomic(doAligned(unalignedAMO));
+    return composeConstraint(
+        doAligned(unalignedAMO),
+        riscv->configInfo.amo_constraint
+    );
 }
 
 //
@@ -3021,7 +3033,25 @@ static memConstraint getLoadStoreConstraintAMO(riscvMorphStateP state) {
 //
 static memConstraint getLoadStoreConstraintLR(riscvMorphStateP state) {
 
-    return markAtomic(MEM_CONSTRAINT_ALIGNED);
+    riscvP riscv = state->riscv;
+
+    return composeConstraint(
+         MEM_CONSTRAINT_ALIGNED,
+         riscv->configInfo.lr_sc_constraint
+    );
+}
+
+//
+// Get alignment constraint for PUSH/POP operations
+//
+static memConstraint getLoadStoreConstraintPushPop(riscvMorphStateP state) {
+
+    riscvP riscv = state->riscv;
+
+    return composeConstraint(
+         MEM_CONSTRAINT_NONE,
+         riscv->configInfo.push_pop_constraint
+    );
 }
 
 //
@@ -6390,10 +6420,18 @@ static Uns64 doJTFetch64(vmiProcessorP processor, Uns64 va) {
 }
 
 //
+// Validate access to JT and JALT instructions
+//
+static void checkJTAccess(riscvP riscv) {
+    riscvStateenFeatureEnabled(riscv, bit_stateen_Zcmt, False, True);
+}
+
+//
 // Implement table jump
 //
 static RISCV_MORPH_FN(emitJT) {
 
+    riscvP      riscv  = state->riscv;
     unpackedReg lr     = unpackRX(state, 0);
     Uns32       bits   = lr.bits;
     Uns32       bytes  = bits/8;
@@ -6403,6 +6441,15 @@ static RISCV_MORPH_FN(emitJT) {
 
     // get table access function
     cb = (bits==32) ? (vmiCallFn)doJTFetch32 : (vmiCallFn)doJTFetch64;
+
+    // after version 0.70.1, access to jt and jalt instructions is enabled
+    // by Smstateen
+    if(!riscv->configInfo.Smstateen) {
+        // no action
+    } else if(RISCV_COMPRESS_VERSION(riscv)>RVCV_0_70_1) {
+        vmimtArgProcessor();
+        vmimtCall((vmiCallFn)checkJTAccess);
+    }
 
     // calculate address of jump table entry
     vmimtBinopRRC(bits, vmi_ADD, tmp, RISCV_CPU_REG(csr.tbljalvec), offset, 0);
@@ -6417,38 +6464,26 @@ static RISCV_MORPH_FN(emitJT) {
 }
 
 //
-// Return stack adjustment allowing for memory required for registers pushed
-// implicitly
-//
-static Int32 getStackAdjust(Int32 spimm, Int32 rNum, Uns32 rBytes) {
-
-    Int32 result = spimm + (rNum*rBytes);
-    Uns32 align  = 16;
-
-    if(result>0) {
-        result += align-1;
-    }
-
-    return result & -align;
-}
-
-//
-// Emit code to validate stack alignment
+// Emit code to validate stack alignment if required
 //
 static void emitCheckStackAlign(riscvMorphStateP state) {
 
-    unpackedReg sp    = createRX(state, RV_REG_X_SP);
-    Uns32       align = (sp.bits==32) ? 8 : 16;
-    vmiLabelP   ok    = vmimtNewLabel();
+    // alignment check is not required from 0.70.1
+    if(!RISCV_COMPRESS_VERSION(state->riscv)) {
 
-    // skip mode switch unless stack is misaligned
-    vmimtTestRCJumpLabel(sp.bits, vmi_COND_Z, sp.r, align-1, ok);
+        unpackedReg sp    = createRX(state, RV_REG_X_SP);
+        Uns32       align = (sp.bits==32) ? 8 : 16;
+        vmiLabelP   ok    = vmimtNewLabel();
 
-    // emit call to stack alignment exception routine
-    ILLEGAL_INSTRUCTION_MESSAGE(state->riscv, "ISA", "Illegal stack alignment");
+        // skip mode switch unless stack is misaligned
+        vmimtTestRCJumpLabel(sp.bits, vmi_COND_Z, sp.r, align-1, ok);
 
-    // here if no stack alignment exception
-    vmimtInsertLabel(ok);
+        // emit call to stack alignment exception routine
+        ILLEGAL_INSTRUCTION_MESSAGE(state->riscv, "ISA", "Illegal stack alignment");
+
+        // here if no stack alignment exception
+        vmimtInsertLabel(ok);
+    }
 }
 
 //
@@ -6482,7 +6517,7 @@ static unpackedRList unpackRList(riscvMorphStateP state) {
     enum riscvRListDescE {
 
         // both ABIs
-        MASK_x_RA           = 0,
+        MASK_x_RA           =                     (1<<RV_REG_X_RA),
         MASK_x_RA_S0        = MASK_x_RA         + (1<<RV_REG_X_S0),
         MASK_x_RA_S0_1      = MASK_x_RA_S0      + (1<<RV_REG_X_S1),
 
@@ -6533,12 +6568,17 @@ static unpackedRList unpackRList(riscvMorphStateP state) {
         RLIST_MASK_ENTRY(E_RA_S3_4_S0_2),   // {ra,s3-s4,s0-s2}
     };
 
-    // first entry is always ra
-    result.r[result.rNum++] = createRX(state, RV_REG_X_RA);
 
     // get mask of affected registers
     Uns32 mask = map[state->info.rlist];
     rvReg i;
+
+    // for version 0.50.1, first entry is always ra; for later versions, it is
+    // part of the normal list
+    if(!RISCV_COMPRESS_VERSION(state->riscv)) {
+        result.r[result.rNum++] = createRX(state, RV_REG_X_RA);
+        mask &= ~(1<<RV_REG_X_RA);
+    }
 
     // add affected registers in highest-to-lowest index order
     for(i=31; i>0; i--) {
@@ -6555,12 +6595,13 @@ static unpackedRList unpackRList(riscvMorphStateP state) {
 //
 static RISCV_MORPH_FN(emitPUSH) {
 
-    unpackedReg   sp     = createRX(state, RV_REG_X_SP);
-    unpackedRList rlist  = unpackRList(state);
-    Uns32         bits   = sp.bits;
-    Uns32         bytes  = bits/8;
-    Int32         adjust = getStackAdjust(state->info.c, -rlist.rNum, bytes);
-    Int32         offset = 0;
+    memConstraint constraint = getLoadStoreConstraintPushPop(state);
+    unpackedReg   sp         = createRX(state, RV_REG_X_SP);
+    unpackedRList rlist      = unpackRList(state);
+    Uns32         bits       = sp.bits;
+    Uns32         bytes      = bits/8;
+    Int32         adjust     = state->info.c;
+    Int32         offset     = 0;
     Uns32         i;
 
     // validate stack alignment
@@ -6573,9 +6614,7 @@ static RISCV_MORPH_FN(emitPUSH) {
 
         offset -= bytes;
 
-        emitStoreCommonMBO(
-            state, rs.r, sp.r, bits, offset, MEM_CONSTRAINT_NONE
-        );
+        emitStoreCommonMBO(state, rs.r, sp.r, bits, offset, constraint);
     }
 
     // do moves from alist
@@ -6607,13 +6646,14 @@ static RISCV_MORPH_FN(emitPUSH) {
 //
 static RISCV_MORPH_FN(emitPOP) {
 
-    unpackedReg     sp     = createRX(state, RV_REG_X_SP);
-    unpackedRList   rlist  = unpackRList(state);
-    Uns32           bits   = sp.bits;
-    Uns32           bytes  = bits/8;
-    Int32           adjust = getStackAdjust(state->info.c, rlist.rNum, bytes);
-    Int32           offset = adjust;
-    riscvRetValDesc retval = state->info.retval;
+    memConstraint   constraint = getLoadStoreConstraintPushPop(state);
+    unpackedReg     sp         = createRX(state, RV_REG_X_SP);
+    unpackedRList   rlist      = unpackRList(state);
+    Uns32           bits       = sp.bits;
+    Uns32           bytes      = bits/8;
+    Int32           adjust     = state->info.c;
+    Int32           offset     = adjust;
+    riscvRetValDesc retval     = state->info.retval;
     Uns32           i;
 
     // validate stack alignment
@@ -6626,9 +6666,7 @@ static RISCV_MORPH_FN(emitPOP) {
 
         offset -= bytes;
 
-        emitLoadCommonMBO(
-            state, rd.r, bits, sp.r, bits, offset, MEM_CONSTRAINT_NONE
-        );
+        emitLoadCommonMBO(state, rd.r, bits, sp.r, bits, offset, constraint);
 
         writeUnpacked(rd);
     }

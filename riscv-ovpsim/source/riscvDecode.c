@@ -299,7 +299,7 @@ typedef enum memBitsSpecE {
 typedef enum unsExtSpecE {
     USX_NA,             // instruction has no extension specification
     USX_T,              // extension always unsigned
-    USX_1,              // extension specification in bit 1
+    USX_1_Zc,           // extension specification in bit 1 (Zc semantics)
     USX_2,              // extension specification in bit 2
     USX_6,              // extension specification in bit 6
     USX_14,             // extension specification in bit 14
@@ -5471,7 +5471,7 @@ const static decodeEntry16 decodeZcm16[] = {
     DECODE16_ENTRY(         LH, "|001|1|..|...|..|...|.0|"),
     DECODE16_ENTRY(         SB, "|101|0|..|...|..|...|00|"),
     DECODE16_ENTRY(         SH, "|101|1|..|...|..|...|00|"),
-    DECODE16_ENTRY(        RES, "|001|0|.0|...|0.|...|.0|"),    // cm.lb* when uimm<4
+    DECODE16_ENTRY(        RES, "|001|0|.0|...|0.|...|10|"),    // cm.lbu when uimm<4
     DECODE16_ENTRY(        RES, "|001|1|00|...|0.|...|.0|"),    // cm.lh* when uimm<4
     DECODE16_ENTRY(        RES, "|101|0|.0|...|0.|...|00|"),    // cm.sb when uimm<4
     DECODE16_ENTRY(        RES, "|101|1|00|...|0.|...|00|"),    // cm.sh when uimm<4
@@ -5628,8 +5628,8 @@ const static opAttrs attrsArray16[] = {
     ATTR16_FSWSP       (    FSWSP_I,      S_I, RV32CF,  "fs",       Zcf),
 
     // Zcea instructions
-    ATTR16_NOT_ZC      (      NOT_R,    NOT_R, RVANYC,  "not",      Zcea, Zcb),
-    ATTR16_NOT_ZC      (      NEG_R,    NEG_R, RVANYC,  "neg",      Zcea, Zcb),
+    ATTR16_NOT_ZC      (      NOT_R,    NOT_R, RVANYC,  "not",      ZceaZcb),
+    ATTR16_NOT_ZC      (      NEG_R,    NEG_R, RVANYC,  "neg",      ZceaZcb),
     ATTR16_MVA01S_ZC   ( MVA01S07_R,    MVP_R, RVANYC,  "mva01s07", Zcea),
     ATTR16_TBLJ_ZC     (       TBLJ,      JT8, RVANYC,  "tblj",     Zcea, 8,  ZERO),
     ATTR16_TBLJ_ZC     (     TBLJAL,     JT64, RVANYC,  "tbljal",   Zcea, 64, RA),
@@ -5642,15 +5642,15 @@ const static opAttrs attrsArray16[] = {
     ATTR16_POPRETE_ZC  (    POPRETE,      POP, RV32C,   "pop",      Zcea),
 
     // Zceb instructions
-    ATTR16_LB_ZC       (        LB,       L_I, RVANYC,  "l",        Zceb, Zcmb),
-    ATTR16_LH_ZC       (        LH,       L_I, RVANYC,  "l",        Zceb, Zcmb),
-    ATTR16_SB_ZC       (        SB,       S_I, RVANYC,  "s",        Zceb, Zcmb),
-    ATTR16_SH_ZC       (        SH,       S_I, RVANYC,  "s",        Zceb, Zcmb),
+    ATTR16_LB_ZC       (        LB,       L_I, RVANYC,  "l",        ZcebZcmb),
+    ATTR16_LH_ZC       (        LH,       L_I, RVANYC,  "l",        ZcebZcmb),
+    ATTR16_SB_ZC       (        SB,       S_I, RVANYC,  "s",        ZcebZcmb),
+    ATTR16_SH_ZC       (        SH,       S_I, RVANYC,  "s",        ZcebZcmb),
     ATTR16_DECBNEZ_ZC  (    DECBNEZ,  DECBNEZ, RVANYC,  "decbnez",  Zceb),
 
     // Zcee instructions
-    ATTR16_EXT_ZC      (      EXT_R,    EXT_R, RVANYC,  "ext",      Zcee, Zcb),
-    ATTR16_MUL_ZC      (      MUL_R,    MUL_R, RVANYCM, "mul",      Zcee, Zcb),
+    ATTR16_EXT_ZC      (      EXT_R,    EXT_R, RVANYC,  "ext",      ZceeZcb),
+    ATTR16_MUL_ZC      (      MUL_R,    MUL_R, RVANYCM, "mul",      ZceeZcb),
 
     // Zcb instructions
     ATTR16_LB2_ZC      (        LB2,      L_I, RVANYC,  "l",        Zcb),
@@ -5659,16 +5659,16 @@ const static opAttrs attrsArray16[] = {
     ATTR16_SH2_ZC      (        SH2,      S_I, RVANYC,  "s",        Zcb),
 
     // Zcmp/Zcmpe instructions
-    ATTR16_PUSH2_ZC    (      PUSH2,     PUSH, RVANYC,  "push",     Zcmp, Zcmpe),
-    ATTR16_POP2_ZC     (       POP2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
-    ATTR16_POPRET2_ZC  (    POPRET2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
-    ATTR16_POPRET2_ZC  (   POPRETZ2,      POP, RVANYC,  "pop",      Zcmp, Zcmpe),
+    ATTR16_PUSH2_ZC    (      PUSH2,     PUSH, RVANYC,  "push",     ZcmpZcmpe),
+    ATTR16_POP2_ZC     (       POP2,      POP, RVANYC,  "pop",      ZcmpZcmpe),
+    ATTR16_POPRET2_ZC  (    POPRET2,      POP, RVANYC,  "pop",      ZcmpZcmpe),
+    ATTR16_POPRET2_ZC  (   POPRETZ2,      POP, RVANYC,  "pop",      ZcmpZcmpe),
     ATTR16_MVA01S_ZC   (   MVA01S_R,    MVP_R, RVANYC,  "mva01s",   Zcmp),
     ATTR16_MVSA01_ZC   (   MVSA01_R,    MVP_R, RVANYC,  "mvsa01",   Zcmp),
 
     // Zcmt instructions
-    ATTR16_TBLJ_ZC     (         JT,      JT0, RVANYC,  "jt",       Zcmt, 0,  ZERO),
-    ATTR16_TBLJ_ZC     (       JALT,     JT64, RVANYC,  "jalt",     Zcmt, 64, RA),
+    ATTR16_TBLJ_ZC     (         JT,      JT0, RVANYC,  "jt",       Zcmt, 0, ZERO),
+    ATTR16_TBLJ_ZC     (       JALT,      JT0, RVANYC,  "jalt",     Zcmt, 0, RA),
 
     // explicitly undefined and reserved instructions
     ATTR16_NOP         (        UD1,     LAST, RVANYC,  "illegal",  Zca),
@@ -6082,26 +6082,42 @@ static void validateByte(
 }
 
 //
+// Return the number of registers in the register list
+//
+static Uns32 getRListNumRegs(riscvRListDesc rlist) {
+
+    static Uns32 map[] = {
+        [RV_RL_x_RA]           = 1,
+        [RV_RL_x_RA_S0]        = 2,
+        [RV_RL_x_RA_S0_1]      = 3,
+        [RV_RL_U_RA_S0_2]      = 4,
+        [RV_RL_U_RA_S0_3]      = 5,
+        [RV_RL_U_RA_S0_4]      = 6,
+        [RV_RL_U_RA_S0_5]      = 7,
+        [RV_RL_U_RA_S0_6]      = 8,
+        [RV_RL_U_RA_S0_7]      = 9,
+        [RV_RL_U_RA_S0_8]      = 10,
+        [RV_RL_U_RA_S0_9]      = 11,
+        [RV_RL_U_RA_S0_10]     = 12,
+        [RV_RL_U_RA_S0_11]     = 13,
+        [RV_RL_E_RA_S0_2]      = 4,
+        [RV_RL_E_RA_S3_S0_2]   = 5,
+        [RV_RL_E_RA_S3_4_S0_2] = 6,
+    };
+
+    return map[rlist];
+}
+
+//
 // Return stack adjustment for C extension push/pop
 //
-static Uns64 getPushPopStackAdjust(riscvP riscv, Uns32 rlist, Uns32 spimm) {
+static Uns64 getPushPopStackAdjust(riscvP riscv, riscvInstrInfoP info, Uns32 spimm) {
 
-    Uns32 stack_adj_base;
+    Uns32 numRegs        = getRListNumRegs(info->rlist);
+    Uns32 stack_adj_base = numRegs * getXLenBits(riscv) / 8;
 
-    // tables of stack_adj_base for each XLEN
-    static const Uns8 stack_adj_base32[] = {
-        0, 0, 0, 0, 16, 16, 16, 16, 32, 32, 32, 32, 48, 48, 48, 64
-    };
-    static const Uns8 stack_adj_base64[] = {
-        0, 0, 0, 0, 16, 16, 32, 32, 48, 48, 64, 64, 80, 80, 96, 112
-    };
-
-    // get stack_adj_base
-    if(getXLenBits(riscv)==32) {
-        stack_adj_base = stack_adj_base32[rlist];
-    } else {
-        stack_adj_base = stack_adj_base64[rlist];
-    }
+    // round to 16 bytes
+    stack_adj_base = (stack_adj_base+15)&-16;
 
     return stack_adj_base + (spimm*16);
 }
@@ -6248,28 +6264,28 @@ static Uns64 getConstant(
             result  = U_5(instr) << 1;
             break;
         case CS_NSTKA_11_7:
-            result = -(Int32)U_11_7(instr) * 16;
+            result = -getPushPopStackAdjust(riscv, info, U_11_7(instr));
             break;
         case CS_PSTKA_11_7:
-            result =  U_11_7(instr) * 16;
+            result =  getPushPopStackAdjust(riscv, info, U_11_7(instr));
             break;
         case CS_NSTKA_9_7:
-            result = -(Int32)U_9_7(instr) * 16;
+            result = -getPushPopStackAdjust(riscv, info, U_9_7(instr));
             break;
         case CS_PSTKA_9_7:
-            result =  U_9_7(instr) * 16;
+            result =  getPushPopStackAdjust(riscv, info, U_9_7(instr));
             break;
         case CS_NSTKA_3_2:
-            result =  -getPushPopStackAdjust(riscv, U_7_4(instr), U_3_2(instr));
+            result = -getPushPopStackAdjust(riscv, info, U_3_2(instr));
             break;
         case CS_PSTKA_3_2:
-            result =  getPushPopStackAdjust(riscv, U_7_4(instr), U_3_2(instr));
+            result =  getPushPopStackAdjust(riscv, info, U_3_2(instr));
             break;
         case CS_NSTKA_5_4_7:
-            result = -(Int32)((U_5_4(instr)<<1)+U_7(instr)) * 16;
+            result = -getPushPopStackAdjust(riscv, info, (U_5_4(instr)<<1)+U_7(instr));
             break;
         case CS_PSTKA_7:
-            result = U_7(instr) * 16;
+            result =  getPushPopStackAdjust(riscv, info, U_7(instr));
             break;
         case CS_S_LWGP:
             result  = S_19_15(instr) << 11;
@@ -6704,7 +6720,7 @@ static Uns32 getMemBits(
 //
 // Return unsigned extend specifier encoded in the instruction
 //
-static Bool getUnsExt(riscvInstrInfoP info, unsExtSpec unsExt) {
+static Bool getUnsExt(riscvP riscv, riscvInstrInfoP info, unsExtSpec unsExt) {
 
     Bool  result = False;
     Uns32 instr  = info->instruction;
@@ -6715,8 +6731,8 @@ static Bool getUnsExt(riscvInstrInfoP info, unsExtSpec unsExt) {
         case USX_T:
             result = True;
             break;
-        case USX_1:
-            result = !U_1(instr);
+        case USX_1_Zc:
+            result = RISCV_COMPRESS_VERSION(riscv) ? U_1(instr) : !U_1(instr);
             break;
         case USX_2:
             result = !U_2(instr);
@@ -7422,10 +7438,12 @@ static void interpretInstruction(
     riscvRegDesc wF  = getFWidth(riscv, info, attrs->wF);
 
     // fill other fields from instruction
-    info->unsExt    = getUnsExt(info, attrs->unsExt);
+    info->unsExt    = getUnsExt(riscv, info, attrs->unsExt);
     info->csr       = getCSR(riscv, info, attrs->csr);
     info->csrUpdate = getCSRUpdate(riscv, info, attrs->csrUpdate);
     info->tgt       = getTarget(riscv, info, attrs->tgts);
+    info->rlist     = getRList(info, attrs->rlist);
+    info->alist     = getAList(info, attrs->alist);
     info->c         = getConstant(riscv, info, attrs->cs,   wX);
     info->r[0]      = getRegister(riscv, info, attrs->r1,   wX, wF, attrs);
     info->r[1]      = getRegister(riscv, info, attrs->r2,   wX, wF, attrs);
@@ -7449,8 +7467,6 @@ static void interpretInstruction(
     info->pack      = getPack(info, attrs->pack);
     info->doDouble  = getDouble(info, attrs->doDouble);
     info->round     = getRound(info, attrs->round);
-    info->rlist     = getRList(info, attrs->rlist);
-    info->alist     = getAList(info, attrs->alist);
     info->retval    = getRetVal(info, attrs->retval);
     info->doRet     = getReturn(info, attrs->ret);
     info->xperm     = getXPERM(riscv, attrs->isXPERM);

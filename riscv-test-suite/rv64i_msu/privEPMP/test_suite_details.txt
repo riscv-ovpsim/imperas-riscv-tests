@@ -31,8 +31,8 @@ Other instructions (those not the focus of this suite)
   beq : 252
   jalr : 661
   sw : 5,376
-  lw : 1,344
   bne : 9,588
+  lw : 1,344
   FETCH : 795
   fence : 28
   ecall : 84

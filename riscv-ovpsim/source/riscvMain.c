@@ -296,7 +296,7 @@ VMI_SMP_NAME_FN(riscvGetSMPName) {
     Uns32         index;
 
     if(!riscvIsCluster(rvParent)) {
-        sprintf(name, "%s_hart%u", baseName, cfg->csr.mhartid.u32.bits+smpIndex);
+        sprintf(name, "%s_hart%u", baseName, smpIndex);
     } else if((index=rvParent->uniqueIndices[smpIndex])) {
         sprintf(name, "%s_%s_%u", baseName, cfg->members[smpIndex], index-1);
     } else {
@@ -573,6 +573,7 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->csrMask.mtvt.u64.bits = params->mtvt_mask;
     cfg->csrMask.stvt.u64.bits = params->stvt_mask;
     cfg->csrMask.utvt.u64.bits = params->utvt_mask;
+    cfg->csrMask.utvt.u64.bits = params->jvt_mask;
 
     // get implied CSR sign extension configuration parameters
     cfg->mtvec_sext = params->mtvec_sext;
@@ -668,6 +669,20 @@ static void copyParentConfig(riscvP riscv) {
    PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 4);      \
    PARAMS_APPLY_X0_X9(_C, _P,_CN, _PN, 5);      \
    PARAMS_APPLY_X0_X3(_C, _P,_CN, _PN, 6)
+
+//
+// Return mask of enabled extensions in the submask
+//
+static riscvArchitecture extensionsPresent(
+    riscvConfigP      cfg,
+    riscvArchitecture override,
+    riscvArchitecture extensions
+) {
+    riscvArchitecture src1 = cfg->arch &  cfg->archFixed;
+    riscvArchitecture src2 = override  & ~cfg->archFixed;
+
+    return (src1|src2) & extensions;
+}
 
 //
 // Apply parameters applicable to SMP member
@@ -813,6 +828,7 @@ static void applyParamsSMP(
     cfg->ecode_mask           = params->ecode_mask;
     cfg->ecode_nmi_mask       = params->ecode_nmi_mask;
     cfg->ecode_nmi            = params->ecode_nmi;
+    cfg->nmi_is_latched       = params->nmi_is_latched;
     cfg->external_int_id      = params->external_int_id;
     cfg->force_mideleg        = params->force_mideleg;
     cfg->force_sideleg        = params->force_sideleg;
@@ -839,9 +855,12 @@ static void applyParamsSMP(
     cfg->tval_zero_ebreak     = params->tval_zero_ebreak;
     cfg->tval_ii_code         = params->tval_ii_code;
     cfg->cycle_undefined      = params->cycle_undefined;
+    cfg->mcycle_undefined     = params->mcycle_undefined;
     cfg->time_undefined       = params->time_undefined;
     cfg->instret_undefined    = params->instret_undefined;
+    cfg->minstret_undefined   = params->minstret_undefined;
     cfg->hpmcounter_undefined = params->hpmcounter_undefined;
+    cfg->mhpmcounter_undefined= params->mhpmcounter_undefined;
     cfg->tinfo_undefined      = params->tinfo_undefined;
     cfg->tcontrol_undefined   = params->tcontrol_undefined;
     cfg->mcontext_undefined   = params->mcontext_undefined;
@@ -880,6 +899,15 @@ static void applyParamsSMP(
     cfg->Zicbop               = params->Zicbop;
     cfg->Zicboz               = params->Zicboz;
     cfg->Svnapot_page_mask    = params->Svnapot_page_mask;
+    cfg->amo_constraint       = params->amo_constraint;
+    cfg->lr_sc_constraint     = params->lr_sc_constraint;
+    cfg->push_pop_constraint  = params->push_pop_constraint;
+
+    // cycle_undefined and instret_undefined depend on mcycle_undefined and
+    // minstret_undefined
+    cfg->cycle_undefined      |= cfg->mcycle_undefined;
+    cfg->instret_undefined    |= cfg->minstret_undefined;
+    cfg->hpmcounter_undefined |= cfg->mhpmcounter_undefined;
 
     ////////////////////////////////////////////////////////////////////////////
     // FUNDAMENTAL CONFIGURATION
@@ -941,17 +969,17 @@ static void applyParamsSMP(
 
     // from Zfinx version 0.41, misa.[FDQ] are implicit extensions
     if(cfg->Zfinx_version>=RVZFINX_0_41) {
-        implicit_Extensions |= (misa_Extensions & (ISA_F|ISA_D|ISA_Q));
+        implicit_Extensions |= extensionsPresent(cfg, misa_Extensions, ISA_DFQ);
     }
 
     // from B extension 1.0.0, misa.B is implicit
-    if((cfg->bitmanip_version>=RVBV_1_0_0) && (misa_Extensions & ISA_B)) {
-        implicit_Extensions |= ISA_B;
+    if(cfg->bitmanip_version>=RVBV_1_0_0) {
+        implicit_Extensions |= extensionsPresent(cfg, misa_Extensions, ISA_B);
     }
 
     // from K extension 1.0.0, misa.K is implicit
-    if((cfg->crypto_version>=RVKV_1_0_0_RC1) && (misa_Extensions & ISA_K)) {
-        implicit_Extensions |= ISA_K;
+    if(cfg->crypto_version>=RVKV_1_0_0_RC1) {
+        implicit_Extensions |= extensionsPresent(cfg, misa_Extensions, ISA_K);
     }
 
     // compose full extensions list

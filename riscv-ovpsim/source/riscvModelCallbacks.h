@@ -84,6 +84,12 @@ typedef RISCV_GET_REG_NAME_FN((*riscvGetRegNameFn));
 
 //
 // Enable or disable transaction mode
+// IMPORTANT NOTE:
+//    Any instruction that can change the transactional memory mode (i.e. calls
+//    setTMode) MUST include a call to vmimtEndBlock() at MORPH time.
+//    (This is already done by the base model for instructions that call the
+//    RISCV_TSTORE_FN or RISCV_TLOAD_FN callbacks, so it is OK for those
+//    functions to change the mode.)
 //
 #define RISCV_SET_TMODE_FN(_NAME) void _NAME(riscvP riscv, Bool enable)
 typedef RISCV_SET_TMODE_FN((*riscvSetTModeFn));

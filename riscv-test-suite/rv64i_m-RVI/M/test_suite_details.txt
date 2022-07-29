@@ -38,16 +38,16 @@ Other instructions (those not the focus of this suite)
   fence : 13
   ecall : 13
   beq : 39
+  divu : 824
   rem : 666
-  mul : 682
+  remw : 676
   divw : 671
+  div : 678
+  mul : 682
+  mulhsu : 741
+  mulhu : 814
   mulh : 677
   mulw : 672
-  remw : 676
-  divuw : 821
   remu : 822
-  div : 678
-  mulhu : 814
-  mulhsu : 741
-  divu : 824
+  divuw : 821
 

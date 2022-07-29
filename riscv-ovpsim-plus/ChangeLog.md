@@ -11,17 +11,50 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
 
+- Parameter mstatus_fs_mode now supports option force_dirty; if selected, this
+  forces the value of mstatus.FS to Dirty (3) and prevents floating-point
+  instructions from being disabled.
+- New parameters mcycle_undefined, minstret_undefined and mhpmcounter_undefined
+  define whether mcycle, minstret and mhpmcounter CSRs are undefined,
+  respectively. Previously, presence of these was defined by cycle_undefined, 
+  instret_undefined and hpmcounter_undefined parameters; now, those
+  parameters control only User-mode CSR presence (as indicated by their names).
+  This change allows specification of a core which implements M-mode counters
+  but does not implement U-mode counters.
+- Some issues with code size reduction extension instructions 0.70.1 have been
+  corrected:
+  - behavior of c.lbu instruction has been corrected (it was previously 
+    sign-extending the byte value instead of zero-extending it).
+  - cm.lb instructions with immediate less than 4 are now allowed;
+  - encodings for cm.lb and cm.lbu have been exchanged;
+  - encodings for cm.lh and cm.lhu have been exchanged;
+  - the order in which registers are handled in push and pop instructions has
+    been modified to reflect the 0.70.1 specification (it differs to 0.50.1);
+  - handling of the stack adjustment in push and pop instructions has been
+    corrected.
+  - a simulator assertion for push/pop instructions when both Zcmp and Zcmpe
+    are absent has been corrected.
+  - push/pop instructions no longer require the stack pointer to be aligned
+    as was the case in previous specification versions.
+  - the immediate reported in disassembly for jalt instructions no longer has 64
+    subtracted (behavior of the instruction is unchanged).
+-Zc version 0.70.5 has been added, with these features:
+  - writeable bits in the jvt CSR may now be configured using the jvt_mask
+    parameter.
+  - jvt CSR access is now controlled by bit 2 of xstateen0 CSRs, if implemented.
+- New Boolean parameter nmi_is_latched specifies whether the NMI input is
+  latched on a rising edge of the NMI input or is level-sensitive.
 - New Boolean parameter amo_aborts_lr_sc indicates that execution of AMO
   instructions will abort any currently-active LR/SC pair.
 
-Date 2022-May-26
-Release 20220525.0
+Date 2022-May-30
+Release 20220527.0
 ===
 
 - New Boolean parameter no_pseudo_inst disables generation of pseudo-
   instructions in disassembly and trace and enables architectural instructions
   instead.
-- An issue has been corrected that caused some accesses the the seed CSR to
+- An issue has been corrected that caused some accesses of the seed CSR to
   be permitted when an Illegal Instruction trap should have been raised.
 - An issue has been corrected that caused updates to Vector Extension vta/vma 
   bits to be ignored in some cases.

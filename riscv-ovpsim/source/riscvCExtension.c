@@ -68,6 +68,12 @@ static const char *getSubsetDesc(riscvP riscv, riscvCompressSet requiredSet) {
         case RVCS_Zcmpe : description = "Zcmpe"; break;
         case RVCS_Zcmt  : description = "Zcmt";  break;
 
+        // COMPOSITE VALUES
+        case RVCS_ZceaZcb   : description = "Zcea and Zcb";   break;
+        case RVCS_ZcebZcmb  : description = "Zceb and Zcmb";  break;
+        case RVCS_ZceeZcb   : description = "Zcee and Zcb";   break;
+        case RVCS_ZcmpZcmpe : description = "Zcmp and Zcmpe"; break;
+
         // COMPOSITE VALUES (IGNORE)
         case RVCS_ZcNotD:                        break; // LCOV_EXCL_LINE
     }

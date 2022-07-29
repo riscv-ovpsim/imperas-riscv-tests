@@ -37,15 +37,15 @@ Instruction category: OPB_PACK Packing
   packw : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rori : 298
-  ror : 300
   rol : 300
+  ror : 300
+  rori : 298
   rolw : 300
   rorw : 300
   roriw : 298
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p0 : 298
   sm3p1 : 298
+  sm3p0 : 298
 Instruction category: OPK_Zkse 
   sm4ks : 556
   sm4ed : 556
@@ -64,11 +64,11 @@ Other instructions (those not the focus of this suite)
   slli : 9,433
   sd : 5,842
   c-sdsp : 360
+  c-addi : 224
   fence : 21
   ecall : 21
   c-li : 144
   beq : 63
-  c-addi : 224
   c-slli : 669
   c-addiw : 120
   grevi : 298

@@ -129,6 +129,9 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(debug_eret_mode);
     VMI_ENUM_PARAM(debug_priority);
     VMI_UNS32_PARAM(dcsr_ebreak_mask);
+    VMI_ENUM_PARAM(amo_constraint);
+    VMI_ENUM_PARAM(lr_sc_constraint);
+    VMI_ENUM_PARAM(push_pop_constraint);
     VMI_BOOL_PARAM(updatePTEA);
     VMI_BOOL_PARAM(updatePTED);
     VMI_BOOL_PARAM(unaligned_low_pri);
@@ -146,6 +149,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(mtvt_mask);
     VMI_UNS64_PARAM(stvt_mask);
     VMI_UNS64_PARAM(utvt_mask);
+    VMI_UNS64_PARAM(jvt_mask);
     VMI_UNS64_PARAM(tdata1_mask);
     VMI_UNS64_PARAM(mip_mask);
     VMI_UNS64_PARAM(sip_mask);
@@ -160,14 +164,18 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(utvt_sext);
     VMI_UNS64_PARAM(ecode_mask);
     VMI_UNS64_PARAM(ecode_nmi);
+    VMI_BOOL_PARAM(nmi_is_latched);
     VMI_UNS64_PARAM(ecode_nmi_mask);
     VMI_BOOL_PARAM(tval_zero);
     VMI_BOOL_PARAM(tval_zero_ebreak);
     VMI_BOOL_PARAM(tval_ii_code);
     VMI_BOOL_PARAM(time_undefined);
     VMI_BOOL_PARAM(cycle_undefined);
+    VMI_BOOL_PARAM(mcycle_undefined);
     VMI_BOOL_PARAM(instret_undefined);
+    VMI_BOOL_PARAM(minstret_undefined);
     VMI_BOOL_PARAM(hpmcounter_undefined);
+    VMI_BOOL_PARAM(mhpmcounter_undefined);
     VMI_BOOL_PARAM(tinfo_undefined);
     VMI_BOOL_PARAM(tcontrol_undefined);
     VMI_BOOL_PARAM(mcontext_undefined);

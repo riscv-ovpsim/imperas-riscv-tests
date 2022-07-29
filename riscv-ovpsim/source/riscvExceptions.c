@@ -3668,6 +3668,11 @@ static VMI_NET_CHANGE_FN(nmiPortCB) {
         doSynchronousInterrupt(riscv);
     }
 
+    // handle latching of NMI signal if required
+    if(riscv->configInfo.nmi_is_latched) {
+        newValue |= oldValue;
+    }
+
     WR_CSR_FIELDC(riscv, dcsr, nmip, newValue);
 }
 

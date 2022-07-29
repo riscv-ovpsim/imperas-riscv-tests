@@ -627,17 +627,20 @@ static CSR_REG_TYPE(status) refreshDirty(
     riscvMode            mode,
     CSR_REG_TYPE(status) status
 ) {
+    riscvFSMode mstatus_fs_mode = riscv->configInfo.mstatus_fs_mode;
+
     // get FS, VS and XS fields
     Uns8 FS = RD_RAW_FIELDC(status, FS);
     Uns8 VS = getStatusVS(riscv, status);
     Uns8 XS = RD_RAW_FIELDC(status, XS);
 
     // if fs_always_dirty is set, force status.FS and status.VS to be either
-    // 0 or 3 (so if enabled, they are always seen as dirty)
-    if(riscv->configInfo.mstatus_fs_mode==RVFS_ALWAYS_DIRTY) {
+    // 0 or 3 (so if enabled, they are always seen as dirty), and if force_dirty
+    // is set, force status.FS to 3 (always dirty)
+    if(mstatus_fs_mode>=RVFS_ALWAYS_DIRTY) {
 
         // handle status.FS
-        if(FS) {
+        if(FS || (mstatus_fs_mode==RVFS_FORCE_DIRTY)) {
             FS = ES_DIRTY;
             WR_RAW_FIELDC(status, FS, FS);
         }
@@ -2470,6 +2473,13 @@ inline static RISCV_CSR_PRESENTFN(cycleP) {
 }
 
 //
+// Is mcycle CSR present?
+//
+inline static RISCV_CSR_PRESENTFN(mcycleP) {
+    return !riscv->configInfo.mcycle_undefined;
+}
+
+//
 // Is instret CSR present?
 //
 inline static RISCV_CSR_PRESENTFN(instretP) {
@@ -2477,10 +2487,24 @@ inline static RISCV_CSR_PRESENTFN(instretP) {
 }
 
 //
+// Is minstret CSR present?
+//
+inline static RISCV_CSR_PRESENTFN(minstretP) {
+    return !riscv->configInfo.minstret_undefined;
+}
+
+//
 // Are hpmcounter CSRs present?
 //
 inline static RISCV_CSR_PRESENTFN(hpmcounterP) {
     return !riscv->configInfo.hpmcounter_undefined;
+}
+
+//
+// Are mhpmcounter CSRs present?
+//
+inline static RISCV_CSR_PRESENTFN(mhpmcounterP) {
+    return !riscv->configInfo.mhpmcounter_undefined;
 }
 
 //
@@ -5306,6 +5330,49 @@ static RISCV_CSR_READFN(senvcfgR) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// CODE SIZE REDUCTION REGISTERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Is access to the jvt register enabled?
+//
+static Bool jvtAccessValid(riscvP riscv, Bool nonV) {
+    return riscvStateenFeatureEnabled(riscv, bit_stateen_Zcmt, nonV, True);
+}
+
+//
+// Write jvt
+//
+static RISCV_CSR_WRITEFN(jvtW) {
+
+    Uns64 oldValue = RD_CSR(riscv, jvt);
+    Uns64 wMask    = RD_CSR_MASK(riscv, jvt);
+    Bool  valid    = jvtAccessValid(riscv, False);
+
+    if(valid) {
+
+        // get new value using writable bit mask
+        newValue = ((newValue & wMask) | (oldValue & ~wMask));
+
+        // update the CSR
+        WR_CSR(riscv, jvt, newValue);
+    }
+
+    return valid ? RD_CSR(riscv, jvt) : 0;
+}
+
+//
+// Read jvt
+//
+static RISCV_CSR_READFN(jvtR) {
+
+    Bool valid = jvtAccessValid(riscv, False);
+
+    return valid ? RD_CSR(riscv, jvt) : 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // MACROS FOR CSRS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -5770,7 +5837,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_TC_     (vxrm,         0x00A, ISA_V,       ISA_FSandV, 1_10,   0,0,0,0,0,0,0, "Fixed-Point Rounding Mode",                             0,           riscvWFSVS,  0,            0,        vxrmW         ),
     CSR_ATTR_T__     (vcsr,         0x00F, ISA_V,       0,          1_10,   1,0,0,0,0,0,0, "Vector Control and Status",                             vcsrP,       riscvWVCSR,  vcsrR,        0,        vcsrW         ),
     CSR_ATTR_P__     (seed,         0x015, ISA_K,       0,          1_10,   0,1,0,0,1,0,0, "Poll Entropy",                                          seedP,       0,           sentropyRInv, seedR,    seedW         ),
-    CSR_ATTR_TC_     (jvt,          0x017, ISA_C,       0,          1_10,   0,0,0,0,0,0,0, "Table Jump Base and Control",                           ZcmtP,       0,           0,            0,        0             ),
+    CSR_ATTR_P__     (jvt,          0x017, ISA_C,       0,          1_10,   0,0,0,0,0,0,1, "Table Jump Base and Control",                           ZcmtP,       0,           jvtR,         0,        jvtW          ),
     CSR_ATTR_T__     (uscratch,     0x040, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Scratch",                                          0,           0,           0,            0,        0             ),
     CSR_ATTR_TV_     (uepc,         0x041, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Exception Program Counter",                        0,           0,           uepcR,        0,        0             ),
     CSR_ATTR_T__     (ucause,       0x042, ISA_N,       0,          1_10,   0,0,0,0,0,0,0, "User Cause",                                            0,           0,           ucauseR,      0,        ucauseW       ),
@@ -5902,13 +5969,13 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__0_63 (pmpaddr,      0x3B0, 0,           0,          1_10,   0,0,0,0,1,0,0, "Physical Memory Protection Address ",                   pmpaddrP,    0,           pmpaddrR,     0,        pmpaddrW      ),
 
     //                name          num    arch         access      version     attrs      description                                              present      wState       rCB           rwCB      wCB
-    CSR_ATTR_P__     (mcycle,       0xB00, 0,           0,          1_10,   0,2,0,0,0,0,0, "Machine Cycle Counter",                                 cycleP,      0,           mcycleR,      0,        mcycleW       ),
-    CSR_ATTR_P__     (minstret,     0xB02, 0,           0,          1_10,   0,2,0,0,0,0,0, "Machine Instructions Retired",                          instretP,    0,           minstretR,    0,        minstretW     ),
-    CSR_ATTR_P__3_31 (mhpmcounter,  0xB00, 0,           0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Counter ",                  0,           0,           mhpmR,        0,        mhpmW         ),
-    CSR_ATTR_P__     (mcycleh,      0xB80, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Machine Cycle Counter High",                            cycleP,      0,           mcyclehR,     0,        mcyclehW      ),
-    CSR_ATTR_P__     (minstreth,    0xB82, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Machine Instructions Retired High",                     instretP,    0,           minstrethR,   0,        minstrethW    ),
-    CSR_ATTR_P__3_31 (mhpmcounterh, 0xB80, ISA_32,      0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Counter High ",             0,           0,           mhpmR,        0,        mhpmW         ),
-    CSR_ATTR_P__3_31 (mhpmevent,    0x320, 0,           0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Event Select ",             0,           0,           mhpmR,        0,        mhpmW         ),
+    CSR_ATTR_P__     (mcycle,       0xB00, 0,           0,          1_10,   0,2,0,0,0,0,0, "Machine Cycle Counter",                                 mcycleP,     0,           mcycleR,      0,        mcycleW       ),
+    CSR_ATTR_P__     (minstret,     0xB02, 0,           0,          1_10,   0,2,0,0,0,0,0, "Machine Instructions Retired",                          minstretP,   0,           minstretR,    0,        minstretW     ),
+    CSR_ATTR_P__3_31 (mhpmcounter,  0xB00, 0,           0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Counter ",                  mhpmcounterP,0,           mhpmR,        0,        mhpmW         ),
+    CSR_ATTR_P__     (mcycleh,      0xB80, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Machine Cycle Counter High",                            mcycleP,     0,           mcyclehR,     0,        mcyclehW      ),
+    CSR_ATTR_P__     (minstreth,    0xB82, ISA_32,      0,          1_10,   0,2,0,0,0,0,0, "Machine Instructions Retired High",                     minstretP,   0,           minstrethR,   0,        minstrethW    ),
+    CSR_ATTR_P__3_31 (mhpmcounterh, 0xB80, ISA_32,      0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Counter High ",             mhpmcounterP,0,           mhpmR,        0,        mhpmW         ),
+    CSR_ATTR_P__3_31 (mhpmevent,    0x320, 0,           0,          1_10,   0,0,0,0,0,0,0, "Machine Performance Monitor Event Select ",             mhpmcounterP,0,           mhpmR,        0,        mhpmW         ),
 
     //                name          num    arch         access      version     attrs      description                                              present      wState       rCB           rwCB      wCB
     CSR_ATTR_T__     (tselect,      0x7A0, 0,           0,          1_10,   0,0,0,0,0,0,0, "Trigger Register Select",                               triggerP,    0,           0,            0,        tselectW      ),
@@ -7180,6 +7247,16 @@ void riscvCSRInit(riscvP riscv) {
     WR_CSR_MASK_U(riscv, utvt, utvtMask);
 
     //--------------------------------------------------------------------------
+    // jvt mask
+    //--------------------------------------------------------------------------
+
+    // use defined mask from configuration
+    Uns64 jvtMask = (cfg->csrMask.jvt.u64.bits ? : -1) & WM64_jvt;
+
+    // set jvt mask
+    WR_CSR_MASK_M(riscv, jvt, jvtMask);
+
+    //--------------------------------------------------------------------------
     // mcause, scause, ucause masks
     //--------------------------------------------------------------------------
 
@@ -7236,7 +7313,7 @@ void riscvCSRInit(riscvP riscv) {
     Uns32 counterenMask    = cfg->counteren_mask & WM32_counteren_HPM;
     Uns32 countinhibitMask = ~cfg->noinhibit_mask;
 
-    // CY, TM, IR nd HPM bits are writable only if the cycle, time, instret and
+    // CY, TM, IR and HPM bits are writable only if the cycle, time, instret and
     // hpmcounter registers are defined
     if(!cfg->cycle_undefined) {
         counterenMask |= WM32_counteren_CY;
@@ -7491,6 +7568,12 @@ void riscvCSRInit(riscvP riscv) {
     if(Zfinx(riscv)) {
         mstateen0 |= WM64_stateen_Zfinx;
         sstateen0 |= WM64_stateen_Zfinx;
+    }
+
+    // handle Zcmt
+    if(Zcmt(riscv) && (RISCV_COMPRESS_VERSION(riscv)>RVCV_0_70_1)) {
+        mstateen0 |= WM64_stateen_Zcmt;
+        sstateen0 |= WM64_stateen_Zcmt;
     }
 
     // seed hstateen0

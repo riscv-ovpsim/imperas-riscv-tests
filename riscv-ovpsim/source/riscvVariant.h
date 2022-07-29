@@ -115,6 +115,7 @@ typedef enum riscvArchitectureE {
     ISA_V      = RISCV_FEATURE_BIT('V'),    // vector extension implemented
     ISA_X      = RISCV_FEATURE_BIT('X'),    // non-standard extensions present
     ISA_DF     = (ISA_D|ISA_F),             // floating point
+    ISA_DFQ    = (ISA_D|ISA_F|ISA_Q),       // floating point including Q
     ISA_DFS    = (ISA_D|ISA_F|ISA_S),       // either floating point or S-mode
     ISA_DFV    = (ISA_D|ISA_F|ISA_V),       // either floating point or vector
     ISA_SandK  = (ISA_S|ISA_K|ISA_and),     // both supervisor and cryptographic
@@ -392,7 +393,8 @@ typedef enum riscvZceeVerE {
 typedef enum riscvCompressVerE {
     RVCV_NA_LEGACY,                     // Zc absent or legacy (see above)
     RVCV_0_70_1,                        // Zc version 0.70.1
-    RVCV_DEFAULT = RVCV_0_70_1,         // default version
+    RVCV_0_70_5,                        // Zc version 0.70.5
+    RVCV_DEFAULT = RVCV_0_70_5,         // default version
 } riscvCompressVer;
 
 //
@@ -400,20 +402,24 @@ typedef enum riscvCompressVerE {
 //
 typedef enum riscvCompressSetE {
     // legacy values
-    RVCS_Zcea  = (1<<0),                // Zcea subset
-    RVCS_Zceb  = (1<<1),                // Zceb subset
-    RVCS_Zcee  = (1<<2),                // Zcee subset
+    RVCS_Zcea      = (1<<0),            // Zcea subset
+    RVCS_Zceb      = (1<<1),            // Zceb subset
+    RVCS_Zcee      = (1<<2),            // Zcee subset
     // new values
-    RVCS_Zca   = (1<<3),                // Zca subset
-    RVCS_Zcb   = (1<<4),                // Zcb subset
-    RVCS_Zcd   = (1<<5),                // Zcd subset (implicit)
-    RVCS_Zcf   = (1<<6),                // Zcf subset
-    RVCS_Zcmb  = (1<<7),                // Zcmb subset
-    RVCS_Zcmp  = (1<<8),                // Zcmp subset
-    RVCS_Zcmpe = (1<<9),                // Zcmpe subset
-    RVCS_Zcmt  = (1<<10),               // Zcmt subset
+    RVCS_Zca       = (1<<3),            // Zca subset
+    RVCS_Zcb       = (1<<4),            // Zcb subset
+    RVCS_Zcd       = (1<<5),            // Zcd subset (implicit)
+    RVCS_Zcf       = (1<<6),            // Zcf subset
+    RVCS_Zcmb      = (1<<7),            // Zcmb subset
+    RVCS_Zcmp      = (1<<8),            // Zcmp subset
+    RVCS_Zcmpe     = (1<<9),            // Zcmpe subset
+    RVCS_Zcmt      = (1<<10),           // Zcmt subset
     // composite values
-    RVCS_ZcNotD = RVCS_Zcmb|RVCS_Zcmp|RVCS_Zcmpe|RVCS_Zcmt
+    RVCS_ZceaZcb   = RVCS_Zcea|RVCS_Zcb,
+    RVCS_ZcebZcmb  = RVCS_Zceb|RVCS_Zcmb,
+    RVCS_ZceeZcb   = RVCS_Zcee|RVCS_Zcb,
+    RVCS_ZcmpZcmpe = RVCS_Zcmp|RVCS_Zcmpe,
+    RVCS_ZcNotD    = RVCS_Zcmb|RVCS_Zcmp|RVCS_Zcmpe|RVCS_Zcmt
 } riscvCompressSet;
 
 //
@@ -530,6 +536,7 @@ typedef enum riscvFSModeE {
     RVFS_WRITE_NZ,                      // dirty set if exception only (default)
     RVFS_WRITE_ANY,                     // any fflags write sets dirty
     RVFS_ALWAYS_DIRTY,                  // mstatus.FS is always off or dirty
+    RVFS_FORCE_DIRTY,                   // mstatus.FS is always dirty
 } riscvFSMode;
 
 //
@@ -585,6 +592,15 @@ typedef enum riscvSmepmpVerE {
     RVSP_1_0,                           // version 1.0
     RVSP_DEFAULT = RVSP_1_0,            // default version
 } riscvSmepmpVer;
+
+//
+// Tags for memory accesses
+//
+typedef enum riscvMConstraint {
+    RVMC_NONE,                          // unconstrained
+    RVMC_USER1,                         // constrained with MEM_CONSTRAINT_USER1
+    RVMC_USER2,                         // constrained with MEM_CONSTRAINT_USER2
+} riscvMConstraint;
 
 // macro returning User Architecture version
 #define RISCV_USER_VERSION(_P)      ((_P)->configInfo.user_version)

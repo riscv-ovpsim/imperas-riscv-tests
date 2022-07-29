@@ -36,23 +36,23 @@ Other instructions (those not the focus of this suite)
   sd : 484
   beq : 77
   slli : 1,655
-  bltu : 1
   ld : 297
   sub : 158
   blt : 73
   andi : 39
   sll : 63
+  bge : 54
   bne : 21
   fence : 19
   ecall : 20
-  bge : 54
-  ebreak : 1
-  sw : 7
-  bgeu : 1
-  xori : 3
-  lhu : 1
   lh : 1
-  sh : 1
+  bgeu : 1
+  sw : 7
+  xori : 3
   lwu : 3
   lw : 3
+  bltu : 1
+  ebreak : 1
+  lhu : 1
+  sh : 1
 

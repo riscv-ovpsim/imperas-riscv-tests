@@ -810,7 +810,6 @@ typedef CSR_REG_TYPE(envcfg) CSR_REG_TYPE(senvcfg);
 #define shift_envcfg_CBZE  7
 #define shift_envcfg_PBMTE 62
 #define shift_envcfg_STCE  63
-#define WM64_envcfg        ((1ULL<<shift_envcfg_STCE)+(1ULL<<shift_envcfg_FIOM))
 
 // -----------------------------------------------------------------------------
 // sstateen0-sstateen3 (id 0x10C-0x10F)
@@ -825,10 +824,12 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hstateen);
 
 // define bit offsets
 #define bit_stateen_Zfinx     1
+#define bit_stateen_Zcmt      2
 #define bit_stateen_xcse      57
 #define bit_stateen_xenvcfg   62
 #define bit_stateen_xstateen  63
 #define WM64_stateen_Zfinx    (1ULL<<bit_stateen_Zfinx)
+#define WM64_stateen_Zcmt     (1ULL<<bit_stateen_Zcmt)
 #define WM64_stateen_xcse     (1ULL<<bit_stateen_xcse)
 #define WM64_stateen_xenvcfg  (1ULL<<bit_stateen_xenvcfg)
 #define WM64_stateen_xstateen (1ULL<<bit_stateen_xstateen)
@@ -2326,6 +2327,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (utvec);          // 0x005
     CSR_REG_DECL  (utvt);           // 0x007
     CSR_REG_DECL  (vstart);         // 0x008
+    CSR_REG_DECL  (jvt);            // 0x017
     CSR_REG_DECL  (uepc);           // 0x041
     CSR_REG_DECL  (ucause);         // 0x042
     CSR_REG_DECL  (utval);          // 0x043

@@ -31,10 +31,10 @@ Other instructions (those not the focus of this suite)
   beq : 84
   jalr : 312
   csrrc : 14
+  FETCH : 178
+  bne : 2,220
   sw : 1,792
   lw : 448
-  bne : 2,220
-  FETCH : 178
   ecall : 28
   fence : 14
 

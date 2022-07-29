@@ -64,37 +64,42 @@ typedef struct riscvConfigS {
     const char       *name;             // variant name
 
     // fundamental variant configuration
-    riscvArchitecture arch;             // variant architecture
-    riscvArchitecture archImplicit;     // implicit feature bits (not in misa)
-    riscvArchitecture archMask;         // read/write bits in architecture
-    riscvArchitecture archFixed;        // fixed bits in architecture
-    riscvUserVer      user_version;     // user-level ISA version
-    riscvPrivVer      priv_version;     // privileged architecture version
-    riscvVectVer      vect_version;     // vector architecture version
-    riscvVectorSet    vect_profile;     // vector architecture profile
-    riscvBitManipVer  bitmanip_version; // bitmanip architecture version
-    riscvBitManipSet  bitmanip_absent;  // bitmanip absent extensions
-    riscvCryptoVer    crypto_version;   // cryptographic architecture version
-    riscvCryptoSet    crypto_absent;    // cryptographic absent extensions
-    riscvDSPVer       dsp_version;      // DSP architecture version
-    riscvDSPSet       dsp_absent;       // DSP absent extensions
-    riscvCompressVer  compress_version; // compressed architecture version
-    riscvCompressSet  compress_present; // compressed present extensions
-    riscvHypVer       hyp_version;      // hypervisor architecture version
-    riscvDebugVer     dbg_version;      // debugger architecture version
-    riscvRNMIVer      rnmi_version;     // rnmi version
-    riscvSmepmpVer    Smepmp_version;   // Smepmp version
-    riscvCLICVer      CLIC_version;     // CLIC version
-    riscvZfinxVer     Zfinx_version;    // Zfinx version
-    riscvZceaVer      Zcea_version;     // Zcea version
-    riscvZcebVer      Zceb_version;     // Zceb version
-    riscvZceeVer      Zcee_version;     // Zcee version
-    riscvFP16Ver      fp16_version;     // 16-bit floating point version
-    riscvFSMode       mstatus_fs_mode;  // mstatus.FS update mode
-    riscvDMMode       debug_mode;       // is Debug mode implemented?
-    riscvDERETMode    debug_eret_mode;  // debug mode MRET, SRET or DRET action
-    riscvDPriority    debug_priority;   // priority of simultaneous debug events
-    const char      **members;          // cluster member variants
+    riscvArchitecture arch;                 // variant architecture
+    riscvArchitecture archImplicit;         // implicit feature bits (not in misa)
+    riscvArchitecture archMask;             // read/write bits in architecture
+    riscvArchitecture archFixed;            // fixed bits in architecture
+    riscvUserVer      user_version    : 8;  // user-level ISA version
+    riscvPrivVer      priv_version    : 8;  // privileged architecture version
+    riscvVectVer      vect_version    : 8;  // vector architecture version
+    riscvVectorSet    vect_profile    : 8;  // vector architecture profile
+    riscvBitManipVer  bitmanip_version: 8;  // bitmanip architecture version
+    riscvBitManipSet  bitmanip_absent;      // bitmanip absent extensions
+    riscvCryptoVer    crypto_version  : 8;  // cryptographic architecture version
+    riscvCryptoSet    crypto_absent;        // cryptographic absent extensions
+    riscvDSPVer       dsp_version     : 8;  // DSP architecture version
+    riscvDSPSet       dsp_absent      : 8;  // DSP absent extensions
+    riscvCompressVer  compress_version: 8;  // compressed architecture version
+    riscvCompressSet  compress_present;     // compressed present extensions
+    riscvHypVer       hyp_version     : 8;  // hypervisor architecture version
+    riscvDebugVer     dbg_version     : 8;  // debugger architecture version
+    riscvRNMIVer      rnmi_version    : 8;  // rnmi version
+    riscvSmepmpVer    Smepmp_version  : 8;  // Smepmp version
+    riscvCLICVer      CLIC_version    : 8;  // CLIC version
+    riscvZfinxVer     Zfinx_version   : 8;  // Zfinx version
+    riscvZceaVer      Zcea_version    : 8;  // Zcea version (legacy only)
+    riscvZcebVer      Zceb_version    : 8;  // Zceb version (legacy only)
+    riscvZceeVer      Zcee_version    : 8;  // Zcee version (legacy only)
+    riscvFP16Ver      fp16_version    : 8;  // 16-bit floating point version
+    riscvFSMode       mstatus_fs_mode : 8;  // mstatus.FS update mode
+    riscvDMMode       debug_mode      : 8;  // is Debug mode implemented?
+    riscvDERETMode    debug_eret_mode : 8;  // debug mode MRET/SRET/DRET action
+    riscvDPriority    debug_priority  : 8;  // simultaneous debug event priority
+    const char      **members;              // cluster member variants
+
+    // instruction memory constraints
+    riscvMConstraint amo_constraint      : 2;   // AMO memory constraint
+    riscvMConstraint lr_sc_constraint    : 2;   // LR/SC memory constraint
+    riscvMConstraint push_pop_constraint : 2;   // PUSH/POP memory constraint
 
     // configuration not visible in CSR state
     Uns64 reset_address;                // reset vector address
@@ -187,11 +192,15 @@ typedef struct riscvConfigS {
     Bool  unalignedAMO         : 1;     // whether AMO supports unaligned
     Bool  unalignedV           : 1;     // whether vector supports unaligned
     Bool  wfi_is_nop           : 1;     // whether WFI is treated as NOP
+    Bool  nmi_is_latched       : 1;     // whether NMI is posedge-latched
     Bool  mtvec_is_ro          : 1;     // whether mtvec is read-only
-    Bool  cycle_undefined      : 1;     // whether cycle CSR is undefined
+    Bool  cycle_undefined      : 1;     // whether cycle CSR undefined
+    Bool  mcycle_undefined     : 1;     // whether mcycle CSR undefined
     Bool  time_undefined       : 1;     // whether time CSR is undefined
-    Bool  instret_undefined    : 1;     // whether instret CSR is undefined
+    Bool  instret_undefined    : 1;     // whether instret CSR undefined
+    Bool  minstret_undefined   : 1;     // whether minstret CSR undefined
     Bool  hpmcounter_undefined : 1;     // whether hpmcounter* CSRs undefined
+    Bool  mhpmcounter_undefined: 1;     // whether mhpmcounter* CSRs undefined
     Bool  tinfo_undefined      : 1;     // whether tinfo CSR is undefined
     Bool  tcontrol_undefined   : 1;     // whether tcontrol CSR is undefined
     Bool  mcontext_undefined   : 1;     // whether mcontext CSR is undefined
@@ -279,6 +288,7 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (mtvt);                // mtvec mask
         CSR_REG_DECL (stvt);                // stvec mask
         CSR_REG_DECL (utvt);                // utvec mask
+        CSR_REG_DECL (jvt);                 // jvt mask
         CSR_REG_DECL (tdata1);              // tdata1 mask
         CSR_REG_DECL (mip);                 // mip mask
         CSR_REG_DECL (sip);                 // sip mask

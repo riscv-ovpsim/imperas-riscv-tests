@@ -39,15 +39,15 @@ Other instructions (those not the focus of this suite)
   blt : 39
   andi : 22
   sll : 29
+  bge : 20
   bne : 18
   fence : 16
   ecall : 17
   xori : 3
-  lhu : 1
-  bge : 20
-  sh : 1
-  ebreak : 1
-  bgeu : 1
   bltu : 1
+  sh : 1
+  bgeu : 1
   lh : 1
+  ebreak : 1
+  lhu : 1
 

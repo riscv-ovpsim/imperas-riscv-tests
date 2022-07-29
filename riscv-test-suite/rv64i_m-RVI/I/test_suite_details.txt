@@ -42,41 +42,41 @@ Other instructions (those not the focus of this suite)
   and : 677
   addw : 678
   andi : 684
+  sub : 1,330
+  bge : 674
+  bgeu : 821
+  blt : 674
+  bne : 678
   jalr : 97
   xori : 689
-  sub : 1,330
-  bgeu : 821
-  bge : 674
+  bltu : 814
   sw : 136
   lw : 34
-  bne : 678
-  blt : 674
-  bltu : 814
   lb : 32
   lbu : 33
   ld : 32
   lh : 32
   lhu : 32
   lwu : 32
-  or : 678
   ori : 622
+  or : 678
   sb : 135
   sh : 133
-  sll : 153
   slliw : 150
+  sll : 153
   sllw : 153
-  sltu : 819
-  sraiw : 152
-  slti : 617
-  sra : 154
-  sltiu : 759
-  srai : 152
   slt : 676
+  sltiu : 759
+  slti : 617
+  sltu : 819
+  srai : 152
+  sra : 154
+  sraiw : 152
   sraw : 154
-  srl : 153
   srliw : 152
   srli : 153
+  srl : 153
   srlw : 154
-  xor : 675
   subw : 678
+  xor : 675
 

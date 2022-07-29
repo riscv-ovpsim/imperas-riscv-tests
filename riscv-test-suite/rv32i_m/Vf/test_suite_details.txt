@@ -19,134 +19,135 @@
 Architectural Test Suite Data for RV32VF RISC-V "V" Vector Extension:
     563 test source files
     17 different instruction categories
-    108 different instructions
-    367,074 total instructions
+    109 different instructions
+    459,890 total instructions
 
 Instruction category: OPV_SFAS single-width floating-point add/subtract
-  vfadd.vf : 202
-  vfadd.vv : 202
-  vfrsub.vf : 202
-  vfsub.vf : 202
-  vfsub.vv : 202
+  vfadd.vf : 224
+  vfadd.vv : 224
+  vfrsub.vf : 224
+  vfsub.vf : 224
+  vfsub.vv : 224
 Instruction category: OPV_FPC floating-point classify
-  vfclass.v : 202
+  vfclass.v : 224
 Instruction category: OPV_SFITC single-width floating-point/integer type-convert
-  vfcvt.f.x.v : 202
-  vfcvt.f.xu.v : 202
-  vfcvt.x.f.v : 202
-  vfcvt.rtz.x.f.v : 202
-  vfcvt.xu.f.v : 202
-  vfcvt.rtz.xu.f.v : 202
+  vfcvt.f.x.v : 224
+  vfcvt.f.xu.v : 224
+  vfcvt.x.f.v : 224
+  vfcvt.rtz.x.f.v : 224
+  vfcvt.xu.f.v : 224
+  vfcvt.rtz.xu.f.v : 224
 Instruction category: OPV_SMDFAS single-width floating-point multiply/divide widening floating-point add/subtract
-  vfdiv.vf : 202
-  vfdiv.vv : 202
-  vfmul.vf : 202
-  vfmul.vv : 202
-  vfrdiv.vf : 202
+  vfdiv.vf : 224
+  vfdiv.vv : 224
+  vfmul.vf : 224
+  vfmul.vv : 224
+  vfrdiv.vf : 224
 Instruction category: OPV_SFFMA single-width floating-point fused multiply-add
-  vfmacc.vf : 202
-  vfmacc.vv : 202
-  vfmadd.vf : 202
-  vfmadd.vv : 202
-  vfmsac.vf : 202
-  vfmsac.vv : 202
-  vfmsub.vf : 202
-  vfmsub.vv : 202
-  vfnmacc.vf : 202
-  vfnmacc.vv : 202
-  vfnmadd.vf : 202
-  vfnmadd.vv : 202
-  vfnmsac.vf : 202
-  vfnmsac.vv : 202
-  vfnmsub.vf : 202
-  vfnmsub.vv : 202
+  vfmacc.vf : 224
+  vfmacc.vv : 224
+  vfmadd.vf : 224
+  vfmadd.vv : 224
+  vfmsac.vf : 224
+  vfmsac.vv : 224
+  vfmsub.vf : 224
+  vfmsub.vv : 224
+  vfnmacc.vf : 224
+  vfnmacc.vv : 224
+  vfnmadd.vf : 224
+  vfnmadd.vv : 224
+  vfnmsac.vf : 224
+  vfnmsac.vv : 224
+  vfnmsub.vf : 224
+  vfnmsub.vv : 224
 Instruction category: OPV_FMM floating-point min/max
-  vfmax.vf : 202
-  vfmax.vv : 202
-  vfmin.vf : 202
-  vfmin.vv : 202
+  vfmax.vf : 224
+  vfmax.vv : 224
+  vfmin.vf : 224
+  vfmin.vv : 224
 Instruction category: OPV_FPME floating-point merge
-  vfmerge.vfm : 202
+  vfmerge.vfm : 224
 Instruction category: OPV_FPMO floating-point move
   vfmv.v.f : 224
 Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
-  vfncvt.f.f.w : 70
-  vfncvt.rod.f.f.w : 70
-  vfncvt.f.x.w : 70
-  vfncvt.f.xu.w : 70
-  vfncvt.x.f.w : 70
-  vfncvt.rtz.x.f.w : 70
-  vfncvt.xu.f.w : 70
-  vfncvt.rtz.xu.f.w : 70
+  vfncvt.f.f.w : 80
+  vfncvt.rod.f.f.w : 80
+  vfncvt.f.x.w : 80
+  vfncvt.f.xu.w : 80
+  vfncvt.x.f.w : 80
+  vfncvt.xu.f.w : 80
+  vfncvt.rtz.xu.f.w : 80
+  vfncvt.rtz.x.f.w : 80
 Instruction category: OPV_RECE floating-point reciprocal estimate
-  vfrec7.v : 202
+  vfrec7.v : 224
 Instruction category: OPV_SQRT floating-point square-root
-  vfsqrt.v : 202
-  vfrsqrt7.v : 202
+  vfsqrt.v : 224
+  vfrsqrt7.v : 224
 Instruction category: OPV_FSI floating-point sign-injection
-  vfsgnj.vf : 202
-  vfsgnj.vv : 202
-  vfsgnjn.vf : 202
-  vfsgnjn.vv : 202
-  vfsgnjx.vf : 202
-  vfsgnjx.vv : 202
+  vfsgnj.vf : 224
+  vfsgnj.vv : 224
+  vfsgnjn.vf : 224
+  vfsgnjn.vv : 224
+  vfsgnjx.vf : 224
+  vfsgnjx.vv : 224
 Instruction category: OPV_WFAS widening floating-point add/subtract
-  vfwadd.vf : 70
-  vfwadd.vv : 70
-  vfwadd.wf : 70
-  vfwadd.wv : 70
-  vfwsub.vf : 70
-  vfwsub.vv : 70
-  vfwsub.wf : 70
-  vfwsub.wv : 70
+  vfwadd.vf : 80
+  vfwadd.vv : 80
+  vfwadd.wf : 80
+  vfwadd.wv : 80
+  vfwsub.vf : 80
+  vfwsub.wf : 80
+  vfwsub.wv : 80
+  vfwsub.vv : 80
 Instruction category: OPV_WFITC widening floating-point/integer type-convert
-  vfwcvt.f.f.v : 70
-  vfwcvt.x.f.v : 70
-  vfwcvt.rtz.x.f.v : 70
-  vfwcvt.f.xu.v : 70
-  vfwcvt.f.x.v : 70
-  vfwcvt.xu.f.v : 70
-  vfwcvt.rtz.xu.f.v : 70
+  vfwcvt.f.f.v : 80
+  vfwcvt.f.x.v : 80
+  vfwcvt.x.f.v : 80
+  vfwcvt.rtz.x.f.v : 80
+  vfwcvt.f.xu.v : 80
+  vfwcvt.xu.f.v : 80
+  vfwcvt.rtz.xu.f.v : 80
 Instruction category: OPV_WFFMA widening floating-point fused multiply-add
-  vfwmacc.vf : 70
-  vfwmsac.vf : 70
-  vfwmsac.vv : 70
-  vfwmacc.vv : 70
-  vfwnmacc.vf : 70
-  vfwnmsac.vf : 70
-  vfwnmacc.vv : 70
-  vfwnmsac.vv : 70
+  vfwmacc.vf : 80
+  vfwmacc.vv : 80
+  vfwmsac.vf : 80
+  vfwmsac.vv : 80
+  vfwnmacc.vf : 80
+  vfwnmacc.vv : 80
+  vfwnmsac.vf : 80
+  vfwnmsac.vv : 80
 Instruction category: OPV_WFM widening floating-point multiply
-  vfwmul.vf : 70
-  vfwmul.vv : 70
+  vfwmul.vv : 80
+  vfwmul.vf : 80
 Instruction category: OPV_FC floating-point compare
-  vmfeq.vf : 202
-  vmfeq.vv : 202
-  vmfge.vf : 202
-  vmfgt.vf : 202
-  vmfle.vf : 202
-  vmfle.vv : 202
-  vmflt.vf : 202
-  vmflt.vv : 202
-  vmfne.vf : 202
-  vmfne.vv : 202
+  vmfeq.vf : 224
+  vmfeq.vv : 224
+  vmfge.vf : 224
+  vmfgt.vf : 224
+  vmfle.vf : 224
+  vmfle.vv : 224
+  vmflt.vf : 224
+  vmflt.vv : 224
+  vmfne.vf : 224
+  vmfne.vv : 224
 
 Other instructions (those not the focus of this suite)
   jal : 563
-  lui : 22,818
-  addi : 129,744
+  lui : 23,375
+  addi : 172,142
   csrrs : 2,252
-  auipc : 27,434
+  auipc : 30,171
   csrrw : 1,689
   mret : 563
-  fmv.s.x : 6,106
-  vsetvli : 49,101
-  add : 56,192
-  vle16.v : 16,648
-  vse16.v : 6,429
+  vsetvli : 81,480
+  vle16.v : 18,480
+  fmv.s.x : 6,768
+  add : 62,528
+  vse16.v : 6,016
   fence : 563
   ecall : 563
   beq : 1,689
-  vle32.v : 23,053
-  vse32.v : 7,619
+  vle32.v : 25,800
+  vse32.v : 7,376
+  vse8.v : 2,240
 
