@@ -23,14 +23,14 @@ Architectural Test Suite Data for RV32M Base Embedded (Integer) Instruction Set:
     7,952 total instructions
 
 Instruction category: arithmetic 
+  div : 172
   mulh : 172
-  mul : 172
-  mulhu : 172
+  rem : 172
   mulhsu : 172
   remu : 172
+  mulhu : 172
+  mul : 172
   divu : 172
-  div : 172
-  rem : 172
 
 Other instructions (those not the focus of this suite)
   jal : 8

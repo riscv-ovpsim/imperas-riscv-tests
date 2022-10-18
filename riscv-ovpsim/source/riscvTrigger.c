@@ -189,7 +189,7 @@ riscvArchitecture riscvGetCurrentTriggers(riscvP riscv) {
 
 //
 // Return the configured timing for a trigger - note that for ICOUNT
-// breakpoints, timing is usually after an instruction conpletes but switches
+// breakpoints, timing is usually after an instruction completes but switches
 // to *before* the instruction if the pending bit is set (for breakpoints
 // scheduled after instructions that cause exceptions)
 //

@@ -48,9 +48,22 @@ static const char *getSubsetDesc(riscvP riscv, riscvCompressSet requiredSet) {
     // select alternative architectural features implied by version
     requiredSet &= RISCV_COMPRESS_VERSION(riscv) ? ~legacySet : legacySet;
 
-    // get missing subset description (NOTE: all Zceb subset instructions map
-    // to D extension opcodes if Zceb is unimplemented, meaning that RVCS_Zceb
-    // case cannot be reached)
+    // get missing subset description
+    //
+    // NOTES ON UNREACHABLE CASES
+    // --------------------------
+    // 1. All RVCS_Zceb subset instructions map to D extension opcodes if Zceb
+    //    is unimplemented, meaning that RVCS_Zceb case cannot be reached.
+    // 2. Disabling RVCS_Zca is difficult to test because default assembler
+    //    options always use compressed instructions.
+    // 3. RVCS_Zcd is a pseudo-option that is used to elect between other
+    //    Zc instructions and compressed double-precision instructions and
+    //    cannot be reached here.
+    // 4. RVCS_Zcmpe currently controls no instructions, so cannot be reached
+    //    here.
+    // 5. Composite values selecting either legacy or current features cannot
+    //    be reached here (see code above).
+    //
     switch(requiredSet) {
 
         // LEGACY SETS
@@ -59,23 +72,20 @@ static const char *getSubsetDesc(riscvP riscv, riscvCompressSet requiredSet) {
         case RVCS_Zcee  : description = "Zcee";  break;
 
         // NEW SETS
-        case RVCS_Zca   : description = "Zca";   break;
+        case RVCS_Zca   : description = "Zca";   break; // LCOV_EXCL_LINE
         case RVCS_Zcb   : description = "Zcb";   break;
         case RVCS_Zcd   : description = "Zcd";   break; // LCOV_EXCL_LINE
         case RVCS_Zcf   : description = "Zcf";   break;
         case RVCS_Zcmb  : description = "Zcmb";  break;
         case RVCS_Zcmp  : description = "Zcmp";  break;
-        case RVCS_Zcmpe : description = "Zcmpe"; break;
+        case RVCS_Zcmpe : description = "Zcmpe"; break; // LCOV_EXCL_LINE
         case RVCS_Zcmt  : description = "Zcmt";  break;
 
         // COMPOSITE VALUES
-        case RVCS_ZceaZcb   : description = "Zcea and Zcb";   break;
-        case RVCS_ZcebZcmb  : description = "Zceb and Zcmb";  break;
-        case RVCS_ZceeZcb   : description = "Zcee and Zcb";   break;
         case RVCS_ZcmpZcmpe : description = "Zcmp and Zcmpe"; break;
 
-        // COMPOSITE VALUES (IGNORE)
-        case RVCS_ZcNotD:                        break; // LCOV_EXCL_LINE
+        // OTHER VALUES (IGNORE, UNREACHABLE)
+        default: break; // LCOV_EXCL_LINE
     }
 
     // sanity check known subset

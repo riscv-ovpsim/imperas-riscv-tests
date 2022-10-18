@@ -394,7 +394,8 @@ typedef enum riscvCompressVerE {
     RVCV_NA_LEGACY,                     // Zc absent or legacy (see above)
     RVCV_0_70_1,                        // Zc version 0.70.1
     RVCV_0_70_5,                        // Zc version 0.70.5
-    RVCV_DEFAULT = RVCV_0_70_5,         // default version
+    RVCV_1_0_0_RC57,                    // Zc version 1.0.0-RC5.7
+    RVCV_DEFAULT = RVCV_1_0_0_RC57,     // default version
 } riscvCompressVer;
 
 //
@@ -495,8 +496,8 @@ typedef enum riscvDebugVerE {
 //
 // Date and tag of master version
 //
-#define RVCLC_MASTER_DATE    "15 March 2022"
-#define RVCLC_MASTER_TAG     "9af754e"
+#define RVCLC_MASTER_DATE    "27 September 2022"
+#define RVCLC_MASTER_TAG     "5301345"
 
 //
 // Supported CLIC version
@@ -573,6 +574,7 @@ typedef enum riscvDERETModeE {
 typedef enum riscvDPriorityE {
     RVDP_ORIG,                          // original priority ordering
     RVDP_693,                           // priority ordering as in PR #693
+    RVDP_HALT_NOT_STEP,                 // haltreq preferred to step
 } riscvDPriority;
 
 //
@@ -581,6 +583,7 @@ typedef enum riscvDPriorityE {
 typedef enum riscvRNMIVerE {
     RNMI_NONE,                          // RNMI not implemented
     RNMI_0_2_1,                         // RNMI version 0.2.1
+    RNMI_0_4,                           // RNMI version 0.4
 } riscvRNMIVer;
 
 //

@@ -27,6 +27,11 @@
 #include "riscvVariant.h"
 
 //
+// Add extension register to debug interface
+//
+void riscvNewExtReg(riscvP riscv, vmiRegInfoCP src);
+
+//
 // Free register descriptions, if they have been allocated
 //
 void riscvFreeRegInfo(riscvP riscv);

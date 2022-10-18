@@ -40,8 +40,8 @@ Instruction category: branch
   bne : 171
   blt : 171
   bge : 171
-  bgeu : 171
   bltu : 171
+  bgeu : 171
 Instruction category: OPI_IMN 
   ecall : 37
 Instruction category: synch 
@@ -51,25 +51,25 @@ Instruction category: jump
   jalr : 169
 Instruction category: load 
   lb : 169
-  lh : 169
   lw : 676
-  lbu : 169
+  lh : 169
   lhu : 169
+  lbu : 169
 Instruction category: store 
   sw : 6,475
-  sb : 169
   sh : 169
+  sb : 169
 Instruction category: shift 
   srli : 170
+  sll : 172
   slli : 170
   srai : 170
-  sll : 172
   srl : 172
   sra : 172
 Instruction category: compare 
   slti : 170
-  sltiu : 170
   slt : 172
+  sltiu : 170
   sltu : 172
 
 Other instructions (those not the focus of this suite)

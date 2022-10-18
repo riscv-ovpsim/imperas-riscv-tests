@@ -33,8 +33,8 @@ Instruction category: OPB_PACK Packing
   pack : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rori : 170
   ror : 172
+  rori : 170
   rol : 172
 
 Other instructions (those not the focus of this suite)
@@ -49,7 +49,7 @@ Other instructions (those not the focus of this suite)
   fence : 11
   ecall : 11
   beq : 33
-  unshfli : 170
-  shfli : 170
   grevi : 170
+  shfli : 170
+  unshfli : 170
 

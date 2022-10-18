@@ -29,8 +29,8 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 172
   xnor : 172
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 172
   clmulh : 172
+  clmul : 172
 Instruction category: OPB_PACK Packing
   pack : 172
   packh : 172

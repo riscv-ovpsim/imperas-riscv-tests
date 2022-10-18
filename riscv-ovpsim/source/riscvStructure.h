@@ -23,6 +23,9 @@
 #include "vmi/vmiTypes.h"
 #include "vmi/vmiPorts.h"
 
+// common header files
+#include "ocl/oclSymbolTyperefs.h"
+
 // model header files
 #include "riscvCLICTypes.h"
 #include "riscvConfig.h"
@@ -108,9 +111,9 @@ typedef struct riscvBasicIntStateS {
     Uns64 pendingEnabled;       // pending-and-enabled state
     Uns64 pending;              // pending state
     Uns64 pendingExternal;      // pending external interrupts
-    Uns32 pendingInternal;      // pending internal (software) interrupts
-    Uns32 mideleg;              // mideleg register value
-    Uns32 sideleg;              // sideleg register value
+    Uns64 pendingInternal;      // pending internal (software) interrupts
+    Uns64 mideleg;              // mideleg register value
+    Uns64 sideleg;              // sideleg register value
     Bool  mie;                  // mstatus.mie
     Bool  sie;                  // mstatus.sie
     Bool  uie;                  // mstatus.uie
@@ -290,22 +293,24 @@ typedef struct riscvS {
 
     // Interrupt and exception control
     vmiExceptionInfoCP exceptions;      // all exceptions (including extensions)
-    Uns32              swip;            // software interrupt pending bits
+    Uns64              swip;            // software interrupt pending bits
     Uns64              exceptionMask;   // mask of all implemented exceptions
     Uns64              interruptMask;   // mask of all implemented interrupts
     Uns64              disableMask;     // mask of externally-disabled interrupts
     riscvPendEnab      pendEnab;        // pending and enabled interrupt
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
+    riscvAIAP          aia;             // AIA state
     riscvCLINTP        clint;           // CLINT state
     riscvCLIC          clic;            // source interrupt indicated from CLIC
     riscvException     exception;       // last activated exception
-    riscvICMode        MIMode    :  2;  // custom M interrupt mode
-    riscvICMode        SIMode    :  2;  // custom S interrupt mode
-    riscvICMode        HIMode    :  2;  // custom H interrupt mode
-    riscvICMode        UIMode    :  2;  // custom U interrupt mode
-    riscvAccessFault   AFErrorIn :  3;  // input access fault error subtype
-    riscvAccessFault   AFErrorOut:  3;  // latched access fault error subtype
-    Bool               inhv      :  1;  // is CLIC vector access active?
+    Uns32              threshOnes: 8;   // all-ones bits in xintthresh
+    riscvICMode        MIMode    : 2;   // custom M interrupt mode
+    riscvICMode        SIMode    : 2;   // custom S interrupt mode
+    riscvICMode        HIMode    : 2;   // custom H interrupt mode
+    riscvICMode        UIMode    : 2;   // custom U interrupt mode
+    riscvAccessFault   AFErrorIn : 3;   // input access fault error subtype
+    riscvAccessFault   AFErrorOut: 3;   // latched access fault error subtype
+    Bool               inhv      : 1;   // is CLIC vector access active?
 
     // LR/SC support
     Uns64              exclusiveTag;    // tag for active exclusive access
@@ -316,6 +321,9 @@ typedef struct riscvS {
     Uns64              baseInstructions;// base instruction count
 
     // Debug and trace
+    octSymbolTableP    regNames;        // table of generated register names
+    riscvRegListP      extRegHead;      // first extension register
+    riscvRegListP      extRegTail;      // last extension register
     vmiRegInfoP        regInfo[2];      // register views (normal and debug)
     char               tmpString[16];   // temporary string
 
@@ -334,6 +342,7 @@ typedef struct riscvS {
     riscvNetValue      netValue;        // special net port values
     Uns32              ipDWords;        // size of ip in double words
     Uns64             *ip;              // interrupt port values
+    Uns64              svie;            // S-mode virtual interrupt enable
     Uns32              DMPortHandle;    // DM port handle (debug mode)
     Uns32              LRAddressHandle; // LR address port handle (locking)
     Uns32              SCAddressHandle; // SC address port handle (locking)
@@ -588,6 +597,33 @@ inline static Bool useCLICVU(riscvP riscv) {
 }
 
 //
+// Is CSIP present?
+//
+inline static Bool haveCSIP(riscvP riscv) {
+    return CLICPresent(riscv) && riscv->configInfo.CSIP_present;
+}
+
+//
+// Is CSIP present with ID 12?
+//
+inline static Bool useCSIP12(riscvP riscv) {
+    return (
+        haveCSIP(riscv) &&
+        (riscv->configInfo.CLIC_version<=RVCLC_0_9_20220315)
+    );
+}
+
+//
+// Is CSIP present with ID 16?
+//
+inline static Bool useCSIP16(riscvP riscv) {
+    return (
+        haveCSIP(riscv) &&
+        (riscv->configInfo.CLIC_version>RVCLC_0_9_20220315)
+    );
+}
+
+//
 // Compose vtype
 //
 inline static riscvVType composeVType(riscvP riscv, Uns32 vtypeBits) {
@@ -733,6 +769,13 @@ inline static riscvZcebVer Zceb(riscvP riscv) {
 //
 inline static riscvZceeVer Zcee(riscvP riscv) {
     return RISCV_ZCEE_VERSION(riscv);
+}
+
+//
+// Is Smaia configured?
+//
+inline static riscvZceeVer Smaia(riscvP riscv) {
+    return riscv->configInfo.Smaia;
 }
 
 //

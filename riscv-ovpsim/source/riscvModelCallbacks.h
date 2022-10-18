@@ -488,6 +488,15 @@ typedef RISCV_NEW_TLB_ENTRY_FN((*riscvNewTLBEntryFn));
 )
 typedef RISCV_FREE_TLB_ENTRY_FN((*riscvFreeTLBEntryFn));
 
+//
+// Add extension register to debug interface
+//
+#define RISCV_NEW_EXT_REG_FN(_NAME) void _NAME( \
+    riscvP       riscv,             \
+    vmiRegInfoCP extReg             \
+)
+typedef RISCV_NEW_EXT_REG_FN((*riscvNewExtRegFn));
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTED BY DERIVED MODEL
@@ -829,6 +838,9 @@ typedef struct riscvModelCBS {
     riscvUpdateLdStDomainFn   updateLdStDomain;
     riscvNewTLBEntryFn        newTLBEntry;
     riscvFreeTLBEntryFn       freeTLBEntry;
+
+    // from riscvDebug.h
+    riscvNewExtRegFn          newExtReg;
 
 } riscvModelCB;
 

@@ -118,6 +118,8 @@ typedef struct riscvConfigS {
     Uns64 ecode_nmi;                    // exception code for NMI
     Uns64 ecode_nmi_mask;               // implemented bits in mncause.ecode
     Uns64 Svnapot_page_mask;            // implemented Svnapot page sizes
+    Uns64 miprio_mask;                  // writable entries in M-mode iprio array
+    Uns64 siprio_mask;                  // writable entries in S-mode iprio array
     Uns32 counteren_mask;               // counter-enable implemented mask
     Uns32 noinhibit_mask;               // counter no-inhibit mask
     Uns32 local_int_num;                // number of local interrupts
@@ -141,6 +143,7 @@ typedef struct riscvConfigS {
     Uns32 SEW_min;                      // minimum SEW (vector extension)
     Uns32 ASID_cache_size;              // ASID cache size
     Uns16 tinfo;                        // tinfo default value (all triggers)
+    Uns16 trigger_match;                // bitmask of legal trigger match values
     Uns16 cmomp_bytes;                  // cache block bytes (management/prefetch)
     Uns16 cmoz_bytes;                   // cache block bytes (zero)
     Uns8  ASID_bits;                    // number of implemented ASID bits
@@ -158,6 +161,7 @@ typedef struct riscvConfigS {
     Uns8  mtvt_sext;                    // mtvec sign-extended bit count
     Uns8  stvt_sext;                    // stvec sign-extended bit count
     Uns8  utvt_sext;                    // utvec sign-extended bit count
+    Uns8  IPRIOLEN;                     // AIA IPRIOLEN value
     Bool  isPSE                : 1;     // whether a PSE (internal use only)
     Bool  enable_expanded      : 1;     // enable expanded instructions
     Bool  endianFixed          : 1;     // endianness is fixed (UBE/SBE/MBE r/o)
@@ -172,6 +176,8 @@ typedef struct riscvConfigS {
     Bool  Smstateen            : 1;     // Smstateen implemented?
     Bool  Svpbmt               : 1;     // Svpbmt implemented?
     Bool  Svinval              : 1;     // Svinval implemented?
+    Bool  Smaia                : 1;     // Smaia implemented?
+    Bool  IMSIC_present        : 1;     // IMSIC present?
     Bool  Zmmul                : 1;     // Zmmul implemented?
     Bool  Zfhmin               : 1;     // Zfhmin implemented?
     Bool  Zvlsseg              : 1;     // Zvlsseg implemented?
@@ -211,6 +217,7 @@ typedef struct riscvConfigS {
     Bool  mnoise_undefined     : 1;     // whether mnoise CSR is undefined
     Bool  amo_trigger          : 1;     // whether triggers used with AMO
     Bool  amo_aborts_lr_sc     : 1;     // whether AMO aborts active LR/SC
+    Bool  lr_sc_match_size     : 1;     // whether LR/SC size must match
     Bool  no_hit               : 1;     // whether tdata1.hit is unimplemented
     Bool  no_sselect_2         : 1;     // whether textra.sselect=2 is illegal
     Bool  d_requires_f         : 1;     // whether misa D requires F to be set
@@ -251,15 +258,18 @@ typedef struct riscvConfigS {
     Bool  tvt_undefined        : 1;     // whether *tvt CSRs are undefined
     Bool  intthresh_undefined  : 1;     // whether *intthresh CSRs undefined
     Bool  mclicbase_undefined  : 1;     // whether mclicbase CSR is undefined
+    Bool  CSIP_present         : 1;     // whether CSIP interrupt is present
     Bool  posedge_other        : 1;     // fixed int[64:N] positive edge
     Bool  poslevel_other       : 1;     // fixed int[64:N] positive level
     Uns64 posedge_0_63;                 // fixed int[63:0] positive edge
     Uns64 poslevel_0_63;                // fixed int[63:0] positive level
     Uns32 CLICLEVELS;                   // number of CLIC interrupt levels
+    Uns16 nlbits_valid;                 // mask of valid cliccfg.nlbits values
     Uns8  CLICVERSION;                  // CLIC version
     Uns8  CLICINTCTLBITS;               // bits implemented in clicintctl[i]
     Uns8  CLICCFGMBITS;                 // bits implemented for cliccfg.nmbits
     Uns8  CLICCFGLBITS;                 // bits implemented for cliccfg.nlbits
+    Uns8  INTTHRESHBITS;                // bits implemented in xintthresh CSRs
 
     // Hypervisor configuration
     Uns8  GEILEN;                       // number of guest external interrupts
@@ -294,6 +304,8 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (sip);                 // sip mask
         CSR_REG_DECL (uip);                 // uip mask
         CSR_REG_DECL (hip);                 // hip mask
+        CSR_REG_DECL (mvien);               // mvien mask
+        CSR_REG_DECL (mvip);                // mvip mask
         CSR_REG_DECL (envcfg);              // envcfg mask
         CSR_REG_DECL_0_15(romask_pmpcfg);   // pmpcfg read-only bit masks
         CSR_REG_DECL_0_63(romask_pmpaddr);  // pmpaddr read-only bit masks

@@ -10,6 +10,61 @@ NOTE: X-commit messages below refer to git commits in the following
       Risc-V specification document repositories:
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
+  C-commit: https://github.com/riscv/riscv-fast-interrupt
+
+- Compressed extension version 1.0.0-RC5.7 is now implemented if parameter
+  compress_version is set to "1.0.0-RC5.7". Compared to version 0.70.5:
+  - jt/jalt instruction encodings are changed;
+  - Zcmb subset is removed.
+- Presence of the CLIC software interrupt signal (CSIP) is now indicated by
+  Boolean parameter CSIP_present - previously, this signal was always present if
+  the CLIC is implemented. If present, the signal is now forced to be
+  positive-edge triggered - previously, this was configurable. These changes
+  reflect specification clarifications made on 11th October 2022.
+- Issues have been corrected that caused undesired behavior for vector
+  instructions when the agnostic_ones parameter is True: in some cases, tail
+  elements were left undisturbed instead of being set to all-ones. Although
+  this is permitted by the specification, it was not the intended behavior of
+  this parameter.
+- Resumable NMI extension version 0.4 is now implemented if parameter
+  rnmi_version is set to "0.4". Compared to version 0.2.1, this version:
+  - changes mnscratch, mnepc, mncause and mnstatus CSR addresses;
+  - defines behavior for exceptions from VS and VU modes; and:
+  - specifies that mnstatus.NMIE resets to 0.
+- In the CLIC master version, CSIP now has ID 16 and is treated as a local
+  interrupt. Previously, CSIP had ID 12 and was not treated as a local
+  interrupt.
+- When PMP is implemented, read-only 8-bit integration support registers named
+  pmp0cfg0, pmp1cfg0 etc have been added that show the configuration of a single
+  PMP region.
+- When the CLIC is implemented, new parameter nlbits_valid specifies a bitmask
+  of valid values for the CLIC cliccfg.nlbits field; for example,
+  cliccfg.nlbits=8 is only valid if nlbits_valid has bit 8 set. This complements
+  the existing CLICCFGLBITS parameter by allowing a discontinuous range of valid
+  values.
+- Code size reduction extension instruction mvsa01 now causes an Illegal
+  Instruction trap if the two destinations are the same register.
+- New parameter trigger_match indicates legal values for 'match' field for
+  trigger types 2 and 6.
+- When PMP TOR region matching is enabled, low address bounds are now masked
+  using the region grain size: previously, only high region bounds were masked.
+- New parameter lr_sc_match_size indicates whether data sizes of LR/SC 
+  instructions must match for the SC instruction to succeed.
+- An issue causing a segmentation fault when executing vcompress.vm when
+  vtype.vma=1 has been corrected.
+- Behavior of CLIC xscratchcsw CSRs has been corrected - previously, logic
+  determining whether the swap should proceed was incorrect.
+- The CLIC version master branch currently has these differences compared to
+  the previous 0.9-draft-20220315 version:
+  - C-commit ad08bd8: vector table read now requires execute permission (not
+    read permission);
+  - C-commit 12b98cc: algorithm used for xscratchcsw accesses changed;
+  - C-commit 8f98d6a: new parameter INTTHRESHBITS allows implemented bits in
+    xintthresh CSRs to be restricted.
+
+Date 2022-June-27
+Release 20220727.0
+===
 
 - Parameter mstatus_fs_mode now supports option force_dirty; if selected, this
   forces the value of mstatus.FS to Dirty (3) and prevents floating-point

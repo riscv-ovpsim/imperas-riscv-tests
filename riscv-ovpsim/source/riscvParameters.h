@@ -201,6 +201,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(ASID_bits);
     VMI_UNS32_PARAM(trigger_num);
     VMI_UNS32_PARAM(tinfo);
+    VMI_UNS32_PARAM(trigger_match);
     VMI_UNS32_PARAM(mcontext_bits);
     VMI_UNS32_PARAM(scontext_bits);
     VMI_UNS32_PARAM(mvalue_bits);
@@ -219,6 +220,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Svpbmt);
     VMI_BOOL_PARAM(Svinval);
     VMI_UNS32_PARAM(lr_sc_grain);
+    VMI_BOOL_PARAM(lr_sc_match_size);
     VMI_UNS64_PARAM(reset_address);
     VMI_UNS64_PARAM(nmi_address);
     VMI_UNS64_PARAM(nmiexc_address);
@@ -325,14 +327,26 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(CLICSELHVEC);
     VMI_BOOL_PARAM(CLICXNXTI);
     VMI_BOOL_PARAM(CLICXCSW);
+    VMI_UNS32_PARAM(INTTHRESHBITS);
     VMI_BOOL_PARAM(externalCLIC);
     VMI_BOOL_PARAM(tvt_undefined);
     VMI_BOOL_PARAM(intthresh_undefined);
     VMI_BOOL_PARAM(mclicbase_undefined);
+    VMI_BOOL_PARAM(CSIP_present);
+    VMI_UNS32_PARAM(nlbits_valid);
     VMI_UNS64_PARAM(posedge_0_63);
     VMI_UNS64_PARAM(poslevel_0_63);
     VMI_BOOL_PARAM(posedge_other);
     VMI_BOOL_PARAM(poslevel_other);
+
+    // AIA configuration
+    VMI_BOOL_PARAM(Smaia);
+    VMI_BOOL_PARAM(IPRIOLEN);
+    VMI_BOOL_PARAM(IMSIC_present);
+    VMI_UNS64_PARAM(mvip_mask);
+    VMI_UNS64_PARAM(mvien_mask);
+    VMI_UNS64_PARAM(miprio_mask);
+    VMI_UNS64_PARAM(siprio_mask);
 
     // Hypervisor configuration
     VMI_UNS32_PARAM(GEILEN);

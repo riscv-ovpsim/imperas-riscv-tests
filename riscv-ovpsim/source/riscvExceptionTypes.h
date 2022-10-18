@@ -125,6 +125,25 @@ typedef enum riscvExceptionE {
 // numbered interrupts)
 //
 typedef enum riscvExceptionPriorityE {
+
+    // this is the lowest architectural priority
+    riscv_E_MinPriority        = -120,
+
+    // low-priority local interrupt default priorities when AIA present
+    riscv_E_Local32Priority    = riscv_E_MinPriority,
+    riscv_E_Local16Priority    = -110,
+    riscv_E_Local33Priority    = -100,
+    riscv_E_Local34Priority    = -90,
+    riscv_E_Local17Priority    = -80,
+    riscv_E_Local35Priority    = -70,
+    riscv_E_Local36Priority    = -60,
+    riscv_E_Local18Priority    = -50,
+    riscv_E_Local37Priority    = -40,
+    riscv_E_Local38Priority    = -30,
+    riscv_E_Local19Priority    = -20,
+    riscv_E_Local39Priority    = -10,
+
+    // standard major interrupts (0-15)
     riscv_E_UTimerPriority     = 10,
     riscv_E_USWPriority        = 20,
     riscv_E_UExternalPriority  = 30,
@@ -138,7 +157,24 @@ typedef enum riscvExceptionPriorityE {
     riscv_E_MTimerPriority     = 110,
     riscv_E_MSWPriority        = 120,
     riscv_E_MExternalPriority  = 130,
+
+    // high-priority local interrupt default priorities when AIA present
+    riscv_E_Local40Priority    = 140,
+    riscv_E_Local20Priority    = 150,
+    riscv_E_Local41Priority    = 160,
+    riscv_E_Local42Priority    = 170,
+    riscv_E_Local21Priority    = 180,
+    riscv_E_Local43Priority    = 190,
+    riscv_E_Local44Priority    = 200,
+    riscv_E_Local22Priority    = 210,
+    riscv_E_Local45Priority    = 220,
+    riscv_E_Local46Priority    = 230,
+    riscv_E_Local23Priority    = 240,
+    riscv_E_Local47Priority    = 250,
+
+    // local interrupt default priorities when AIA absent
     riscv_E_LocalPriority      = 140
+
 } riscvExceptionPriority;
 
 //

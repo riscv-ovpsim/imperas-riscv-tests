@@ -831,6 +831,13 @@ static void refreshCCLICInterruptAll(riscvP riscv) {
 }
 
 //
+// Is the given cliccfg.nlbits value valid?
+//
+inline static Bool nlbitsValid(riscvP root, Uns32 nlbits) {
+    return root->configInfo.nlbits_valid & (1<<nlbits);
+}
+
+//
 // Update the value of cliccfg
 //
 static void cliccfgW(riscvP root, Uns8 newValue) {
@@ -845,9 +852,12 @@ static void cliccfgW(riscvP root, Uns8 newValue) {
         cliccfg.fields.nmbits = root->configInfo.CLICCFGMBITS;
     }
 
-    // clamp nlbits in the new value to legal maximum
-    if(cliccfg.fields.nlbits>8) {
-        cliccfg.fields.nlbits = 8;
+    // clamp nlbits in the new value to legal maximum, or retain old value if
+    // new value is not in nlbits_valid mask
+    if(cliccfg.fields.nlbits>root->configInfo.CLICCFGLBITS) {
+        cliccfg.fields.nlbits = root->configInfo.CLICCFGLBITS;
+    } else if(!nlbitsValid(root, cliccfg.fields.nlbits)) {
+        cliccfg.fields.nlbits = root->clic.cliccfg.fields.nlbits;
     }
 
     // preserve read-only nvbits field
@@ -1242,6 +1252,7 @@ void riscvNewCLIC(riscvP root) {
         riscvP child = (riscvP)vmirtGetSMPChild((vmiProcessorP)root);
 
         COPY_CLIC_CFG(root, child, CLIC_version);
+        COPY_CLIC_CFG(root, child, nlbits_valid);
         COPY_CLIC_CFG(root, child, posedge_0_63);
         COPY_CLIC_CFG(root, child, poslevel_0_63);
         COPY_CLIC_CFG(root, child, CLICLEVELS);
@@ -1254,9 +1265,11 @@ void riscvNewCLIC(riscvP root) {
         COPY_CLIC_CFG(root, child, CLICSELHVEC);
         COPY_CLIC_CFG(root, child, CLICXNXTI);
         COPY_CLIC_CFG(root, child, CLICXCSW);
+        COPY_CLIC_CFG(root, child, INTTHRESHBITS);
         COPY_CLIC_CFG(root, child, tvt_undefined);
         COPY_CLIC_CFG(root, child, intthresh_undefined);
         COPY_CLIC_CFG(root, child, mclicbase_undefined);
+        COPY_CLIC_CFG(root, child, CSIP_present);
         COPY_CLIC_CFG(root, child, posedge_other);
         COPY_CLIC_CFG(root, child, poslevel_other);
         COPY_CLIC_CFG(root, child, local_int_num);
@@ -1268,8 +1281,14 @@ void riscvNewCLIC(riscvP root) {
         Uns32 numHarts = getNumHarts(root);
         Uns32 intNum   = riscvGetIntNum(root);
 
-        // initialise read-only fields in cliccfg using configuration options
+        // initialise read-only nvbits in cliccfg using configuration option
         root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
+
+        // initialise nlbits in cliccfg to smallest legal value using
+        // configuration option
+        while(!nlbitsValid(root, root->clic.cliccfg.fields.nlbits)) {
+            root->clic.cliccfg.fields.nlbits++;
+        }
 
         // initialise read-only fields in clicinfo using configuration options
         root->clic.clicinfo.fields.num_interrupt  = intNum;

@@ -26,9 +26,9 @@ Instruction category: OPD_DCI Double-Precision Floating-Point Computational
   fadd.d : 310
   fdiv.d : 310
   fmadd.d : 310
+  fmsub.d : 310
   fmax.d : 31
   fmin.d : 31
-  fmsub.d : 310
   fmul.d : 310
   fnmadd.d : 310
   fnmsub.d : 310
@@ -42,9 +42,9 @@ Instruction category: OPD_DCM Double-Precision Floating-Point Conversion and Mov
   fcvt.d.l : 310
   fcvt.d.lu : 310
   fcvt.d.s : 31
+  fcvt.d.wu : 31
   fcvt.d.w : 31
   fcvt.l.d : 310
-  fcvt.d.wu : 31
   fcvt.lu.d : 310
   fcvt.s.d : 310
   fcvt.w.d : 310

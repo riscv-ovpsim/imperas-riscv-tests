@@ -239,6 +239,16 @@ Bool riscvPendingAndEnabled(riscvP riscv);
 void riscvTestInterrupt(riscvP riscv);
 
 //
+// Return the computed value of mtopi
+//
+Uns32 riscvGetMTOPI(riscvP riscv);
+
+//
+// Return the computed value of stopi
+//
+Uns32 riscvGetSTOPI(riscvP riscv);
+
+//
 // Allocate ports for this variant
 //
 void riscvNewNetPorts(riscvP riscv);

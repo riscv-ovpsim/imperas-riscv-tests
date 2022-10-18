@@ -168,6 +168,7 @@ typedef enum riscvCSRIdE {
     CSR_ID      (stvt),         // 0x107
     CSR_ID      (senvcfg),      // 0x10A
     CSR_ID_0_3  (sstateen),     // 0x10C-0x10F
+    CSR_ID      (sieh),         // 0x114
     CSR_ID      (sscratch),     // 0x140
     CSR_ID      (sepc),         // 0x141
     CSR_ID      (scause),       // 0x142
@@ -178,6 +179,11 @@ typedef enum riscvCSRIdE {
     CSR_ID      (sintthresh),   // 0x147
     CSR_ID      (sscratchcsw),  // 0x148
     CSR_ID      (sscratchcswl), // 0x149
+    CSR_ID      (siselect),     // 0x150
+    CSR_ID      (sireg),        // 0x151
+    CSR_ID      (siph),         // 0x154
+    CSR_ID      (stopei),       // 0x15C
+    CSR_ID      (stopi),        // 0xDB0
     CSR_ID      (satp),         // 0x180
 #if(ENABLE_SSMPU)
     CSR_ID_0_15 (mpucfg),       // 0x1A0-0x1AF
@@ -213,6 +219,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (vscause),      // 0x242
     CSR_ID      (vstval),       // 0x243
     CSR_ID      (vsip),         // 0x244
+    CSR_ID      (vsscratchcsw), // 0x248 (assumed, if CLIC+H supported)
+    CSR_ID      (vsscratchcswl),// 0x249 (assumed, if CLIC+H supported)
     CSR_ID      (vsatp),        // 0x280
 
     CSR_ID      (mvendorid),    // 0xF11
@@ -229,9 +237,15 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mtvec),        // 0x305
     CSR_ID      (mcounteren),   // 0x306
     CSR_ID      (mtvt),         // 0x307
+    CSR_ID      (mvien),        // 0x308
+    CSR_ID      (mvip),         // 0x309
     CSR_ID      (menvcfg),      // 0x30A
     CSR_ID_0_3  (mstateen),     // 0x30C-0x30F
     CSR_ID      (mstatush),     // 0x310
+    CSR_ID      (midelegh),     // 0x313
+    CSR_ID      (mieh),         // 0x314
+    CSR_ID      (mvienh),       // 0x318
+    CSR_ID      (mviph),        // 0x319
     CSR_ID      (menvcfgh),     // 0x31A
     CSR_ID_0_3H (mstateen),     // 0x31C-0x31F
     CSR_ID      (mcountinhibit),// 0x320
@@ -248,12 +262,21 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mtinst),       // 0x34A
     CSR_ID      (mclicbase),    // 0x34B
     CSR_ID      (mtval2),       // 0x34B
-    CSR_ID      (mnscratch),    // 0x350
-    CSR_ID      (mnepc),        // 0x351
-    CSR_ID      (mncause),      // 0x352
-    CSR_ID      (mnstatus),     // 0x353
+    CSR_ID      (miselect),     // 0x350
+    CSR_ID      (mnscratch21),  // 0x350
+    CSR_ID      (mireg),        // 0x351
+    CSR_ID      (mnepc21),      // 0x351
+    CSR_ID      (mncause21),    // 0x352
+    CSR_ID      (mnstatus21),   // 0x353
+    CSR_ID      (miph),         // 0x354
+    CSR_ID      (mtopei),       // 0x35C
+    CSR_ID      (mtopi),        // 0xFB0
     CSR_ID_0_15 (pmpcfg),       // 0x3A0-0x3AF
     CSR_ID_0_63 (pmpaddr),      // 0x3B0-0x3EF
+    CSR_ID      (mnscratch4),   // 0x740
+    CSR_ID      (mnepc4),       // 0x741
+    CSR_ID      (mncause4),     // 0x742
+    CSR_ID      (mnstatus4),    // 0x744
     CSR_ID      (mseccfg),      // 0x747
     CSR_ID      (mseccfgh),     // 0x757
     CSR_ID      (mcycle),       // 0xB00
@@ -680,7 +703,6 @@ CSR_REG_STRUCT_DECL_64(genericXLEN);
 // vsstatus     (id 0x200)
 // mstatus      (id 0x300)
 // mstatush     (id 0x310)
-// mnstatus     (id 0x353)
 // -----------------------------------------------------------------------------
 
 // 32-bit view
@@ -750,7 +772,6 @@ typedef CSR_REG_TYPE(status) CSR_REG_TYPE(ustatus);
 typedef CSR_REG_TYPE(status) CSR_REG_TYPE(sstatus);
 typedef CSR_REG_TYPE(status) CSR_REG_TYPE(mstatus);
 typedef CSR_REG_TYPE(status) CSR_REG_TYPE(vsstatus);
-typedef CSR_REG_TYPE(status) CSR_REG_TYPE(mnstatus);
 
 // define alias masks (include sstatus.VS field in both 0.8 and 0.9 positions)
 #define sstatus_AMASK 0x80000003818de773ULL
@@ -774,6 +795,24 @@ typedef CSR_REG_TYPE(status) CSR_REG_TYPE(mnstatus);
 #define WM_mstatus_XL   (WM_mstatus_UXL|WM_mstatus_SXL)
 #define WM_mstatus_GVA  (1ULL<<38)
 #define WM_mstatus_MPV  (1ULL<<39)
+
+// -----------------------------------------------------------------------------
+// mnstatus     (id 0x744)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 _u1  : 3;
+    Uns32 NMIE : 1;         // NMI enable
+    Uns32 _u2  : 3;
+    Uns32 MNPV : 1;         // NMI previous virtualization mode
+    Uns32 _u3  : 3;
+    Uns32 MNPP : 2;         // NMI previous mode
+    Uns32 _u4  : 19;
+} CSR_REG_TYPE_32(mnstatus);
+
+// define 32/64 bit type
+CSR_REG_STRUCT_DECL_32(mnstatus);
 
 // -----------------------------------------------------------------------------
 // senvcfg      (id 0x10A)
@@ -1129,7 +1168,7 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mscratch);
 // sepc         (id 0x141)
 // vsepc        (id 0x241)
 // mepc         (id 0x341)
-// mnepc        (id 0x351)
+// mnepc        (id 0x741)
 // -----------------------------------------------------------------------------
 
 // define alias types
@@ -1143,7 +1182,7 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnepc);
 // scause       (id 0x142)
 // vscause      (id 0x242)
 // mcause       (id 0x342)
-// mncause      (id 0x352)
+// mncause      (id 0x742)
 // -----------------------------------------------------------------------------
 
 // 32-bit view
@@ -1243,13 +1282,16 @@ typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(hvip);
 typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mip);
 
 // define write masks
-#define WM32_ip   0x00000fff
-#define WM32_uip  0x00000001
-#define WM32_sip  0x00000103
-#define WM32_vsip 0x00000002
-#define WM32_hip  0x00000004
-#define WM32_hvip 0x00000222
-#define WM32_mip  0x00000337
+#define WM32_ip       0x00000fff
+#define WM32_uip      0x00000001
+#define WM32_sip      0x00000103
+#define WM32_vsip     0x00000002
+#define WM32_hip      0x00000004
+#define WM32_hvip     0x00000222
+#define WM32_mip      0x00000337
+#define WM32_mip_mvip 0x00000222ULL
+#define WM32_seip     0x00000200ULL
+#define WM32_meip     0x00000800ULL
 
 // -----------------------------------------------------------------------------
 // mseccfg      (id 0x747)
@@ -1298,7 +1340,7 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hgeie);
 typedef struct {
     Uns32 uil  : 8;
     Uns32 sil  : 8;
-    Uns32 _u1  : 8;
+    Uns32 vsil : 8; // assumed, if CLIC+H supported
     Uns32 mil  : 8;
 } CSR_REG_TYPE_32(mintstatus);
 
@@ -1338,23 +1380,27 @@ typedef CSR_REG_TYPE(intthresh) CSR_REG_TYPE(sintthresh);
 typedef CSR_REG_TYPE(intthresh) CSR_REG_TYPE(mintthresh);
 
 // -----------------------------------------------------------------------------
-// sscratchcsw (id 0x148)
-// mscratchcsw (id 0x348)
+// sscratchcsw  (id 0x148)
+// vsscratchcsw (id 0x248)
+// mscratchcsw  (id 0x348)
 // -----------------------------------------------------------------------------
 
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(sscratchcsw);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(vsscratchcsw);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mscratchcsw);
 
 // -----------------------------------------------------------------------------
-// uscratchcswl (id 0x049)
-// sscratchcswl (id 0x149)
-// mscratchcswl (id 0x349)
+// uscratchcswl  (id 0x049)
+// sscratchcswl  (id 0x149)
+// vsscratchcswl (id 0x249)
+// mscratchcswl  (id 0x349)
 // -----------------------------------------------------------------------------
 
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(uscratchcswl);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(sscratchcswl);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(vsscratchcswl);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mscratchcswl);
 
 // -----------------------------------------------------------------------------
@@ -1668,9 +1714,6 @@ typedef struct {
 
 // define 32 bit type
 CSR_REG_STRUCT_DECL_32(dcsr);
-
-#define WM32_dcsr_nmip  0x0008
-#define WM32_dcsr_cause 0x01c0
 
 // shift to ebreak fields in dcsr
 #define DCSR_EBREAK_SHIFT 12
@@ -2104,7 +2147,7 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(scontext);
 #define WM32_scontext   0x00000000
 
 // -----------------------------------------------------------------------------
-// mnscratch    (id 0x350)
+// mnscratch    (id 0x740)
 // -----------------------------------------------------------------------------
 
 // define alias types
@@ -2113,6 +2156,31 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 // define write masks
 #define WM32_mnscratch  -1
 #define WM64_mnscratch  -1
+
+// -----------------------------------------------------------------------------
+// mvien        (id 0x308)
+// mvip         (id 0x309)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvien);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvip);
+
+// define write masks
+#define WM64_mvien  (-1ULL << 13)
+
+// -----------------------------------------------------------------------------
+// miselect     (id 0x350)
+// siselect     (id 0x150)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(miselect);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(siselect);
+
+// define write masks
+#define WM64_miselect  -1
+#define WM64_siselect  -1
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2245,6 +2313,7 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL_V(scause);         // 0x142
     CSR_REG_DECL_V(stval);          // 0x143
     CSR_REG_DECL  (sintthresh);     // 0x14A
+    CSR_REG_DECL  (siselect);       // 0x150
     CSR_REG_DECL_V(satp);           // 0x180
 
     // HYPERVISOR MODE CSRS
@@ -2278,6 +2347,8 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (mtvec);          // 0x305
     CSR_REG_DECL  (mcounteren);     // 0x306
     CSR_REG_DECL  (mtvt);           // 0x307
+    CSR_REG_DECL  (mvien);          // 0x308
+    CSR_REG_DECL  (mvip);           // 0x309
     CSR_REG_DECL  (menvcfg);        // 0x30A
     CSR_REG_DECLx4(mstateen);       // 0x30C-0x30F
     CSR_REG_DECL  (mcountinhibit);  // 0x320
@@ -2291,10 +2362,11 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (mtinst);         // 0x34A
     CSR_REG_DECL  (mclicbase);      // 0x34B
     CSR_REG_DECL  (mtval2);         // 0x34B
-    CSR_REG_DECL  (mnscratch);      // 0x350
-    CSR_REG_DECL  (mnepc);          // 0x351
-    CSR_REG_DECL  (mncause);        // 0x352
-    CSR_REG_DECL  (mnstatus);       // 0x353
+    CSR_REG_DECL  (miselect);       // 0x350
+    CSR_REG_DECL  (mnscratch);      // 0x740
+    CSR_REG_DECL  (mnepc);          // 0x741
+    CSR_REG_DECL  (mncause);        // 0x742
+    CSR_REG_DECL  (mnstatus);       // 0x744
     CSR_REG_DECL  (mseccfg);        // 0x747
 
     // TRIGGER CSRS
@@ -2365,6 +2437,8 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mtvec);          // 0x305
     CSR_REG_DECL  (mtvt);           // 0x307
     CSR_REG_DECL  (mcounteren);     // 0x306
+    CSR_REG_DECL  (mvien);          // 0x308
+    CSR_REG_DECL  (mvip);           // 0x309
     CSR_REG_DECL  (menvcfg);        // 0x30A
     CSR_REG_DECLx4(mstateen);       // 0x30C-0x30F
     CSR_REG_DECL  (mcountinhibit);  // 0x320
@@ -2373,8 +2447,8 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (mtval);          // 0x343
     CSR_REG_DECL  (mip);            // 0x344
     CSR_REG_DECL  (mtinst);         // 0x34A
-    CSR_REG_DECL  (mnepc);          // 0x351
-    CSR_REG_DECL  (mnstatus);       // 0x353
+    CSR_REG_DECL  (mnepc);          // 0x741
+    CSR_REG_DECL  (mnstatus);       // 0x744
     CSR_REG_DECL  (mseccfg);        // 0x747
 
     // TRIGGER CSRS
@@ -2516,6 +2590,12 @@ typedef struct riscvCSRMasksS {
 
 // get CSR mask using XLEN=64 view
 #define RD_CSR_MASK64(_CPU, _RNAME) (_CPU)->csrMask._RNAME.u64.bits
+
+// set CSR mask value using XLEN=32 view
+#define WR_CSR_MASK32(_CPU, _RNAME, _VALUE) (_CPU)->csrMask._RNAME.u32.bits = _VALUE
+
+// set CSR mask value using XLEN=64 view
+#define WR_CSR_MASK64(_CPU, _RNAME, _VALUE) (_CPU)->csrMask._RNAME.u64.bits = _VALUE
 
 // get CSR mask using common view
 #define RD_CSR_MASKC(_CPU, _RNAME) RD_CSR_MASK32(_CPU, _RNAME)

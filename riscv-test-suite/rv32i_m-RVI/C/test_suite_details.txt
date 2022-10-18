@@ -32,37 +32,37 @@ Other instructions (those not the focus of this suite)
   csrrw : 61
   mret : 28
   lui : 5,976
-  c-addi : 900
+  c-jr : 31
+  xori : 80
+  andi : 54
+  sub : 223
+  c-swsp : 207
   sw : 4,446
+  c-addi : 900
   fence : 27
   ecall : 27
   c-li : 113
   beq : 82
-  c-andi : 403
-  c-and : 586
   c-beqz : 85
   jal : 176
-  c-add : 585
   c-bnez : 85
+  c-andi : 403
+  c-jalr : 31
+  c-add : 585
+  c-and : 586
+  lw : 23
+  c-jal : 18
   jalr : 2
   c-ebreak : 1
-  lw : 23
-  sub : 223
   blt : 2
-  andi : 54
   sll : 1
   bne : 1
-  c-jalr : 31
-  xori : 80
-  c-swsp : 207
-  c-jal : 18
-  c-jr : 31
   c-lwsp : 31
-  c-mv : 85
-  c-or : 590
-  c-slli : 86
   c-srai : 87
+  c-slli : 86
+  c-or : 590
+  c-mv : 85
   c-srli : 85
-  c-sub : 581
   c-xor : 583
+  c-sub : 581
 

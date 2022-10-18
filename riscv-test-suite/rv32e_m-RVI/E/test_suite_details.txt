@@ -36,33 +36,33 @@ Other instructions (those not the focus of this suite)
   ecall : 37
   beq : 716
   add : 583
-  and : 588
   andi : 597
-  sub : 907
   bgeu : 728
-  blt : 586
-  bge : 586
-  bne : 585
   jalr : 59
   xori : 602
-  bltu : 727
-  lb : 18
+  sub : 907
+  bge : 586
   lh : 16
   lbu : 17
+  and : 588
+  blt : 586
+  bne : 585
+  lb : 18
+  bltu : 727
   lhu : 16
   lw : 16
-  ori : 557
+  or : 589
   sb : 78
+  ori : 557
   sh : 71
   sll : 88
-  or : 589
-  sltiu : 697
   slli : 89
   slt : 581
   slti : 561
-  srai : 87
   sra : 90
   sltu : 722
+  sltiu : 697
+  srai : 87
   srl : 89
   srli : 88
   xor : 583

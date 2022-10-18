@@ -23,8 +23,8 @@ Architectural Test Suite Data for RV32VX RISC-V "V" Vector Extension:
     277,504 total instructions
 
 Instruction category: OPV_SAVS single-width averaging add subtract
-  vaadd.vv : 336
   vaadd.vx : 336
+  vaadd.vv : 336
   vasub.vv : 336
   vasub.vx : 336
 Instruction category: OPV_SWI single-width average add, subtract unsigned
@@ -36,8 +36,8 @@ Instruction category: OPV_NFPC narrowing fixed-point clip
   vnclip.wi : 160
   vnclip.wv : 160
   vnclip.wx : 160
-  vnclipu.wv : 160
   vnclipu.wi : 160
+  vnclipu.wv : 160
   vnclipu.wx : 160
 Instruction category: OPV_SAS single-width saturating add substract
   vsadd.vi : 336
@@ -70,14 +70,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 1,044
   mret : 348
   vsetvli : 47,648
-  vle16.v : 9,872
+  vle8.v : 8,512
   add : 38,784
-  vse16.v : 3,392
+  vse8.v : 3,392
   fence : 348
   ecall : 348
   beq : 1,044
-  vle8.v : 8,512
-  vse8.v : 3,392
+  vle16.v : 9,872
+  vse16.v : 3,392
   vle32.v : 9,872
   vse32.v : 2,912
 

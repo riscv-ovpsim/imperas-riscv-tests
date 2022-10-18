@@ -3382,12 +3382,18 @@ static void generateEATag(
     vmiReg           ra,
     riscvLRSCFn      checkCB
 ) {
-    Uns32 bits   = getEABits(state);
-    Uns32 raBits = getModeBits(state);
+    riscvP riscv  = state->riscv;
+    Uns32  bits   = getEABits(state);
+    Uns32  raBits = getModeBits(state);
 
-    // generate tag
+    // generate initial tag
     vmimtMoveExtendRR(bits, rtag, raBits, ra, False);
-    vmimtBinopRC(bits, vmi_AND, rtag, state->riscv->exclusiveTagMask, 0);
+    vmimtBinopRC(bits, vmi_AND, rtag, riscv->exclusiveTagMask, 0);
+
+    // if LR/SC size must match, include indication of access size in tag
+    if(riscv->configInfo.lr_sc_match_size) {
+        vmimtBinopRC(bits, vmi_OR, rtag, (state->info.memBits/64), 0);
+    }
 
     // emit call to external check function if required
     if(isLockExternal(state)) {
@@ -6388,6 +6394,11 @@ static RISCV_MORPH_FN(emitMVP) {
     unpackedReg rs2  = unpackRX(state, 3);
     Uns32       bits = rd1.bits;
 
+    // destination registers must differ
+    if(VMI_REG_EQUAL(rd1.r, rd2.r)) {
+        ILLEGAL_INSTRUCTION_MESSAGE(state->riscv, "IED", "Illegal sreg1==sreg2");
+    }
+
     vmimtMoveRR(bits, rd1.r, rs1.r);
     vmimtMoveRR(bits, rd2.r, rs2.r);
 
@@ -6998,26 +7009,15 @@ inline static void dispatchVector(
 //
 // Is zeroing of tail elements required? (0.7.1 or earlier)
 //
-inline static Bool requireZeroTail(riscvP riscv) {
+inline static Bool requireTailZero(riscvP riscv) {
     return riscvVFSupport(riscv, RVVF_ZERO_TAIL);
-}
-
-//
-// Is modification of tail elements required?
-//
-static Bool requireSetTail(riscvP riscv, iterDescP id) {
-    return (
-        requireZeroTail(riscv) ||
-        inVTA1Mode(riscv) ||
-        (id->PdA && riscv->configInfo.agnostic_ones)
-    );
 }
 
 //
 // Zero tail elements of vector if required
 //
 static void setTail(riscvP riscv, Uns32 bits, vmiReg vd) {
-    if(requireZeroTail(riscv)) {
+    if(requireTailZero(riscv)) {
         vmimtMoveRC(bits, vd, 0);
     } else if(inVTA1Mode(riscv)) {
         vmimtMoveRC(bits, vd, -1);
@@ -8160,22 +8160,50 @@ inline static Uns32 getTopSetMask(riscvRegDesc rdA) {
 }
 
 //
-// Return a Boolean indicating whether the register requires its top part to be
+// Should mask tail elements be set to 1 because agnostic_ones is enabled?
+//
+static Bool requireMaskTailOnes(iterDescP id, riscvP riscv) {
+    return (id->PdA && (id->MLEN==1) && riscv->configInfo.agnostic_ones);
+}
+
+//
+// Should vector tail elements be set to 1 because agnostic_ones is enabled?
+//
+static Bool requireVectorTailOnes(riscvMorphStateP state) {
+
+    riscvP riscv = state->riscv;
+
+    if(state->info.eew==1) {
+
+        // VLM instructions always fill with ones when agnostic_ones is enabled,
+        // irrespective of the the setting of vtype.vta
+        return riscv->configInfo.agnostic_ones;
+
+    } else {
+
+        // other vector instructions respect vtype.vta
+        return inVTA1Mode(riscv);
+    }
+}
+
+//
+// Return a Boolean indicating whether the register requires its tail part to be
 // set
 //
-static Bool requireTopSet(
+static Bool requireTailSet(
     riscvMorphStateP state,
     iterDescP        id,
     riscvRegDesc     rdA,
     Uns32            VLMUL
 ) {
-    Bool result = False;
+    riscvP riscv  = state->riscv;
+    Bool   result = False;
 
     if(!rdA) {
 
         // no target register
 
-    } else if(inVTA1Mode(state->riscv)) {
+    } else if(!requireTailZero(riscv)) {
 
         // no optimisation of top-set state in agnostic mode
         result = True;
@@ -8183,7 +8211,6 @@ static Bool requireTopSet(
     } else {
 
         // optimisation of top-zero state
-        riscvP           riscv      = state->riscv;
         riscvBlockStateP blockState = riscv->blockState;
         Uns32            mask       = getTopSetMask(rdA);
         riscvTZ          setIndex   = (VLMUL==1) ? VTZ_SINGLE : VTZ_GROUP;
@@ -8695,15 +8722,27 @@ static RISCV_MORPHV_FN(emitVMA1CB) {
 }
 
 //
-// Return callback to generate reult for masked-off elements
+// Return callback to generate result for masked-off elements
 //
 static riscvMorphVFn getUnmaskedCB(riscvMorphStateP state, iterDescP id) {
 
-    riscvMorphAttrCP attrs = state->attrs;
-    riscvMorphVFn    opFCB = attrs->opFCB;
-    vmiLabelP        maskF = id->maskF;
+    riscvMorphAttrCP attrs  = state->attrs;
+    riscvVShape      vShape = attrs->vShape;
+    riscvMorphVFn    opFCB  = attrs->opFCB;
+    vmiLabelP        maskF  = id->maskF;
 
-    if(!opFCB && maskF && isR0Dst(attrs->vShape) && inVMA1Mode(state->riscv)) {
+    if(opFCB) {
+        // no action if there is an explicit action for mask=F
+    } else if(!maskF) {
+        // no action unless T/F behaviors differ
+    } else if(!inVMA1Mode(state->riscv)) {
+        // no action unless vtype.vma=1 and masked-off elements must be set to 1
+    } else if(!isR0Dst(vShape)) {
+        // no action unless operation sets a result
+    } else if(isUnindexedN(vShape, 0)) {
+        // no action if destination is unindexed (VCOMPRESS)
+    } else {
+        // use callback that sets mask=F elements to all-ones
         opFCB = emitVMA1CB;
     }
 
@@ -8776,10 +8815,10 @@ inline static Uns32 getTopSetVdMask(Uns32 i) {
 }
 
 //
-// Fill top part of predicate and vector target registers using per-element
+// Fill tail of predicate and vector target registers using per-element
 // algorithm
 //
-static void setVdPdTopPE(
+static void setVdPdTailPE(
     riscvMorphStateP state,
     iterDescP        id,
     Bool             setPd,
@@ -8823,6 +8862,7 @@ static void setVdPdTopPE(
 
     if(setVd) {
 
+        Uns32 EEW = getEEW(id, 0);
         Uns32 i;
 
         // get indexed vector element
@@ -8837,12 +8877,12 @@ static void setVdPdTopPE(
                 vmiReg vd = getSegmentRegisterV0(state, id, i);
 
                 // set element, either to all-ones or all-zeroes
-                vmimtMoveRC(id->SEW, vd, top);
+                vmimtMoveRC(EEW, vd, top);
             }
         }
 
         // get number of vector elements
-        elemNum = (id->VLEN*id->vregs)/id->SEW;
+        elemNum = (id->VLEN*id->vregs)/EEW;
     }
 
     // kill base registers for this iteration
@@ -8854,10 +8894,10 @@ static void setVdPdTopPE(
 }
 
 //
-// Fill top part of predicate and vector target registers with zero using
+// Fill tail of predicate and vector target registers with zero using
 // block-transfer algorithm
 //
-static void zeroVdPdTopBLT(
+static void zeroVdPdTailBLT(
     riscvMorphStateP state,
     iterDescP        id,
     Bool             zeroPd,
@@ -8911,13 +8951,13 @@ static void zeroVdPdTopBLT(
 }
 
 //
-// Fill top part of predicate and vector target registers if required
+// Fill tail of predicate and vector target registers if required
 //
-static vmiLabelP setVdPdTop(riscvMorphStateP state, iterDescP id) {
+static vmiLabelP setVdPdTail(riscvMorphStateP state, iterDescP id) {
 
     riscvRegDesc PdA   = id->PdA;
     riscvRegDesc VdA   = getRVReg(state, 0);
-    Bool         setPd = requireTopSet(state, id, PdA, 1);
+    Bool         setPd = requireTailSet(state, id, PdA, 1);
     Uns32        setVd = 0;
     vmiLabelP    noSet = 0;
     Uns32        i;
@@ -8927,7 +8967,7 @@ static vmiLabelP setVdPdTop(riscvMorphStateP state, iterDescP id) {
     if((VdA!=PdA) && isVReg(VdA)) {
         for(i=0; i<=id->nf; i++) {
             riscvRegDesc sr = getSegmentRegister(id, VdA, i);
-            if(requireTopSet(state, id, sr, getEMUL(id,0))) {
+            if(requireTailSet(state, id, sr, getEMUL(id,0))) {
                 setVd |= getTopSetVdMask(i);
             }
         }
@@ -8948,17 +8988,63 @@ static vmiLabelP setVdPdTop(riscvMorphStateP state, iterDescP id) {
 
         // determine whether per-element or block-transfer algorithm is needed
         if(
-            inVTA1Mode(state->riscv) ||
+            requireVectorTailOnes(state) ||
             (setPd && (id->MLEN<8)) ||
             (setVd && isIndexedVRegisterStriped(id, 0))
         ) {
-            setVdPdTopPE(state, id, setPd, setVd);
+            setVdPdTailPE(state, id, setPd, setVd);
         } else {
-            zeroVdPdTopBLT(state, id, setPd, setVd);
+            zeroVdPdTailBLT(state, id, setPd, setVd);
         }
     }
 
     return noSet;
+}
+
+//
+// Is setting of tail elements required based on variable VSTART?
+//
+static Bool requireSetTail(
+    riscvMorphStateP state,
+    iterDescP        id,
+    riscvVLClassMt   vlClass
+) {
+    riscvP riscv = state->riscv;
+
+    if(!isR0Dst(state->attrs->vShape)) {
+
+        // instruction does not assign a result
+        return False;
+
+    } else if(requireTailZero(riscv)) {
+
+        // detect if legacy vector operation is not targeting entire destination
+        return (
+            (vlClass!=VLCLASSMT_MAX)
+        );
+
+    } else if(requireMaskTailOnes(id, riscv)) {
+
+        // detect if mask operation is not targeting entire destination
+        return (
+            (vlClass!=VLCLASSMT_MAX)  ||
+            (id->VLMULx8<VLMULx8MT_8) ||
+            (id->SEW!=SEWMT_8)
+        );
+
+    } else if(requireVectorTailOnes(state)) {
+
+        // detect if vector operation is not targeting entire destination
+        return (
+            (vlClass!=VLCLASSMT_MAX)  ||
+            (id->VLMULx8<VLMULx8MT_1) ||
+            (id->SEW>getEEW(id, 0))
+        );
+
+    } else {
+
+        return False;
+    }
 }
 
 //
@@ -8974,17 +9060,13 @@ static void endVectorOp(
     // call operation-specific post-operation function if required
     dispatchVector(state, state->attrs->endCB, id);
 
-    // set register top parts when vl < vlmax if required
-    if(vlClass==VLCLASSMT_MAX) {
+    // set register top parts if required based on current VSTART
+    if(!requireSetTail(state, id, vlClass)) {
         // no top set state change
-    } else if(!requireSetTail(state->riscv, id)) {
-        // no tail setting required
-    } else if(!isR0Dst(state->attrs->vShape)) {
-        // first register is not a destination
     } else if(isScalarN(state->attrs->vShape, 0)) {
         updateScalarSetTail(state, id);
     } else {
-        noSet = setVdPdTop(state, id);
+        noSet = setVdPdTail(state, id);
     }
 
     // clear first-fault active indication if required
@@ -9003,11 +9085,8 @@ static void endVectorOp(
         vmimtEndBlock();
     }
 
-    // here if body is skipped because initial vstart >= vl (NOTE: comment in
-    // section 3.4 of 0.7.1 specification "If the value in the vstart register
-    // is greater than or equal to the vector length vl then no element
-    // operations are performed, nor are the elements at the end of the
-    // destination vector past vl zeroed")
+    // here if body is skipped because initial vstart >= vl (in this case, no
+    // elements are updated, including tail elements with agnostic values)
     if(id->skip) {
         vmimtInsertLabel(id->skip);
     }

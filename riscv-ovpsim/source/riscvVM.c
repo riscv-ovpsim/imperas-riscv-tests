@@ -245,17 +245,17 @@ static Uns64 getEffectivePMPAddr(riscvP riscv, Uns8 index) {
     Uns32      G      = riscv->configInfo.PMP_grain;
     Uns64      result = riscv->pmpaddr[index];
 
-    if((G>=2) && (e.mode==PMPM_NAPOT)) {
-
-        // when G>=2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits
-        // pmpaddri[G-2:0] read as all ones
-        result |= ((1ULL << (G-1)) - 1);
-
-    } else if((G>=1) && (e.mode!=PMPM_NAPOT)) {
+    if(e.mode!=PMPM_NAPOT) {
 
         // when G>=1 and pmpcfgi.A[1] is clear, i.e. the mode is OFF or TOR,
         // then bits pmpaddri[G-1:0] read as all zeros
         result &= (-1ULL << G);
+
+    } else if(G>=2) {
+
+        // when G>=2 and pmpcfgi.A[1] is set, i.e. the mode is NAPOT, then bits
+        // pmpaddri[G-2:0] read as all ones
+        result |= ((1ULL << (G-1)) - 1);
     }
 
     return result;
@@ -458,6 +458,9 @@ static void getPMPEntryBounds(
         // top-of-range
         high = low-1;
         low  = index ? riscv->pmpaddr[index-1]<<2 : 0;
+
+        // mask low address to implemented grain size
+        low &= (-4ULL << riscv->configInfo.PMP_grain);
     }
 
     // assign results
@@ -1191,7 +1194,6 @@ void riscvVMFreePMP(riscvP riscv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 #define PMP_CFG    "PMP_CFG"
-#define PMP_CFG_RO "PMP_CFG_RO"
 #define PMP_ADDR   "PMP_ADDR"
 
 //
@@ -1203,9 +1205,8 @@ void savePMP(riscvP riscv, vmiSaveContextP cxt) {
     Uns32 i;
 
     for(i=0; i<numRegs; i++) {
-        VMIRT_SAVE_REG(cxt, PMP_CFG,    &riscv->pmpcfg.u8[i]);
-        VMIRT_SAVE_REG(cxt, PMP_CFG_RO, &riscv->romask_pmpcfg.u8[i]);
-        VMIRT_SAVE_REG(cxt, PMP_ADDR,   &riscv->pmpaddr[i]);
+        VMIRT_SAVE_REG(cxt, PMP_CFG,  &riscv->pmpcfg.u8[i]);
+        VMIRT_SAVE_REG(cxt, PMP_ADDR, &riscv->pmpaddr[i]);
     }
 }
 
@@ -1219,9 +1220,8 @@ void restorePMP(riscvP riscv, vmiRestoreContextP cxt) {
 
     for(i=0; i<numRegs; i++) {
         invalidatePMPEntry(riscv, i);
-        VMIRT_RESTORE_REG(cxt, PMP_CFG,    &riscv->pmpcfg.u8[i]);
-        VMIRT_RESTORE_REG(cxt, PMP_CFG_RO, &riscv->romask_pmpcfg.u8[i]);
-        VMIRT_RESTORE_REG(cxt, PMP_ADDR,   &riscv->pmpaddr[i]);
+        VMIRT_RESTORE_REG(cxt, PMP_CFG,  &riscv->pmpcfg.u8[i]);
+        VMIRT_RESTORE_REG(cxt, PMP_ADDR, &riscv->pmpaddr[i]);
     }
 }
 
@@ -3024,10 +3024,9 @@ static riscvException doPageTableWalkVA(
     Uns32    vpnShift   = (vaMode==VAM_Sv32) ? VPN_SHIFT_SV32 : VPN_SHIFT_SV64;
     Uns32    vpnMask    = ((1<<vpnShift)-1);
     SvVA     VA         = {raw : entry->lowVA};
+    SvPTE    PTE        = {raw : 0};
     Addr     PTEAddr    = 0;
     pteError error      = 0;
-    SvPA     PA;
-    SvPTE    PTE;
     Addr     a;
     Int32    i;
 
@@ -3060,8 +3059,7 @@ static riscvException doPageTableWalkVA(
     if(!error) {
 
         // construct entry low PA
-        PA.fields.PPN        = PTE.fields.PPN;
-        PA.fields.pageOffset = 0;
+        SvPA PA = {fields : {PPN : PTE.fields.PPN}};
 
         // fill TLB entry low physical address
         entry->PA = PA.raw;

@@ -23,8 +23,8 @@ Architectural Test Suite Data for RV32VI RISC-V "V" Vector Extension:
     1,112,780 total instructions
 
 Instruction category: OPV_IA integer arithmetic
-  vadc.vim : 336
   vadc.vvm : 336
+  vadc.vim : 336
   vadc.vxm : 336
   vadd.vi : 336
   vadd.vv : 336
@@ -136,26 +136,26 @@ Instruction category: OPV_IAN narrowing integer arithmetic
   vnsra.wi : 160
   vnsra.wv : 160
   vnsra.wx : 160
-  vnsrl.wv : 160
   vnsrl.wi : 160
+  vnsrl.wv : 160
   vnsrl.wx : 160
 Instruction category: OPV_IAW widening integer arithmetic
   vwadd.vv : 160
   vwadd.vx : 160
-  vwadd.wx : 160
   vwadd.wv : 160
+  vwadd.wx : 160
   vwaddu.vv : 160
   vwaddu.vx : 160
   vwaddu.wv : 160
   vwaddu.wx : 160
-  vwsub.vv : 160
   vwsub.vx : 160
-  vwsub.wx : 160
   vwsub.wv : 160
+  vwsub.wx : 160
   vwsubu.vv : 160
   vwsubu.vx : 160
   vwsubu.wv : 160
   vwsubu.wx : 160
+  vwsub.vv : 160
 Instruction category: OPV_IWMA widening integer multiply-add
   vwmacc.vv : 160
   vwmacc.vx : 160
@@ -181,14 +181,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 4,206
   mret : 1,402
   vsetvli : 189,768
-  vle16.v : 40,320
+  vle8.v : 31,640
   add : 155,776
-  vse16.v : 10,576
+  vse8.v : 18,176
   fence : 1,402
   ecall : 1,402
   beq : 4,206
   vle32.v : 40,560
   vse32.v : 10,192
-  vle8.v : 31,640
-  vse8.v : 18,176
+  vle16.v : 40,320
+  vse16.v : 10,576
 

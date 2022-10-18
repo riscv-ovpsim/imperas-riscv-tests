@@ -7,10 +7,8 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes.
 
 ---
-Date 2022-July-27
-Release 20220722.0
-
-In line with official Imperas release
+Date 2022-October-18
+Release 20221017.0
 
 ---
 Date 2022-May-30

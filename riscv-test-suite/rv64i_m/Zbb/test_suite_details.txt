@@ -25,8 +25,8 @@ Architectural Test Suite Data for RV64ZBB B Bit Manipulation:
 Instruction category: OPB_POZE Postfix Zero-Extend
 Instruction category: OPB_PRZE Prefix Zero-Extend
 Instruction category: OPB_LWNE Logic With Negate
-  orn : 300
   andn : 300
+  orn : 300
   xnor : 300
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
   clz : 298
@@ -37,17 +37,17 @@ Instruction category: OPB_CNTB Count Bits
   cpop : 298
   cpopw : 298
 Instruction category: OPB_MNMX Min/Max
-  maxu : 300
-  min : 300
   max : 300
+  maxu : 300
   minu : 300
+  min : 300
 Instruction category: OPB_SEXT Sign Extend
   sext.b : 298
   sext.h : 298
 Instruction category: OPB_ROTS Rotations
-  rori : 298
   rol : 300
   ror : 300
+  rori : 298
   rolw : 300
   rorw : 300
   roriw : 298

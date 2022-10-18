@@ -210,8 +210,8 @@ static void addBFeature(
     Bool ignored_1_0_0 = feature & ~RVBS_1_0_0;
     snprintf(
         string, stringLen,
-        "Parameter %s is used to specify that %s instructions are present. "
-        "By default, %s is set to %u in this variant. Updates to this "
+        "Parameter \"%s\" is used to specify that %s instructions are present. "
+        "By default, \"%s\" is set to %u in this variant. Updates to this "
         "parameter require a commercial product license.%s",
         name, desc, name, !(cfg->bitmanip_absent & feature),
         ignored_1_0_0 ?
@@ -235,8 +235,8 @@ static void addCFeature(
 ) {
     snprintf(
         string, stringLen,
-        "Parameter %s is used to specify that %s instructions are present. "
-        "By default, %s is set to %u in this variant. Updates to this "
+        "Parameter \"%s\" is used to specify that %s instructions are present. "
+        "By default, \"%s\" is set to %u in this variant. Updates to this "
         "parameter require a commercial product license.",
         name, desc, name, (cfg->compress_present & feature) && True
     );
@@ -256,8 +256,8 @@ static void addLegacyCFeature(
 ) {
     snprintf(
         string, stringLen,
-        "Parameter %s_version is used to specify the version of %s "
-        "instructions present. By default, %s_version is set to \"%s\" in "
+        "Parameter \"%s_version\" is used to specify the version of %s "
+        "instructions present. By default, \"%s_version\" is set to \"%s\" in "
         "this variant. Updates to this parameter require a commercial product "
         "license.",
         name, name, name, value
@@ -279,8 +279,8 @@ static void addKFeature(
 ) {
     snprintf(
         string, stringLen,
-        "Parameter %s is used to specify that %s instructions are present. "
-        "By default, %s is set to %u in this variant. Updates to this "
+        "Parameter \"%s\" is used to specify that %s instructions are present. "
+        "By default, \"%s\" is set to %u in this variant. Updates to this "
         "parameter require a commercial product license.",
         name, desc, name, !(cfg->crypto_absent & feature)
     );
@@ -302,10 +302,10 @@ static void addDeprecatedKFeature(
 ) {
     snprintf(
         string, stringLen,
-        "Parameter %s used to specify that %s instructions are present; it is "
-        "a deprecated alias of parameter %s, which should be used instead. By "
-        "default, %s is set to %u in this variant. Updates to this parameter "
-        "require a commercial product license.",
+        "Parameter \"%s\" used to specify that %s instructions are present; it "
+        "is a deprecated alias of parameter \"%s\" which should be used "
+        "instead. By default, \"%s\" is set to %u in this variant. Updates to "
+        "this parameter require a commercial product license.",
         name, desc, alias, name, !(cfg->crypto_absent & feature)
     );
     vmidocAddText(Parameters, string);
@@ -325,8 +325,8 @@ static void addPFeature(
 ) {
     snprintf(
         string, stringLen,
-        "Parameter %s is used to specify that %s instructions are present. "
-        "By default, %s is set to %u in this variant. Updates to this "
+        "Parameter \"%s\" is used to specify that %s instructions are present. "
+        "By default, \"%s\" is set to %u in this variant. Updates to this "
         "parameter require a commercial product license.",
         name, desc, name, !(cfg->dsp_absent & feature)
     );
@@ -604,10 +604,20 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             snprintf(
                 SNPRINTF_TGT(string),
                 "\"intthresh_undefined\": this Boolean parameter indicates "
-                "whether xintthresh CSRs registers are implemented (if True) "
-                "or unimplemented (if False). The default value in this "
-                "variant is %s.",
+                "whether xintthresh CSRs are implemented (if True) or "
+                "unimplemented (if False). The default value in this variant "
+                "is %s.",
                 riscv->configInfo.intthresh_undefined ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document INTTHRESHBITS
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"INTTHRESHBITS\": if xintthresh CSRs are implemented, this "
+                "parameter indicates the number of implemented bits in the "
+                "\"th\" field. The default value in this variant is %u.",
+                riscv->configInfo.INTTHRESHBITS
             );
             vmidocAddText(Parameters, string);
 
@@ -619,6 +629,18 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
                 "or unimplemented (if False). The default value in this "
                 "variant is %s.",
                 riscv->configInfo.mclicbase_undefined ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document CSIP_present
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"CSIP_present\": this Boolean parameter indicates whether "
+                "the CSIP interrupt is implemented (if True) or unimplemented "
+                "(if False). If implemented, the interrupt is positive-edge "
+                "triggered, and has id 12 or 16, depending on the CLIC version "
+                "selected. The default value in this variant is %s.",
+                riscv->configInfo.CSIP_present ? "True" : "False"
             );
             vmidocAddText(Parameters, string);
         }
@@ -649,12 +671,13 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             // document CLICCFGMBITS
             snprintf(
                 SNPRINTF_TGT(string),
-                "\"CLICCFGMBITS\": this Uns32 parameter indicates the number "
-                "of bits implemented in cliccfg.nmbits, and also indirectly "
-                "defines CLICPRIVMODES. For cores which implement only Machine "
-                "mode, or which implement Machine and User modes but not the N "
-                "extension, the parameter is absent (\"CLICCFGMBITS\" must be "
-                "zero in these cases). The default value in this variant is %u.",
+                "\"CLICCFGMBITS\": this Uns32 parameter indicates the maximum "
+                "number of bits that can be specified as implemented in "
+                "cliccfg.nmbits, and also indirectly defines CLICPRIVMODES. "
+                "For cores which implement only Machine mode, or which "
+                "implement Machine and User modes but not the N extension, the "
+                "parameter is absent (\"CLICCFGMBITS\" must be zero in these "
+                "cases). The default value in this variant is %u.",
                 riscv->configInfo.CLICCFGMBITS
             );
             vmidocAddText(Parameters, string);
@@ -662,10 +685,25 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             // document CLICCFGLBITS
             snprintf(
                 SNPRINTF_TGT(string),
-                "\"CLICCFGLBITS\": this Uns32 parameter indicates the number "
-                "of bits implemented in cliccfg.nlbits. The default value in "
-                "this variant is %u.",
+                "\"CLICCFGLBITS\": this Uns32 parameter indicates the maximum "
+                "number of bits that can be specified as implemented in "
+                "cliccfg.nlbits. The default value in this variant is %u. See "
+                "also parameter \"nlbits_valid\" which allows fine-grain "
+                "specification of legal values in cliccfg.nlbits.",
                 riscv->configInfo.CLICCFGLBITS
+            );
+            vmidocAddText(Parameters, string);
+
+            // document nlbits_valid_0_8
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"nlbits_valid\": this Uns32 parameter is a bitmask of legal "
+                "values that can be specified as implemented in the WARL "
+                "cliccfg.nlbits field. As an example, a value of 8 in "
+                "cliccfg.nlbits is legal only if bit 8 is set in nlbits_valid. "
+                "The default value of \"nlbits_valid\" in this variant is "
+                "0x%x.",
+                riscv->configInfo.nlbits_valid
             );
             vmidocAddText(Parameters, string);
 
@@ -867,7 +905,7 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "Stable 0.9 version of March 15 2022, with these changes "
-                "compared to version 0.9-draft-20191208"
+                "compared to version 0.9-draft-20191208:"
             );
             vmidocAddText(
                 Version,
@@ -899,7 +937,28 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
-                RVCLC_MASTER_TAG"), currently identical to 0.9-draft-20220315."
+                RVCLC_MASTER_TAG"), with these changes compared to version "
+                "0.9-draft-20220315:"
+            );
+            vmidocAddText(
+                Version,
+                "- vector table reads now require execute permission (not read "
+                "permission);"
+            );
+            vmidocAddText(
+                Version,
+                "- CSIP now has id 16 and is treated as the first local "
+                "interrupt (previously, it had id 12 and was not considered "
+                "to be a local interrupt);"
+            );
+            vmidocAddText(
+                Version,
+                "- algorithm used for xscratchcsw accesses changed;"
+            );
+            vmidocAddText(
+                Version,
+                "- new parameter INTTHRESHBITS allows implemented bits in "
+                "xintthresh CSRs to be restricted."
             );
         }
     }
@@ -1670,21 +1729,6 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "should cause Illegal Instruction exceptions instead."
             );
         }
-
-        // document LR/SC reservation granule
-        if(cfg->arch&ISA_A) {
-
-            vmiDocNodeP sub = vmidocAddSection(Features, "LR/SC Granule");
-
-            snprintf(
-                SNPRINTF_TGT(string),
-                "LR/SC instructions are implemented with a %u-byte reservation "
-                "granule. A different granule size may be specified using "
-                "parameter \"lr_sc_grain\".",
-                cfg->lr_sc_grain
-            );
-            vmidocAddText(sub, string);
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -1694,79 +1738,189 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     // floating point configuration
     if(cfg->arch&ISA_C) {
 
-        vmiDocNodeP Features = vmidocAddSection(Root, "Compressed Extension");
+        vmiDocNodeP      extC    = vmidocAddSection(Root, "Compressed Extension");
+        riscvCompressVer version = RISCV_COMPRESS_VERSION(riscv);
 
-        if(RISCV_COMPRESS_VERSION(riscv)) {
+        if(version) {
 
             vmidocAddText(
-                Features,
+                extC,
                 "This variant implements the compressed extension with version "
-                "specified in the References section of this document. Note that "
-                "parameter \"compress_version\" can be used to select the "
-                "required architecture version."
-            );
-
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zca, "Zca",
-                "basic C extension"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcf, "Zcf",
-                "floating point load/store"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcb, "Zcb",
-                "additional simple operation"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmb, "Zcmb",
-                "load/store byte/half"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmp, "Zcmp",
-                "push/pop and double move"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmpe, "Zcmpe",
-                "E-extension push/pop"
-            );
-            addCFeature(
-                cfg, Features, SNPRINTF_TGT(string), RVCS_Zcmt, "Zcmt",
-                "table jump"
+                "specified in the References section of this document. Note "
+                "that parameter \"compress_version\" can be used to select the "
+                "required architecture version. See the following sections "
+                "for detailed information about differences between each "
+                "supported version."
             );
 
         } else {
 
             vmidocAddText(
-                Features,
+                extC,
                 "Standard compressed instructions are present in this variant. "
-                "Legacy compressed extension features may also be configured using "
-                "parameters described below. Use parameter \"commpress_version\" "
-                "to enable more recent compressed extension features if required."
+                "Legacy compressed extension features may also be configured "
+                "using parameters described below. Use parameter "
+                "\"compress_version\" to enable more recent compressed "
+                "extension features if required. See the following sections "
+                "for detailed information about differences between each "
+                "supported version."
+            );
+        }
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                extC, "Compressed Extension Parameters"
             );
 
-            addLegacyCFeature(
-                cfg,
-                Features,
-                SNPRINTF_TGT(string),
-                "Zcea",
-                riscvGetZceaVersionName(riscv)
-            );
+            if(version) {
 
-            addLegacyCFeature(
-                cfg,
-                Features,
-                SNPRINTF_TGT(string),
-                "Zceb",
-                riscvGetZcebVersionName(riscv)
-            );
+                addCFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zca, "Zca",
+                    "basic C extension"
+                );
+                addCFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcf, "Zcf",
+                    "floating point load/store"
+                );
+                addCFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcb, "Zcb",
+                    "additional simple operation"
+                );
 
-            addLegacyCFeature(
-                cfg,
-                Features,
-                SNPRINTF_TGT(string),
-                "Zcee",
-                riscvGetZceeVersionName(riscv)
+                // Zcmb is removed from version 1.0.0
+                if(version<RVCV_1_0_0_RC57) {
+                    addCFeature(
+                        cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcmb, "Zcmb",
+                        "load/store byte/half"
+                    );
+                }
+
+                addCFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcmp, "Zcmp",
+                    "push/pop and double move"
+                );
+
+                // Zcmpe is removed from version 1.0.0
+                if(version<RVCV_1_0_0_RC57) {
+                    addCFeature(
+                        cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcmpe, "Zcmpe",
+                        "E-extension push/pop"
+                    );
+                }
+
+                addCFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVCS_Zcmt, "Zcmt",
+                    "table jump"
+                );
+
+                // document jvt_mask
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter \"jvt_mask\" is used to specify writable bits "
+                    "in the jvt CSR. By default, \"jvt_mask\" is set to "
+                    "0x"FMT_Ax" in this variant.",
+                    cfg->csrMask.jvt.u64.bits
+                );
+                vmidocAddText(Parameters, string);
+
+            } else {
+
+                addLegacyCFeature(
+                    cfg,
+                    Parameters,
+                    SNPRINTF_TGT(string),
+                    "Zcea",
+                    riscvGetZceaVersionName(riscv)
+                );
+
+                addLegacyCFeature(
+                    cfg,
+                    Parameters,
+                    SNPRINTF_TGT(string),
+                    "Zceb",
+                    riscvGetZcebVersionName(riscv)
+                );
+
+                addLegacyCFeature(
+                    cfg,
+                    Parameters,
+                    SNPRINTF_TGT(string),
+                    "Zcee",
+                    riscvGetZceeVersionName(riscv)
+                );
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // COMPRESSED EXTENSION VERSION legacy
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extC, "Legacy Version 1.10");
+
+            vmidocAddText(
+                Version,
+                "Legacy encodings with version specified using Zcea, Zceb and "
+                "Zcee parameters."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // COMPRESSED EXTENSION VERSION 0.70.1
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extC, "Version 0.70.1");
+
+            vmidocAddText(
+                Version,
+                "All instruction encodings changed from legacy version, with "
+                "instructions divided into Zca, Zcf, Zcb, Zcmb, Zcmp, Zcmpe "
+                "and Zcmt subsets."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // COMPRESSED EXTENSION VERSION 0.70.5
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extC, "Version 0.70.5");
+
+            vmidocAddText(
+                Version,
+                "Version 0.70.5, with these changes compared to version 0.70.1:"
+            );
+            vmidocAddText(
+                Version,
+                "- access to jt and jalt instructions is enabled by Smstateen."
+            );
+            vmidocAddText(
+                Version,
+                "- jvt.base is WARL and fewer bits than the maximum can be "
+                "implemented"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // COMPRESSED EXTENSION VERSION 1.0.0-RC5.7
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extC, "Version 1.0.0-RC5.7");
+
+            vmidocAddText(
+                Version,
+                "Version 1.0.0-RC5.7, with these changes compared to version "
+                "0.70.5:"
+            );
+            vmidocAddText(
+                Version,
+                "- encodings of jt and jalt instructions changed."
+            );
+            vmidocAddText(
+                Version,
+                "- Zcmb and Zcmpe subsets removed."
             );
         }
     }
@@ -3753,15 +3907,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             Root, "Load-Reserved/Store-Conditional Locking"
         );
 
-        vmidocAddText(
-            LRSC,
+        snprintf(
+            SNPRINTF_TGT(string),
             "By default, LR/SC locking is implemented automatically by the "
             "model and simulator, with a reservation granule defined by the "
-            "\"lr_sc_grain\" parameter. It is also possible to implement "
-            "locking externally to the model in a platform component, using "
-            "the \"LR_address\", \"SC_address\" and \"SC_valid\" net ports, "
-            "as described below."
+            "\"lr_sc_grain\" parameter; this variant implements a %u-byte "
+            "reservation granule. It is also possible to implement locking "
+            "externally to the model in a platform component, using the "
+            "\"LR_address\", \"SC_address\" and \"SC_valid\" net ports, as "
+            "described below.",
+            cfg->lr_sc_grain
         );
+        vmidocAddText(LRSC, string);
+
         vmidocAddText(
             LRSC,
             "The \"LR_address\" output net port is written by the model with "
@@ -3805,6 +3963,18 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             riscv->configInfo.amo_aborts_lr_sc
         );
         vmidocAddText(LRSC, string);
+
+        if(cfg->arch&ISA_XLEN_64) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"lr_sc_match_size\" is used to specify whether "
+                "data sizes of LR and SC instructions must match for the SC "
+                "instruction to succeed. In this variant, \"lr_sc_match_size\" "
+                "is %s.",
+                riscv->configInfo.lr_sc_match_size ? "True" : "False"
+            );
+            vmidocAddText(LRSC, string);
+        }
 
         vmiDocNodeP ACODE = vmidocAddSection(
             Root, "Active Atomic Operation Indication"
@@ -4235,6 +4405,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(Parameters, string);
 
+            // document trigger_match
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"trigger_match\" is used to specify the legal "
+                "\"match\" values for triggers of types 2 and 6. This "
+                "parameter is a bitmask with 1 bits corresponding to legal "
+                "values; for example, a \"trigger_match\" of 0xd, means that "
+                "triggers of types 0, 2 and 3 are supported. In this variant, "
+                "\"trigger_match\" is 0x%04x.",
+                riscv->configInfo.trigger_match
+            );
+            vmidocAddText(Parameters, string);
+
             // document tinfo_undefined
             snprintf(
                 SNPRINTF_TGT(string),
@@ -4474,7 +4657,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "Artifact register \"LRSCAddress\" shows the active LR/SC "
                 "lock address. The register holds all-ones if there is no "
                 "LR/SC operation active or if LR/SC locking is implemented "
-                "externally as described above."
+                "externally as described above. When parameter "
+                "\"lr_sc_match_size\" is True and this is a 64-bit access, "
+                "the least-significant bit of \"LRSCAddress\" is one (to "
+                "indicate a 64-bit access). If parameter \"lr_sc_match_size\" "
+                "is False or this is a 32-bit access, the least-significant "
+                "bit of \"LRSCAddress\" is zero."
             );
         }
 

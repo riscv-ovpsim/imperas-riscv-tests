@@ -5461,10 +5461,10 @@ const static decodeEntry16 decodeZcd16[] = {
 };
 
 //
-// This specifies decodes for 16-bit Zcm* instructions present only when
+// This specifies decodes for common 16-bit Zcm* instructions present only when
 // notional Zcd extension is *not* implemented
 //
-const static decodeEntry16 decodeZcm16[] = {
+const static decodeEntry16 decodeZcm16Common[] = {
 
     // Zcmb instructions
     DECODE16_ENTRY(         LB, "|001|0|..|...|..|...|.0|"),
@@ -5489,8 +5489,33 @@ const static decodeEntry16 decodeZcm16[] = {
     DECODE16_ENTRY(   MVSA01_R, "|101011|...|01|...|10|"),
 
     // Zcmt instructions
-    DECODE16_ENTRY(         JT, "|101000|00......|10|"),
     DECODE16_ENTRY(       JALT, "|101000|........|10|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for common 16-bit Zcm* instructions present only when
+// notional Zcd extension is *not* implemented (version 0.70.5)
+//
+const static decodeEntry16 decodeZcm16_0_70_5[] = {
+
+    // Zcmt instructions
+    DECODE16_ENTRY(         JT, "|101000|00......|10|"),    // index 0-63
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies decodes for common 16-bit Zcm* instructions present only when
+// notional Zcd extension is *not* implemented (version 0.70.5)
+//
+const static decodeEntry16 decodeZcm16_1_0_0[] = {
+
+    // Zcmt instructions
+    DECODE16_ENTRY(         JT, "|101000|000.....|10|"),    // index 0-31
 
     // table termination entry
     {0}
@@ -5763,10 +5788,14 @@ static vmidDecodeTableP createDecodeTable16(decodeKey16 key) {
     // compressed extension decodes that conflict with Zca (notional Zcd)
     if(key.f.Zcd) {
         insertEntries16(table, &decodeZcd16[0], noPseudo);
-    } else if(key.f.compress_version) {
-        insertEntries16(table, &decodeZcm16[0], noPseudo);
-    } else {
+    } else if(!key.f.compress_version) {
         insertEntries16(table, &decodeLegacyNotZcd16[0], noPseudo);
+    } else if(key.f.compress_version<RVCV_1_0_0_RC57) {
+        insertEntries16(table, &decodeZcm16Common[0], noPseudo);
+        insertEntries16(table, &decodeZcm16_0_70_5[0], noPseudo);
+    } else {
+        insertEntries16(table, &decodeZcm16Common[0], noPseudo);
+        insertEntries16(table, &decodeZcm16_1_0_0[0], noPseudo);
     }
 
     // legacy compressed extension decodes that do not conflict with Zca

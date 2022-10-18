@@ -225,6 +225,9 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.updateLdStDomain   = riscvVMRefreshMPRVDomain;
     riscv->cb.newTLBEntry        = riscvVMNewTLBEntry;
     riscv->cb.freeTLBEntry       = riscvVMFreeTLBEntry;
+
+    // from riscvDebug.h
+    riscv->cb.newExtReg          = riscvNewExtReg;
 }
 
 //
@@ -555,10 +558,13 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->CLICSELHVEC         = params->CLICSELHVEC;
     cfg->CLICXNXTI           = params->CLICXNXTI;
     cfg->CLICXCSW            = params->CLICXCSW;
+    cfg->INTTHRESHBITS       = params->INTTHRESHBITS;
     cfg->externalCLIC        = params->externalCLIC;
     cfg->tvt_undefined       = params->tvt_undefined;
     cfg->intthresh_undefined = params->intthresh_undefined;
     cfg->mclicbase_undefined = params->mclicbase_undefined;
+    cfg->CSIP_present        = params->CSIP_present;
+    cfg->nlbits_valid        = params->nlbits_valid;
     cfg->posedge_0_63        = params->posedge_0_63;
     cfg->poslevel_0_63       = params->poslevel_0_63;
     cfg->posedge_other       = params->posedge_other;
@@ -573,7 +579,7 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->csrMask.mtvt.u64.bits = params->mtvt_mask;
     cfg->csrMask.stvt.u64.bits = params->stvt_mask;
     cfg->csrMask.utvt.u64.bits = params->utvt_mask;
-    cfg->csrMask.utvt.u64.bits = params->jvt_mask;
+    cfg->csrMask.jvt.u64.bits  = params->jvt_mask;
 
     // get implied CSR sign extension configuration parameters
     cfg->mtvec_sext = params->mtvec_sext;
@@ -582,6 +588,13 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->mtvt_sext  = params->mtvt_sext;
     cfg->stvt_sext  = params->stvt_sext;
     cfg->utvt_sext  = params->utvt_sext;
+
+    // if CSIP is present, force it to be positive-edge-triggered
+    if(useCSIP12(riscv)) {
+        cfg->posedge_0_63 |= (1<<12);
+    } else if(useCSIP16(riscv)) {
+        cfg->posedge_0_63 |= (1<<16);
+    }
 }
 
 //
@@ -603,10 +616,13 @@ static void copyParentConfig(riscvP riscv) {
     dst->CLICSELHVEC         = src->CLICSELHVEC;
     dst->CLICXNXTI           = src->CLICXNXTI;
     dst->CLICXCSW            = src->CLICXCSW;
+    dst->INTTHRESHBITS       = src->INTTHRESHBITS;
     dst->externalCLIC        = src->externalCLIC;
     dst->tvt_undefined       = src->tvt_undefined;
     dst->intthresh_undefined = src->intthresh_undefined;
     dst->mclicbase_undefined = src->mclicbase_undefined;
+    dst->CSIP_present        = src->CSIP_present;
+    dst->nlbits_valid        = src->nlbits_valid;
     dst->posedge_0_63        = src->posedge_0_63;
     dst->poslevel_0_63       = src->poslevel_0_63;
     dst->posedge_other       = src->posedge_other;
@@ -733,6 +749,8 @@ static void applyParamsSMP(
     cfg->csrMask.sip.u64.bits    = params->sip_mask;
     cfg->csrMask.uip.u64.bits    = params->uip_mask;
     cfg->csrMask.hip.u64.bits    = params->hip_mask;
+    cfg->csrMask.mvien.u64.bits  = params->mvien_mask;
+    cfg->csrMask.mvip.u64.bits   = params->mvip_mask;
     cfg->csrMask.envcfg.u64.bits = params->envcfg_mask;
 
     // get implied CSR sign extension configuration parameters
@@ -788,6 +806,7 @@ static void applyParamsSMP(
     cfg->VMID_bits            = params->VMID_bits;
     cfg->trigger_num          = params->trigger_num;
     cfg->tinfo                = params->tinfo;
+    cfg->trigger_match        = params->trigger_match;
     cfg->mcontext_bits        = params->mcontext_bits;
     cfg->scontext_bits        = params->scontext_bits;
     cfg->mvalue_bits          = params->mvalue_bits;
@@ -823,6 +842,8 @@ static void applyParamsSMP(
     cfg->Smstateen            = params->Smstateen;
     cfg->Svpbmt               = params->Svpbmt;
     cfg->Svinval              = params->Svinval;
+    cfg->Smaia                = params->Smaia;
+    cfg->IMSIC_present        = params->IMSIC_present;
     cfg->local_int_num        = params->local_int_num;
     cfg->unimp_int_mask       = params->unimp_int_mask;
     cfg->ecode_mask           = params->ecode_mask;
@@ -835,6 +856,7 @@ static void applyParamsSMP(
     cfg->no_ideleg            = params->no_ideleg;
     cfg->no_edeleg            = params->no_edeleg;
     cfg->lr_sc_grain          = powerOfTwo(lr_sc_grain, "lr_sc_grain");
+    cfg->lr_sc_match_size     = params->lr_sc_match_size;
     cfg->debug_mode           = params->debug_mode;
     cfg->debug_address        = params->debug_address;
     cfg->dexc_address         = params->dexc_address;
@@ -899,6 +921,9 @@ static void applyParamsSMP(
     cfg->Zicbop               = params->Zicbop;
     cfg->Zicboz               = params->Zicboz;
     cfg->Svnapot_page_mask    = params->Svnapot_page_mask;
+    cfg->miprio_mask          = params->miprio_mask & ~WM32_meip;
+    cfg->siprio_mask          = params->siprio_mask & ~WM32_seip;
+    cfg->IPRIOLEN             = params->IPRIOLEN;
     cfg->amo_constraint       = params->amo_constraint;
     cfg->lr_sc_constraint     = params->lr_sc_constraint;
     cfg->push_pop_constraint  = params->push_pop_constraint;
@@ -1269,6 +1294,15 @@ static void applyParamsSMP(
     // handle DSP profile parameters
     cfg->dsp_absent = 0;
     ADD_P_SET(riscv, cfg, params, Zpsfoperand);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // CLIC CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // seed mask of hardwired-to-1 bits in xintthresh CSRs
+    if(cfg->INTTHRESHBITS<8) {
+        riscv->threshOnes = (1<<(8-cfg->INTTHRESHBITS))-1;
+    }
 }
 
 //

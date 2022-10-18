@@ -86,6 +86,8 @@ typedef enum riscvParamVariantE {
     RVPV_PMPMASK   = (1ULL<<31),    // present if PMP_romaskparams is true
     RVPV_CLEG      = (1ULL<<32),    // present if legacy C extension
     RVPV_CNEW      = (1ULL<<33),    // present if new C extension
+    RVPV_CV07      = (1ULL<<34),    // present if C extension 0.70.x
+    RVPV_SMAIA     = (1ULL<<35),    // requires Smaia extension
 
                                     // COMPOSITE PARAMETER IDENTIFIERS
     RVPV_ROOT      = RVPV_ROOTINT|RVPV_CLINT|RVPV_CLIC,
@@ -95,6 +97,7 @@ typedef enum riscvParamVariantE {
     RVPV_CLIC_S    = RVPV_CLIC|RVPV_S,
     RVPV_CLIC_N    = RVPV_CLIC|RVPV_N,
     RVPV_KV        = RVPV_K|RVPV_V,
+    RVPV_64A       = RVPV_64|RVPV_A,
     RVPV_64S       = RVPV_64|RVPV_S,
     RVPV_64U       = RVPV_64|RVPV_U,
     RVPV_64H       = RVPV_64|RVPV_H,
@@ -104,7 +107,9 @@ typedef enum riscvParamVariantE {
     RVPV_PMPINIT32 = RVPV_32|RVPV_PMPINIT,
     RVPV_PMPMASK32 = RVPV_32|RVPV_PMPMASK,
     RVPV_C_CLEG    = RVPV_C|RVPV_CLEG,
-    RVPV_C_CNEW    = RVPV_C|RVPV_CNEW
+    RVPV_C_CNEW    = RVPV_C|RVPV_CNEW,
+    RVPV_C_CCV07   = RVPV_C_CNEW|RVPV_CV07,
+    RVPV_SMAIA_S   = RVPV_SMAIA|RVPV_S,
 
 } riscvParamVariant;
 
@@ -269,6 +274,11 @@ static vmiEnumParameter compressedVariants[] = {
         .value       = RVCV_0_70_5,
         .description = "Compressed Architecture Version 0.70.5",
     },
+    [RVCV_1_0_0_RC57] = {
+        .name        = "1.0.0-RC5.7",
+        .value       = RVCV_1_0_0_RC57,
+        .description = "Compressed Architecture Version 1.0.0-RC5.7",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -427,6 +437,11 @@ static vmiEnumParameter rnmiVariants[] = {
         .name        = "0.2.1",
         .value       = RNMI_0_2_1,
         .description = "RNMI version 0.2.1",
+    },
+    [RNMI_0_4] = {
+        .name        = "0.4",
+        .value       = RNMI_0_4,
+        .description = "RNMI version 0.4",
     },
     // KEEP LAST: terminator
     {0}
@@ -653,6 +668,11 @@ static vmiEnumParameter DebugPriorities[] = {
         .name        = "PR693",
         .value       = RVDP_693,
         .description = "priorities described specification PR 693",
+    },
+    [RVDP_HALT_NOT_STEP] = {
+        .name        = "halt_not_step",
+        .value       = RVDP_HALT_NOT_STEP,
+        .description = "treat haltreq as higher priority to step",
     },
     // KEEP LAST: terminator
     {0}
@@ -923,6 +943,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(externalCLIC);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tvt_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(intthresh_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mclicbase_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(CSIP_present);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mstatus_FS_zero);
 static RISCV_BOOL_PDEFAULT_CFG_FN(MXL_writable);
 static RISCV_BOOL_PDEFAULT_CFG_FN(SXL_writable);
@@ -946,8 +967,11 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(Zicboz);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Smstateen);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Svpbmt);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Svinval);
+static RISCV_BOOL_PDEFAULT_CFG_FN(Smaia);
+static RISCV_BOOL_PDEFAULT_CFG_FN(IMSIC_present);
 static RISCV_BOOL_PDEFAULT_CFG_FN(use_hw_reg_names);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_pseudo_inst);
+static RISCV_BOOL_PDEFAULT_CFG_FN(lr_sc_match_size);
 
 //
 // Set default value of raw negated Bool parameters
@@ -990,6 +1014,8 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(no_edeleg)
 static RISCV_UNS64_PDEFAULT_CFG_FN(posedge_0_63)
 static RISCV_UNS64_PDEFAULT_CFG_FN(poslevel_0_63)
 static RISCV_UNS64_PDEFAULT_CFG_FN(Svnapot_page_mask)
+static RISCV_UNS64_PDEFAULT_CFG_FN(miprio_mask)
+static RISCV_UNS64_PDEFAULT_CFG_FN(siprio_mask)
 
 //
 // Specify whether halt-precision floating point is implemented
@@ -1011,6 +1037,7 @@ static RISCV_PDEFAULT_FN(default_ABI_d) {
 static Uns32 max_PMP_registers(riscvConfigCP cfg) {
     return (cfg->priv_version>=RVPV_1_12) ? 64 : 16;
 }
+
 //
 // Set default number of PMP registers
 //
@@ -1028,6 +1055,16 @@ static RISCV_PDEFAULT_FN(default_numHarts) {
     Uns32 numHarts = cfg->numHarts;
 
     setUns32ParamDefault(param, numHarts==RV_NUMHARTS_0 ? 0 : numHarts);
+}
+
+//
+// Set default value of numHarts
+//
+static RISCV_PDEFAULT_FN(default_trigger_match) {
+
+    Uns32 trigger_match = cfg->trigger_match;
+
+    setUns32ParamDefault(param, trigger_match ? trigger_match : 0xffff);
 }
 
 //
@@ -1090,7 +1127,7 @@ static RISCV_PDEFAULT_FN(default_local_int_num) {
 
     if(cfg->CLICLEVELS) {
         maxLocal = 4096-16;
-    } else if(cfg->arch & ISA_XLEN_64) {
+    } else if((cfg->arch & ISA_XLEN_64) || cfg->Smaia) {
         maxLocal = 48;
     } else {
         maxLocal = 16;
@@ -1234,7 +1271,7 @@ static RISCV_PDEFAULT_FN(default_CLICCFGMBITS) {
 //
 // Set default and maximum value of CLICCFGLBITS
 //
-static RISCV_PDEFAULT_FN(default_CLICCFGLBITS){
+static RISCV_PDEFAULT_FN(default_CLICCFGLBITS) {
 
     Uns32 max   = getCLICCFGLBITSMax(cfg);
     Uns32 value = cfg->CLICCFGLBITS;
@@ -1244,10 +1281,37 @@ static RISCV_PDEFAULT_FN(default_CLICCFGLBITS){
 }
 
 //
+// Set default and maximum value of nlbits_valid
+//
+static RISCV_PDEFAULT_FN(default_nlbits_valid) {
+
+    Uns32 mask  = (2<<getCLICCFGLBITSMax(cfg))-1;
+    Uns32 value = cfg->nlbits_valid & mask;
+
+    setUns32ParamDefault(param, value ? value : mask);
+    setUns32ParamMax(param, mask);
+}
+
+//
+// Set default value of INTTHRESHBITS
+//
+static RISCV_PDEFAULT_FN(default_INTTHRESHBITS) {
+
+    setUns32ParamDefault(param, cfg->INTTHRESHBITS ? : 8);
+}
+
+//
 // Set default value for CLINT mtime counter frequency
 //
 static RISCV_PDEFAULT_FN(default_mtime_Hz) {
     setFlt64ParamDefault(param, cfg->mtime_Hz ? : 32768);
+}
+
+//
+// Set default value for AIA IPRIOLEN
+//
+static RISCV_PDEFAULT_FN(default_IPRIOLEN) {
+    setUns32ParamDefault(param, cfg->IPRIOLEN ? : 8);
 }
 
 //
@@ -1369,6 +1433,12 @@ static RISCV_PDEFAULT_FN(default_uip_mask) {
 static RISCV_PDEFAULT_FN(default_hip_mask) {
     setUns64ParamDefault(param, cfg->csrMask.hip.u64.bits ? : WM32_hip);
 }
+static RISCV_PDEFAULT_FN(default_mvien_mask) {
+    setUns64ParamDefault(param, cfg->csrMask.mvien.u64.bits);
+}
+static RISCV_PDEFAULT_FN(default_mvip_mask) {
+    setUns64ParamDefault(param, cfg->csrMask.mvip.u64.bits);
+}
 
 //
 // Set default value of envcfg_mask
@@ -1456,6 +1526,11 @@ static void setCSetParamDefault(
     CHECK_PARAM_TYPE(param, vmi_PT_BOOL, "Bool");
 
     riscvCompressSet compress_present = cfg->compress_present;
+
+    // Zcmb and Zcmpe are removed from version 1.0.0
+    if(cfg->compress_version>=RVCV_1_0_0_RC57) {
+        compress_present &= ~(RVCS_Zcmb|RVCS_Zcmpe);
+    }
 
     // enable base C extensions if unspecified
     if(!compress_present) {
@@ -1627,6 +1702,7 @@ typedef enum riscvParamGroupIdE {
     RV_PG_P,            // DSP extension
     RV_PG_V,            // vector extension
     RV_PG_CLIC,         // fast interrupts
+    RV_PG_AIA,          // AIA interrupts
     RV_PG_DBG,          // debug extension
     RV_PG_TRIG,         // trigger module
     RV_PG_EXT,          // other extensions
@@ -1654,6 +1730,7 @@ static const vmiParameterGroup groups[RV_PG_LAST+1] = {
     [RV_PG_P]     = {name: "DSP_Extension"},
     [RV_PG_V]     = {name: "Vector_Extension"},
     [RV_PG_CLIC]  = {name: "Fast_Interrupt"},
+    [RV_PG_AIA]   = {name: "AIA_Interrupts"},
     [RV_PG_DBG]   = {name: "Debug_Extension"},
     [RV_PG_TRIG]  = {name: "Trigger"},
     [RV_PG_EXT]   = {name: "Other_Extensions"},
@@ -1711,25 +1788,25 @@ static const vmiParameterGroup groups[RV_PG_LAST+1] = {
     PMP_ADDR(_X##9)
 
 #define PMP_ADDR_0_63 \
-        PMP_ADDR(0), \
-        PMP_ADDR(1), \
-        PMP_ADDR(2), \
-        PMP_ADDR(3), \
-        PMP_ADDR(4), \
-        PMP_ADDR(5), \
-        PMP_ADDR(6), \
-        PMP_ADDR(7), \
-        PMP_ADDR(8), \
-        PMP_ADDR(9), \
-        PMP_ADDR_0_9(1), \
-        PMP_ADDR_0_9(2), \
-        PMP_ADDR_0_9(3), \
-        PMP_ADDR_0_9(4), \
-        PMP_ADDR_0_9(5), \
-        PMP_ADDR(60), \
-        PMP_ADDR(61), \
-        PMP_ADDR(62), \
-        PMP_ADDR(63)
+    PMP_ADDR(0), \
+    PMP_ADDR(1), \
+    PMP_ADDR(2), \
+    PMP_ADDR(3), \
+    PMP_ADDR(4), \
+    PMP_ADDR(5), \
+    PMP_ADDR(6), \
+    PMP_ADDR(7), \
+    PMP_ADDR(8), \
+    PMP_ADDR(9), \
+    PMP_ADDR_0_9(1), \
+    PMP_ADDR_0_9(2), \
+    PMP_ADDR_0_9(3), \
+    PMP_ADDR_0_9(4), \
+    PMP_ADDR_0_9(5), \
+    PMP_ADDR(60), \
+    PMP_ADDR(61), \
+    PMP_ADDR(62), \
+    PMP_ADDR(63)
 
 //
 // Table of formal parameter specifications
@@ -1836,6 +1913,7 @@ static riscvParameter parameters[] = {
     {  RVPV_S,       0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_cache_size,         8, 0,          256,        RV_GROUP(ARTIF), "Specifies the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
     {  RVPV_PRE,     0,         default_trigger_num,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, trigger_num,             0, 0,          255,        RV_GROUP(TRIG),  "Specify the number of implemented hardware triggers")},
     {  RVPV_TRIG,    0,         default_tinfo,                VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, tinfo,                   0, 0,          0xffff,     RV_GROUP(TRIG),  "Override tinfo register (for all triggers)")},
+    {  RVPV_TRIG,    0,         default_trigger_match,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, trigger_match,           0, 1,          0xffff,     RV_GROUP(TRIG),  "Specify legal \"match\" values for triggers of type 2 and 6 (bitmask)")},
     {  RVPV_TRIG,    0,         default_mcontext_bits,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mcontext_bits,           0, 0,          0,          RV_GROUP(TRIG),  "Specify the number of implemented bits in mcontext")},
     {  RVPV_TRIG_S,  0,         default_scontext_bits,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, scontext_bits,           0, 0,          0,          RV_GROUP(TRIG),  "Specify the number of implemented bits in scontext")},
     {  RVPV_TRIG,    0,         default_mvalue_bits,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mvalue_bits,             0, 0,          0,          RV_GROUP(TRIG),  "Specify the number of implemented bits in textra.mvalue (if zero, textra.mselect is tied to zero)")},
@@ -1843,7 +1921,8 @@ static riscvParameter parameters[] = {
     {  RVPV_TRIG,    0,         default_mcontrol_maskmax,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mcontrol_maskmax,        0, 0,          63,         RV_GROUP(TRIG),  "Specify mcontrol.maskmax value")},
     {  RVPV_S,       0,         default_ASID_bits,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_bits,               0, 0,          0,          RV_GROUP(MEM),   "Specify the number of implemented ASID bits")},
     {  RVPV_H,       0,         default_VMID_bits,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, VMID_bits,               0, 0,          0,          RV_GROUP(H),     "Specify the number of implemented VMID bits")},
-    {  RVPV_A,       0,         default_lr_sc_grain,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, lr_sc_grain,             1, 1,          (1<<16),    RV_GROUP(MEM),   "Specify byte granularity of ll/sc lock region (constrained to a power of two)")},
+    {  RVPV_A,       0,         default_lr_sc_grain,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, lr_sc_grain,             1, 1,          (1<<16),    RV_GROUP(MEM),   "Specify byte granularity of LR/SC lock region (constrained to a power of two)")},
+    {  RVPV_64A,     0,         default_lr_sc_match_size,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, lr_sc_match_size,        False,                     RV_GROUP(MEM),   "Whether LR/SC access sizes must match")},
     {  RVPV_ALL,     0,         default_reset_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, reset_address,           0, 0,          -1,         RV_GROUP(INTXC), "Override reset vector address")},
     {  RVPV_ALL,     0,         default_nmi_address,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmi_address,             0, 0,          -1,         RV_GROUP(INTXC), "Override NMI vector address")},
     {  RVPV_RNMI,    0,         default_nmiexc_address,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmiexc_address,          0, 0,          -1,         RV_GROUP(INTXC), "Override RNMI exception vector address")},
@@ -1962,9 +2041,9 @@ static riscvParameter parameters[] = {
     {  RVPV_C_CNEW,  0,         default_Zca,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zca,                     False,                     RV_GROUP(C),     "Specify that Zca is implemented")},
     {  RVPV_C_CNEW,  0,         default_Zcb,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcb,                     False,                     RV_GROUP(C),     "Specify that Zcb is implemented")},
     {  RVPV_C_CNEW,  0,         default_Zcf,                  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcf,                     False,                     RV_GROUP(C),     "Specify that Zcf is implemented")},
-    {  RVPV_C_CNEW,  0,         default_Zcmb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmb,                    False,                     RV_GROUP(C),     "Specify that Zcmb is implemented")},
+    {  RVPV_C_CCV07, 0,         default_Zcmb,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmb,                    False,                     RV_GROUP(C),     "Specify that Zcmb is implemented")},
     {  RVPV_C_CNEW,  0,         default_Zcmp,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmp,                    False,                     RV_GROUP(C),     "Specify that Zcmp is implemented")},
-    {  RVPV_C_CNEW,  0,         default_Zcmpe,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmpe,                   False,                     RV_GROUP(C),     "Specify that Zcmpe is implemented")},
+    {  RVPV_C_CCV07, 0,         default_Zcmpe,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmpe,                   False,                     RV_GROUP(C),     "Specify that Zcmpe is implemented")},
     {  RVPV_C_CNEW,  0,         default_Zcmt,                 VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zcmt,                    False,                     RV_GROUP(C),     "Specify that Zcmt is implemented")},
 
     // CLIC configuration
@@ -1977,14 +2056,26 @@ static riscvParameter parameters[] = {
     {  RVPV_CLIC,    0,         default_CLICSELHVEC,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, CLICSELHVEC,             False,                     RV_GROUP(CLIC),  "Whether selective hardware vectoring supported")},
     {  RVPV_CLIC,    0,         default_CLICXNXTI,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, CLICXNXTI,               False,                     RV_GROUP(CLIC),  "Whether xnxti CSRs implemented")},
     {  RVPV_CLIC,    0,         default_CLICXCSW,             VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, CLICXCSW,                False,                     RV_GROUP(CLIC),  "Whether xscratchcsw/xscratchcswl CSRs implemented")},
+    {  RVPV_CLIC,    0,         default_INTTHRESHBITS,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, INTTHRESHBITS,           1, 8,          8,          RV_GROUP(CLIC),  "Specify number of bits implemented in xintthresh.th")},
     {  RVPV_CLIC,    0,         default_externalCLIC,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, externalCLIC,            False,                     RV_GROUP(CLIC),  "Whether CLIC is implemented externally (if False, then use implementation in this model)")},
     {  RVPV_CLIC,    0,         default_tvt_undefined,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tvt_undefined,           False,                     RV_GROUP(CLIC),  "Specify that mtvt, stvt and utvt CSRs are undefined")},
     {  RVPV_CLIC,    0,         default_intthresh_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, intthresh_undefined,     False,                     RV_GROUP(CLIC),  "Specify that mintthreash, sintthresh and uintthresh CSRs are undefined")},
     {  RVPV_CLIC,    0,         default_mclicbase_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mclicbase_undefined,     False,                     RV_GROUP(CLIC),  "Specify that mclicbase CSR is undefined")},
+    {  RVPV_CLIC,    0,         default_CSIP_present,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, CSIP_present,            False,                     RV_GROUP(CLIC),  "Specify that edge-triggered CSIP interrupt is present")},
+    {  RVPV_CLIC,    0,         default_nlbits_valid,         VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, nlbits_valid,            0, 0,          0,          RV_GROUP(CLIC),  "Mask of valid cliccfg.nlbits values (for example, 0x101 implies cliccfg.nlbits may be 0 or 8 only)")},
     {  RVPV_CLIC,    0,         default_posedge_0_63,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, posedge_0_63,            0, 0,          0,          RV_GROUP(CLIC),  "Mask of interrupts 0 to 63 that are fixed positive edge triggered")},
     {  RVPV_CLIC,    0,         default_poslevel_0_63,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, poslevel_0_63,           0, 0,          0,          RV_GROUP(CLIC),  "Mask of interrupts 0 to 63 that are fixed positive level triggered")},
     {  RVPV_CLIC,    0,         default_posedge_other,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, posedge_other,           False,                     RV_GROUP(CLIC),  "Whether interrupts 64 and above are fixed positive edge triggered")},
     {  RVPV_CLIC,    0,         default_poslevel_other,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, poslevel_other,          False,                     RV_GROUP(CLIC),  "Whether interrupts 64 and above are fixed positive level triggered")},
+
+    // AIA configuration
+    {  RVPV_PRE,     0,         default_Smaia,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Smaia,                   False,                     RV_GROUP(AIA),   "Specify that Smaia CSRs are present")},
+    {  RVPV_SMAIA,   0,         default_IPRIOLEN,             VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, IPRIOLEN,                0,           1, 8,         RV_GROUP(AIA),   "Specify AIA IPRIOLEN")},
+    {  RVPV_SMAIA,   0,         default_IMSIC_present,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, IMSIC_present,           False,                     RV_GROUP(AIA),   "Specify that IMSIC CSRs are present (must be implemented externally using CSR bus)")},
+    {  RVPV_SMAIA,   0,         default_mvip_mask,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mvip_mask,               0,           0, -1,        RV_GROUP(AIA),   "Specify hardware-enforced mask of writable bits in mvip register")},
+    {  RVPV_SMAIA,   0,         default_mvien_mask,           VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mvien_mask,              0,           0, -1,        RV_GROUP(AIA),   "Specify hardware-enforced mask of writable bits in mvien register")},
+    {  RVPV_SMAIA,   0,         default_miprio_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, miprio_mask,             0,           0, -1,        RV_GROUP(AIA),   "Specify mask of writable entries in AIA M-mode iprio array")},
+    {  RVPV_SMAIA_S, 0,         default_siprio_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, siprio_mask,             0,           0, -1,        RV_GROUP(AIA),   "Specify mask of writable entries in AIA S-mode iprio array")},
 
     // Hypervisor configuration
     {  RVPV_H,       0,         default_GEILEN,               VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, GEILEN,                  0, 0,          0,          RV_GROUP(H),     "Specify number of guest external interrupts")},
@@ -2254,6 +2345,17 @@ static Bool selectParameter(
 
         // include parameters that are only required for new C extension
         if((param->variant & RVPV_CNEW) && !cfg->compress_version) {
+            return False;
+        }
+
+        // include parameters that are only required for C extension versions
+        // 0.70.x
+        if((param->variant & RVPV_CV07) && (cfg->compress_version>=RVCV_1_0_0_RC57)) {
+            return False;
+        }
+
+        // include parameters that are only required for Smaia extension
+        if((param->variant & RVPV_SMAIA) && !cfg->Smaia) {
             return False;
         }
 
@@ -2677,6 +2779,9 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
 
         // apply compress_version override if required
         APPLY_PREPARAM_IF_SET(riscv, params, compress_version);
+
+        // apply AIA Smaia override if required
+        APPLY_PREPARAM_IF_SET(riscv, params, Smaia);
 
         // create full parameter list
         riscv->parameters = createParameterList(riscv, &riscv->configInfo);

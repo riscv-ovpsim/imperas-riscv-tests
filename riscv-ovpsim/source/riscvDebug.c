@@ -18,10 +18,14 @@
  */
 
 // standard header files
+#include <string.h>
 #include <stdio.h>
 
 // Imperas header files
 #include "hostapi/impAlloc.h"
+
+// common header files
+#include "ocl/oclSymbol.h"
 
 // VMI header files
 #include "vmi/vmiAttrs.h"
@@ -62,6 +66,7 @@ typedef enum riscvRegGroupIdE {
     RV_RG_M_CSR,        // Machine mode CSR register group
     RV_RG_CLINT,        // CLINT register group
     RV_RG_INTEGRATION,  // integration support registers
+    RV_RG_EXTENSION,    // extension registers
     RV_RG_LAST          // KEEP LAST: for sizing
 } riscvRegGroupId;
 
@@ -78,6 +83,7 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
     [RV_RG_M_CSR]       = {name: "Machine_Control_and_Status"},
     [RV_RG_CLINT]       = {name: "CLINT"},
     [RV_RG_INTEGRATION] = {name: "Integration_support"},
+    [RV_RG_EXTENSION]   = {name: "Extension"},
 };
 
 //
@@ -91,19 +97,31 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
 #define RISCV_FPR0_INDEX        33
 
 //
-// This is the index of the first CSR
+// This is the index of the first CSR (NOTE: last potential CSR is at address
+// RISCV_CSR0_INDEX+0xfff
 //
 #define RISCV_CSR0_INDEX        65
 
 //
-// This is the index of the first ISR
+// This is the index of the first integration support register (after last
+// potential CSR)
 //
 #define RISCV_SUP0_INDEX        0x1100
+
+//
+// This is the index of the first expanded pmpcfg integration support register
+//
+#define RISCV_PMPCFG_INDEX      0x1200
 
 //
 // This is the index of the first vector register
 //
 #define RISCV_V0_INDEX          0x2000
+
+//
+// This is the index of the first extension register
+//
+#define RISCV_EXT_INDEX         0x80000000
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +129,7 @@ static const vmiRegGroup groups[RV_RG_LAST+1] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 DEFINE_CS(supDetails);
+DEFINE_S (regList);
 
 //
 // Function type indicating ISR presence
@@ -138,6 +157,14 @@ typedef struct supDetailsS {
     void             *userData;
     isrPresentFn      present;
 } supDetails;
+
+//
+// Structure defining register list entry
+//
+typedef struct riscvRegListS {
+    riscvRegListP next;
+    vmiRegInfo    reg;
+} riscvRegList;
 
 //
 // Is DM artifact register present?
@@ -375,25 +402,17 @@ static VMI_REG_WRITE_FN(writeMTIME) {
 //
 static VMI_REG_READ_FN(readPMPCFGMask) {
 
-    riscvP riscv   = (riscvP)processor;
-    Uns32  index   = (Uns32)(UnsPS)reg->userData;
+    riscvP riscv = (riscvP)processor;
+    Uns32  index = (UnsPS)reg->userData;
+    Uns32  bits  = reg->bits;
 
     VMI_ASSERT(index < 16, "pmpcfgMask index out of range");
+    VMI_ASSERT((bits==32) || (bits==64), "unimplemented bits %u", bits);
 
-    if(reg->bits == 32) {
-        Uns32 *pmpcfgMaskP = buffer;
-
-        *pmpcfgMaskP = ~riscv->romask_pmpcfg.u32[index];
-
-    } else if (reg->bits == 64) {
-        Uns64 *pmpcfgMaskP = buffer;
-
-        *pmpcfgMaskP = ~riscv->romask_pmpcfg.u64[index/2];
-
+    if(bits==32) {
+        *(Uns32 *)buffer = ~riscv->romask_pmpcfg.u32[index];
     } else {
-
-        return False;
-
+        *(Uns64 *)buffer = ~riscv->romask_pmpcfg.u64[index/2];
     }
 
     return True;
@@ -461,25 +480,26 @@ static VMI_REG_READ_FN(readPMPAddrMask) {
     PMP_ADDR(_X##9, _GDB_I_0)
 
 #define PMP_ADDR_0_63(_GDB_I_0) \
-        PMP_ADDR(0, _GDB_I_0), \
-        PMP_ADDR(1, _GDB_I_0), \
-        PMP_ADDR(2, _GDB_I_0), \
-        PMP_ADDR(3, _GDB_I_0), \
-        PMP_ADDR(4, _GDB_I_0), \
-        PMP_ADDR(5, _GDB_I_0), \
-        PMP_ADDR(6, _GDB_I_0), \
-        PMP_ADDR(7, _GDB_I_0), \
-        PMP_ADDR(8, _GDB_I_0), \
-        PMP_ADDR(9, _GDB_I_0), \
-        PMP_ADDR_0_9(1, _GDB_I_0), \
-        PMP_ADDR_0_9(2, _GDB_I_0), \
-        PMP_ADDR_0_9(3, _GDB_I_0), \
-        PMP_ADDR_0_9(4, _GDB_I_0), \
-        PMP_ADDR_0_9(5, _GDB_I_0), \
-        PMP_ADDR(60, _GDB_I_0), \
-        PMP_ADDR(61, _GDB_I_0), \
-        PMP_ADDR(62, _GDB_I_0), \
-        PMP_ADDR(63, _GDB_I_0)
+    PMP_ADDR(0, _GDB_I_0), \
+    PMP_ADDR(1, _GDB_I_0), \
+    PMP_ADDR(2, _GDB_I_0), \
+    PMP_ADDR(3, _GDB_I_0), \
+    PMP_ADDR(4, _GDB_I_0), \
+    PMP_ADDR(5, _GDB_I_0), \
+    PMP_ADDR(6, _GDB_I_0), \
+    PMP_ADDR(7, _GDB_I_0), \
+    PMP_ADDR(8, _GDB_I_0), \
+    PMP_ADDR(9, _GDB_I_0), \
+    PMP_ADDR_0_9(1, _GDB_I_0), \
+    PMP_ADDR_0_9(2, _GDB_I_0), \
+    PMP_ADDR_0_9(3, _GDB_I_0), \
+    PMP_ADDR_0_9(4, _GDB_I_0), \
+    PMP_ADDR_0_9(5, _GDB_I_0), \
+    PMP_ADDR(60, _GDB_I_0), \
+    PMP_ADDR(61, _GDB_I_0), \
+    PMP_ADDR(62, _GDB_I_0), \
+    PMP_ADDR(63, _GDB_I_0)
+
 //
 // List of supplemental registers
 //
@@ -554,6 +574,26 @@ static supDetailsCP getNextSupDetails(
     }
 
     return this->name ? this : 0;
+}
+
+//
+// Given the previous extension register, return the next one for this
+// variant.
+//
+static riscvRegListP getNextExtReg(
+    riscvP        riscv,
+    riscvRegListP prev,
+    Bool          normal
+) {
+    riscvRegListP this = 0;
+
+    if(prev) {
+        this = prev->next;
+    } else {
+        this = riscv->extRegHead;
+    }
+
+    return this;
 }
 
 
@@ -683,6 +723,41 @@ inline static Uns32 getVRNum(riscvP riscv) {
 }
 
 //
+// Allocate register name
+//
+static const char *allocRegName(riscvP riscv, const char *name) {
+
+    // free register name table
+    if(!riscv->regNames) {
+        riscv->regNames = oclSymbolTableCreate();
+    }
+
+    // return permanent name
+    return oclSymbolName(oclSymbolFindAdd(riscv->regNames, name, 0));
+}
+
+//
+// Return expanded pmpcfg register name
+//
+static const char *getPMPCFGName(riscvP riscv, Uns32 i, Uns32 XLEN) {
+
+    Uns32 elemPerCSR = XLEN/8;
+    Uns32 CSR        = (i/elemPerCSR) * (elemPerCSR/4);
+    char  tmp[32];
+
+    sprintf(tmp, "pmp%ucfg%u", i, CSR);
+
+    return allocRegName(riscv, tmp);
+}
+
+//
+// Return vmiReg for expanded pmpcfg register
+//
+static vmiReg getPMPCFGVMIReg(riscvP riscv, Uns32 i) {
+    return vmimtGetExtReg((vmiProcessorP)riscv, &riscv->pmpcfg.u8[i]);
+}
+
+//
 // Return register list (either normal or debug). When parameter 'normal' is
 // True, all processor registers should be returned; when False, registers
 // that should be reported using RSP 'g' or 'p' packets should be returned.
@@ -699,8 +774,10 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         Uns32           vrNum  = getVRNum(riscv);
         Uns32           regNum = 0;
         Uns32           csrNum;
+        Uns32           pmpcfgNum;
         riscvCSRDetails csrDetails;
         supDetailsCP    supDetails;
+        riscvRegListP   extReg;
         vmiRegInfoP     dst;
         Uns32           i;
 
@@ -727,6 +804,16 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
         while((supDetails=getNextSupDetails(riscv, supDetails, normal))) {
             regNum++;
         }
+
+        // count visible extension registers
+        extReg = 0;
+        while((extReg=getNextExtReg(riscv, extReg, normal))) {
+            regNum++;
+        }
+
+        // count expanded pmpcfg registers
+        pmpcfgNum = riscv->configInfo.PMP_registers;
+        regNum += pmpcfgNum;
 
         // allocate register information, including terminating NULL entry
         dst = riscv->regInfo[normal] = STYPE_CALLOC_N(vmiRegInfo, regNum+1);
@@ -798,7 +885,7 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst++;
         }
 
-        // fill visible supplemental registers
+        // fill visible integration support registers
         supDetails = 0;
         while((supDetails=getNextSupDetails(riscv, supDetails, normal))) {
             dst->name            = supDetails->name;
@@ -814,6 +901,25 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst->noSaveRestore   = supDetails->noSaveRestore;
             dst->instrAttrIgnore = supDetails->instrAttrIgnore;
             dst->userData        = supDetails->userData;
+            dst++;
+        }
+
+        // fill expanded pmpcfg integration support registers
+        for(i=0; i<pmpcfgNum; i++) {
+            dst->name     = getPMPCFGName(riscv, i, XLEN);
+            dst->group    = RV_GROUP(INTEGRATION);
+            dst->bits     = 8;
+            dst->gdbIndex = i+RISCV_PMPCFG_INDEX;
+            dst->access   = vmi_RA_R;
+            dst->raw      = getPMPCFGVMIReg(riscv, i);
+            dst++;
+        }
+
+        // fill visible extension registers
+        extReg = 0;
+        while((extReg=getNextExtReg(riscv, extReg, normal))) {
+            *dst = extReg->reg;
+            dst->gdbIndex |= RISCV_EXT_INDEX;
             dst++;
         }
     }
@@ -873,19 +979,60 @@ static Bool isGroupSupported(riscvP riscv, vmiRegGroupCP group) {
 }
 
 //
+// Is the group a standard RISC-V register group?
+//
+static Bool isStandardGroup(vmiRegGroupCP group) {
+    return (group>=&groups[0]) && (group<=&groups[RV_RG_LAST-1]);
+}
+
+//
+// Return next supported extension-defined group on this processor
+//
+static vmiRegGroupCP getNextExtensionGroup(riscvP riscv, vmiRegGroupCP prev) {
+
+    vmiRegGroupCP result = 0;
+    vmiRegInfoCP  info   = 0;
+
+    while((info=getNextRegister(riscv, info, VMIRIT_NORMAL))) {
+
+        vmiRegGroupCP try = info->group;
+
+        if(!try) {
+            // no action
+        } else if(isStandardGroup(try)) {
+            // no action
+        } else if(try<=prev) {
+            // no action
+        } else if(!result || (result>try)) {
+            result = try;
+        }
+    }
+
+    return result;
+}
+
+//
 // Return next supported group on this processor
 //
 static vmiRegGroupCP getNextGroup(riscvP riscv, vmiRegGroupCP group) {
 
+    // scan for next standard group
     do {
         if(!group) {
             group = groups;
+        } else if(!isStandardGroup(group)) {
+            break;
         } else if((group+1)->name) {
             group = group+1;
         } else {
             group = 0;
         }
     } while(group && !isGroupSupported(riscv, group));
+
+    // scan for next extension-defined group
+    if(!group || !isStandardGroup(group)) {
+        group = getNextExtensionGroup(riscv, group);
+    }
 
     return group;
 }
@@ -905,12 +1052,70 @@ VMI_REG_INFO_FN(riscvRegInfo) {
 }
 
 //
+// Add extension register to debug interface
+//
+void riscvNewExtReg(riscvP riscv, vmiRegInfoCP src) {
+
+    riscvRegListP this = STYPE_CALLOC(riscvRegList);
+    vmiRegInfoP   dst  = &this->reg;
+
+    // copy template register
+    *dst = *src;
+
+    // create local copies of name and description
+    if(dst->name) {
+        dst->name = strdup(dst->name);
+    }
+    if(dst->description) {
+        dst->description = strdup(dst->description);
+    }
+
+    // use default group if none is given
+    if(!dst->group) {
+        dst->group = &groups[RV_RG_EXTENSION];
+    }
+
+    // add to tail of list
+    if(riscv->extRegTail) {
+        riscv->extRegTail->next = this;
+    } else {
+        riscv->extRegHead = this;
+    }
+
+    // update tail
+    riscv->extRegTail = this;
+}
+
+//
 // Free register descriptions, if they have been allocated
 //
 void riscvFreeRegInfo(riscvP riscv) {
 
-    Uns32 i;
+    riscvRegListP extReg;
+    Uns32         i;
 
+    // free register name table
+    if(riscv->regNames) {
+        oclSymbolTableDestroy(riscv->regNames);
+    }
+
+    // free extension register templates
+    while((extReg=riscv->extRegHead)) {
+
+        riscv->extRegHead = extReg->next;
+
+        // free local copies of name and description
+        if(extReg->reg.name) {
+            free((char*)extReg->reg.name);
+        }
+        if(extReg->reg.description) {
+            free((char*)extReg->reg.description);
+        }
+
+        STYPE_FREE(extReg);
+    }
+
+    // free register descriptions
     for(i=0; i<2; i++) {
         if(riscv->regInfo[i]) {
             STYPE_FREE(riscv->regInfo[i]);

@@ -42,15 +42,15 @@ Other instructions (those not the focus of this suite)
   fence : 170
   ecall : 170
   beq : 510
-  fclass.d : 32
-  add : 296
   ld : 486
   fcvt.d.l : 97
+  add : 296
+  fclass.d : 32
   fcvt.d.lu : 97
   fcvt.d.s : 224
+  fcvt.d.w : 98
   fcvt.d.wu : 97
   fcvt.l.d : 404
-  fcvt.d.w : 98
   fcvt.lu.d : 405
   fcvt.s.d : 359
   fcvt.w.d : 373
@@ -61,8 +61,8 @@ Other instructions (those not the focus of this suite)
   flt.d : 1,729
   fmadd.d : 4,612
   fmax.d : 1,693
-  fmin.d : 1,676
   fmsub.d : 4,613
+  fmin.d : 1,676
   fmul.d : 6,605
   fmv.d.x : 97
   fmv.x.d : 228
