@@ -32,7 +32,7 @@ Other instructions (those not the focus of this suite)
   lw : 672
   bne : 3,584
   FETCH : 288
-  fence : 14
   ecall : 42
   csrrc : 14
+  fence : 14
 

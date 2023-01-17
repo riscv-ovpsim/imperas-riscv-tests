@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,17 +108,9 @@ typedef struct riscvPendEnabS {
 // This holds all state contributing to a basic mode interrupt (for debug)
 //
 typedef struct riscvBasicIntStateS {
-    Uns64 pendingEnabled;       // pending-and-enabled state
-    Uns64 pending;              // pending state
-    Uns64 pendingExternal;      // pending external interrupts
-    Uns64 pendingInternal;      // pending internal (software) interrupts
-    Uns64 mideleg;              // mideleg register value
-    Uns64 sideleg;              // sideleg register value
-    Bool  mie;                  // mstatus.mie
-    Bool  sie;                  // mstatus.sie
-    Bool  uie;                  // mstatus.uie
-    Bool  _u1;                  // (for alignment)
-} riscvBasicIntState;
+    Uns64 ip[RISCV_MODE_LAST];  // pending and enabled interrupts per mode
+    Bool  hvictl;               // whether hvictl-injected interrupt
+} riscvBasicIntState, *riscvBasicIntStateP;
 
 //
 // This holds processor and vector information for an interrupt
@@ -265,6 +257,8 @@ typedef struct riscvS {
     Bool               checkTriggerS :1;// whether trigger store check
     Bool               checkTriggerX :1;// whether trigger execute check
     Bool               usingFP       :1;// whether floating point in use
+    Bool               usingBF16     :1;// whether BF16 format in use
+    Bool               dynamicBF16   :1;// whether dynamic BF16 format
     riscvVTypeFmt      vtypeFormat   :1;// vtype format (vector extension)
     Uns16              pmKey;           // polymorphic key
     Uns8               xlenMask;        // XLEN mask (per mode5)
@@ -300,23 +294,29 @@ typedef struct riscvS {
     riscvPendEnab      pendEnab;        // pending and enabled interrupt
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
     riscvAIAP          aia;             // AIA state
-    riscvCLINTP        clint;           // CLINT state
+    riscvPP            clint;           // CLINT state
     riscvCLIC          clic;            // source interrupt indicated from CLIC
     riscvException     exception;       // last activated exception
+    riscvExceptionDtl  exceptionDetail; // exception detail
     Uns32              threshOnes: 8;   // all-ones bits in xintthresh
     riscvICMode        MIMode    : 2;   // custom M interrupt mode
     riscvICMode        SIMode    : 2;   // custom S interrupt mode
     riscvICMode        HIMode    : 2;   // custom H interrupt mode
     riscvICMode        UIMode    : 2;   // custom U interrupt mode
-    riscvAccessFault   AFErrorIn : 3;   // input access fault error subtype
-    riscvAccessFault   AFErrorOut: 3;   // latched access fault error subtype
     Bool               inhv      : 1;   // is CLIC vector access active?
+    Bool               stimecmp  : 1;   // is stimecmp interrupt pending?
+    Bool               vstimecmp : 1;   // is vstimecmp interrupt pending?
+    Bool               isFetch   : 1;   // is instruction fetch active?
 
     // LR/SC support
     Uns64              exclusiveTag;    // tag for active exclusive access
     Uns64              exclusiveTagMask;// mask for active exclusive access
 
     // Counter/timer support
+    riscvNetPortP      mtimePort;       // external mtime source port
+    vmiModelTimerP     mtime;           // mtime timer
+    Uns64              mtimecmp;        // mtimecmp value (CLINT)
+    Uns64              mtimebase;       // mtime base value
     Uns64              baseCycles;      // base cycle count
     Uns64              baseInstructions;// base instruction count
 
@@ -338,6 +338,7 @@ typedef struct riscvS {
 
     // Ports
     riscvBusPortP      busPorts;        // bus ports
+    riscvBusPortP      IMSICPort;       // IMSIC external interrupts
     riscvNetPortP      netPorts;        // net ports
     riscvNetValue      netValue;        // special net port values
     Uns32              ipDWords;        // size of ip in double words
@@ -420,7 +421,7 @@ typedef struct riscvS {
     Bool               vFirstFault;          	// vector first fault active?
     Bool               vPreserve;               // vsetvl{i} preserving vl?
     Uns32              vlEEW1;                  // effective VL when EEW=1
-    Uns64              vTmp;                 	// vector operation temporary
+    Uns64              vTmp[4];               	// vector operation temporaries
     UnsPS              vBase[NUM_BASE_REGS];  	// indexed base registers
     Uns32             *v;                     	// vector registers (configurable size)
 
@@ -555,24 +556,67 @@ inline static Bool basicICPresent(riscvP riscv) {
 }
 
 //
+// Is CLIC/CLINT mode determined entirely by mtvec?
+//
+inline static Bool mtvecDeterminesCLICMode(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+}
+
+//
+// Are xintstatus CSRs in read-only location?
+//
+inline static Bool xintstatusRO(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+}
+
+//
+// Is mclicbase CSR always absent?
+//
+inline static Bool mclicbaseAbsent(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+}
+
+//
+// Is clicinfo memory-mapped register absent?
+//
+inline static Bool clicinfoAbsent(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+}
+
+//
+// Is cliccfg.nvbits implemented?
+//
+inline static Bool haveNVbits(riscvP riscv) {
+    return riscv->configInfo.CLIC_version<=RVCLC_0_9_20220315;
+}
+
+//
 // Should CLIC be used for M-mode interrupts?
 //
 inline static Bool useCLICM(riscvP riscv) {
-    return RD_CSR_FIELD_M(riscv, mtvec, MODE)&riscv_int_CLIC;
+    return RD_CSR_FIELD_M(riscv, mtvec, MODE) & riscv_int_CLIC;
 }
 
 //
 // Should CLIC be used for S-mode interrupts?
 //
 inline static Bool useCLICS(riscvP riscv) {
-    return RD_CSR_FIELD_S(riscv, stvec, MODE)&riscv_int_CLIC;
+    if(mtvecDeterminesCLICMode(riscv)) {
+        return RD_CSR_FIELD_M(riscv, mtvec, MODE) & riscv_int_CLIC;
+    } else {
+        return RD_CSR_FIELD_S(riscv, stvec, MODE) & riscv_int_CLIC;
+    }
 }
 
 //
 // Should CLIC be used for U-mode interrupts?
 //
 inline static Bool useCLICU(riscvP riscv) {
-    return RD_CSR_FIELD_U(riscv, utvec, MODE)&riscv_int_CLIC;
+    if(mtvecDeterminesCLICMode(riscv)) {
+        return RD_CSR_FIELD_M(riscv, mtvec, MODE) & riscv_int_CLIC;
+    } else {
+        return RD_CSR_FIELD_U(riscv, utvec, MODE) & riscv_int_CLIC;
+    }
 }
 
 //
@@ -650,6 +694,13 @@ inline static Uns32 getCurrentSEW(riscvP riscv) {
 //
 inline static Int32 getCurrentSVLMUL(riscvP riscv) {
     return getVTypeSVLMUL(getCurrentVType(riscv));
+}
+
+//
+// Is User mode present?
+//
+inline static Bool userPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_U;
 }
 
 //
@@ -737,6 +788,13 @@ inline static riscvZfinxVer Zfinx(riscvP riscv) {
 }
 
 //
+// Is Zfa configured?
+//
+inline static riscvZceeVer Zfa(riscvP riscv) {
+    return riscv->configInfo.Zfa;
+}
+
+//
 // Is notional Zcd configured?
 //
 inline static riscvZceeVer Zcd(riscvP riscv) {
@@ -779,6 +837,13 @@ inline static riscvZceeVer Smaia(riscvP riscv) {
 }
 
 //
+// Is Sstc configured?
+//
+inline static riscvZceeVer Sstc(riscvP riscv) {
+    return riscv->configInfo.Sstc;
+}
+
+//
 // Is this processor a PSE?
 //
 inline static Bool isPSE(riscvP riscv) {
@@ -790,6 +855,59 @@ inline static Bool isPSE(riscvP riscv) {
 //
 inline static Bool perInstructionFFlags(riscvP riscv) {
     return riscv->configInfo.enable_fflags_i;
+}
+
+//
+// Return effective mvien value
+//
+inline static Uns64 getEffectiveMvien(riscvP riscv) {
+    return RD_CSR64(riscv, mvien) & ~RD_CSR64(riscv, mideleg);
+}
+
+//
+// Return effective hvien value
+//
+inline static Uns64 getEffectiveHvien(riscvP riscv) {
+    Uns64 hideleg = RD_CSR64(riscv, hideleg) & RD_CSR64(riscv, mideleg);
+    return RD_CSR64(riscv, hvien) & ~hideleg;
+}
+
+//
+// Is stimecmp enabled (Sstc extension)
+//
+inline static Bool stimecmpEnabled(riscvP riscv) {
+    return RD_CSR_FIELDC(riscv, menvcfg, STCE);
+}
+
+//
+// Is vstimecmp enabled (Sstc extension)
+//
+inline static Bool vstimecmpEnabled(riscvP riscv) {
+    return stimecmpEnabled(riscv) && RD_CSR_FIELDC(riscv, henvcfg, STCE);
+}
+
+//
+// Is some time-related CSR present?
+//
+inline static Bool timeRelatedCSRPresent(riscvP riscv) {
+    return Sstc(riscv) || !riscv->configInfo.time_undefined;
+}
+
+//
+// Should external mtime source port be created?
+//
+inline static Bool externalMTIME(riscvP riscv) {
+    return !CLINTInternal(riscv) && timeRelatedCSRPresent(riscv);
+}
+
+//
+// Must internal mtime timer be created?
+//
+inline static Bool internalMTIME(riscvP riscv) {
+    return (
+        !(riscv->mtimePort && riscv->mtimePort->desc.handle) &&
+        (CLINTInternal(riscv) || timeRelatedCSRPresent(riscv))
+    );
 }
 
 

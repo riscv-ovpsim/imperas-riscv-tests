@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@
 // model header files
 #include "riscvCluster.h"
 #include "riscvCLINT.h"
-#include "riscvCLINTTypes.h"
 #include "riscvExceptions.h"
 #include "riscvMessage.h"
 #include "riscvStructure.h"
@@ -117,13 +116,6 @@ inline static Uns32 msipInt(void) {
 }
 
 //
-// Return index of Machine Timer Interrupt
-//
-inline static Uns32 mtipInt(void) {
-    return exceptionToInt(riscv_E_MTimerInterrupt);
-}
-
-//
 // If the offset corresponds to a CLINT register, fill decode details and return
 // True; otherwise, return False
 //
@@ -160,121 +152,40 @@ static Bool decodeCLINTReg(riscvP root, CLINTRegDecodeP decode, Uns32 offset) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Forward reference
-//
-static void refreshMTIP(riscvCLINTP clint);
-
-//
 // Return the current value of the indexed interrupt
 //
-inline static Bool getInt(riscvCLINTP clint, Uns32 intNum) {
-    return clint->hart->ip[0] & (1<<intNum);
+inline static Bool getInt(riscvP hart, Uns32 intNum) {
+    return hart->ip[0] & (1<<intNum);
 }
 
 //
 // Read msip[i]
 //
-Bool riscvReadCLINTMSIP(riscvCLINTP clint) {
+Bool riscvReadCLINTMSIP(riscvP hart) {
 
-    return getInt(clint, msipInt());
+    return getInt(hart, msipInt());
 }
 
 //
 // Write msip[i]
 //
-void riscvWriteCLINTMSIP(riscvCLINTP clint, Bool value) {
+void riscvWriteCLINTMSIP(riscvP hart, Bool value) {
 
-    riscvUpdateInterrupt(clint->hart, msipInt(), value);
-}
-
-//
-// Read mtime (common to all harts)
-//
-Uns64 riscvReadCLINTMTIME(riscvCLINTP clint) {
-
-    riscvP hart  = clint->hart;
-    Uns64  mtime = clint->mtimebase;
-
-    if(!hart->inSaveRestore) {
-        mtime += vmirtGetModelTimerCurrentCount(clint->mtime, True);
-    }
-
-    return mtime;
+    riscvUpdateInterrupt(hart, msipInt(), value);
 }
 
 //
 // Write mtime (common to all harts)
 //
-void riscvWriteCLINTMTIME(riscvCLINTP clint, Uns64 value) {
+void riscvWriteCLINTMTIME(riscvP hart, Uns64 value) {
 
-    riscvP hart = clint->hart;
+    riscvP root     = getCLINTRoot(hart);
+    Uns32  numHarts = getNumHarts(root);
+    Uns32  i;
 
-    if(hart->inSaveRestore) {
-
-        clint->mtimebase = value;
-
-    } else {
-
-        riscvP root     = getCLINTRoot(clint->hart);
-        Uns32  numHarts = getNumHarts(root);
-        Uns32  i;
-
-        for(i=0; i<numHarts; i++) {
-
-            riscvCLINTP this  = root->clint+i;
-            Uns64       count = vmirtGetModelTimerCurrentCount(this->mtime, True);
-
-            this->mtimebase = value - count + 1;
-
-            refreshMTIP(this);
-        }
+    for(i=0; i<numHarts; i++) {
+        riscvWriteMTIME(root->clint[i], value);
     }
-}
-
-//
-// Read mtimecmp[i]
-//
-Uns64 riscvReadCLINTMTIMECMP(riscvCLINTP clint) {
-
-    return clint->mtimecmp;
-}
-
-//
-// Write mtimecmp
-//
-void riscvWriteCLINTMTIMECMP(riscvCLINTP clint, Uns64 value) {
-
-    clint->mtimecmp = value;
-
-    refreshMTIP(clint);
-}
-
-//
-// Refresh mtip signal on timer update
-//
-static void refreshMTIP(riscvCLINTP clint) {
-
-    Uns32 intNum   = mtipInt();
-    Bool  oldValue = getInt(clint, intNum);
-    Uns64 mtime    = riscvReadCLINTMTIME(clint);
-    Uns64 mtimecmp = riscvReadCLINTMTIMECMP(clint);
-    Bool  newValue = (mtime>=mtimecmp);
-    Uns64 timeout  = !newValue ? (mtimecmp-mtime) : -mtime;
-
-    // modify mtip pending state if required
-    if(oldValue!=newValue) {
-        riscvUpdateInterrupt(clint->hart, intNum, newValue);
-    }
-
-    // set delay to next event
-    vmirtSetModelTimer(clint->mtime, timeout ? : -1);
-}
-
-//
-// Timer timeout callback: refresh timer
-//
-static VMI_ICOUNT_FN(mtimeCB) {
-    refreshMTIP(userData);
 }
 
 
@@ -319,26 +230,14 @@ static void debugCLINTAccess(
 }
 
 //
-// Return CLINT descriptor for the given context processor, or the first
-// descriptor if the context does not match a hart
+// Return hart for the given context processor, or the first CLINT hart if the
+// hart is not in this CLINT context
 //
-riscvCLINTP getCLINTForContext(riscvP root, vmiProcessorP context) {
+riscvP getCLINTForContext(riscvP root, vmiProcessorP context) {
 
-    riscvP      hart     = (riscvP)context;
-    Uns32       numHarts = getNumHarts(root);
-    riscvCLINTP match    = 0;
-    Uns32       i;
+    riscvP hartCxt = (riscvP)context;
 
-    for(i=0; !match && (i<numHarts); i++) {
-
-        riscvCLINTP this = root->clint+i;
-
-        if(this->hart==hart) {
-            match = this;
-        }
-    }
-
-    return match ? : root->clint;
+    return hartCxt->clint==root->clint ? hartCxt : root->clint[0];
 }
 
 //
@@ -350,16 +249,16 @@ static Uns64 readCLINTInt(
     CLINTRegDecodeP this,
     Bool            verbose
 ) {
-    riscvCLINTP clint = root->clint+this->hart;
-    Uns64       result;
+    riscvP hart = root->clint[this->hart];
+    Uns64  result;
 
     // get register value
     if(this->type==CLINTR_msip) {
-        result = riscvReadCLINTMSIP(clint);
+        result = riscvReadCLINTMSIP(hart);
     } else if(this->type==CLINTR_mtimecmp) {
-        result = riscvReadCLINTMTIMECMP(clint);
+        result = riscvReadMTIMECMP(hart);
     } else {
-        result = riscvReadCLINTMTIME(getCLINTForContext(root, context));
+        result = riscvReadMTIME(getCLINTForContext(root, context));
     }
 
     // debug access if required
@@ -375,15 +274,15 @@ static Uns64 readCLINTInt(
 //
 static void writeCLINTInt(riscvP root, CLINTRegDecodeP this, Uns64 value) {
 
-    riscvCLINTP clint = root->clint+this->hart;
+    riscvP hart = root->clint[this->hart];
 
     // update register value
     if(this->type==CLINTR_msip) {
-        riscvWriteCLINTMSIP(clint, value&1);
+        riscvWriteCLINTMSIP(hart, value&1);
     } else if(this->type==CLINTR_mtimecmp) {
-        riscvWriteCLINTMTIMECMP(clint, value);
+        riscvWriteMTIMECMP(hart, value);
     } else if(this->type==CLINTR_mtime) {
-        riscvWriteCLINTMTIME(clint, value);
+        riscvWriteCLINTMTIME(hart, value);
     } else {
         return; // illegal register write - ignored here
     }
@@ -537,7 +436,7 @@ void riscvNewCLINT(riscvP root) {
 
     // allocate CLINT data structures if required
     if(CLINTInternal(root)) {
-        root->clint = STYPE_CALLOC_N(riscvCLINT, getNumHarts(root));
+        root->clint = STYPE_CALLOC_N(riscvP, getNumHarts(root));
     }
 }
 
@@ -546,16 +445,13 @@ void riscvNewCLINT(riscvP root) {
 //
 void riscvFillCLINT(riscvP riscv) {
 
-    riscvP      root  = getCLINTRoot(riscv);
-    riscvCLINTP clint = root->clint;
+    riscvP  root  = getCLINTRoot(riscv);
+    riscvPP clint = root->clint;
 
     if(clint) {
 
         Uns32 numHarts = getNumHarts(root);
         Uns32 index    = riscv->hartNum;
-
-        // get element for this hart
-        clint += index;
 
         // sanity check hart index and table
         VMI_ASSERT(
@@ -564,25 +460,14 @@ void riscvFillCLINT(riscvP riscv) {
             index, numHarts
         );
         VMI_ASSERT(
-            !clint->hart,
+            !clint[index],
             "table entry %u already filled",
             index
         );
 
-        // calculate time scale factor
-        vmiProcessorP processor = (vmiProcessorP)riscv;
-        Flt64         hart_Hz   = vmirtGetProcessorIPS(processor);
-        Flt64         mtime_Hz  = root->configInfo.mtime_Hz;
-        Uns32         scale     = hart_Hz/mtime_Hz;
-
         // link hart and clint element
-        clint->hart  = riscv;
+        clint[index] = riscv;
         riscv->clint = clint;
-
-        // create timer
-        clint->mtime = vmirtCreateMonotonicModelTimer(
-            processor, mtimeCB, scale, clint
-        );
     }
 }
 
@@ -591,20 +476,10 @@ void riscvFillCLINT(riscvP riscv) {
 //
 void riscvFreeCLINT(riscvP riscv) {
 
-    riscvP      root  = getCLINTRoot(riscv);
-    riscvCLINTP clint = root->clint;
+    riscvP  root  = getCLINTRoot(riscv);
+    riscvPP clint = root->clint;
 
     if(clint) {
-
-        Uns32 numHarts = getNumHarts(root);
-        Uns32 i;
-
-        // delete model timers
-        for(i=0; i<numHarts; i++) {
-            if(clint[i].mtime) {
-                vmirtDeleteModelTimer(clint[i].mtime);
-            }
-        }
 
         // free CLINT
         STYPE_FREE(clint);
@@ -618,35 +493,8 @@ void riscvFreeCLINT(riscvP riscv) {
 //
 void riscvResetCLINT(riscvP riscv) {
 
-    riscvCLINTP clint = riscv->clint;
-
-    if(clint) {
-        riscvWriteCLINTMSIP(clint, 0);
-        refreshMTIP(clint);
+    if(riscv->clint) {
+        riscvWriteCLINTMSIP(riscv, 0);
     }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// SAVE/RESTORE SUPPORT
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// Save/restore field keys
-//
-#define RV_CLINT_MTIME "clint.mtime"
-
-//
-// Save CLINT state not covered by register read/write API
-//
-void riscvSaveCLINT(riscvP riscv, vmiSaveContextP cxt) {
-    vmirtSaveModelTimer(cxt, RV_CLINT_MTIME, riscv->clint->mtime);
-}
-
-//
-// Restore CLINT state not covered by register read/write API
-//
-void riscvRestoreCLINT(riscvP riscv, vmiRestoreContextP cxt) {
-    vmirtRestoreModelTimer(cxt, RV_CLINT_MTIME, riscv->clint->mtime);
 }
 

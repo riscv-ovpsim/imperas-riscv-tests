@@ -26,8 +26,8 @@ Instruction category: OPV_SFAS single-width floating-point add/subtract
   vfadd.vf : 224
   vfadd.vv : 224
   vfrsub.vf : 224
-  vfsub.vf : 224
   vfsub.vv : 224
+  vfsub.vf : 224
 Instruction category: OPV_FPC floating-point classify
   vfclass.v : 224
 Instruction category: OPV_SFITC single-width floating-point/integer type-convert
@@ -74,8 +74,8 @@ Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.rod.f.f.w : 80
   vfncvt.f.x.w : 80
   vfncvt.f.xu.w : 80
-  vfncvt.x.f.w : 80
   vfncvt.rtz.x.f.w : 80
+  vfncvt.x.f.w : 80
   vfncvt.xu.f.w : 80
   vfncvt.rtz.xu.f.w : 80
 Instruction category: OPV_RECE floating-point reciprocal estimate
@@ -109,16 +109,16 @@ Instruction category: OPV_WFITC widening floating-point/integer type-convert
   vfwcvt.rtz.xu.f.v : 80
 Instruction category: OPV_WFFMA widening floating-point fused multiply-add
   vfwmacc.vf : 80
-  vfwmacc.vv : 80
   vfwmsac.vf : 80
+  vfwmacc.vv : 80
   vfwmsac.vv : 80
-  vfwnmacc.vf : 80
   vfwnmacc.vv : 80
+  vfwnmacc.vf : 80
   vfwnmsac.vf : 80
   vfwnmsac.vv : 80
 Instruction category: OPV_WFM widening floating-point multiply
-  vfwmul.vv : 80
   vfwmul.vf : 80
+  vfwmul.vv : 80
 Instruction category: OPV_FC floating-point compare
   vmfeq.vf : 224
   vmfeq.vv : 224
@@ -140,14 +140,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 1,689
   mret : 563
   vsetvli : 81,480
-  vle32.v : 25,800
+  vle16.v : 18,480
   fmv.s.x : 6,768
   add : 62,528
-  vse32.v : 7,376
+  vse16.v : 6,016
   fence : 563
   ecall : 563
   beq : 1,689
-  vle16.v : 18,480
-  vse16.v : 6,016
+  vle32.v : 25,800
+  vse32.v : 7,376
   vse8.v : 2,240
 

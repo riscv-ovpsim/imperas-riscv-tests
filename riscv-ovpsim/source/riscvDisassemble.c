@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -171,6 +171,90 @@ static void putX(char **result, Uns64 value) {
 }
 
 //
+// Emit floating point constant argument
+//
+static void putF(char **result, Uns64 value, Bool uncooked) {
+
+    if(uncooked) {
+
+        putX(result, value);
+
+    } else {
+
+        // decode value
+        union {
+            Uns64      u64;
+            Flt16Parts p16;
+            Flt32Parts p32;
+            Flt64Parts p64;
+            Flt32      f32;
+            Flt64      f64;
+        } parts = {value};
+
+        if(value>>32) {
+
+            // Flt64 constant
+
+        } else if(value>>16) {
+
+            // Flt32 constant - copy sign to Flt64
+            parts.p64.sign = parts.p32.sign;
+
+            // transform exponent to Flt64
+            if(parts.p32.exponent==1) {
+                parts.p64.exponent = 1;
+            } else if(parts.p32.exponent==0xff) {
+                parts.p64.exponent = 0x7ff;
+            } else {
+                parts.p64.exponent = parts.p32.exponent - (1<<7) + (1<<10);
+            }
+
+            // transform fraction to Flt64
+            parts.p64.fraction = (Uns64)parts.p32.fraction << 29;
+
+        } else {
+
+            // Flt16 constant - copy sign to Flt64
+            parts.p64.sign = parts.p16.sign;
+
+            // transform exponent to Flt64
+            if(parts.p16.exponent==1) {
+                parts.p64.exponent = 1;
+            } else if(parts.p16.exponent==0x1f) {
+                parts.p64.exponent = 0x7ff;
+            } else {
+                parts.p64.exponent = parts.p16.exponent - (1<<4) + (1<<10);
+            }
+
+            // handle subnormal fraction by adjusting exponent
+            if(!parts.p16.exponent) {
+                while((parts.p16.fraction <<=1)) {
+                    parts.p64.exponent--;
+                }
+            }
+
+            // transform fraction to Flt64
+            parts.p64.fraction = (Uns64)parts.p16.fraction << 42;
+        }
+
+        Int32 exp = parts.p64.exponent-0x3ff;
+
+        // emit constant value
+        if(parts.p64.exponent==1) {
+            putString(result, "min");
+        } else if(parts.p64.exponent==0x7ff) {
+            putString(result, parts.p64.fraction ? "nan" : "inf");
+        } else if(parts.p64.fraction || ((exp>-5) && (exp<9))) {
+            *result += sprintf(*result, "%g", parts.f64);
+        } else {
+            putString(result, "2e");
+            if(exp>=0) {putChar(result, '+');}
+            putD(result, exp);
+        }
+    }
+}
+
+//
 // Emit target address argument
 //
 static void putTarget(char **result, Uns64 value) {
@@ -225,61 +309,157 @@ static void putOptMask(
 }
 
 //
-// Emit rlist argument
+// Context structure used to disassemble a register list
 //
-static void putRlist(char **result, riscvRListDesc rlist) {
+typedef struct rlistCxtS {
+    const char *prev;       // previous register
+    const char *this;       // this register
+    Uns32       list;       // unprocessed register list
+    Uns32       index;      // index of current register
+    Bool        range;      // whether register ends a range
+} rlistCxt, *rlistCxtP;
 
-    static const char *map[] = {
-        [RV_RL_x_RA]           = "{ra}",
-        [RV_RL_x_RA_S0]        = "{ra,s0}",
-        [RV_RL_x_RA_S0_1]      = "{ra,s0-s1}",
-        [RV_RL_U_RA_S0_2]      = "{ra,s0-s2}",
-        [RV_RL_U_RA_S0_3]      = "{ra,s0-s3}",
-        [RV_RL_U_RA_S0_4]      = "{ra,s0-s4}",
-        [RV_RL_U_RA_S0_5]      = "{ra,s0-s5}",
-        [RV_RL_U_RA_S0_6]      = "{ra,s0-s6}",
-        [RV_RL_U_RA_S0_7]      = "{ra,s0-s7}",
-        [RV_RL_U_RA_S0_8]      = "{ra,s0-s8}",
-        [RV_RL_U_RA_S0_9]      = "{ra,s0-s9}",
-        [RV_RL_U_RA_S0_10]     = "{ra,s0-s10}",
-        [RV_RL_U_RA_S0_11]     = "{ra,s0-s11}",
-        [RV_RL_E_RA_S0_2]      = "{ra,s0-s2}",
-        [RV_RL_E_RA_S3_S0_2]   = "{ra,s3,s0-s2}",
-        [RV_RL_E_RA_S3_4_S0_2] = "{ra,s3-s4,s0-s2}",
-    };
+//
+// Get the next register in a register list
+//
+static Bool nextListReg(riscvP riscv, rlistCxtP cxt) {
 
-    putString(result, map[rlist]);
+    Bool present = cxt->list;
+
+    if(present) {
+
+        // get next unprocessed register
+        while(!(cxt->list & (1<<cxt->index))) {
+            cxt->index++;
+        }
+
+        // remove register from list
+        cxt->list &= ~(1<<cxt->index);
+
+        // update previous and current register
+        cxt->prev = cxt->this;
+        cxt->this = riscvGetXRegName(riscv, cxt->index);
+    }
+
+    return present;
 }
 
 //
-// Emit alist argument
+// Do distinct register names r1 and r2 form a range?
 //
-static void putAList(char **result, riscvAListDesc alist) {
+static Bool extendRange(const char *r1, const char *r2) {
 
-    static const char *map[] = {
-        [RV_AL_NA]   = "{}",
-        [RV_AL_A0]   = "{a0}",
-        [RV_AL_A0_1] = "{a0-a1}",
-        [RV_AL_A0_2] = "{a0-a2}",
-        [RV_AL_A0_3] = "{a0-a3}",
-    };
+    Bool extend = False;
 
-    putString(result, map[alist]);
+    // skip to first differing character
+    while(*r1==*r2) {
+        r1++;
+        r2++;
+    }
+
+    UChar ch1 = *r1++;
+    UChar ch2 = *r2++;
+
+    if(!isdigit(ch1)) {
+        // first mismatch not a digit
+    } else if(!isdigit(ch2)) {
+        // first mismatch not a digit
+    } else if((ch1==(ch2-1)) && !*r1 && !*r2) {
+        // incrementing final digit
+        extend = True;
+    } else if((ch1=='9') && (ch2=='1') && (*r2=='0')) {
+        // 9 to 10 transition
+        extend = True;
+    } else if((ch1==(ch2-1)) && (*r1=='9') && (*r2=='0')) {
+        // 19 to 20, 29 to 30 transition
+        extend = True;
+    }
+
+    return extend;
+}
+
+//
+// Emit register list argument
+//
+static void putRegList(
+    char **result,
+    riscvP riscv,
+    Uns32  list,
+    Bool   uncooked
+) {
+    if(uncooked) {
+
+        putX(result, list);
+
+    } else {
+
+        rlistCxt cxt = {list:list};
+
+        putChar(result, '{');
+
+        while(nextListReg(riscv, &cxt)) {
+
+            if(cxt.prev && extendRange(cxt.prev, cxt.this)) {
+
+                // register contiguous with previous register
+                cxt.range = True;
+
+            } else {
+
+                // complete previous range if required
+                if(cxt.range) {
+                    putChar(result, '-');
+                    putString(result, cxt.prev);
+                    cxt.range = False;
+                }
+
+                // emit separator from previous group if required
+                if(cxt.prev) {
+                    putChar(result, ',');
+                }
+
+                // emit first register in new range
+                putString(result, cxt.this);
+            }
+        }
+
+        // complete final range if required
+        if(cxt.range) {
+            putChar(result, '-');
+            putString(result, cxt.this);
+        }
+
+        putChar(result, '}');
+    }
 }
 
 //
 // Emit retval argument
 //
-static void putRetVal(char **result, riscvRetValDesc retval) {
+static void putRetVal(char **result, riscvRetValDesc retval, Bool uncooked) {
 
-    static const char *map[] = {
-        [RV_RV_NA] = "{}",
-        [RV_RV_0]  = "{0}",
-        [RV_RV_P1] = "{1}",
-        [RV_RV_M1] = "{-1}"
-    };
+    if(!uncooked) {
 
-    putString(result, map[retval]);
+        static const char *map[RV_RV_LAST] = {
+            [RV_RV_NA] = "{}",
+            [RV_RV_0]  = "{0}",
+            [RV_RV_P1] = "{1}",
+            [RV_RV_M1] = "{-1}",
+            [RV_RV_Z]  = ""
+       };
+
+       putString(result, map[retval]);
+
+    } else if(retval) {
+
+        static Int32 map[RV_RV_LAST] = {
+            [RV_RV_P1] = 1,
+            [RV_RV_M1] = -1,
+        };
+
+        putUncookedKey(result, " RETVAL", uncooked);
+        putD(result, map[retval]);
+    }
 }
 
 //
@@ -488,6 +668,11 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     riscvRegDesc type = RV_RD_NA;
     Uns32        i;
 
+    // emit compressed prefix if required
+    if(info->bytes==2) {
+        putString(result, riscvGetCPrefix(riscv, info->Zc));
+    }
+
     // emit shift prefix if required
     if(info->shN) {
         putString(result, "sh");
@@ -539,9 +724,9 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
 
         } else if(info->eew) {
 
-            // version 0.9 EEW
+            // encoded eew (perhaps for index register only)
             putChar(result, 'e');
-            if(info->memBits<=0) {putChar(result, 'i');}
+            if(info->eewIndex) {putChar(result, 'i');}
             putD(result, info->eew);
 
         } else if(info->memBits) {
@@ -616,7 +801,7 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     }
 
     // emit embedded modifier if required
-    if(info->rlist>=RV_RL_E_RA_S0_2) {
+    if(info->embedded) {
         putString(result, ".e");
     }
 
@@ -694,6 +879,17 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     } else if(info->xperm==RV_XP_BITS) {
         putD(result, info->c);
     }
+
+    // compressed extension suffixes
+    static const char *cSuffixDescs[] = {
+        [RV_CS_NA]   = "",
+        [RV_CS_SP]   = "sp",
+        [RV_CS_16SP] = "16sp",
+        [RV_CS_4SPN] = "4spn"
+    };
+
+    // add compressed suffix if required
+    putString(result, cSuffixDescs[info->cSuffix]);
 }
 
 //
@@ -773,6 +969,10 @@ static void disassembleFormat(
                     putUncookedKey(result, " C", uncooked);
                     putX(result, info->c);
                     break;
+                case EMIT_CF:
+                    putUncookedKey(result, " CF", uncooked);
+                    putF(result, info->c, uncooked);
+                    break;
                 case EMIT_UI:
                     putUncookedKey(result, " C", uncooked);
                     putX(result, ((Uns32)info->c)>>12);
@@ -805,15 +1005,14 @@ static void disassembleFormat(
                     break;
                 case EMIT_RLIST:
                     putUncookedKey(result, " RLIST", uncooked);
-                    putRlist(result, info->rlist);
+                    putRegList(result, riscv, info->rlist, uncooked);
                     break;
                 case EMIT_ALIST:
                     putUncookedKey(result, " ALIST", uncooked);
-                    putAList(result, info->alist);
+                    putRegList(result, riscv, info->alist, uncooked);
                     break;
                 case EMIT_RETVAL:
-                    putUncookedKey(result, " RETVAL", uncooked);
-                    putRetVal(result, info->retval);
+                    putRetVal(result, info->retval, uncooked);
                     break;
                 case '*':
                     nextOpt = True;

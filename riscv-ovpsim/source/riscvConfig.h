@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,7 @@ typedef struct riscvConfigS {
     riscvBitManipVer  bitmanip_version: 8;  // bitmanip architecture version
     riscvBitManipSet  bitmanip_absent;      // bitmanip absent extensions
     riscvCryptoVer    crypto_version  : 8;  // cryptographic architecture version
+    riscvVCryptoVer   vcrypto_version : 8;  // vector cryptographic version
     riscvCryptoSet    crypto_absent;        // cryptographic absent extensions
     riscvDSPVer       dsp_version     : 8;  // DSP architecture version
     riscvDSPSet       dsp_absent      : 8;  // DSP absent extensions
@@ -85,6 +86,7 @@ typedef struct riscvConfigS {
     riscvRNMIVer      rnmi_version    : 8;  // rnmi version
     riscvSmepmpVer    Smepmp_version  : 8;  // Smepmp version
     riscvCLICVer      CLIC_version    : 8;  // CLIC version
+    riscvAIAVer       AIA_version     : 8;  // AIA version
     riscvZfinxVer     Zfinx_version   : 8;  // Zfinx version
     riscvZceaVer      Zcea_version    : 8;  // Zcea version (legacy only)
     riscvZcebVer      Zceb_version    : 8;  // Zceb version (legacy only)
@@ -100,6 +102,7 @@ typedef struct riscvConfigS {
     riscvMConstraint amo_constraint      : 2;   // AMO memory constraint
     riscvMConstraint lr_sc_constraint    : 2;   // LR/SC memory constraint
     riscvMConstraint push_pop_constraint : 2;   // PUSH/POP memory constraint
+    riscvMConstraint vector_constraint   : 2;   // vector memory constraint
 
     // configuration not visible in CSR state
     Uns64 reset_address;                // reset vector address
@@ -120,7 +123,10 @@ typedef struct riscvConfigS {
     Uns64 Svnapot_page_mask;            // implemented Svnapot page sizes
     Uns64 miprio_mask;                  // writable entries in M-mode iprio array
     Uns64 siprio_mask;                  // writable entries in S-mode iprio array
-    Uns32 counteren_mask;               // counter-enable implemented mask
+    Uns64 hviprio_mask;                 // writable entries in VS-mode iprio array
+    Uns32 counteren_mask;               // mcounteren mask
+    Uns32 scounteren_zero_mask;         // zero bits in scounteren
+    Uns32 hcounteren_zero_mask;         // zero bits in hcounteren
     Uns32 noinhibit_mask;               // counter no-inhibit mask
     Uns32 local_int_num;                // number of local interrupts
     Uns32 lr_sc_grain;                  // LR/SC region grain size
@@ -161,12 +167,14 @@ typedef struct riscvConfigS {
     Uns8  mtvt_sext;                    // mtvec sign-extended bit count
     Uns8  stvt_sext;                    // stvec sign-extended bit count
     Uns8  utvt_sext;                    // utvec sign-extended bit count
-    Uns8  IPRIOLEN;                     // AIA IPRIOLEN value
+    Uns8  IPRIOLEN             : 4;     // AIA IPRIOLEN value
+    Uns8  HIPRIOLEN            : 4;     // AIA HIPRIOLEN value
     Bool  isPSE                : 1;     // whether a PSE (internal use only)
     Bool  enable_expanded      : 1;     // enable expanded instructions
     Bool  endianFixed          : 1;     // endianness is fixed (UBE/SBE/MBE r/o)
     Bool  use_hw_reg_names     : 1;     // use hardware names for X/F registers
     Bool  no_pseudo_inst       : 1;     // don't report pseudo-instructions
+    Bool  show_c_prefix        : 1;     // show opcode compressed prefix
     Bool  ABI_d                : 1;     // ABI uses D registers for parameters
     Bool  agnostic_ones        : 1;     // when agnostic elements set to 1
     Bool  MXL_writable         : 1;     // writable bits in misa.MXL
@@ -174,16 +182,21 @@ typedef struct riscvConfigS {
     Bool  UXL_writable         : 1;     // writable bits in mstatus.UXL
     Bool  VSXL_writable        : 1;     // writable bits in mstatus.VSXL
     Bool  Smstateen            : 1;     // Smstateen implemented?
+    Bool  Sstc                 : 1;     // Sstc implemented?
     Bool  Svpbmt               : 1;     // Svpbmt implemented?
     Bool  Svinval              : 1;     // Svinval implemented?
     Bool  Smaia                : 1;     // Smaia implemented?
     Bool  IMSIC_present        : 1;     // IMSIC present?
     Bool  Zmmul                : 1;     // Zmmul implemented?
+    Bool  Zfa                  : 1;     // Zfa implemented?
     Bool  Zfhmin               : 1;     // Zfhmin implemented?
     Bool  Zvlsseg              : 1;     // Zvlsseg implemented?
     Bool  Zvamo                : 1;     // Zvamo implemented?
     Bool  Zvediv               : 1;     // Zvediv implemented?
     Bool  Zvqmac               : 1;     // Zvqmac implemented?
+    Bool  Zvfh                 : 1;     // Zvfh implemented?
+    Bool  Zvfhmin              : 1;     // Zvfhmin implemented?
+    Bool  Zvfbfmin             : 1;     // Zvfbfmin implemented?
     Bool  unitStrideOnly       : 1;     // only unit-stride operations supported
     Bool  noFaultOnlyFirst     : 1;     // fault-only-first instructions absent?
     Bool  Zicbom               : 1;     // whether Zicbom is present
@@ -306,6 +319,8 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (hip);                 // hip mask
         CSR_REG_DECL (mvien);               // mvien mask
         CSR_REG_DECL (mvip);                // mvip mask
+        CSR_REG_DECL (hvien);               // hvien mask
+        CSR_REG_DECL (hvip);                // hvip mask
         CSR_REG_DECL (envcfg);              // envcfg mask
         CSR_REG_DECL_0_15(romask_pmpcfg);   // pmpcfg read-only bit masks
         CSR_REG_DECL_0_63(romask_pmpaddr);  // pmpaddr read-only bit masks

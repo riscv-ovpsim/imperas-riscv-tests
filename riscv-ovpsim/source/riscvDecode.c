@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -228,6 +228,48 @@ inline static Uns32 getXLenBits(riscvP riscv) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// PUSH/POP REGISTER LIST ENUMERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// This is used specify the register list for Zcea PUSH/POP
+//
+typedef enum riscvRListDescE {
+
+    RV_RL_x_RA,             // {ra}                 both
+    RV_RL_x_RA_S0,          // {ra,s0}              both
+    RV_RL_x_RA_S0_1,        // {ra,s0-s1}           both
+    RV_RL_U_RA_S0_2,        // {ra,s0-s2}           UABI
+    RV_RL_U_RA_S0_3,        // {ra,s0-s3}           UABI
+    RV_RL_U_RA_S0_4,        // {ra,s0-s4}           UABI
+    RV_RL_U_RA_S0_5,        // {ra,s0-s5}           UABI
+    RV_RL_U_RA_S0_6,        // {ra,s0-s6}           UABI
+    RV_RL_U_RA_S0_7,        // {ra,s0-s7}           UABI
+    RV_RL_U_RA_S0_8,        // {ra,s0-s8}           UABI
+    RV_RL_U_RA_S0_9,        // {ra,s0-s9}           UABI
+    RV_RL_U_RA_S0_10,       // {ra,s0-s10}          UABI
+    RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
+    RV_RL_E_RA_S0_2,        // {ra,s0-s2}           EABI
+    RV_RL_E_RA_S3_S0_2,     // {ra,s3,s0-s2}        EABI
+    RV_RL_E_RA_S3_4_S0_2,   // {ra,s3-s4,s0-s2}     EABI
+
+} riscvRListDesc;
+
+//
+// This is used specify the argument register list for Zcea PUSH
+//
+typedef enum riscvAListDescE {
+
+    RV_AL_NA,               // {}
+    RV_AL_A0,               // {a0}
+    RV_AL_A0_1,             // {a0-a1}
+    RV_AL_A0_2,             // {a0-a2}
+    RV_AL_A0_3,             // {a0-a3}
+
+} riscvAListDesc;
+
+
+////////////////////////////////////////////////////////////////////////////////
 // INSTRUCTION DESCRIPTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -326,6 +368,7 @@ typedef enum targetSpecE {
 typedef enum constSpecE {
     CS_NA,              // instruction has no constant
     CS_U_19_15,         // unsigned value in 19:15
+    CS_U_19_15_P32,     // unsigned value in 19:15 + 32
     CS_U_22_20,         // unsigned value in 22:20
     CS_U_23_20,         // unsigned value in 23:20
     CS_U_24_20,         // unsigned value in 24:20
@@ -370,6 +413,7 @@ typedef enum constSpecE {
     CS_S_SDGP,          // signed value, SDGP (Zceb)
     CS_S_1_LSL_3_2,     // 1 << unsigned(3:2)
     CS_S_1_LSL_19_18,   // 1 << unsigned(19:18)
+    CS_F_19_15,         // floating point value in 19:15
 } constSpec;
 
 //
@@ -400,6 +444,7 @@ typedef enum rSpecE {
     RS_XWL_19_15,       // X register in 19:15 (use W/L name)
     RS_XX_11_7,         // X register in 11:7 (use X name)
     RS_XX_19_15,        // X register in 19:15 (use X name)
+    RS_XX_24_20,        // X register in 24:20 (use X name)
     RS_F_4_2_P8,        // floating point register in 4:2 + 8
     RS_F_6_2,           // floating point register in 6:2
     RS_F_11_7,          // floating point register in 11:7
@@ -409,8 +454,10 @@ typedef enum rSpecE {
     RS_F2_19_15,        // floating point register in 19:15, width in wF2
     RS_V0,              // vector register V0
     RS_V_11_7,          // vector register in 11:7
+    RS_V_11_7_BF16,     // vector register in 11:7, BFLOAT16 element
     RS_V_19_15,         // vector register in 19:15
     RS_V_24_20,         // vector register in 24:20
+    RS_V_24_20_BF16,    // vector register in 24:20, BFLOAT16 element
     RS_V_M_25,          // vector mask register in bit 25
     RS_V_11_7_Z26,      // vector register in 11:7, or zero if bit 26=0
 } rSpec;
@@ -620,6 +667,7 @@ typedef struct opAttrsS {
     fenceSpec         pred     :  4;    // predecessor fence specification
     fenceSpec         succ     :  4;    // successor fence specification
     eewSpec           eew      :  4;    // EEW specification
+    Uns32             eewIndex :  4;    // number of EEW index operand
     memBitsSpec       memBits  :  4;    // load/store size specification
     unsExtSpec        unsExt   :  4;    // unsigned extend specification
     Uns32             priDelta :  4;    // decode priority delta
@@ -634,6 +682,7 @@ typedef struct opAttrsS {
     alistSpec         alist    :  4;    // alist specification
     retvalSpec        retval   :  4;    // retval specification
     retSpec           ret      :  4;    // ret specification
+    riscvCSufDesc     cSuffix  :  4;    // compressed suffix
     doubleSpec        doDouble :  1;    // doubling specification
     crossOpSpec       crossOp  :  1;    // crossed operation specification
     packSpec          pack     :  1;    // byte packing specification
@@ -804,16 +853,28 @@ typedef enum riscvIType32E {
     IT32_FCLASS_R,
     IT32_FCVT_F_X_R,
     IT32_FCVT_X_F_R,
+    IT32_FCVTMOD_X_F_R,
     IT32_FCVT_F_F_R,
     IT32_FDIV_R,
     IT32_FEQ_R,
     IT32_FLE_R,
     IT32_FLT_R,
+    IT32_FLEQ_R,
+    IT32_FLTQ_R,
     IT32_FMAX_R,
     IT32_FMIN_R,
+    IT32_FMAXM_R,
+    IT32_FMINM_R,
     IT32_FMUL_R,
+    IT32_FLI_R,
     IT32_FMVFX_R,
     IT32_FMVXF_R,
+    IT32_FMVHXD_R,
+    IT32_FMVHXQ_R,
+    IT32_FMVPDX_R,
+    IT32_FMVPQX_R,
+    IT32_FROUND_R,
+    IT32_FROUNDNX_R,
     IT32_FSGNJ_R,
     IT32_FSGNJN_R,
     IT32_FSGNJX_R,
@@ -1119,6 +1180,9 @@ typedef enum riscvIType32E {
     IT32_VWSMACCU_VV,
     IT32_VWSMACC_VV,
     IT32_VWSMACCSU_VV,
+    IT32_VANDN_VV,
+    IT32_VROR_VV,
+    IT32_VROL_VV,
 
     // V-extension FVV-type instructions
     IT32_VFADD_VV,
@@ -1153,6 +1217,7 @@ typedef enum riscvIType32E {
     IT32_VFWCVT_FXU_V,
     IT32_VFWCVT_FX_V,
     IT32_VFWCVT_FF_V,
+    IT32_VFWCVTBF16_FF_V,
     IT32_VFNCVT_XUF_V,
     IT32_VFNCVTRTZ_XUF_V,
     IT32_VFNCVT_XF_V,
@@ -1161,6 +1226,7 @@ typedef enum riscvIType32E {
     IT32_VFNCVT_FX_V,
     IT32_VFNCVT_FF_V,
     IT32_VFNCVTROD_FF_V,
+    IT32_VFNCVTBF16_FF_V,
     IT32_VFSQRT_V,
     IT32_VFRSQRTE7_V,
     IT32_VFRECE7_V,
@@ -1247,6 +1313,10 @@ typedef enum riscvIType32E {
     IT32_VQMACCU_VV,
     IT32_VQMACC_VV,
     IT32_VQMACCSU_VV,
+    IT32_VCLMUL_VV,
+    IT32_VCLMULH_VV,
+    IT32_VBREV8_V,
+    IT32_VREV8_V,
 
     // V-extension IVI-type instructions
     IT32_VADD_VI,
@@ -1280,6 +1350,9 @@ typedef enum riscvIType32E {
     IT32_VNSRA_VI,
     IT32_VNCLIPU_VI,
     IT32_VNCLIP_VI,
+    IT32_VANDN_VI,
+    IT32_VROR_VI,
+    IT32_VRORP32_VI,
 
     // V-extension IVX-type instructions
     IT32_VADD_VX,
@@ -1331,6 +1404,9 @@ typedef enum riscvIType32E {
     IT32_VWSMACC_VX,
     IT32_VWSMACCSU_VX,
     IT32_VWSMACCUS_VX,
+    IT32_VANDN_VX,
+    IT32_VROR_VX,
+    IT32_VROL_VX,
 
     // V-extension FVF-type instructions
     IT32_VFADD_VF,
@@ -1411,6 +1487,30 @@ typedef enum riscvIType32E {
     IT32_VQMACC_VX,
     IT32_VQMACCSU_VX,
     IT32_VQMACCUS_VX,
+    IT32_VCLMUL_VX,
+    IT32_VCLMULH_VX,
+
+    // V-extension MVV-type instructions (0x77 OP-P encoding space)
+    IT32_VAESDM_VV,
+    IT32_VAESDM_VS,
+    IT32_VAESDF_VV,
+    IT32_VAESDF_VS,
+    IT32_VAESEM_VV,
+    IT32_VAESEM_VS,
+    IT32_VAESEF_VV,
+    IT32_VAESEF_VS,
+    IT32_VAESZ_VS,
+    IT32_VAESKF1_VI,
+    IT32_VAESKF2_VI,
+    IT32_VGHMAC_VV,
+    IT32_VSM3ME_VV,
+    IT32_VSM3C_VI,
+    IT32_VSM4K_VI,
+    IT32_VSM4R_VV,
+    IT32_VSM4R_VS,
+    IT32_VSHA2MS_VV,
+    IT32_VSHA2CL_VV,
+    IT32_VSHA2CH_VV,
 
     // P-extension instructions (RV32 and RV64)
     IT32_ADD_Sx,
@@ -3128,6 +3228,80 @@ const static decodeEntry32 decodeVPost1_0_20210608[] = {
 };
 
 //
+// This specifies Vector Extension decodes for Zvfbfmin
+//
+const static decodeEntry32 decodeZvfbfmin[] = {
+
+    DECODE32_ENTRY(VFWCVTBF16_FF_V, "|010010|.|.....|01101|001|.....|1010111|"),
+    DECODE32_ENTRY(VFNCVTBF16_FF_V, "|010010|.|.....|11101|001|.....|1010111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Vector Extension decodes for Zvk
+//
+const static decodeEntry32 decodeZvk[] = {
+
+    // V-extension IVV-type instructions
+    //                               |funct6|m|  vs2|  vs1|IVV|  vs3| opcode|
+    DECODE32_ENTRY(       VANDN_VV, "|000001|.|.....|.....|000|.....|1010111|"),
+    DECODE32_ENTRY(        VROR_VV, "|010100|.|.....|.....|000|.....|1010111|"),
+    DECODE32_ENTRY(        VROL_VV, "|010101|.|.....|.....|000|.....|1010111|"),
+
+    // V-extension IVI-type instructions
+    //                               |funct6|m|  vs2|simm5|IVI|  vs3| opcode|
+    DECODE32_ENTRY(       VANDN_VI, "|000001|.|.....|.....|011|.....|1010111|"),
+    DECODE32_ENTRY(        VROR_VI, "|010100|.|.....|.....|011|.....|1010111|"),
+    DECODE32_ENTRY(     VRORP32_VI, "|010101|.|.....|.....|011|.....|1010111|"),
+
+    // V-extension IVX-type instructions
+    //                               |funct6|m|  vs2|  rs1|IVX|  vs3| opcode|
+    DECODE32_ENTRY(       VANDN_VX, "|000001|.|.....|.....|100|.....|1010111|"),
+    DECODE32_ENTRY(        VROR_VX, "|010100|.|.....|.....|100|.....|1010111|"),
+    DECODE32_ENTRY(        VROL_VX, "|010101|.|.....|.....|100|.....|1010111|"),
+
+    // V-extension MVV-type instructions
+    //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
+    DECODE32_ENTRY(      VCLMUL_VV, "|001100|.|.....|.....|010|.....|1010111|"),
+    DECODE32_ENTRY(     VCLMULH_VV, "|001101|.|.....|.....|010|.....|1010111|"),
+    DECODE32_ENTRY(       VBREV8_V, "|010010|.|.....|01000|010|.....|1010111|"),
+    DECODE32_ENTRY(        VREV8_V, "|010010|.|.....|01001|010|.....|1010111|"),
+
+    // V-extension MVX-type instructions
+    //                               |funct6|m|  vs2|  vs1|MVX|  vs3| opcode|
+    DECODE32_ENTRY(      VCLMUL_VX, "|001100|.|.....|.....|110|.....|1010111|"),
+    DECODE32_ENTRY(     VCLMULH_VX, "|001101|.|.....|.....|110|.....|1010111|"),
+
+    // V-extension MVV-type instructions (0x77 OP-P encoding space)
+    //                               |funct6|m|  vs2|  vs1|MVV|  vs3| opcode|
+    DECODE32_ENTRY(      VAESDM_VV, "|101000|1|.....|00000|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESDM_VS, "|101001|1|.....|00000|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESDF_VV, "|101000|1|.....|00001|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESDF_VS, "|101001|1|.....|00001|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESEM_VV, "|101000|1|.....|00010|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESEM_VS, "|101001|1|.....|00010|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESEF_VV, "|101000|1|.....|00011|010|.....|1110111|"),
+    DECODE32_ENTRY(      VAESEF_VS, "|101001|1|.....|00011|010|.....|1110111|"),
+    DECODE32_ENTRY(       VAESZ_VS, "|101001|1|.....|00111|010|.....|1110111|"),
+    DECODE32_ENTRY(     VAESKF1_VI, "|100010|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(     VAESKF2_VI, "|101010|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(      VGHMAC_VV, "|101100|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(      VSM3ME_VV, "|100000|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(       VSM3C_VI, "|101011|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(       VSM4K_VI, "|100001|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(       VSM4R_VV, "|101000|1|.....|10000|010|.....|1110111|"),
+    DECODE32_ENTRY(       VSM4R_VS, "|101001|1|.....|10000|010|.....|1110111|"),
+    DECODE32_ENTRY(     VSHA2MS_VV, "|101101|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(     VSHA2CL_VV, "|101111|1|.....|.....|010|.....|1110111|"),
+    DECODE32_ENTRY(     VSHA2CH_VV, "|101110|1|.....|.....|010|.....|1110111|"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies Cryptographic Extension decodes for 0.7.2
 //
 const static decodeEntry32 decodeKV072[] = {
@@ -3782,6 +3956,29 @@ const static decodeEntry32 decodeSvinval[] = {
 };
 
 //
+// This specifies Sfa Extension decodes
+//
+const static decodeEntry32 decodeZfa32[] = {
+
+    //                              | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(         FLI_R, "|11110..|00001|.....|000|.....|1010011|"),
+    DECODE32_ENTRY(       FMAXM_R, "|00101..|.....|.....|011|.....|1010011|"),
+    DECODE32_ENTRY(       FMINM_R, "|00101..|.....|.....|010|.....|1010011|"),
+    DECODE32_ENTRY(      FROUND_R, "|01000..|00100|.....|...|.....|1010011|"),
+    DECODE32_ENTRY(    FROUNDNX_R, "|01000..|00101|.....|...|.....|1010011|"),
+    DECODE32_ENTRY( FCVTMOD_X_F_R, "|0100001|01000|.....|001|.....|1010011|"),
+    DECODE32_ENTRY(      FMVHXD_R, "|1110001|00001|.....|000|.....|1010011|"),
+    DECODE32_ENTRY(      FMVHXQ_R, "|1110011|00001|.....|000|.....|1010011|"),
+    DECODE32_ENTRY(      FMVPDX_R, "|1011001|.....|.....|000|.....|1010011|"),
+    DECODE32_ENTRY(      FMVPQX_R, "|1011011|.....|.....|000|.....|1010011|"),
+    DECODE32_ENTRY(        FLEQ_R, "|10100..|.....|.....|100|.....|1010011|"),
+    DECODE32_ENTRY(        FLTQ_R, "|10100..|.....|.....|101|.....|1010011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies attributes for each 32-bit opcode
 //
 const static opAttrs attrsArray32[] = {
@@ -3924,25 +4121,37 @@ const static opAttrs attrsArray32[] = {
     ATTR32_AMOADD               (           SC_R,            SC_R, RVANYA,  "sc"     ),
 
     // F-extension and D-extension R-type instructions
-    ATTR32_FD_FS1_FS2_R         (         FADD_R,          FADD_R, RVANY,   "fadd"  ),
-    ATTR32_RD_FS1               (       FCLASS_R,        FCLASS_R, RVANY,   "fclass"),
-    ATTR32_FCVT_F_X             (     FCVT_F_X_R,         FCVTX_R, RVANY,   "fcvt", F,   XWL),
-    ATTR32_FCVT_F_X             (     FCVT_X_F_R,         FCVTX_R, RVANY,   "fcvt", XWL, F  ),
-    ATTR32_FCVT_F_F             (     FCVT_F_F_R,         FCVTF_R, RVANY,   "fcvt"  ),
-    ATTR32_FD_FS1_FS2_R         (         FDIV_R,          FDIV_R, RVANY,   "fdiv"  ),
-    ATTR32_RD_FS1_FS2           (          FEQ_R,           FEQ_R, RVANY,   "feq"   ),
-    ATTR32_RD_FS1_FS2           (          FLE_R,           FLE_R, RVANY,   "fle"   ),
-    ATTR32_RD_FS1_FS2           (          FLT_R,           FLT_R, RVANY,   "flt"   ),
-    ATTR32_FD_FS1_FS2           (         FMAX_R,          FMAX_R, RVANY,   "fmax"  ),
-    ATTR32_FD_FS1_FS2           (         FMIN_R,          FMIN_R, RVANY,   "fmin"  ),
-    ATTR32_FD_FS1_FS2_R         (         FMUL_R,          FMUL_R, RVANY,   "fmul"  ),
-    ATTR32_FD_FS1_FS2           (        FSGNJ_R,         FSGNJ_R, RVANY,   "fsgnj" ),
-    ATTR32_FD_FS1_FS2           (       FSGNJN_R,        FSGNJN_R, RVANY,   "fsgnjn"),
-    ATTR32_FD_FS1_FS2           (       FSGNJX_R,        FSGNJX_R, RVANY,   "fsgnjx"),
-    ATTR32_FMVFX                (        FMVFX_R,            MV_R, RVANY,   "fmv"   ),
-    ATTR32_FMVXF                (        FMVXF_R,            MV_R, RVANY,   "fmv"   ),
-    ATTR32_FD_FS1               (        FSQRT_R,         FSQRT_R, RVANY,   "fsqrt" ),
-    ATTR32_FD_FS1_FS2_R         (         FSUB_R,          FSUB_R, RVANY,   "fsub"  ),
+    ATTR32_FD_FS1_FS2_R         (         FADD_R,          FADD_R, RVANY,   "fadd"    ),
+    ATTR32_RD_FS1               (       FCLASS_R,        FCLASS_R, RVANY,   "fclass"  ),
+    ATTR32_FCVT_F_X             (     FCVT_F_X_R,         FCVTX_R, RVANY,   "fcvt",    F,   XWL),
+    ATTR32_FCVT_F_X             (     FCVT_X_F_R,         FCVTX_R, RVANY,   "fcvt",    XWL, F  ),
+    ATTR32_FCVT_F_X             (  FCVTMOD_X_F_R,      FCVTMODX_R, RVANY,   "fcvtmod", XWL, F  ),
+    ATTR32_FCVT_F_F             (     FCVT_F_F_R,         FCVTF_R, RVANY,   "fcvt"    ),
+    ATTR32_FD_FS1_FS2_R         (         FDIV_R,          FDIV_R, RVANY,   "fdiv"    ),
+    ATTR32_RD_FS1_FS2           (          FEQ_R,           FEQ_R, RVANY,   "feq"     ),
+    ATTR32_RD_FS1_FS2           (          FLE_R,           FLE_R, RVANY,   "fle"     ),
+    ATTR32_RD_FS1_FS2           (          FLT_R,           FLT_R, RVANY,   "flt"     ),
+    ATTR32_RD_FS1_FS2           (         FLEQ_R,          FLEQ_R, RVANY,   "fleq"    ),
+    ATTR32_RD_FS1_FS2           (         FLTQ_R,          FLTQ_R, RVANY,   "fltq"    ),
+    ATTR32_FD_FS1_FS2           (         FMAX_R,          FMAX_R, RVANY,   "fmax"    ),
+    ATTR32_FD_FS1_FS2           (         FMIN_R,          FMIN_R, RVANY,   "fmin"    ),
+    ATTR32_FD_FS1_FS2           (        FMAXM_R,         FMAXM_R, RVANY,   "fmaxm"   ),
+    ATTR32_FD_FS1_FS2           (        FMINM_R,         FMINM_R, RVANY,   "fminm"   ),
+    ATTR32_FD_FS1_FS2_R         (         FMUL_R,          FMUL_R, RVANY,   "fmul"    ),
+    ATTR32_FD_FS1_FS2           (        FSGNJ_R,         FSGNJ_R, RVANY,   "fsgnj"   ),
+    ATTR32_FD_FS1_R             (       FROUND_R,        FROUND_R, RVANY,   "fround"  ),
+    ATTR32_FD_FS1_R             (     FROUNDNX_R,      FROUNDNX_R, RVANY,   "froundnx"),
+    ATTR32_FD_FS1_FS2           (       FSGNJN_R,        FSGNJN_R, RVANY,   "fsgnjn"  ),
+    ATTR32_FD_FS1_FS2           (       FSGNJX_R,        FSGNJX_R, RVANY,   "fsgnjx"  ),
+    ATTR32_FLI                  (          FLI_R,            MV_C, RVANY,   "fli"     ),
+    ATTR32_FMVFX                (        FMVFX_R,            MV_R, RVANY,   "fmv"     ),
+    ATTR32_FMVXF                (        FMVXF_R,            MV_R, RVANY,   "fmv"     ),
+    ATTR32_FMVHXF               (       FMVHXD_R,           MVH_R, RV32,    "fmvh"    ),
+    ATTR32_FMVHXF               (       FMVHXQ_R,           MVH_R, RV64,    "fmvh"    ),
+    ATTR32_FMVPFX               (       FMVPDX_R,           MV_RR, RV32,    "fmvp"    ),
+    ATTR32_FMVPFX               (       FMVPQX_R,           MV_RR, RV64,    "fmvp"    ),
+    ATTR32_FD_FS1               (        FSQRT_R,         FSQRT_R, RVANY,   "fsqrt"   ),
+    ATTR32_FD_FS1_FS2_R         (         FSUB_R,          FSUB_R, RVANY,   "fsub"    ),
 
     // F-extension and D-extension R4-type instructions
     ATTR32_FD_FS1_FS2_FS3_R     (       FMADD_R4,        FMADD_R4, RVANY,   "fmadd" ),
@@ -4246,6 +4455,9 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS2_VS1_M_VV      (     VQMACCU_VV,      VQMACCU_VR, RVANYV,  "vqmaccu"  ),
     ATTR32_VD_VS2_VS1_M_VV      (      VQMACC_VV,       VQMACC_VR, RVANYV,  "vqmacc"   ),
     ATTR32_VD_VS2_VS1_M_VV      (    VQMACCSU_VV,     VQMACCSU_VR, RVANYV,  "vqmaccsu" ),
+    ATTR32_VD_VS1_VS2_M_VV      (       VANDN_VV,        VANDN_VR, RVANYVK, "vandn"    ),
+    ATTR32_VD_VS1_VS2_M_VV      (        VROR_VV,         VROR_VR, RVANYVK, "vror"     ),
+    ATTR32_VD_VS1_VS2_M_VV      (        VROL_VV,         VROL_VR, RVANYVK, "vrol"     ),
 
     // V-extension FVV-type instructions
     ATTR32_VD_VS1_VS2_M_VV_CUR  (       VFADD_VV,        VFADD_VR, RVANYV,  "vfadd"          ),
@@ -4280,6 +4492,7 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_M_V_CUR       (   VFWCVT_FXU_V,    VFWCVT_FXU_V, RVANYV,  "vfwcvt.f.xu"    ),
     ATTR32_VD_VS1_M_V_CUR       (    VFWCVT_FX_V,     VFWCVT_FX_V, RVANYV,  "vfwcvt.f.x"     ),
     ATTR32_VD_VS1_M_V_CUR       (    VFWCVT_FF_V,     VFWCVT_FF_V, RVANYV,  "vfwcvt.f.f"     ),
+    ATTR32_VD_VS1BF16_M_V       (VFWCVTBF16_FF_V,     VFWCVT_FF_V, RVANYV,  "vfwcvtbf16.f.f" ),
     ATTR32_VD_VS1_M_VN_CUR      (   VFNCVT_XUF_V,    VFNCVT_XUF_V, RVANYV,  "vfncvt.xu.f"    ),
     ATTR32_VD_VS1_M_W_RTZ       (VFNCVTRTZ_XUF_V,    VFNCVT_XUF_V, RVANYV,  "vfncvt.rtz.xu.f"),
     ATTR32_VD_VS1_M_VN_CUR      (    VFNCVT_XF_V,     VFNCVT_XF_V, RVANYV,  "vfncvt.x.f"     ),
@@ -4288,6 +4501,7 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_M_VN_CUR      (    VFNCVT_FX_V,     VFNCVT_FX_V, RVANYV,  "vfncvt.f.x"     ),
     ATTR32_VD_VS1_M_VN_CUR      (    VFNCVT_FF_V,     VFNCVT_FF_V, RVANYV,  "vfncvt.f.f"     ),
     ATTR32_VD_VS1_M_W_ROD       ( VFNCVTROD_FF_V,     VFNCVT_FF_V, RVANYV,  "vfncvt.rod.f.f" ),
+    ATTR32_VDBF16_VS1_M_W       (VFNCVTBF16_FF_V,     VFNCVT_FF_V, RVANYV,  "vfncvtbf16.f.f" ),
     ATTR32_VD_VS1_M_V_CUR       (       VFSQRT_V,        VFSQRT_V, RVANYV,  "vfsqrt"         ),
     ATTR32_VD_VS1_M_V_CUR       (    VFRSQRTE7_V,     VFRSQRTE7_V, RVANYV,  "vfrsqrt7"       ),
     ATTR32_VD_VS1_M_V_CUR       (      VFRECE7_V,       VFRECE7_V, RVANYV,  "vfrec7"         ),
@@ -4371,6 +4585,10 @@ const static opAttrs attrsArray32[] = {
     ATTR32_RD_VS1               (        VMV_X_S,        VEXT_X_V, RVANYV,  "vmv.x.s"  ),
     ATTR32_RD_VS1_RS2_V         (       VEXT_X_V,        VEXT_X_V, RVANYV,  "vext.x"   ),
     ATTR32_VD_VS1_M_VM          (   VCOMPRESS_VM,    VCOMPRESS_VM, RVANYV,  "vcompress"),
+    ATTR32_VD_VS1_VS2_M_VV      (      VCLMUL_VV,       VCLMUL_VR, RVANYVK, "vclmul"   ),
+    ATTR32_VD_VS1_VS2_M_VV      (     VCLMULH_VV,      VCLMULH_VR, RVANYVK, "vclmulh"  ),
+    ATTR32_VD_VS2_M_V           (       VBREV8_V,        VBREV8_V, RVANYVK, "vbrev8"   ),
+    ATTR32_VD_VS2_M_V           (        VREV8_V,         VREV8_V, RVANYVK, "vrev8"    ),
 
     // V-extension IVI-type instructions
     ATTR32_VD_VS1_SI_M_VI       (        VADD_VI,         VADD_VI, RVANYV,  "vadd"      ),
@@ -4404,6 +4622,9 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_VS1_UI_M_VIN      (       VNSRA_VI,        VNSRA_VI, RVANYV,  "vnsra"     ),
     ATTR32_VD_VS1_UI_M_VIN      (     VNCLIPU_VI,      VNCLIPU_VI, RVANYV,  "vnclipu"   ),
     ATTR32_VD_VS1_UI_M_VIN      (      VNCLIP_VI,       VNCLIP_VI, RVANYV,  "vnclip"    ),
+    ATTR32_VD_VS1_SI_M_VI       (       VANDN_VI,        VANDN_VI, RVANYVK, "vandn"     ),
+    ATTR32_VD_VS1_UI_M_VI       (        VROR_VI,         VROR_VI, RVANYVK, "vror"      ),
+    ATTR32_VD_VS1_UIP32_M_VI    (     VRORP32_VI,         VROR_VI, RVANYVK, "vror"      ),
 
     // V-extension IVX-type instructions
     ATTR32_VD_VS1_RS2_M_VX      (        VADD_VX,         VADD_VR, RVANYV,  "vadd"      ),
@@ -4459,6 +4680,9 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_RS2_VS1_M_VX      (      VQMACC_VX,       VQMACC_VR, RVANYV,  "vqmacc"    ),
     ATTR32_VD_RS2_VS1_M_VX      (    VQMACCSU_VX,     VQMACCSU_VR, RVANYV,  "vqmaccsu"  ),
     ATTR32_VD_RS2_VS1_M_VX      (    VQMACCUS_VX,     VQMACCUS_VR, RVANYV,  "vqmaccus"  ),
+    ATTR32_VD_VS1_RS2_M_VX      (       VANDN_VX,        VANDN_VR, RVANYVK, "vandn"     ),
+    ATTR32_VD_VS1_RS2_M_VX      (        VROR_VX,         VROR_VR, RVANYVK, "vror"      ),
+    ATTR32_VD_VS1_RS2_M_VX      (        VROL_VX,         VROL_VR, RVANYVK, "vrol"      ),
 
     // V-extension FVF-type instructions
     ATTR32_VD_VS1_FS2_M_VF_CUR  (       VFADD_VF,        VFADD_VR, RVANYV,  "vfadd"       ),
@@ -4536,6 +4760,30 @@ const static opAttrs attrsArray32[] = {
     ATTR32_VD_RS2_VS1_M_VX      (      VWMACC_VX,       VWMACC_VR, RVANYV,  "vwmacc"     ),
     ATTR32_VD_RS2_VS1_M_VX      (    VWMACCSU_VX,     VWMACCSU_VR, RVANYV,  "vwmaccsu"   ),
     ATTR32_VD_RS2_VS1_M_VX      (    VWMACCUS_VX,     VWMACCUS_VR, RVANYV,  "vwmaccus"   ),
+    ATTR32_VD_VS1_RS2_M_VX      (      VCLMUL_VX,       VCLMUL_VR, RVANYVK, "vclmul"     ),
+    ATTR32_VD_VS1_RS2_M_VX      (     VCLMULH_VX,      VCLMULH_VR, RVANYVK, "vclmulh"    ),
+
+    // V-extension MVV-type instructions (0x77 OP-P encoding space)
+    ATTR32_VD_VS1_M_VV          (      VAESDM_VV,       VAESDM_VV, RVANYVK, "vaesdm"  ),
+    ATTR32_VD_VS1_M_VS          (      VAESDM_VS,       VAESDM_VS, RVANYVK, "vaesdm"  ),
+    ATTR32_VD_VS1_M_VV          (      VAESDF_VV,       VAESDF_VV, RVANYVK, "vaesdf"  ),
+    ATTR32_VD_VS1_M_VS          (      VAESDF_VS,       VAESDF_VS, RVANYVK, "vaesdf"  ),
+    ATTR32_VD_VS1_M_VV          (      VAESEM_VV,       VAESEM_VV, RVANYVK, "vaesem"  ),
+    ATTR32_VD_VS1_M_VS          (      VAESEM_VS,       VAESEM_VS, RVANYVK, "vaesem"  ),
+    ATTR32_VD_VS1_M_VV          (      VAESEF_VV,       VAESEF_VV, RVANYVK, "vaesef"  ),
+    ATTR32_VD_VS1_M_VS          (      VAESEF_VS,       VAESEF_VS, RVANYVK, "vaesef"  ),
+    ATTR32_VD_VS1_M_VS          (       VAESZ_VS,        VAESZ_VS, RVANYVK, "vaesz"   ),
+    ATTR32_VD_VS1_UI_M_VI       (     VAESKF1_VI,      VAESKF1_VI, RVANYVK, "vaeskf1" ),
+    ATTR32_VD_VS1_UI_M_VI       (     VAESKF2_VI,      VAESKF2_VI, RVANYVK, "vaeskf2" ),
+    ATTR32_VD_VS1_VS2_M_VV      (      VGHMAC_VV,       VGHMAC_VV, RVANYVK, "vghmac"  ),
+    ATTR32_VD_VS1_VS2_M_VV      (      VSM3ME_VV,       VSM3ME_VV, RVANYVK, "vsm3me"  ),
+    ATTR32_VD_VS1_UI_M_VI       (       VSM3C_VI,        VSM3C_VI, RVANYVK, "vsm3c"   ),
+    ATTR32_VD_VS1_UI_M_VI       (       VSM4K_VI,        VSM4K_VI, RVANYVK, "vsm4k"   ),
+    ATTR32_VD_VS1_M_VV          (       VSM4R_VV,        VSM4R_VV, RVANYVK, "vsm4r"   ),
+    ATTR32_VD_VS1_M_VS          (       VSM4R_VS,        VSM4R_VS, RVANYVK, "vsm4r"   ),
+    ATTR32_VD_VS1_VS2_M_VV      (     VSHA2MS_VV,      VSHA2MS_VV, RVANYVK, "vsha2ms" ),
+    ATTR32_VD_VS1_VS2_M_VV      (     VSHA2CL_VV,      VSHA2CL_VV, RVANYVK, "vsha2cl" ),
+    ATTR32_VD_VS1_VS2_M_VV      (     VSHA2CH_VV,      VSHA2CH_VV, RVANYVK, "vsha2ch" ),
 
     // P-extension instructions (RV32 and RV64)
     ATTR32_RD_RS1_RS2_SZ1       (            ADD,             ADD, RVANYP,  "add"     ),
@@ -4806,7 +5054,7 @@ static void insertEntries32OpPrefix(
 }
 
 //
-// Key used to identify decoder configration
+// Key used to identify decoder configuration
 //
 typedef union decodeKey32U {
 
@@ -4820,13 +5068,15 @@ typedef union decodeKey32U {
         riscvCompressVer compress_version : 4;
         Bool             K                : 1;
         Bool             P                : 1;
+        Bool             Zfa              : 1;
         Bool             Zcd              : 1;
         Bool             Zicbom           : 1;
         Bool             Zicbop           : 1;
         Bool             Zicboz           : 1;
+        Bool             Zvfbfmin         : 1;
         Bool             Svinval          : 1;
         Bool             noPseudo         : 1;
-        Uns32            _unused          : 4;
+        Uns32            _unused          : 2;
     } f;
 
 } decodeKey32;
@@ -5050,6 +5300,16 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeVPre1_0_20210608[0], noPseudo);
     }
 
+    // insert Zvfbfmin decodes if required
+    if(key.f.Zvfbfmin) {
+        insertEntries32(table, &decodeZvfbfmin[0], noPseudo);
+    }
+
+    // insert Zvk decodes if required (NOTE: incompatible with P extension)
+    if((key.f.vect_version>=RVVV_1_0) && !key.f.P) {
+        insertEntries32(table, &decodeZvk[0], noPseudo);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // CBO EXTENSION ENTRIES
     ////////////////////////////////////////////////////////////////////////////
@@ -5072,6 +5332,14 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
     // handle Svinval extension instructions
     if(key.f.Svinval) {
         insertEntries32(table, &decodeSvinval[0], noPseudo);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // ADDITIONAL FLOATING POINT INSTRUCTIONS EXTENSION
+    ////////////////////////////////////////////////////////////////////////////
+
+    if(key.f.Zfa) {
+        insertEntries32(table, &decodeZfa32[0], noPseudo);
     }
 
     return table;
@@ -5131,10 +5399,12 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
             compress_version : RISCV_COMPRESS_VERSION(riscv),
             K                : cryptoPresent(riscv),
             P                : DSPPresent(riscv),
+            Zfa              : Zfa(riscv),
             Zcd              : Zcd(riscv),
             Zicbom           : riscv->configInfo.Zicbom,
             Zicbop           : riscv->configInfo.Zicbop,
             Zicboz           : riscv->configInfo.Zicboz,
+            Zvfbfmin         : riscv->configInfo.Zvfbfmin,
             Svinval          : riscv->configInfo.Svinval,
             noPseudo         : riscv->configInfo.no_pseudo_inst,
         }
@@ -6113,28 +6383,17 @@ static void validateByte(
 //
 // Return the number of registers in the register list
 //
-static Uns32 getRListNumRegs(riscvRListDesc rlist) {
+static Uns32 getRListNumRegs(Uns32 rlist) {
 
-    static Uns32 map[] = {
-        [RV_RL_x_RA]           = 1,
-        [RV_RL_x_RA_S0]        = 2,
-        [RV_RL_x_RA_S0_1]      = 3,
-        [RV_RL_U_RA_S0_2]      = 4,
-        [RV_RL_U_RA_S0_3]      = 5,
-        [RV_RL_U_RA_S0_4]      = 6,
-        [RV_RL_U_RA_S0_5]      = 7,
-        [RV_RL_U_RA_S0_6]      = 8,
-        [RV_RL_U_RA_S0_7]      = 9,
-        [RV_RL_U_RA_S0_8]      = 10,
-        [RV_RL_U_RA_S0_9]      = 11,
-        [RV_RL_U_RA_S0_10]     = 12,
-        [RV_RL_U_RA_S0_11]     = 13,
-        [RV_RL_E_RA_S0_2]      = 4,
-        [RV_RL_E_RA_S3_S0_2]   = 5,
-        [RV_RL_E_RA_S3_4_S0_2] = 6,
-    };
+    Uns32 numRegs = 0;
+    Uns32 lsb;
 
-    return map[rlist];
+    while((lsb=(rlist&-rlist))) {
+        rlist &= ~lsb;
+        numRegs++;
+    }
+
+    return numRegs;
 }
 
 //
@@ -6152,13 +6411,133 @@ static Uns64 getPushPopStackAdjust(riscvP riscv, riscvInstrInfoP info, Uns32 spi
 }
 
 //
+// Return floating point constant for given index
+//
+static Uns64 getFPConst(Uns32 index, riscvRegDesc wF) {
+
+    // floating point value description
+    typedef struct fpcDescS {
+        Bool sign;      // sign bit
+        Int8 expBias;   // exponent bias
+        Uns8 sigMSB;    // significand MSB
+    } fpcDesc;
+
+    // floating point description special exponents
+    enum expSpecialE {
+        E_P1 = 126,     // exponent +1
+        E_M1 = 127,     // exponent -1
+    };
+
+    // map from index to constant description
+    const static fpcDesc map[] = {
+        [ 0] = {1,    0, 0x00},     // -1.0
+        [ 1] = {0, E_P1, 0x00},     // minimum positive normal
+        [ 2] = {0,  -16, 0x00},     // 2^-16
+        [ 3] = {0,  -15, 0x00},     // 2^-15
+        [ 4] = {0,   -8, 0x00},     // 2^-8
+        [ 5] = {0,   -7, 0x00},     // 2^-7
+        [ 6] = {0,   -4, 0x00},     // 0.0625 (2^-4)
+        [ 7] = {0,   -3, 0x00},     // 0.125 (2^-3)
+        [ 8] = {0,   -2, 0x00},     // 0.25 (2^-2)
+        [ 9] = {0,   -2, 0x40},     // 0.3125
+        [10] = {0,   -2, 0x80},     // 0.375
+        [11] = {0,   -2, 0xc0},     // 0.4375
+        [12] = {0,   -1, 0x00},     // 0.5
+        [13] = {0,   -1, 0x40},     // 0.625
+        [14] = {0,   -1, 0x80},     // 0.75
+        [15] = {0,   -1, 0xc0},     // 0.875
+        [16] = {0,    0, 0x00},     // 1.0
+        [17] = {0,    0, 0x40},     // 1.25
+        [18] = {0,    0, 0x80},     // 1.5
+        [19] = {0,    0, 0xc0},     // 1.75
+        [20] = {0,    1, 0x00},     // 2.0
+        [21] = {0,    1, 0x40},     // 2.5
+        [22] = {0,    1, 0x80},     // 3
+        [23] = {0,    2, 0x00},     // 4
+        [24] = {0,    3, 0x00},     // 8
+        [25] = {0,    4, 0x00},     // 16
+        [26] = {0,    7, 0x00},     // 128 (2^7)
+        [27] = {0,    8, 0x00},     // 256 (2^8)
+        [28] = {0,   15, 0x00},     // 2^15
+        [29] = {0,   16, 0x00},     // 2^16
+        [30] = {0, E_M1, 0x00},     // +infinity
+        [31] = {0, E_M1, 0x80},     // canonical NaN
+    };
+
+    // get size of assigned floating point register
+    Uns32 bits = getRBits(wF);
+
+    // result value
+    union {
+        Uns64      u64;
+        Flt16Parts f16;
+        Flt32Parts f32;
+        Flt64Parts f64;
+    } result = {0};
+
+    // get constant description
+    fpcDesc desc = map[index];
+
+    if(bits==16) {
+
+        // set simple fields
+        result.f16.sign     = desc.sign;
+        result.f16.fraction = desc.sigMSB<<2;
+
+        // set exponent (or subnormal fraction)
+        if(desc.expBias<=-15) {
+            result.f16.fraction = 0x200 >> (-desc.expBias-15);
+        } else if(desc.expBias==E_P1) {
+            result.f16.exponent = 1;
+        } else if(desc.expBias==E_M1) {
+            result.f16.exponent = -1;
+        } else {
+            result.f16.exponent = 0x0f + desc.expBias;
+        }
+
+    } else if(bits==32) {
+
+        // set simple fields
+        result.f32.sign     = desc.sign;
+        result.f32.fraction = desc.sigMSB<<15;
+
+        // set exponent
+        if(desc.expBias==E_P1) {
+            result.f32.exponent = 1;
+        } else if(desc.expBias==E_M1) {
+            result.f32.exponent = -1;
+        } else {
+            result.f32.exponent = 0x7f + desc.expBias;
+        }
+
+    } else {
+
+        // set simple fields
+        result.f64.sign     = desc.sign;
+        result.f64.fraction = ((Uns64)desc.sigMSB)<<44;
+
+        // set exponent
+        if(desc.expBias==E_P1) {
+            result.f64.exponent = 1;
+        } else if(desc.expBias==E_M1) {
+            result.f64.exponent = -1;
+        } else {
+            result.f64.exponent = 0x3ff + desc.expBias;
+        }
+    }
+
+    return result.u64;
+}
+
+//
 // Return a constant encoded within the instruction
 //
 static Uns64 getConstant(
     riscvP          riscv,
     riscvInstrInfoP info,
     constSpec       c,
-    riscvRegDesc    wX
+    riscvRegDesc    wX,
+    riscvRegDesc    wF
 ) {
     Uns64 result = 0;
     Uns32 instr  = info->instruction;
@@ -6171,6 +6550,9 @@ static Uns64 getConstant(
             break;
         case CS_U_19_15:
             result = U_19_15(instr);
+            break;
+        case CS_U_19_15_P32:
+            result = U_19_15(instr) + 32;
             break;
         case CS_U_22_20:
             result = U_22_20(instr);
@@ -6345,6 +6727,9 @@ static Uns64 getConstant(
             break;
         case CS_S_1_LSL_19_18:
             result = 1 << U_19_18(instr);
+            break;
+        case CS_F_19_15:
+            result = getFPConst(U_19_15(instr), wF);
             break;
         default:
             VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
@@ -6528,6 +6913,9 @@ static riscvRegDesc getRegister(
         case RS_XX_19_15:
             result = RV_RD_X | U_19_15(instr) | RV_RD_FX;
             break;
+        case RS_XX_24_20:
+            result = RV_RD_X | U_24_20(instr) | RV_RD_FX;
+            break;
         case RS_F_4_2_P8:
             result = RV_RD_F | (U_4_2(instr)+8);
             break;
@@ -6555,11 +6943,17 @@ static riscvRegDesc getRegister(
         case RS_V_11_7:
             result = RV_RD_V | U_11_7(instr);
             break;
+        case RS_V_11_7_BF16:
+            result = RV_RD_V | U_11_7(instr) | RV_RD_BF16;
+            break;
         case RS_V_19_15:
             result = RV_RD_V | U_19_15(instr);
             break;
         case RS_V_24_20:
             result = RV_RD_V | U_24_20(instr);
+            break;
+        case RS_V_24_20_BF16:
+            result = RV_RD_V | U_24_20(instr) | RV_RD_BF16;
             break;
         case RS_V_M_25:
             result = U_25(instr) ? 0 : (RV_RD_V|0);
@@ -6573,7 +6967,7 @@ static riscvRegDesc getRegister(
     }
 
     // fill register widths using width encoded in instruction
-    if(result && !getRBits(result)) {
+    if(result && !getRBits(result) && !isVReg(result)) {
 
         // indicate that this register is type-quiet if required
         if(attrs->xQuiet && isXReg(result) && !isXWLReg(result)) {
@@ -7210,11 +7604,78 @@ static riscvRListDesc getRList(riscvInstrInfoP info, rlistSpec rlist) {
 }
 
 //
-// Return rlist specification encoded in the instruction
+// Return bitmask indicating registers present in rlist
 //
-static riscvAListDesc getAList(riscvInstrInfoP info, alistSpec alistSpec) {
+static Uns32 getRListMask(riscvRListDesc rlist) {
 
-    riscvAListDesc result = RV_AL_NA;
+    // masks of registers selected by each rlist specifier
+    enum riscvRListDescE {
+
+        // both ABIs
+        MASK_x_RA           =                     (1<<RV_REG_X_RA),
+        MASK_x_RA_S0        = MASK_x_RA         + (1<<RV_REG_X_S0),
+        MASK_x_RA_S0_1      = MASK_x_RA_S0      + (1<<RV_REG_X_S1),
+
+        // UABI
+        MASK_U_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_S2),
+        MASK_U_RA_S0_3      = MASK_U_RA_S0_2    + (1<<RV_REG_X_S3),
+        MASK_U_RA_S0_4      = MASK_U_RA_S0_3    + (1<<RV_REG_X_S4),
+        MASK_U_RA_S0_5      = MASK_U_RA_S0_4    + (1<<RV_REG_X_S5),
+        MASK_U_RA_S0_6      = MASK_U_RA_S0_5    + (1<<RV_REG_X_S6),
+        MASK_U_RA_S0_7      = MASK_U_RA_S0_6    + (1<<RV_REG_X_S7),
+        MASK_U_RA_S0_8      = MASK_U_RA_S0_7    + (1<<RV_REG_X_S8),
+        MASK_U_RA_S0_9      = MASK_U_RA_S0_8    + (1<<RV_REG_X_S9),
+        MASK_U_RA_S0_10     = MASK_U_RA_S0_9    + (1<<RV_REG_X_S10),
+        MASK_U_RA_S0_11     = MASK_U_RA_S0_10   + (1<<RV_REG_X_S11),
+
+        // EABI
+        MASK_E_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_A4),
+        MASK_E_RA_S3_S0_2   = MASK_E_RA_S0_2    + (1<<RV_REG_X_T1),
+        MASK_E_RA_S3_4_S0_2 = MASK_E_RA_S3_S0_2 + (1<<RV_REG_X_T2) ,
+    };
+
+    // macro to add entry in table below
+    #define RLIST_MASK_ENTRY(_N) [RV_RL_##_N] = MASK_##_N
+
+    // table mapping from rlist specifier to register mask
+    static const Uns32 map[] = {
+
+        // both ABIs
+        RLIST_MASK_ENTRY(x_RA),             // {ra}
+        RLIST_MASK_ENTRY(x_RA_S0),          // {ra,s0}
+        RLIST_MASK_ENTRY(x_RA_S0_1),        // {ra,s0-s1}
+
+        // UABI
+        RLIST_MASK_ENTRY(U_RA_S0_2),        // {ra,s0-s2}
+        RLIST_MASK_ENTRY(U_RA_S0_3),        // {ra,s0-s3}
+        RLIST_MASK_ENTRY(U_RA_S0_4),        // {ra,s0-s4}
+        RLIST_MASK_ENTRY(U_RA_S0_5),        // {ra,s0-s5}
+        RLIST_MASK_ENTRY(U_RA_S0_6),        // {ra,s0-s6}
+        RLIST_MASK_ENTRY(U_RA_S0_7),        // {ra,s0-s7}
+        RLIST_MASK_ENTRY(U_RA_S0_8),        // {ra,s0-s8}
+        RLIST_MASK_ENTRY(U_RA_S0_9),        // {ra,s0-s9}
+        RLIST_MASK_ENTRY(U_RA_S0_10),       // {ra,s0-s10}
+        RLIST_MASK_ENTRY(U_RA_S0_11),       // {ra,s0-s11}
+
+        // EABI
+        RLIST_MASK_ENTRY(E_RA_S0_2),        // {ra,s0-s2}
+        RLIST_MASK_ENTRY(E_RA_S3_S0_2),     // {ra,s3,s0-s2}
+        RLIST_MASK_ENTRY(E_RA_S3_4_S0_2),   // {ra,s3-s4,s0-s2}
+    };
+
+    // get mask of affected registers
+    return map[rlist];
+}
+
+//
+// Return alist specification encoded in the instruction
+//
+static riscvAListDesc getAListMask(
+    riscvInstrInfoP info,
+    alistSpec       alistSpec,
+    riscvRListDesc  rlist
+) {
+    riscvAListDesc alist = RV_AL_NA;
 
     if((alistSpec==RA_T) || ((alistSpec==RA_20) && U_20(info->instruction))) {
 
@@ -7244,10 +7705,37 @@ static riscvAListDesc getAList(riscvInstrInfoP info, alistSpec alistSpec) {
             [RV_RL_E_RA_S3_4_S0_2] = RV_AL_A0_3,    // {ra,s3-s4,s0-s2}
         };
 
-        result = map[info->rlist];
+        alist = map[rlist];
     }
 
-    return result;
+    // masks of registers selected by each alist specifier
+    enum riscvAListDescE {
+        MASK_A0   =             (1<<RV_REG_X_A0),
+        MASK_A0_1 = MASK_A0   + (1<<RV_REG_X_A1),
+        MASK_A0_2 = MASK_A0_1 + (1<<RV_REG_X_A2),
+        MASK_A0_3 = MASK_A0_2 + (1<<RV_REG_X_A3),
+    };
+
+    // macro to add entry in table below
+    #define ALIST_MASK_ENTRY(_N) [RV_AL_##_N] = MASK_##_N
+
+    // table mapping from rlist specifier to register mask
+    static const Uns32 map[] = {
+        ALIST_MASK_ENTRY(A0),       // {a0}
+        ALIST_MASK_ENTRY(A0_1),     // {a0-a1}
+        ALIST_MASK_ENTRY(A0_2),     // {a0-a2}
+        ALIST_MASK_ENTRY(A0_3),     // {a0-a3}
+    };
+
+    // get mask of affected registers
+    return map[alist];
+}
+
+//
+// Return embedded modifier for rlist
+//
+static Bool getEmbedded(riscvRListDesc rlist) {
+    return rlist>=RV_RL_E_RA_S0_2;
 }
 
 //
@@ -7442,13 +7930,14 @@ static void interpretInstruction(
     opAttrsCP       attrs
 ) {
     // fill fields from decoded instruction type
-    info->type   = attrs->type;
-    info->opcode = attrs->opcode;
-    info->format = attrs->format;
-    info->arch   = attrs->arch;
-    info->Zc     = attrs->Zc;
-    info->Zmmul  = attrs->Zmmul;
-    info->unsPfx = attrs->unsPfx;
+    info->type    = attrs->type;
+    info->opcode  = attrs->opcode;
+    info->format  = attrs->format;
+    info->arch    = attrs->arch;
+    info->Zc      = attrs->Zc;
+    info->Zmmul   = attrs->Zmmul;
+    info->unsPfx  = attrs->unsPfx;
+    info->cSuffix = riscv->configInfo.show_c_prefix ? attrs->cSuffix : 0;
 
     // indicate whether operand types should be explicitly listed
     info->explicitType = 0;
@@ -7459,21 +7948,26 @@ static void interpretInstruction(
     info->csrInOp = attrs->csrInOp;
 
     // get memory width encoded in instruction (prerequisite for getFWidth)
-    info->eew     = getEEW(info, attrs->eew);
-    info->memBits = getMemBits(riscv, info, attrs->memBits);
+    info->eew      = getEEW(info, attrs->eew);
+    info->eewIndex = attrs->eewIndex;
+    info->memBits  = getMemBits(riscv, info, attrs->memBits);
 
     // get register widths encoded in instruction
     riscvRegDesc wX  = getXWidth(riscv, info, attrs->wX);
     riscvRegDesc wF  = getFWidth(riscv, info, attrs->wF);
+
+    // get push/pop register list encoded in the instruction
+    riscvRListDesc rlist = getRList(info, attrs->rlist);
 
     // fill other fields from instruction
     info->unsExt    = getUnsExt(riscv, info, attrs->unsExt);
     info->csr       = getCSR(riscv, info, attrs->csr);
     info->csrUpdate = getCSRUpdate(riscv, info, attrs->csrUpdate);
     info->tgt       = getTarget(riscv, info, attrs->tgts);
-    info->rlist     = getRList(info, attrs->rlist);
-    info->alist     = getAList(info, attrs->alist);
-    info->c         = getConstant(riscv, info, attrs->cs,   wX);
+    info->rlist     = getRListMask(rlist);
+    info->alist     = getAListMask(info, attrs->alist, rlist);
+    info->embedded  = getEmbedded(rlist);
+    info->c         = getConstant(riscv, info, attrs->cs,   wX, wF);
     info->r[0]      = getRegister(riscv, info, attrs->r1,   wX, wF, attrs);
     info->r[1]      = getRegister(riscv, info, attrs->r2,   wX, wF, attrs);
     info->r[2]      = getRegister(riscv, info, attrs->r3,   wX, wF, attrs);

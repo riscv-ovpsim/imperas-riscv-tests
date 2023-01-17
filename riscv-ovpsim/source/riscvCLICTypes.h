@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@
 // -----------------------------------------------------------------------------
 
 typedef struct {
-    Uns32 nvbits :  1;
+    Uns32 nvbits :  1;  // RAZ from 8th November 2022
     Uns32 nlbits :  4;
     Uns32 nmbits :  2;
     Uns32 _u1    : 25;

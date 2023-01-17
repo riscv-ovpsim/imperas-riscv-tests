@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,14 +134,16 @@ typedef enum riscvCSRIdE {
     CSR_ID      (vxrm),         // 0x00A
     CSR_ID      (vcsr),         // 0x00F
     CSR_ID      (seed),         // 0x015
-    CSR_ID      (jvt),          // 0x017
+    CSR_ID      (jvt701),       // 0x017
+    CSR_ID      (jvt705),       // 0x017
     CSR_ID      (uscratch),     // 0x040
     CSR_ID      (uepc),         // 0x041
     CSR_ID      (ucause),       // 0x042
     CSR_ID      (utval),        // 0x043
     CSR_ID      (uip),          // 0x044
     CSR_ID      (unxti),        // 0x045
-    CSR_ID      (uintstatus),   // 0x046
+    CSR_ID      (uintstatusRW), // 0x046
+    CSR_ID      (uintstatusR),  // 0xC46
     CSR_ID      (uintthresh),   // 0x047
     CSR_ID      (uscratchcswl), // 0x049
 
@@ -175,14 +177,17 @@ typedef enum riscvCSRIdE {
     CSR_ID      (stval),        // 0x143
     CSR_ID      (sip),          // 0x144
     CSR_ID      (snxti),        // 0x145
-    CSR_ID      (sintstatus),   // 0x146
+    CSR_ID      (sintstatusRW), // 0x146
+    CSR_ID      (sintstatusR),  // 0xD46
     CSR_ID      (sintthresh),   // 0x147
     CSR_ID      (sscratchcsw),  // 0x148
     CSR_ID      (sscratchcswl), // 0x149
+    CSR_ID      (stimecmp),     // 0x14D
     CSR_ID      (siselect),     // 0x150
     CSR_ID      (sireg),        // 0x151
     CSR_ID      (siph),         // 0x154
     CSR_ID      (stopei),       // 0x15C
+    CSR_ID      (stimecmph),    // 0x15D
     CSR_ID      (stopi),        // 0xDB0
     CSR_ID      (satp),         // 0x180
 #if(ENABLE_SSMPU)
@@ -199,21 +204,31 @@ typedef enum riscvCSRIdE {
     CSR_ID      (htimedelta),   // 0x605
     CSR_ID      (hcounteren),   // 0x606
     CSR_ID      (hgeie),        // 0x607
+    CSR_ID      (hvien),        // 0x608
+    CSR_ID      (hvictl),       // 0x609
     CSR_ID      (henvcfg),      // 0x60A
     CSR_ID_0_3  (hstateen),     // 0x60C-0x60F
+    CSR_ID      (hidelegh),     // 0x613
+    CSR_ID      (hvienh),       // 0x618
     CSR_ID      (henvcfgh),     // 0x61A
     CSR_ID_0_3H (hstateen),     // 0x61C-0x61F
     CSR_ID      (htimedeltah),  // 0x615
     CSR_ID      (htval),        // 0x643
     CSR_ID      (hip),          // 0x644
     CSR_ID      (hvip),         // 0x645
+    CSR_ID      (hviprio1),     // 0x646
+    CSR_ID      (hviprio2),     // 0x647
     CSR_ID      (htinst),       // 0x64A
+    CSR_ID      (hviph),        // 0x655
+    CSR_ID      (hviprio1h),    // 0x656
+    CSR_ID      (hviprio2h),    // 0x657
     CSR_ID      (hgeip),        // 0xE12
     CSR_ID      (hgatp),        // 0x680
 
     CSR_ID      (vsstatus),     // 0x200
     CSR_ID      (vsie),         // 0x204
     CSR_ID      (vstvec),       // 0x205
+    CSR_ID      (vsieh),        // 0x214
     CSR_ID      (vsscratch),    // 0x240
     CSR_ID      (vsepc),        // 0x241
     CSR_ID      (vscause),      // 0x242
@@ -221,6 +236,13 @@ typedef enum riscvCSRIdE {
     CSR_ID      (vsip),         // 0x244
     CSR_ID      (vsscratchcsw), // 0x248 (assumed, if CLIC+H supported)
     CSR_ID      (vsscratchcswl),// 0x249 (assumed, if CLIC+H supported)
+    CSR_ID      (vstimecmp),    // 0x24D
+    CSR_ID      (vsiselect),    // 0x250
+    CSR_ID      (vsireg),       // 0x251
+    CSR_ID      (vsiph),        // 0x254
+    CSR_ID      (vstopei),      // 0x25C
+    CSR_ID      (vstimecmph),   // 0x25D
+    CSR_ID      (vstopi),       // 0xEB0
     CSR_ID      (vsatp),        // 0x280
 
     CSR_ID      (mvendorid),    // 0xF11
@@ -255,7 +277,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mtval),        // 0x343
     CSR_ID      (mip),          // 0x344
     CSR_ID      (mnxti),        // 0x345
-    CSR_ID      (mintstatus),   // 0x346
+    CSR_ID      (mintstatusRW), // 0x346
+    CSR_ID      (mintstatusR),  // 0xF46
     CSR_ID      (mintthresh),   // 0x347
     CSR_ID      (mscratchcsw),  // 0x348
     CSR_ID      (mscratchcswl), // 0x349
@@ -476,6 +499,38 @@ void riscvNewCSR(
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// CSR BUS SUPPORT
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Is the CSR implemented externally for read?
+//
+// NOTE: if this is a CSR with read/write semantics but only *read* access is
+// externally implemented then:
+//
+// 1. For true accesses (csrr) the *external* CSR value should be returned;
+// 2. For artifact accesses (trace, debug interface read/write) the *internal*
+//    CSR value should be returned.
+//
+// This allows a test harness to inject a volatile apparent value for a CSR when
+// it is read without affecting the underlying model behavior in any other way.
+//
+// Parameter 'rwOnly' indicates whether the external callback should be used
+// only if both read and write callbacks are specified
+//
+Bool riscvCSRImplementExternalRead(
+    riscvCSRAttrsCP attrs,
+    riscvP          riscv,
+    Bool            rwOnly
+);
+
+//
+// Is the CSR implemented externally for write?
+//
+Bool riscvCSRImplementExternalWrite(riscvCSRAttrsCP attrs, riscvP riscv);
+
+
+////////////////////////////////////////////////////////////////////////////////
 // COUNTER / TIMER ACCESS VALIDITY
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -521,6 +576,11 @@ Bool riscvInhibitCycle(riscvP riscv);
 //
 Bool riscvInhibitInstret(riscvP riscv);
 
+//
+// Indicate that any executing instruction will not retire
+//
+void riscvNoRetire(riscvP riscv);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // STATEEN SUPPORT
@@ -531,7 +591,7 @@ Bool riscvInhibitInstret(riscvP riscv);
 // enabled by the given xstateen bit is valid (and optionally take an Undefined
 // Instruction or Virtual Instruction trap if not)
 //
-Bool riscvStateenFeatureEnabled(riscvP riscv, Uns32 bit, Bool nonV, Bool trap);
+Bool riscvStateenFeatureEnabled(riscvP riscv, Uns32 bit, Bool trap);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -814,6 +874,9 @@ typedef struct {
 // define 32/64 bit type
 CSR_REG_STRUCT_DECL_32(mnstatus);
 
+// define bit masks
+#define WM_mnstatus_NMIE (1<<3)
+
 // -----------------------------------------------------------------------------
 // senvcfg      (id 0x10A)
 // menvcfg      (id 0x30A)
@@ -860,18 +923,6 @@ typedef CSR_REG_TYPE(envcfg) CSR_REG_TYPE(senvcfg);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(sstateen);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mstateen);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hstateen);
-
-// define bit offsets
-#define bit_stateen_Zfinx     1
-#define bit_stateen_Zcmt      2
-#define bit_stateen_xcse      57
-#define bit_stateen_xenvcfg   62
-#define bit_stateen_xstateen  63
-#define WM64_stateen_Zfinx    (1ULL<<bit_stateen_Zfinx)
-#define WM64_stateen_Zcmt     (1ULL<<bit_stateen_Zcmt)
-#define WM64_stateen_xcse     (1ULL<<bit_stateen_xcse)
-#define WM64_stateen_xenvcfg  (1ULL<<bit_stateen_xenvcfg)
-#define WM64_stateen_xstateen (1ULL<<bit_stateen_xstateen)
 
 // -----------------------------------------------------------------------------
 // hstatus      (id 0x600)
@@ -1059,9 +1110,8 @@ typedef struct {
 CSR_REG_STRUCT_DECL_64(ie);
 
 // define alias types
-typedef CSR_REG_TYPE(ie) CSR_REG_TYPE(uie);
-typedef CSR_REG_TYPE(ie) CSR_REG_TYPE(sie);
 typedef CSR_REG_TYPE(ie) CSR_REG_TYPE(mie);
+typedef CSR_REG_TYPE(ie) CSR_REG_TYPE(vsie);
 
 // define write masks
 #define WM32_hie 0x1444
@@ -1092,6 +1142,7 @@ CSR_REG_STRUCT_DECL_32_64(tvec);
 typedef CSR_REG_TYPE(tvec) CSR_REG_TYPE(utvec);
 typedef CSR_REG_TYPE(tvec) CSR_REG_TYPE(stvec);
 typedef CSR_REG_TYPE(tvec) CSR_REG_TYPE(mtvec);
+typedef CSR_REG_TYPE(tvec) CSR_REG_TYPE(xtvec);
 
 // define write masks
 #define WM64_tvec_orig -3
@@ -1287,11 +1338,11 @@ typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mip);
 #define WM32_sip      0x00000103
 #define WM32_vsip     0x00000002
 #define WM32_hip      0x00000004
-#define WM32_hvip     0x00000222
 #define WM32_mip      0x00000337
-#define WM32_mip_mvip 0x00000222ULL
-#define WM32_seip     0x00000200ULL
-#define WM32_meip     0x00000800ULL
+#define WM64_hvip     0x00000444ULL
+#define WM64_mip_mvip 0x00000222ULL
+#define WM64_seip     0x00000200ULL
+#define WM64_meip     0x00000800ULL
 
 // -----------------------------------------------------------------------------
 // mseccfg      (id 0x747)
@@ -1331,9 +1382,9 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hgeie);
 #define WM64_hgeip 0x00000000
 
 // -----------------------------------------------------------------------------
-// uintstatus   (id 0x046)
-// sintstatus   (id 0x146)
-// mintstatus   (id 0x346)
+// uintstatus   (id 0x046 or 0xC46)
+// sintstatus   (id 0x146 or 0xD46)
+// mintstatus   (id 0x346 or 0xF46)
 // -----------------------------------------------------------------------------
 
 // 32-bit view
@@ -1561,6 +1612,16 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hpmcounter);
 
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(htimedelta);
+
+// -----------------------------------------------------------------------------
+// stimecmp     (id 0x14D)
+// stimecmph    (id 0x15D)
+// vstimecmp    (id 0x24D)
+// vstimecmph   (id 0x25D)
+// -----------------------------------------------------------------------------
+
+// define alias types
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(stimecmp);
 
 // -----------------------------------------------------------------------------
 // mvendorid    (id 0xF11)
@@ -1868,12 +1929,13 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(tselect);
 
 // trigger types
 typedef enum triggerTypeE {
-    TT_NONE      = 0,    // disabled
-    TT_ADMATCH   = 2,    // address/data match
-    TT_ICOUNT    = 3,    // instruction count
-    TT_INTERRUPT = 4,    // interrupt
-    TT_EXCEPTION = 5,    // exception
-    TT_MCONTROL6 = 6,    // address/data match (type 6)
+    TT_NONE        = 0,     // disabled
+    TT_ADMATCH     = 2,     // address/data match
+    TT_ICOUNT      = 3,     // instruction count
+    TT_INTERRUPT   = 4,     // interrupt
+    TT_EXCEPTION   = 5,     // exception
+    TT_MCONTROL6   = 6,     // address/data match (type 6)
+    TT_UNAVAILABLE = 15,    // present but unavailable
 } triggerType;
 
 // 32-bit view
@@ -1886,7 +1948,7 @@ typedef union {
         triggerType type    :  4;
     };
 
-    // mcontrol view
+    // mcontrol view (Type=2)
     struct {
         Uns32       priv    :  3;
         Uns32       modes   :  4;
@@ -1902,7 +1964,7 @@ typedef union {
         triggerType type    :  4;
     } mcontrol;
 
-    // icount view
+    // icount view (Type=3)
     struct {
         Uns32       action  :  6;
         Uns32       modes   :  4;
@@ -1914,7 +1976,7 @@ typedef union {
         triggerType type    :  4;
     } icount;
 
-    // itrigger view
+    // itrigger view (Type=4)
     struct {
         Uns32       action  :  6;
         Uns32       modes   :  4;
@@ -1927,7 +1989,7 @@ typedef union {
         triggerType type    :  4;
     } itrigger;
 
-    // etrigger view
+    // etrigger view (Type=5)
     struct {
         Uns32       action  :  6;
         Uns32       modes   :  4;
@@ -1940,7 +2002,7 @@ typedef union {
         triggerType type    :  4;
     } etrigger;
 
-    // mcontrol6 view
+    // mcontrol6 view (Type=6)
     struct {
         Uns32       priv    :  3;
         Uns32       modes   :  4;
@@ -2160,27 +2222,89 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 // -----------------------------------------------------------------------------
 // mvien        (id 0x308)
 // mvip         (id 0x309)
+// hvien        (id 0x608)
 // -----------------------------------------------------------------------------
 
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvien);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvip);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hvien);
 
 // define write masks
 #define WM64_mvien  (-1ULL << 13)
+#define WM64_hvien  (-1ULL << 13)
 
 // -----------------------------------------------------------------------------
 // miselect     (id 0x350)
 // siselect     (id 0x150)
+// vsiselect    (id 0x250)
 // -----------------------------------------------------------------------------
 
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(miselect);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(siselect);
+typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(vsiselect);
 
 // define write masks
 #define WM64_miselect  -1
 #define WM64_siselect  -1
+#define WM64_vsiselect -1
+
+// -----------------------------------------------------------------------------
+// miselect     (id 0x350)
+// siselect     (id 0x150)
+// vsiselect    (id 0x250)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 priority : 11;
+    Uns32 _u1      :  5;
+    Uns32 identity : 11;
+    Uns32 _u2      :  5;
+} CSR_REG_TYPE_32(topei);
+
+// define 32 bit type
+CSR_REG_STRUCT_DECL_32(topei);
+
+// define alias types
+typedef CSR_REG_TYPE(topei) CSR_REG_TYPE(mtopei);
+typedef CSR_REG_TYPE(topei) CSR_REG_TYPE(stopei);
+typedef CSR_REG_TYPE(topei) CSR_REG_TYPE(vstopei);
+
+// define write masks
+#define WM32_mtopei  0x00000000
+#define WM64_mtopei  0x00000000
+#define WM32_stopei  0x00000000
+#define WM64_stopei  0x00000000
+#define WM32_vstopei 0x00000000
+#define WM64_vstopei 0x00000000
+
+// -----------------------------------------------------------------------------
+// hvictl       (id 0x609)
+// -----------------------------------------------------------------------------
+
+// 32-bit view
+typedef struct {
+    Uns32 IPRIO  :  8;
+    Uns32 IPRIOM :  1;
+    Uns32 DPR    :  1;
+    Uns32 _u1    :  6;
+    Uns32 IID    : 12;
+    Uns32 _u2    :  2;
+    Uns32 VTI    :  1;
+    Uns32 _u3    :  1;
+} CSR_REG_TYPE_32(hvictl);
+
+// define 32/64 bit type
+CSR_REG_STRUCT_DECL_32(hvictl);
+
+// define write masks
+#define WM32_hvictl 0x4fff03ff
+#define WM64_hvictl 0x4fff03ff
+
+// define bit masks
+#define WM_hvictl_VTI (1<<30)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2202,11 +2326,6 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(siselect);
 // Use this to define a register entry in riscvCSRs below with two named aliases
 //
 #define CSR_REG_DECL_A(_N1, _N2) union {CSR_REG_DECL(_N1); CSR_REG_DECL(_N2);}
-
-//
-// Use this to define a register read-only mask in riscvCSRs below
-//
-#define CSR_RO_DECL(_N)     CSR_REG_TYPE(_N) _N##_RO
 
 //
 // Use this to define four register entries in riscvCSRs below
@@ -2313,7 +2432,8 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL_V(scause);         // 0x142
     CSR_REG_DECL_V(stval);          // 0x143
     CSR_REG_DECL  (sintthresh);     // 0x14A
-    CSR_REG_DECL  (siselect);       // 0x150
+    CSR_REG_DECL_V(stimecmp);       // 0x14D
+    CSR_REG_DECL_V(siselect);       // 0x150
     CSR_REG_DECL_V(satp);           // 0x180
 
     // HYPERVISOR MODE CSRS
@@ -2323,15 +2443,19 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (htimedelta);     // 0x605
     CSR_REG_DECL  (hcounteren);     // 0x606
     CSR_REG_DECL  (hgeie);          // 0x607
+    CSR_REG_DECL  (hvien);          // 0x608
+    CSR_REG_DECL  (hvictl);         // 0x609
     CSR_REG_DECL  (henvcfg);        // 0x60A
     CSR_REG_DECLx4(hstateen);       // 0x60C-0x60F
     CSR_REG_DECL  (htval);          // 0x643
+    CSR_REG_DECL  (hvip);           // 0x645
     CSR_REG_DECL  (htinst);         // 0x64A
     CSR_REG_DECL  (hgatp);          // 0x680
     CSR_REG_DECL  (hgeip);          // 0xE12
 
     // VIRTUAL MODE CSRS
-    CSR_REG_DECL  (vsstatus);       // 0x600
+    CSR_REG_DECL  (vsstatus);       // 0x200
+    CSR_REG_DECL  (vsie);           // 0x204
 
     // MACHINE MODE CSRS
     CSR_REG_DECL  (mvendorid);      // 0xF11
@@ -2423,9 +2547,11 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (hedeleg);        // 0x602
     CSR_REG_DECL  (hideleg);        // 0x603
     CSR_REG_DECL  (hcounteren);     // 0x606
+    CSR_REG_DECL  (hvien);          // 0x608
     CSR_REG_DECL  (henvcfg);        // 0x60A
     CSR_REG_DECLx4(hstateen);       // 0x60C-0x60F
     CSR_REG_DECL  (hip);            // 0x644
+    CSR_REG_DECL  (hvip);           // 0x645
     CSR_REG_DECL  (htinst);         // 0x64A
 
     // MACHINE MODE CSRS
@@ -2459,7 +2585,6 @@ typedef struct riscvCSRMasksS {
 
     // DEBUG MODE CSRS
     CSR_REG_DECL  (dcsr);           // 0x7B0
-    CSR_RO_DECL   (dcsr);           // 0x7B0 (read-only mask)
 
 } riscvCSRMasks;
 
@@ -2600,12 +2725,6 @@ typedef struct riscvCSRMasksS {
 // get CSR mask using common view
 #define RD_CSR_MASKC(_CPU, _RNAME) RD_CSR_MASK32(_CPU, _RNAME)
 
-// get CSR read-only mask using XLEN=32 view
-#define RO_CSR_MASK32(_CPU, _RNAME) (_CPU)->csrMask._RNAME##_RO.u32.bits
-
-// get CSR read-only mask using common view
-#define RO_CSR_MASKC(_CPU, _RNAME) RO_CSR_MASK32(_CPU, _RNAME)
-
 // get CSR mask field in XLEN=32 view
 #define RD_CSR_MASK_FIELD32(_CPU, _RNAME, _FIELD) \
     (_CPU)->csrMask._RNAME.u32.fields._FIELD
@@ -2626,6 +2745,10 @@ typedef struct riscvCSRMasksS {
 #define WR_CSR_MASKC(_CPU, _RNAME, _VALUE) \
     (_CPU)->csrMask._RNAME._pad = _VALUE
 
+// add mask to the given value in common view
+#define OR_CSR_MASKC(_CPU, _RNAME, _VALUE) \
+    (_CPU)->csrMask._RNAME._pad |= _VALUE
+
 // set field mask to the given value in 32-bit view
 #define WR_CSR_MASK_FIELD32(_CPU, _RNAME, _FIELD, _VALUE) \
     (_CPU)->csrMask._RNAME.u32.fields._FIELD = _VALUE
@@ -2645,18 +2768,6 @@ typedef struct riscvCSRMasksS {
 // set field mask to all 1's in common view
 #define WR_CSR_MASK_FIELDC_1(_CPU, _RNAME, _FIELD) \
     WR_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, -1)
-
-// set read-only field mask to the given value in 64-bit view
-#define RO_CSR_MASK_FIELD64(_CPU, _RNAME, _FIELD, _VALUE) \
-    (_CPU)->csrMask._RNAME##_RO.u64.fields._FIELD = _VALUE
-
-// set read-only field mask to the given value in common view
-#define RO_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, _VALUE) \
-    RO_CSR_MASK_FIELD64(_CPU, _RNAME, _FIELD, _VALUE)
-
-// set read-only field mask to all 1's in common view
-#define RO_CSR_MASK_FIELDC_1(_CPU, _RNAME, _FIELD) \
-    RO_CSR_MASK_FIELDC(_CPU, _RNAME, _FIELD, -1)
 
 
 ////////////////////////////////////////////////////////////////////////////////

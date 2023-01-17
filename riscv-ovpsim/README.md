@@ -3,9 +3,9 @@
 
 Author    : Imperas Software, Ltd., using OVP Open Standard APIs
 
-Date      : 17 Oct 2022
+Date      : 16 Jan 2023
 
-Version   : 20221017.0
+Version   : 20230116.0
 
 
 License   : Model source included under Apache 2.0 open source license
@@ -85,6 +85,7 @@ All simulators are based on the Imperas CpuManager simulator base technology uti
 ## Additional specifications available in Imperas simulators currently not supported in this product
 - RISC-V H Hypervisor Extension  (hypervisor_version)
     - Version 0.6.1 : Hypervisor Architecture Version 0.6.1
+    - Version 1.0 : Hypervisor Architecture Version 1.0
 
 - RISC-V P DSP/SIMD Extension  (dsp_version)
     - Version 0.5.2 : DSP Architecture Version 0.5.2
@@ -155,7 +156,7 @@ For example on Linux:
          $ ./RUN_RV32_fibonacci.sh
 
          CpuManagerFixedPlatform (64-bit) v20210324.0 Open Virtual Platform simulator from www.IMPERAS.com.
-         Copyright (c) 2005-2022 Imperas Software Ltd.  Contains Imperas Proprietary Information.
+         Copyright (c) 2005-2023 Imperas Software Ltd.  Contains Imperas Proprietary Information.
          Licensed Software, All Rights Reserved.
          Visit www.IMPERAS.com for multicore debug, verification and analysis solutions.
 

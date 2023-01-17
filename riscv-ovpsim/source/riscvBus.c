@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -136,7 +136,7 @@ void riscvNewLeafBusPorts(riscvP riscv) {
 
     // add artifact CSR bus allowing external implementation of CSR registers
     // if required
-    if(riscv->configInfo.enable_CSR_bus) {
+    if(riscv->configInfo.enable_CSR_bus || riscv->configInfo.IMSIC_present) {
         riscv->csrPort = newBusPort(
             &tail,
             "CSR",
@@ -145,6 +145,20 @@ void riscvNewLeafBusPorts(riscvP riscv) {
             16, 16, 16,
             False,
             "Artifact bus allowing external implementation of CSR registers"
+        );
+    }
+
+    // add artifact IMSIC bus allowing external implementation of IMSIC
+    // interrupts if required
+    if(riscv->configInfo.IMSIC_present) {
+        riscv->IMSICPort = newBusPort(
+            &tail,
+            "IMSIC",
+            vmi_BP_MASTER,
+            vmi_DOM_OTHER,
+            16, 16, 16,
+            True,
+            "Artifact bus for external implementation of IMSIC registers"
         );
     }
 }
@@ -195,4 +209,12 @@ inline static memDomainP portToDomain(riscvBusPortP port) {
 memDomainP riscvGetExternalCSRDomain(riscvP riscv) {
     return portToDomain(riscv->csrPort);
 }
+
+//
+// Return any domain connected to the artifact port implementing IMSIC registers
+//
+memDomainP riscvGetExternalIMSICDomain(riscvP riscv) {
+    return portToDomain(riscv->IMSICPort);
+}
+
 

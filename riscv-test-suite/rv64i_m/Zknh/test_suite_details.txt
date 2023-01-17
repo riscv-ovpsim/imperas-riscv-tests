@@ -26,13 +26,13 @@ Architectural Test Suite Data for RV64ZKNH K Crypto/Scalar:
 
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
   sha256sig0 : 298
-  sha512sig0 : 298
-  sha256sum0 : 298
   sha512sum0 : 298
   sha256sum1 : 298
-  sha512sum1 : 298
   sha256sig1 : 298
   sha512sig1 : 298
+  sha256sum0 : 298
+  sha512sig0 : 298
+  sha512sum1 : 298
 
 Other instructions (those not the focus of this suite)
   c-j : 8

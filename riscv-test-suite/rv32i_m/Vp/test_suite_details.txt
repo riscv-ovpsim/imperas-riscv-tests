@@ -43,10 +43,10 @@ Instruction category: OPV_SLIDE slide
   vslideup.vi : 336
   vslideup.vx : 336
 Instruction category: OPV_VMV whole vector register move
-  vmv1r.v : 32
-  vmv4r.v : 32
-  vmv8r.v : 16
   vmv2r.v : 32
+  vmv4r.v : 32
+  vmv1r.v : 32
+  vmv8r.v : 16
 
 Other instructions (those not the focus of this suite)
   jal : 172
@@ -63,10 +63,10 @@ Other instructions (those not the focus of this suite)
   fence : 172
   ecall : 172
   beq : 516
-  vle16.v : 4,096
-  vse16.v : 1,600
   vle32.v : 4,240
   vse32.v : 1,680
+  vle16.v : 4,096
+  vse16.v : 1,600
   fmv.x.s : 224
   sw : 320
   fmv.s.x : 672

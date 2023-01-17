@@ -32,8 +32,8 @@ Other instructions (those not the focus of this suite)
   jalr : 440
   sw : 2,688
   lw : 672
-  bne : 3,584
   FETCH : 288
+  bne : 3,584
   fence : 14
   ecall : 42
   csrrc : 14

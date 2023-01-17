@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@
 #include "riscvFunctions.h"
 #include "riscvKExtension.h"
 #include "riscvMessage.h"
+#include "riscvMode.h"
 #include "riscvModelCallbackTypes.h"
 #include "riscvMorph.h"
 #include "riscvRegisters.h"
@@ -91,16 +92,22 @@ typedef enum riscvFPCtrlE {
 
     // normal native operation configuration
     RVFP_NORMAL,
+    RVFP_FROUND,    // special for FROUND
 
     // FMIN/FMAX configurations
     RVFP_FMIN,      // special for FMIN (2.2 specification)
     RVFP_FMAX,      // special for FMAX (2.2 specification)
     RVFP_FMIN_2_3,  // special for FMIN (2.3 specification)
     RVFP_FMAX_2_3,  // special for FMAX (2.3 specification)
+    RVFP_FMINM,     // special for FMINM
+    RVFP_FMAXM,     // special for FMAXM
 
     // estimation configurations
     RVFP_FRECE7,    // reciprocal estimate to 7 bits
     RVFP_FRSRE7,    // reciprocal square-root estimate to 7 bits
+
+    // modular convert-to-integer configuration (JavaScript)
+    RVFP_FCVTMD,    // special for FCVTMOD
 
     RVFP_LAST       // KEEP LAST
 
@@ -126,6 +133,8 @@ typedef enum riscvFPRelationE {
     RVFCMP_ORD  = vmi_FPRL_EQUAL|vmi_FPRL_LESS|vmi_FPRL_GREATER    |RVFCMP_QNOK,
     RVFCMP_EQ   = vmi_FPRL_EQUAL                                   |RVFCMP_QNOK,
     RVFCMP_NE   = vmi_FPRL_LESS|vmi_FPRL_GREATER|vmi_FPRL_UNORDERED|RVFCMP_QNOK,
+    RVFCMP_LTQ  = vmi_FPRL_LESS                                    |RVFCMP_QNOK,
+    RVFCMP_LEQ  = vmi_FPRL_LESS|vmi_FPRL_EQUAL                     |RVFCMP_QNOK,
     RVFCMP_LT   = vmi_FPRL_LESS,
     RVFCMP_LE   = vmi_FPRL_LESS|vmi_FPRL_EQUAL,
     RVFCMP_GT   = vmi_FPRL_GREATER,
@@ -183,6 +192,7 @@ typedef struct riscvMorphAttrS {
     riscvOpCBFn           opCB;             // called to get operation callback
     octiaInstructionClass iClass;           // supplemental instruction class
     riscvBExtOpSet        bExtOp;           // B-extension operation set
+    riscvSEWMt            SEW;              // legal SEW values
     Uns32                 offset     : 8;   // constant offset
     riscvKExtOp           kExtOp     : 8;   // K-extension operation
     vmiUnop               unop       : 8;   // integer unary operation
@@ -196,6 +206,7 @@ typedef struct riscvMorphAttrS {
     riscvFPCtrl           fpConfig   : 8;   // floating point configuration
     riscvFPRelation       fpRel      : 8;   // floating point comparison relation
     riscvVShape           vShape     : 8;   // vector operation shape
+    Uns8                  EGS        : 8;   // vector element group size
     riscvPAttrs           pAttrs     : 8;   // P-extension operation shape
     vmiCondition          cond       : 4;   // comparison condition
     riscvVArgType         argType    : 4;   // vector argument types
@@ -611,9 +622,18 @@ static void illegalInstruction(riscvP riscv) {
 }
 
 //
-// Take Illegal Instruction exception in special case that FS=0
+// Take Illegal Instruction exception in special case that mstatus.VS=0
+//
+static void illegalInstructionVS0(riscvP riscv) {
+    riscv->exceptionDetail = riscv_ED_VS;
+    riscvIllegalInstructionMessage(riscv, "mstatus.VS=0");
+}
+
+//
+// Take Illegal Instruction exception in special case that mstatus.FS=0
 //
 static void illegalInstructionFS0(riscvP riscv) {
+    riscv->exceptionDetail = riscv_ED_FS;
     riscvIllegalInstructionMessage(riscv, "mstatus.FS=0");
 }
 
@@ -642,9 +662,15 @@ static void illegalInstructionAbsentArch(
 // enabled
 //
 static void emitIllegalInstructionDisabledArch(riscvArchitecture disabled) {
+
     vmimtArgProcessor();
-    vmimtArgUns32(disabled);
-    vmimtCallAttrs((vmiCallFn)illegalInstructionDisabledArch, VMCA_EXCEPTION);
+
+    if(disabled&ISA_V) {
+        vmimtCallAttrs((vmiCallFn)illegalInstructionVS0, VMCA_EXCEPTION);
+    } else {
+        vmimtArgUns32(disabled);
+        vmimtCallAttrs((vmiCallFn)illegalInstructionDisabledArch, VMCA_EXCEPTION);
+    }
 }
 
 //
@@ -657,7 +683,7 @@ static void emitIllegalInstructionAbsentArch(riscvArchitecture missing) {
 
     if(!missing) {
         vmimtCallAttrs((vmiCallFn)illegalInstruction, VMCA_EXCEPTION);
-    } else if(missing==ISA_FS) {
+    } else if(missing&ISA_FS) {
         vmimtCallAttrs((vmiCallFn)illegalInstructionFS0, VMCA_EXCEPTION);
     } else {
         vmimtArgUns32(missing);
@@ -668,7 +694,7 @@ static void emitIllegalInstructionAbsentArch(riscvArchitecture missing) {
 //
 // Emit code to indicate that a custom instruction is not present if verbose
 //
-static void emitCustomAbsent() {
+static RISCV_MORPH_FN(emitCustomAbsent) {
     emitIllegalInstructionAbsentArch(ISA_X);
 }
 
@@ -1205,6 +1231,13 @@ void riscvEmitTrapTSR(riscvP riscv) {
     EMIT_TRAP_MASK_FIELD_HS_OR_VS(riscv, mstatus, hstatus, TSR, 1);
 }
 
+//
+// Emit trap when hvictl.VTI=1 in Virtual Supervisor mode
+//
+void riscvEmitTrapVTI(riscvP riscv) {
+    EMIT_TRAP_MASK_FIELD_VS(riscv, hvictl, VTI, 1);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // REGISTER ACCESS
@@ -1414,27 +1447,68 @@ inline static Uns32 clamp64(Uns32 bits) {
 }
 
 //
+// Is BFLOAT16 16-bit floating point format enabled?
+//
+static Bool enableBFLOAT16(riscvP riscv) {
+
+    Bool isBF16 = False;
+
+    if(riscv->configInfo.fp16_version==RVFP16_BFLOAT16) {
+        isBF16 = True;
+    } else if(riscv->configInfo.fp16_version==RVFP16_DYNAMIC) {
+        isBF16 = checkFeatureMT(riscv, riscv->dynamicBF16, ISA_BF16);
+    }
+
+    return isBF16;
+}
+
+//
+// Create floating point type, allowing for BFLOAT16 type
+//
+static vmiFType createRegFType(
+    riscvMorphStateP state,
+    vmiFType         base,
+    Uns32            argIndex,
+    Uns32            bits
+) {
+    // include element width
+    vmiFType result = base | bits;
+
+    // use BFLOAT16 type if required
+    if((result==vmi_FT_16_IEEE_754) && enableBFLOAT16(state->riscv)) {
+        result = vmi_FT_BFLOAT16;
+    }
+
+    return result;
+}
+
+//
 // Return floating point type for the given abstract register
 //
-static vmiFType getRegFType(riscvRegDesc r) {
+static vmiFType getRegFType(riscvMorphStateP state, riscvRegDesc r) {
 
-    Uns32 bits = clamp64(getRBits(r));
+    vmiFType base;
 
-    if(isFReg(r)) {
-        return VMI_FT_IEEE_754 | bits;
+    if(isBF16Reg(r)) {
+        base = vmi_FT_BFLOAT16;
+    } else if(isFReg(r)) {
+        base = VMI_FT_IEEE_754;
     } else if(isUReg(r)) {
-        return VMI_FT_UNS | bits;
+        base = VMI_FT_UNS;
     } else {
-        return VMI_FT_INT | bits;
+        base = VMI_FT_INT;
     }
+
+    return createRegFType(state, base, getRIndex(r), clamp64(getRBits(r)));
 }
 
 //
 // Return bits in misa that must be enabled for a floating point register of
-// the given size to be accessible (NOTE: half-precision has no defined enable
+// the given type to be accessible (NOTE: half-precision has no defined enable
 // bit currently, so assume it is enabled if either F or D are enabled)
 //
-static riscvArchitecture getFRegArch(riscvP riscv, Uns32 bits) {
+static riscvArchitecture getFRegArch(riscvP riscv, riscvRegDesc r) {
+    Uns32 bits = getRBits(r);
     return (bits==16) ? ISA_DF : (bits==32) ? ISA_F : ISA_D;
 }
 
@@ -1442,15 +1516,18 @@ static riscvArchitecture getFRegArch(riscvP riscv, Uns32 bits) {
 // Validate the floating point register bits is supported and emit an Illegal
 // Instruction if not
 //
-static Bool supportedFBitsMT(riscvP riscv, Uns32 bits) {
+static Bool supportedFBitsMT(riscvP riscv, riscvRegDesc r) {
 
-    Bool ok = False;
+    Uns32 bits = getRBits(r);
+    Bool  ok   = False;
 
     if(bits==128) {
         ILLEGAL_INSTRUCTION_MESSAGE(
             riscv, "NFP128", "quadruple-precision floating point is absent"
         );
     } else if(bits!=16) {
+        ok = True;
+    } else if(isBF16Reg(r)) {
         ok = True;
     } else if(!riscv->configInfo.fp16_version) {
         ILLEGAL_INSTRUCTION_MESSAGE(
@@ -1486,13 +1563,12 @@ static vmiReg getVMIRegX(riscvP riscv, Uns32 index) {
 //
 // Validate floating point extension is enabled for the given register size
 //
-static Bool isFltEnabledMT(riscvP riscv, Uns32 bits) {
-
+static Bool isFltEnabledMT(riscvP riscv, riscvRegDesc r) {
     return (
         // floating point type must be supported
-        supportedFBitsMT(riscv, bits) &&
+        supportedFBitsMT(riscv, r) &&
         // floating point type must be enabled
-        riscvRequireArchPresentMT(riscv, getFRegArch(riscv, bits))
+        riscvRequireArchPresentMT(riscv, getFRegArch(riscv, r))
     );
 }
 
@@ -1539,7 +1615,7 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
 
     if(isZfinxReg(r)) {
 
-        if(!isFltEnabledMT(riscv, bits)) {
+        if(!isFltEnabledMT(riscv, r)) {
             // floating point absent or disabled
         } else if(!isZfinxLegalIndexMT(riscv, index, bits)) {
             // illegal register index
@@ -1559,7 +1635,7 @@ vmiReg riscvGetVMIReg(riscvP riscv, riscvRegDesc r) {
     } else if(isFReg(r)) {
 
         // require no Zfinx extension and enabled floating point
-        if(isZfinxAbsentMT(riscv) && isFltEnabledMT(riscv, bits)) {
+        if(isZfinxAbsentMT(riscv) && isFltEnabledMT(riscv, r)) {
             riscv->usingFP = True;
             result = RISCV_FPR(index);
         }
@@ -2059,7 +2135,7 @@ inline static unpackedReg unpackFD(riscvMorphStateP state, Uns32 argNum) {
     result.rA    = getRVReg(state, argNum);
     result.r     = getVMIReg(state->riscv, result.rA);
     result.bits  = getRBits(result.rA);
-    result.ftype = getRegFType(result.rA);
+    result.ftype = getRegFType(state, result.rA);
 
     return result;
 }
@@ -2075,7 +2151,7 @@ static unpackedReg unpackFS(riscvMorphStateP state, Uns32 argNum) {
     result.rA    = getRVReg(state, argNum);
     result.r     = getVMIRegFS(state, result.rA);
     result.bits  = getRBits(result.rA);
-    result.ftype = getRegFType(result.rA);
+    result.ftype = getRegFType(state, result.rA);
 
     return result;
 }
@@ -2841,6 +2917,36 @@ static RISCV_MORPH_FN(emitMoveRR) {
     Uns32       bits = rd.bits;
 
     vmimtMoveRR(bits, rd.r, rs.r);
+
+    writeUnpacked(rd);
+}
+
+//
+// Move upper half of value (two registers)
+//
+static RISCV_MORPH_FN(emitMoveHRR) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs   = unpackRX(state, 1);
+    Uns32       bits = rd.bits;
+
+    vmimtMoveRR(bits, rd.r, VMI_REG_DELTA(rs.r, bits/8));
+
+    writeUnpacked(rd);
+}
+
+//
+// Move two registers into halves of destination
+//
+static RISCV_MORPH_FN(emitMoveRRR) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs1  = unpackRX(state, 1);
+    unpackedReg rs2  = unpackRX(state, 2);
+    Uns32       bits = rs1.bits;
+
+    vmimtMoveRR(bits, rd.r, rs1.r);
+    vmimtMoveRR(bits, VMI_REG_DELTA(rd.r, bits/8), rs2.r);
 
     writeUnpacked(rd);
 }
@@ -3854,12 +3960,25 @@ static RISCV_MORPH_FN(emitWFI) {
 
     riscvP riscv = state->riscv;
 
-    // this instruction must be executed in Machine mode or Supervisor mode
-    // unless User mode interrupts are implemented
-    requireSIfNotArchMT(riscv, ISA_N);
-
     // instruction is trapped if mstatus.TW=1 in any non-Machine mode
     EMIT_TRAP_MASK_FIELD_NOT_M(riscv, mstatus, TW, 1);
+
+    // if Supervisor mode is implemented and N extension is not then WFI in User
+    // mode causes an Illegal Instruction exception unless it completes within
+    // a bounded time limit (currently 0)
+    if(getCurrentMode3(riscv)!=RISCV_MODE_U) {
+        // no action
+    } else if(!isFeaturePresentMT(riscv, ISA_S)) {
+        // legal if S extension is absent or inactive
+    } else if(isFeaturePresentMT(riscv, ISA_N)) {
+        // legal if N extension is active
+    } else if(!inVMode(riscv)) {
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "TW0", "bounded time limit zero");
+    } else {
+        VIRTUAL_INSTRUCTION_MESSAGE(riscv, "TW0", "bounded time limit zero");
+    }
+
+    // instruction is trapped in VS mode when hstatus.VTW=1
     EMIT_TRAP_MASK_FIELD_VS(riscv, hstatus, TW, 1);
 
     // wait for interrupt (unless this is treated as a NOP)
@@ -4053,8 +4172,13 @@ static void emitCSRRCommon(riscvMorphStateP state, vmiReg rs1, Bool write) {
         vmiReg rdTmp = read ? newTmp(state) : VMI_NOREG;
 
         // handle traps if mstatus.TVM=1 (e.g. satp register)
-        if(attrs->TVMT) {
+        if(attrs->trap & 1) {
             riscvEmitTrapTVM(riscv);
+        }
+
+        // handle traps if hvictl.VTI=1 (e.g. sip, sie registers)
+        if(attrs->trap & 2) {
+            riscvEmitTrapVTI(riscv);
         }
 
         // emit code to read the CSR if required
@@ -4422,16 +4546,9 @@ static VMI_FP_IND64_RESULT_FN(handleIndeterminate64) {
 //
 // Common routine for 16-bit FMIN/FMAX result
 //
-static Uns16 doMinMax16_2_2(
-    Uns16       result16,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns16 arg0 = args[0].u16;
-    Uns16 arg1 = args[1].u16;
+static Uns16 doMinMax16_2_2(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 
     if(isSNaN16(arg0) || isSNaN16(arg1)) {
-        setFlags->f.I = 1;
         result16 = FP16_DEFAULT_QNAN;
     } else if(isNaN16(arg0) && isNaN16(arg1)) {
         result16 = FP16_DEFAULT_QNAN;
@@ -4447,16 +4564,9 @@ static Uns16 doMinMax16_2_2(
 //
 // Common routine for 32-bit FMIN/FMAX result
 //
-static Uns32 doMinMax32_2_2(
-    Uns32       result32,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns32 arg0 = args[0].u32;
-    Uns32 arg1 = args[1].u32;
+static Uns32 doMinMax32_2_2(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 
     if(isSNaN32(arg0) || isSNaN32(arg1)) {
-        setFlags->f.I = 1;
         result32 = FP32_DEFAULT_QNAN;
     } else if(isNaN32(arg0) && isNaN32(arg1)) {
         result32 = FP32_DEFAULT_QNAN;
@@ -4472,16 +4582,9 @@ static Uns32 doMinMax32_2_2(
 //
 // Common routine for 64-bit FMIN/FMAX result
 //
-static Uns64 doMinMax64_2_2(
-    Uns64       result64,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns64 arg0 = args[0].u64;
-    Uns64 arg1 = args[1].u64;
+static Uns64 doMinMax64_2_2(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 
     if(isSNaN64(arg0) || isSNaN64(arg1)) {
-        setFlags->f.I = 1;
         result64 = FP64_DEFAULT_QNAN;
     } else if(isNaN64(arg0) && isNaN64(arg1)) {
         result64 = FP64_DEFAULT_QNAN;
@@ -4499,10 +4602,13 @@ static Uns64 doMinMax64_2_2(
 //
 static VMI_FP_16_RESULT_FN(doFMin16_2_2) {
 
-    if(isZero16(args[0].u16) && isZero16(args[1].u16)) {
-        result16 = args[1].u16;
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_2(result16, args, setFlags);
+        result16 = doMinMax16_2_2(result16, arg0, arg1);
     }
 
     return result16;
@@ -4513,10 +4619,13 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_2) {
 //
 static VMI_FP_16_RESULT_FN(doFMax16_2_2) {
 
-    if(isZero16(args[0].u16) && isZero16(args[1].u16)) {
-        result16 = args[0].u16;
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg0;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_2(result16, args, setFlags);
+        result16 = doMinMax16_2_2(result16, arg0, arg1);
     }
 
     return result16;
@@ -4527,10 +4636,13 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_2) {
 //
 static VMI_FP_32_RESULT_FN(doFMin32_2_2) {
 
-    if(isZero32(args[0].u32) && isZero32(args[1].u32)) {
-        result32 = args[1].u32;
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_2(result32, args, setFlags);
+        result32 = doMinMax32_2_2(result32, arg0, arg1);
     }
 
     return result32;
@@ -4541,10 +4653,13 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_2) {
 //
 static VMI_FP_32_RESULT_FN(doFMax32_2_2) {
 
-    if(isZero32(args[0].u32) && isZero32(args[1].u32)) {
-        result32 = args[0].u32;
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg0;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_2(result32, args, setFlags);
+        result32 = doMinMax32_2_2(result32, arg0, arg1);
     }
 
     return result32;
@@ -4555,10 +4670,13 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_2) {
 //
 static VMI_FP_64_RESULT_FN(doFMin64_2_2) {
 
-    if(isZero64(args[0].u64) && isZero64(args[1].u64)) {
-        result64 = args[1].u64;
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_2(result64, args, setFlags);
+        result64 = doMinMax64_2_2(result64, arg0, arg1);
     }
 
     return result64;
@@ -4569,10 +4687,13 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_2) {
 //
 static VMI_FP_64_RESULT_FN(doFMax64_2_2) {
 
-    if(isZero64(args[0].u64) && isZero64(args[1].u64)) {
-        result64 = args[0].u64;
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg0;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_2(result64, args, setFlags);
+        result64 = doMinMax64_2_2(result64, arg0, arg1);
     }
 
     return result64;
@@ -4586,17 +4707,7 @@ static VMI_FP_64_RESULT_FN(doFMax64_2_2) {
 //
 // Common routine for 16-bit FMIN/FMAX result
 //
-static Uns16 doMinMax16_2_3(
-    Uns16       result16,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns16 arg0 = args[0].u16;
-    Uns16 arg1 = args[1].u16;
-
-    if(isSNaN16(arg0) || isSNaN16(arg1)) {
-        setFlags->f.I = 1;
-    }
+static Uns16 doMinMax16_2_3(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 
     if(isNaN16(arg0) && isNaN16(arg1)) {
         result16 = FP16_DEFAULT_QNAN;
@@ -4612,17 +4723,7 @@ static Uns16 doMinMax16_2_3(
 //
 // Common routine for 32-bit FMIN/FMAX result
 //
-static Uns32 doMinMax32_2_3(
-    Uns32       result32,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns32 arg0 = args[0].u32;
-    Uns32 arg1 = args[1].u32;
-
-    if(isSNaN32(arg0) || isSNaN32(arg1)) {
-        setFlags->f.I = 1;
-    }
+static Uns32 doMinMax32_2_3(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 
     if(isNaN32(arg0) && isNaN32(arg1)) {
         result32 = FP32_DEFAULT_QNAN;
@@ -4638,17 +4739,7 @@ static Uns32 doMinMax32_2_3(
 //
 // Common routine for 64-bit FMIN/FMAX result
 //
-static Uns64 doMinMax64_2_3(
-    Uns64       result64,
-    vmiFPArgP   args,
-    vmiFPFlagsP setFlags
-) {
-    Uns64 arg0 = args[0].u64;
-    Uns64 arg1 = args[1].u64;
-
-    if(isSNaN64(arg0) || isSNaN64(arg1)) {
-        setFlags->f.I = 1;
-    }
+static Uns64 doMinMax64_2_3(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 
     if(isNaN64(arg0) && isNaN64(arg1)) {
         result64 = FP64_DEFAULT_QNAN;
@@ -4666,10 +4757,13 @@ static Uns64 doMinMax64_2_3(
 //
 static VMI_FP_16_RESULT_FN(doFMin16_2_3) {
 
-    if(isZero16(args[0].u16) && isZero16(args[1].u16)) {
-        result16 = args[0].u16 | args[1].u16;
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg0 | arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_3(result16, args, setFlags);
+        result16 = doMinMax16_2_3(result16, arg0, arg1);
     }
 
     return result16;
@@ -4680,10 +4774,13 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_3) {
 //
 static VMI_FP_16_RESULT_FN(doFMax16_2_3) {
 
-    if(isZero16(args[0].u16) && isZero16(args[1].u16)) {
-        result16 = args[0].u16 & args[1].u16;
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg0 & arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_3(result16, args, setFlags);
+        result16 = doMinMax16_2_3(result16, arg0, arg1);
     }
 
     return result16;
@@ -4694,10 +4791,13 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_3) {
 //
 static VMI_FP_32_RESULT_FN(doFMin32_2_3) {
 
-    if(isZero32(args[0].u32) && isZero32(args[1].u32)) {
-        result32 = args[0].u32 | args[1].u32;
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg0 | arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_3(result32, args, setFlags);
+        result32 = doMinMax32_2_3(result32, arg0, arg1);
     }
 
     return result32;
@@ -4708,10 +4808,13 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_3) {
 //
 static VMI_FP_32_RESULT_FN(doFMax32_2_3) {
 
-    if(isZero32(args[0].u32) && isZero32(args[1].u32)) {
-        result32 = args[0].u32 & args[1].u32;
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg0 & arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_3(result32, args, setFlags);
+        result32 = doMinMax32_2_3(result32, arg0, arg1);
     }
 
     return result32;
@@ -4722,10 +4825,13 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_3) {
 //
 static VMI_FP_64_RESULT_FN(doFMin64_2_3) {
 
-    if(isZero64(args[0].u64) && isZero64(args[1].u64)) {
-        result64 = args[0].u64 | args[1].u64;
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg0 | arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_3(result64, args, setFlags);
+        result64 = doMinMax64_2_3(result64, arg0, arg1);
     }
 
     return result64;
@@ -4736,10 +4842,120 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_3) {
 //
 static VMI_FP_64_RESULT_FN(doFMax64_2_3) {
 
-    if(isZero64(args[0].u64) && isZero64(args[1].u64)) {
-        result64 = args[0].u64 & args[1].u64;
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg0 & arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_3(result64, args, setFlags);
+        result64 = doMinMax64_2_3(result64, arg0, arg1);
+    }
+
+    return result64;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MINM/MAXM RESULT HANDLERS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// 16-bit FMINM result handler
+//
+static VMI_FP_16_RESULT_FN(doFMinm16) {
+
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg0 | arg1;
+    } else if(isNaN16(result16)) {
+        result16 = FP16_DEFAULT_QNAN;
+    }
+
+    return result16;
+}
+
+//
+// 16-bit FMAXM result handler
+//
+static VMI_FP_16_RESULT_FN(doFMaxm16) {
+
+    Uns16 arg0 = args[0].u16;
+    Uns16 arg1 = args[1].u16;
+
+    if(isZero16(arg0) && isZero16(arg1)) {
+        result16 = arg0 & arg1;
+    } else if(isNaN16(result16)) {
+        result16 = FP16_DEFAULT_QNAN;
+    }
+
+    return result16;
+}
+
+//
+// 32-bit FMINM result handler
+//
+static VMI_FP_32_RESULT_FN(doFMinm32) {
+
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg0 | arg1;
+    } else if(isNaN32(result32)) {
+        result32 = FP32_DEFAULT_QNAN;
+    }
+
+    return result32;
+}
+
+//
+// 32-bit FMAXM result handler
+//
+static VMI_FP_32_RESULT_FN(doFMaxm32) {
+
+    Uns32 arg0 = args[0].u32;
+    Uns32 arg1 = args[1].u32;
+
+    if(isZero32(arg0) && isZero32(arg1)) {
+        result32 = arg0 & arg1;
+    } else if(isNaN32(result32)) {
+        result32 = FP32_DEFAULT_QNAN;
+    }
+
+    return result32;
+}
+
+//
+// 64-bit FMINM result handler
+//
+static VMI_FP_64_RESULT_FN(doFMinm64) {
+
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg0 | arg1;
+    } else if(isNaN64(result64)) {
+        result64 = FP64_DEFAULT_QNAN;
+    }
+
+    return result64;
+}
+
+//
+// 64-bit FMAXM result handler
+//
+static VMI_FP_64_RESULT_FN(doFMaxm64) {
+
+    Uns64 arg0 = args[0].u64;
+    Uns64 arg1 = args[1].u64;
+
+    if(isZero64(arg0) && isZero64(arg1)) {
+        result64 = arg0 & arg1;
+    } else if(isNaN64(result64)) {
+        result64 = FP64_DEFAULT_QNAN;
     }
 
     return result64;
@@ -5283,13 +5499,61 @@ static VMI_FP_64_RESULT_FN(doFRsqrtE7_64) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// FCVTMOD RESULT HANDLER
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Define FCVTMOD floating point configuration
+//
+#define FCVTMD_CONFIG { \
+    .indeterminate32ResultCB = doFcvtmod,   \
+    .suppressFlags           = {f:{D:1}},   \
+    .stickyFlags             = True         \
+}
+
+//
+// 64-bit FCVTMOD indeterminate result handler
+//
+static VMI_FP_IND32_RESULT_FN(doFcvtmod) {
+
+    Uns32 result = 0;
+
+    if(!isNaNorInf64(value.u64)) {
+
+        union {Uns64 u64; Flt64Parts f64Parts;} u = {value.u64};
+
+        // get absolute fraction, including implicit MSB
+        Int64 t64   = u.f64Parts.fraction | (1ULL<<52);
+        Uns32 exp   = u.f64Parts.exponent;
+        Int32 shift = exp-0x3ff-52;
+
+        if(shift>32) {
+            // result shifted beyond Int32 range
+            t64 = 0;
+        } else if(shift>=0) {
+            // left shift to normalize
+            t64 <<= shift;
+        } else {
+            // right shift to normalize (discarding fraction bits)
+            t64 >>= -shift;
+        }
+
+        // handle negative result
+        result = u.f64Parts.sign ? -t64 : t64;
+    }
+
+    return result;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // FLOATING POINT CONFIGURATION AND CONTROL
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Define one vmiFPConfig
+// Define standard floating point configuration
 //
-#define FPU_CONFIG(_QH16, _QH32, _QH64, _R16, _R32, _R64) { \
+#define FPU_CONFIG(_P, _QH16, _QH32, _QH64, _R16, _R32, _R64) { \
     .QNaN16                  = FP16_DEFAULT_QNAN,       \
     .QNaN32                  = FP32_DEFAULT_QNAN,       \
     .QNaN64                  = FP64_DEFAULT_QNAN,       \
@@ -5303,7 +5567,7 @@ static VMI_FP_64_RESULT_FN(doFRsqrtE7_64) {
     .fp16ResultCB            = _R16,                    \
     .fp32ResultCB            = _R32,                    \
     .fp64ResultCB            = _R64,                    \
-    .suppressFlags           = {f:{D:1}},               \
+    .suppressFlags           = {f:{D:1,P:_P}},          \
     .stickyFlags             = True                     \
 }
 
@@ -5313,17 +5577,23 @@ static VMI_FP_64_RESULT_FN(doFRsqrtE7_64) {
 const static vmiFPConfig fpConfigs[RVFP_LAST] = {
 
     // normal native operation configuration
-    [RVFP_NORMAL]   = FPU_CONFIG(handleQNaN16, handleQNaN32, handleQNaN64, 0, 0, 0),
+    [RVFP_NORMAL]   = FPU_CONFIG(0, handleQNaN16, handleQNaN32, handleQNaN64, 0, 0, 0),
+    [RVFP_FROUND]   = FPU_CONFIG(1, handleQNaN16, handleQNaN32, handleQNaN64, 0, 0, 0),
 
     // FMIN/FMAX configurations
-    [RVFP_FMIN]     = FPU_CONFIG(0, 0, 0, doFMin16_2_2, doFMin32_2_2, doFMin64_2_2),
-    [RVFP_FMAX]     = FPU_CONFIG(0, 0, 0, doFMax16_2_2, doFMax32_2_2, doFMax64_2_2),
-    [RVFP_FMIN_2_3] = FPU_CONFIG(0, 0, 0, doFMin16_2_3, doFMin32_2_3, doFMin64_2_3),
-    [RVFP_FMAX_2_3] = FPU_CONFIG(0, 0, 0, doFMax16_2_3, doFMax32_2_3, doFMax64_2_3),
+    [RVFP_FMIN]     = FPU_CONFIG(0, 0, 0, 0, doFMin16_2_2,  doFMin32_2_2,  doFMin64_2_2),
+    [RVFP_FMAX]     = FPU_CONFIG(0, 0, 0, 0, doFMax16_2_2,  doFMax32_2_2,  doFMax64_2_2),
+    [RVFP_FMIN_2_3] = FPU_CONFIG(0, 0, 0, 0, doFMin16_2_3,  doFMin32_2_3,  doFMin64_2_3),
+    [RVFP_FMAX_2_3] = FPU_CONFIG(0, 0, 0, 0, doFMax16_2_3,  doFMax32_2_3,  doFMax64_2_3),
+    [RVFP_FMINM]    = FPU_CONFIG(0, 0, 0, 0, doFMinm16,     doFMinm32,     doFMinm64   ),
+    [RVFP_FMAXM]    = FPU_CONFIG(0, 0, 0, 0, doFMaxm16,     doFMaxm32,     doFMaxm64   ),
 
     // estimation configurations
-    [RVFP_FRECE7]   = FPU_CONFIG(0, 0, 0, doFRecE7_16,   doFRecE7_32,   doFRecE7_64  ),
-    [RVFP_FRSRE7]   = FPU_CONFIG(0, 0, 0, doFRsqrtE7_16, doFRsqrtE7_32, doFRsqrtE7_64),
+    [RVFP_FRECE7]   = FPU_CONFIG(0, 0, 0, 0, doFRecE7_16,   doFRecE7_32,   doFRecE7_64  ),
+    [RVFP_FRSRE7]   = FPU_CONFIG(0, 0, 0, 0, doFRsqrtE7_16, doFRsqrtE7_32, doFRsqrtE7_64),
+
+    // modular convert-to-integer configuration (JavaScript)
+    [RVFP_FCVTMD]   = FCVTMD_CONFIG,
 };
 
 //
@@ -5351,13 +5621,6 @@ inline static vmiFPRC mapRMDescToRC(riscvRMDesc rm) {
     };
 
     return map[rm];
-}
-
-//
-// Is BFLOAT16 16-bit floating point format enabled?
-//
-inline static Bool enableBFLOAT16(riscvP riscv) {
-	return riscv->configInfo.fp16_version==RVFP16_BFLOAT16;
 }
 
 
@@ -5659,7 +5922,7 @@ static RISCV_MORPH_FN(emitFSgn) {
     unpackedReg fs2  = unpackFS(state, 2);
     Uns32       bits = fd.bits;
 
-    if(supportedFBitsMT(state->riscv, bits)) {
+    if(supportedFBitsMT(state->riscv, fd.rA)) {
 
         emitFSgnInt(state, fd.r, fs1.r, fs2.r, bits);
 
@@ -5808,7 +6071,7 @@ static RISCV_MORPH_FN(emitFClass) {
     Uns32       bitsD = 32;
     Uns32       bitsS = fs1.bits;
 
-    if(supportedFBitsMT(state->riscv, bitsS)) {
+    if(supportedFBitsMT(state->riscv, fs1.rA)) {
 
         emitFClassInt(state->riscv, rd.r, fs1.r, bitsS, bitsD);
 
@@ -6434,7 +6697,7 @@ static Uns64 doJTFetch64(vmiProcessorP processor, Uns64 va) {
 // Validate access to JT and JALT instructions
 //
 static void checkJTAccess(riscvP riscv) {
-    riscvStateenFeatureEnabled(riscv, bit_stateen_Zcmt, False, True);
+    riscvStateenFeatureEnabled(riscv, bit_stateen_Zcmt, True);
 }
 
 //
@@ -6455,9 +6718,9 @@ static RISCV_MORPH_FN(emitJT) {
 
     // after version 0.70.1, access to jt and jalt instructions is enabled
     // by Smstateen
-    if(!riscv->configInfo.Smstateen) {
-        // no action
-    } else if(RISCV_COMPRESS_VERSION(riscv)>RVCV_0_70_1) {
+    if(getCurrentMode3(riscv)==RISCV_MODE_M) {
+        // no Smstateen constraint
+    } else if(RD_CSR_MASK64(riscv, mstateen[0]) & WM64_stateen_Zcmt) {
         vmimtArgProcessor();
         vmimtCall((vmiCallFn)checkJTAccess);
     }
@@ -6510,79 +6773,21 @@ static void emitAdjustStack(riscvMorphStateP state, Int32 adjust) {
 }
 
 //
-// Structure holding rlist in unpacked form
+// Structure holding register list in unpacked form
 //
-typedef struct unpackedRListS {
+typedef struct unpackedRegListS {
     unpackedReg r[16];  // rlist registers
     Uns32       rNum;   // rlist register count
-} unpackedRList;
+} unpackedRegList;
 
 //
 // Unpack all members of rlist in high-to-low register order
 //
-static unpackedRList unpackRList(riscvMorphStateP state) {
+static unpackedRegList unpackRList(riscvMorphStateP state) {
 
-    unpackedRList result = {rNum : 0};
-
-    // masks of registers selected by each rlist specifier
-    enum riscvRListDescE {
-
-        // both ABIs
-        MASK_x_RA           =                     (1<<RV_REG_X_RA),
-        MASK_x_RA_S0        = MASK_x_RA         + (1<<RV_REG_X_S0),
-        MASK_x_RA_S0_1      = MASK_x_RA_S0      + (1<<RV_REG_X_S1),
-
-        // UABI
-        MASK_U_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_S2),
-        MASK_U_RA_S0_3      = MASK_U_RA_S0_2    + (1<<RV_REG_X_S3),
-        MASK_U_RA_S0_4      = MASK_U_RA_S0_3    + (1<<RV_REG_X_S4),
-        MASK_U_RA_S0_5      = MASK_U_RA_S0_4    + (1<<RV_REG_X_S5),
-        MASK_U_RA_S0_6      = MASK_U_RA_S0_5    + (1<<RV_REG_X_S6),
-        MASK_U_RA_S0_7      = MASK_U_RA_S0_6    + (1<<RV_REG_X_S7),
-        MASK_U_RA_S0_8      = MASK_U_RA_S0_7    + (1<<RV_REG_X_S8),
-        MASK_U_RA_S0_9      = MASK_U_RA_S0_8    + (1<<RV_REG_X_S9),
-        MASK_U_RA_S0_10     = MASK_U_RA_S0_9    + (1<<RV_REG_X_S10),
-        MASK_U_RA_S0_11     = MASK_U_RA_S0_10   + (1<<RV_REG_X_S11),
-
-        // EABI
-        MASK_E_RA_S0_2      = MASK_x_RA_S0_1    + (1<<RV_REG_X_A4),
-        MASK_E_RA_S3_S0_2   = MASK_E_RA_S0_2    + (1<<RV_REG_X_T1),
-        MASK_E_RA_S3_4_S0_2 = MASK_E_RA_S3_S0_2 + (1<<RV_REG_X_T2) ,
-    };
-
-    // macro to add entry in table below
-    #define RLIST_MASK_ENTRY(_N) [RV_RL_##_N] = MASK_##_N
-
-    // table mapping from rlist specifier to register mask
-    static const Uns32 map[] = {
-
-        // both ABIs
-        RLIST_MASK_ENTRY(x_RA),             // {ra}
-        RLIST_MASK_ENTRY(x_RA_S0),          // {ra,s0}
-        RLIST_MASK_ENTRY(x_RA_S0_1),        // {ra,s0-s1}
-
-        // UABI
-        RLIST_MASK_ENTRY(U_RA_S0_2),        // {ra,s0-s2}
-        RLIST_MASK_ENTRY(U_RA_S0_3),        // {ra,s0-s3}
-        RLIST_MASK_ENTRY(U_RA_S0_4),        // {ra,s0-s4}
-        RLIST_MASK_ENTRY(U_RA_S0_5),        // {ra,s0-s5}
-        RLIST_MASK_ENTRY(U_RA_S0_6),        // {ra,s0-s6}
-        RLIST_MASK_ENTRY(U_RA_S0_7),        // {ra,s0-s7}
-        RLIST_MASK_ENTRY(U_RA_S0_8),        // {ra,s0-s8}
-        RLIST_MASK_ENTRY(U_RA_S0_9),        // {ra,s0-s9}
-        RLIST_MASK_ENTRY(U_RA_S0_10),       // {ra,s0-s10}
-        RLIST_MASK_ENTRY(U_RA_S0_11),       // {ra,s0-s11}
-
-        // EABI
-        RLIST_MASK_ENTRY(E_RA_S0_2),        // {ra,s0-s2}
-        RLIST_MASK_ENTRY(E_RA_S3_S0_2),     // {ra,s3,s0-s2}
-        RLIST_MASK_ENTRY(E_RA_S3_4_S0_2),   // {ra,s3-s4,s0-s2}
-    };
-
-
-    // get mask of affected registers
-    Uns32 mask = map[state->info.rlist];
-    rvReg i;
+    unpackedRegList result = {rNum : 0};
+    Uns32           mask   = state->info.rlist;
+    rvReg           i;
 
     // for version 0.50.1, first entry is always ra; for later versions, it is
     // part of the normal list
@@ -6602,18 +6807,38 @@ static unpackedRList unpackRList(riscvMorphStateP state) {
 }
 
 //
+// Unpack all members of alist in low-to-high register order
+//
+static unpackedRegList unpackAList(riscvMorphStateP state) {
+
+    unpackedRegList result = {rNum : 0};
+    Uns32           mask   = state->info.alist;
+    rvReg           i;
+
+    // add affected registers in highest-to-lowest index order
+    for(i=0; i<32; i++) {
+        if(mask & (1<<i)) {
+            result.r[result.rNum++] = createRX(state, i);
+        }
+    }
+
+    return result;
+}
+
+//
 // Implement push
 //
 static RISCV_MORPH_FN(emitPUSH) {
 
-    memConstraint constraint = getLoadStoreConstraintPushPop(state);
-    unpackedReg   sp         = createRX(state, RV_REG_X_SP);
-    unpackedRList rlist      = unpackRList(state);
-    Uns32         bits       = sp.bits;
-    Uns32         bytes      = bits/8;
-    Int32         adjust     = state->info.c;
-    Int32         offset     = 0;
-    Uns32         i;
+    memConstraint   constraint = getLoadStoreConstraintPushPop(state);
+    unpackedReg     sp         = createRX(state, RV_REG_X_SP);
+    unpackedRegList rlist      = unpackRList(state);
+    unpackedRegList alist      = unpackAList(state);
+    Uns32           bits       = sp.bits;
+    Uns32           bytes      = bits/8;
+    Int32           adjust     = state->info.c;
+    Int32           offset     = 0;
+    Uns32           i;
 
     // validate stack alignment
     emitCheckStackAlign(state);
@@ -6629,9 +6854,9 @@ static RISCV_MORPH_FN(emitPUSH) {
     }
 
     // do moves from alist
-    for(i=0; i<state->info.alist; i++) {
+    for(i=0; i<alist.rNum; i++) {
 
-        Bool ABIE = (state->info.rlist>=RV_RL_E_RA_S0_2);
+        Bool ABIE = state->info.embedded;
 
         static rvReg map[2][4] = {
             // UABI target registers
@@ -6640,7 +6865,7 @@ static RISCV_MORPH_FN(emitPUSH) {
             {RV_REG_X_S0, RV_REG_X_S1, RV_REG_X_A4, RV_REG_X_T1},
         };
 
-        unpackedReg ra = createRX(state, RV_REG_X_A0+i);
+        unpackedReg ra = alist.r[i];
         unpackedReg rd = createRX(state, map[ABIE][i]);
 
         vmimtMoveRR(rd.bits, rd.r, ra.r);
@@ -6659,7 +6884,7 @@ static RISCV_MORPH_FN(emitPOP) {
 
     memConstraint   constraint = getLoadStoreConstraintPushPop(state);
     unpackedReg     sp         = createRX(state, RV_REG_X_SP);
-    unpackedRList   rlist      = unpackRList(state);
+    unpackedRegList rlist      = unpackRList(state);
     Uns32           bits       = sp.bits;
     Uns32           bytes      = bits/8;
     Int32           adjust     = state->info.c;
@@ -6780,6 +7005,7 @@ typedef struct vrDescS {
     riscvSEWMt     EEW;                 // effective EEW
     Uns32          EMUL;                // effective VLMUL (1 if fractional)
     Bool           forceEEW;            // force EEW for this operand
+    Bool           bf16;                // explicit BFLOAT16 type
 } vrDesc, *vrDescP;
 
 //
@@ -6802,8 +7028,11 @@ typedef struct iterDescS {
     Uns32          MLEN;                // effective MLEN
     Uns32          SLEN;                // effective SLEN
     Uns32          VLEN;                // effective VLEN
-    Uns32          nf;                  // effective number of fields
-    Uns32          vregs;               // number of registers affected
+    Uns8           EGS;                 // element group size
+    Uns8           nf;                  // effective number of fields
+    Uns8           vregs;               // number of registers affected
+    Bool           forceSEW;            // whether SEW is forced
+    Bool           isScalar;            // is operation scalar?
     riscvRegDesc   PdA;                 // predicate abstract target register
     vmiReg         mask;                // mask register
     vmiReg         rdNarrow;            // narrow destination register
@@ -7497,6 +7726,18 @@ inline static Bool forceSEW8(riscvMorphStateP state, iterDescP id) {
 }
 
 //
+// Is the instruction SEW forced to a different value than the current SEW
+// according to the vtype register?
+//
+inline static riscvSEWMt forceSEW(riscvMorphStateP state, iterDescP id) {
+
+    riscvRegDesc rA = getRVReg(state, 0);
+    riscvSEWMt   SEW;
+
+    return isVReg(rA) && (SEW=getRBits(rA)) && (id->SEW!=SEW) ? SEW : 0;
+}
+
+//
 // Does the operation have any floating point arguments?
 //
 static Bool isFloat(riscvVShape vShape) {
@@ -7534,9 +7775,8 @@ static riscvVLMULx8Mt getVLMULMt(riscvMorphStateP state) {
 //
 // Get effective SEW
 //
-static riscvSEWMt getSEWMt(riscvMorphStateP state) {
+riscvSEWMt riscvGetSEWMt(riscvP riscv) {
 
-    riscvP           riscv      = state->riscv;
     riscvBlockStateP blockState = riscv->blockState;
     riscvSEWMt       SEW        = blockState->SEWMt;
 
@@ -7609,6 +7849,13 @@ inline static riscvSEWMt getEEW(iterDescP id, Uns32 argIndex) {
 //
 inline static Bool forceEEW(iterDescP id, Uns32 argIndex) {
     return id->vr[argIndex].forceEEW;
+}
+
+//
+// Is BFLOAT16 type forced for Nth vector argument?
+//
+inline static Bool isBF16N(iterDescP id, Uns32 argIndex) {
+    return id->vr[argIndex].bf16;
 }
 
 //
@@ -7696,7 +7943,11 @@ static Bool legalOverlapDS(riscvMorphStateP state, iterDescP id, Uns32 srcNum) {
     riscvSEWMt srcEEW = getEEW(id, srcNum);
     Bool       ok     = False;
 
-    if(dstEEW==srcEEW) {
+    if(!id->isScalar && isScalarN(state->attrs->vShape, srcNum)) {
+
+        // scalar argument must not overlap destination of vector operation
+
+    } else if(dstEEW==srcEEW) {
 
         // legal overlap EEW matches
         ok = True;
@@ -7878,15 +8129,15 @@ static Bool validateNoOverlap(riscvMorphStateP state, iterDescP id) {
 // Validate vector floating point argument widths are implemented (but not
 // necessarily enabled in the base ISA)
 //
-static Bool validateVFPArgWidth(riscvP riscv, Uns32 SEW) {
+static Bool validateVFPArgWidth(riscvP riscv, riscvSEWMt SEW) {
 
     Bool ok = False;
 
-    if(SEW==16) {
+    if(SEW==SEWMT_16) {
         ok = riscv->configInfo.vect_profile & RVVS_H;
-    } else if(SEW==32) {
+    } else if(SEW==SEWMT_32) {
         ok = riscv->configInfo.vect_profile & RVVS_F;
-    } else if(SEW==64) {
+    } else if(SEW==SEWMT_64) {
         ok = riscv->configInfo.vect_profile & RVVS_D;
     }
 
@@ -7894,6 +8145,15 @@ static Bool validateVFPArgWidth(riscvP riscv, Uns32 SEW) {
         ILLEGAL_INSTRUCTION_MESSAGE(
             riscv, "IFPSEW", "Illegal vector floating point SEW"
         );
+    } else if(SEW!=SEWMT_16) {
+        // no action
+    } else if(riscv->configInfo.Zvfh) {
+        // no action
+    } else if(!riscv->configInfo.Zvfhmin) {
+        // no action
+    } else if(!riscv->blockState->ZfhminOK) {
+        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "ZVFHMIN", "Zvfhmin present");
+        ok = False;
     }
 
     return ok;
@@ -7904,10 +8164,18 @@ static Bool validateVFPArgWidth(riscvP riscv, Uns32 SEW) {
 //
 static Bool validateVArgWidths(riscvMorphStateP state, iterDescP id) {
 
-    riscvP      riscv  = state->riscv;
-    riscvVShape vShape = state->attrs->vShape;
-    Bool        ok     = validateNoOverlap(state, id);
+    riscvP      riscv    = state->riscv;
+    riscvVShape vShape   = state->attrs->vShape;
+    Bool        ok       = validateNoOverlap(state, id);
+    riscvSEWMt  fixedSEW = state->attrs->SEW;
     Uns32       i;
+
+    if(fixedSEW && !(fixedSEW & id->SEW)) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "ISEW", "Illegal vector operation SEW"
+        );
+        ok = False;
+    }
 
     for(i=0; ok && (i<RV_MAX_AREGS); i++) {
 
@@ -7948,9 +8216,19 @@ static Bool validateVArgWidths(riscvMorphStateP state, iterDescP id) {
 
                 ok = False;
 
-            } else if(isFloatN(vShape, i)) {
+            } else if(!isFloatN(vShape, i)) {
+
+                // remaining checks only for floating-point arguments
+
+            } else if(!isBF16N(id, i)) {
 
                 ok = validateVFPArgWidth(riscv, EEW);
+
+            } else if(EEW!=SEWMT_16) {
+
+                ILLEGAL_OPERAND_MESSAGE(riscv, "IEEW", "EEW!=16", i);
+
+                ok = False;
             }
         }
     }
@@ -8227,8 +8505,8 @@ static Bool requireTailSet(
             blockState->VSetTopMt[clearIndex] &= ~mask;
 
             // indicate top-set state of register is known in this view, unless
-            // SEW is forced to 8 by this instruction
-            if(!forceSEW8(state, id)) {
+            // SEW is forced by this instruction
+            if(!id->forceSEW) {
                 blockState->VSetTopMt[setIndex] |= mask;
             }
         }
@@ -8275,6 +8553,9 @@ static void getVectorOpRegisters(riscvMorphStateP state, iterDescP id) {
         vmiReg       r  = VMI_NOREG;
         vrDescP      vr = &id->vr[i];
 
+        // indicate if argument is explicitly BFLOAT16
+        vr->bf16 = isBF16Reg(rA);
+
         // determine vector argument type
         if(!rA) {
             // no action
@@ -8298,6 +8579,11 @@ static void getVectorOpRegisters(riscvMorphStateP state, iterDescP id) {
             riscvVLMULx8Mt mulNx8 = getWidthMultiplierN(vShape, i)*VLMULx8MT_1;
             riscvSEWMt     eew    = state->info.eew;
 
+            // set eew from any explicit width specified for a vector argument
+            if(!eew && (vr->type==VRT_VECTOR)) {
+                eew = getRBits(rA);
+            }
+
             // take into account EEW encoded in the instruction
             if(state->info.isWhole) {
                 // whole-register instructions already configured
@@ -8305,7 +8591,7 @@ static void getVectorOpRegisters(riscvMorphStateP state, iterDescP id) {
                 // no encoded EEW
             } else if(eew==1) {
                 // unit stride mask load/store
-            } else if((i==2) || (state->info.memBits>0)) {
+            } else if(!state->info.eewIndex || (i==state->info.eewIndex)) {
                 vr->forceEEW = True;
                 mulNx8 = (mulNx8*eew)/vr->EEW;
             }
@@ -8443,14 +8729,17 @@ static void getIndexedVRegisters(riscvMorphStateP state, iterDescP id) {
 }
 
 //
-// Validate non-zero vstart if required
+// Validate vstart/vl constraints if required
 //
-static void checkVStartZero(riscvMorphStateP state, iterDescP id) {
+static void checkVStartVL(riscvMorphStateP state, iterDescP id) {
 
     riscvP           riscv          = state->riscv;
     riscvBlockStateP blockState     = riscv->blockState;
     riscvVStartType  vstart0        = state->attrs->vstart0;
     Bool             requireVStart0 = (vstart0==RVVS_ZERO);
+    vmiReg           vstart         = CSR_REG_MT(vstart);
+    vmiReg           vl             = CSR_REG_MT(vl);
+    Uns32            EGS            = id->EGS;
 
     // non-interruptible instructions allow non-zero vstart only if configured
     if(vstart0==RVVS_NO_INT) {
@@ -8460,8 +8749,7 @@ static void checkVStartZero(riscvMorphStateP state, iterDescP id) {
     // check for non-zero vstart if required
     if(requireVStart0 && !blockState->VStartZeroMt) {
 
-        vmiReg    vstart = CSR_REG_MT(vstart);
-        vmiLabelP doOp   = vmimtNewLabel();
+        vmiLabelP doOp = vmimtNewLabel();
 
         // exception if vstart is not zero
         vmimtCompareRCJumpLabel(32, vmi_COND_EQ, vstart, 0, doOp);
@@ -8470,6 +8758,25 @@ static void checkVStartZero(riscvMorphStateP state, iterDescP id) {
 
         // vstart is now known to be zero
         blockState->VStartZeroMt = True;
+    }
+
+    // validate EGS constraints if required
+    if(EGS!=1) {
+
+        vmiLabelP doOp = vmimtNewLabel();
+        vmiReg    t    = newTmp(state);
+
+        // exception if vstart or vl are not a multiple of EGS
+        vmimtBinopRRR(32, vmi_OR, t, vstart, vl, 0);
+        vmimtTestRCJumpLabel(32, vmi_COND_EQ, t, EGS-1, doOp);
+
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            state->riscv, "IVSVL", "vstart and vl must be multiple of EGS"
+        );
+
+        vmimtInsertLabel(doOp);
+
+        freeTmp(state);
     }
 }
 
@@ -8602,9 +8909,38 @@ static Bool checkVectorOp(riscvMorphStateP state, iterDescP id) {
 }
 
 //
+// Forward references
+//
+static RISCV_MORPHV_FN(initVRedCB);
+static RISCV_MORPHV_FN(endVRedCB);
+
+//
+// Get initialization or end function (explicit or based on shape)
+//
+static riscvMorphVFn getInitEndCB(
+    riscvMorphStateP state,
+    riscvMorphVFn    initEndCB,
+    riscvMorphVFn    reductionCB
+) {
+    if(isScalarN(state->attrs->vShape, 2)) {
+
+        VMI_ASSERT(
+            !initEndCB,
+            "unexpected init/end callback for reduction operation"
+        );
+
+        initEndCB = reductionCB;
+    }
+
+    return initEndCB;
+}
+
+//
 // Do actions at the start of a vector operation
 //
 static void startVectorOp(riscvMorphStateP state, iterDescP id, Bool iterVStart) {
+
+    riscvMorphVFn initCB = getInitEndCB(state, state->attrs->initCB, initVRedCB);
 
     // set vector state to dirty if required
     updateVS(state->riscv);
@@ -8613,7 +8949,7 @@ static void startVectorOp(riscvMorphStateP state, iterDescP id, Bool iterVStart)
     id->skip = handleNonZeroVStart(state, id, iterVStart);
 
     // call operation-specific initialization if required
-    dispatchVector(state, state->attrs->initCB, id);
+    dispatchVector(state, initCB, id);
 }
 
 //
@@ -8783,7 +9119,7 @@ static void endVectorLoop(riscvMorphStateP state, iterDescP id, vmiLabelP loop) 
     }
 
     // increment vstart
-    vmimtBinopRC(32, vmi_ADD, vstart, 1, 0);
+    vmimtBinopRC(32, vmi_ADD, vstart, id->EGS, 0);
 
     // terminate when either vl or vlmax is reached (depending on whether this
     // is a whole-register operation)
@@ -9055,10 +9391,11 @@ static void endVectorOp(
     iterDescP        id,
     riscvVLClassMt   vlClass
 ) {
-    vmiLabelP noSet = 0;
+    riscvMorphVFn endCB = getInitEndCB(state, state->attrs->endCB, endVRedCB);
+    vmiLabelP     noSet = 0;
 
     // call operation-specific post-operation function if required
-    dispatchVector(state, state->attrs->endCB, id);
+    dispatchVector(state, endCB, id);
 
     // set register top parts if required based on current VSTART
     if(!requireSetTail(state, id, vlClass)) {
@@ -9170,6 +9507,7 @@ static riscvVLClassMt fillVectorOperationData(
 ) {
     riscvP         riscv = state->riscv;
     riscvVLClassMt vlClass;
+    riscvSEWMt     newSEW;
 
     // configure either for normal or whole-register operations
     if(state->info.isWhole) {
@@ -9182,7 +9520,7 @@ static riscvVLClassMt fillVectorOperationData(
     } else {
         id->VLMULx8 = getVLMULMt(state);
         id->VLEN    = riscv->configInfo.VLEN;
-        id->SEW     = getSEWMt(state);
+        id->SEW     = riscvGetSEWMt(riscv);
         id->SLEN    = riscv->configInfo.SLEN;
         id->nf      = state->info.nf;
         vlClass     = getVLClassMt(state, id);
@@ -9191,28 +9529,40 @@ static riscvVLClassMt fillVectorOperationData(
     if(state->info.eew==1) {
 
         // mask load/store : override effective SEW and VLMUL
-        id->SEW     = SEWMT_8;
-        id->VLMULx8 = VLMULx8MT_1;
-
-        // force operation class to non-zero if maximum but SEW is restricted
-        if(vlClass==VLCLASSMT_MAX) {
-            vlClass = VLCLASSMT_NONZERO;
-        }
+        id->forceSEW = True;
+        id->SEW      = SEWMT_8;
+        id->VLMULx8  = VLMULx8MT_1;
 
     } else if(forceSEW8(state, id)) {
 
-        // SEW is forced to 8 : override effective SEW
-        id->SEW = SEWMT_8;
+        // SEW is forced to 8, 0.7.1 legacy rules: override effective SEW
+        id->forceSEW = True;
+        id->SEW      = SEWMT_8;
 
-        // force operation class to non-zero if maximum but SEW is restricted
-        if(vlClass==VLCLASSMT_MAX) {
-            vlClass = VLCLASSMT_NONZERO;
+    } else if((newSEW=forceSEW(state, id))) {
+        
+        // SEW is forced to bits specified for first vector
+        riscvSEWMt oldSEW = id->SEW;
+
+        id->forceSEW = True;
+        id->SEW      = newSEW;
+
+        // unless legacy SLEN is supported, modify the number of registers
+        // affected by this operation
+        if(riscvVFSupport(riscv, RVVF_SLEN_IS_VLEN)) {
+            id->VLMULx8 = (id->VLMULx8*newSEW) / oldSEW;
         }
+    }
+
+    // force operation class to non-zero if maximum but SEW is explicit
+    if(id->forceSEW && (vlClass==VLCLASSMT_MAX)) {
+        vlClass = VLCLASSMT_NONZERO;
     }
 
     // set derived fields
     id->vregs = (id->VLMULx8/VLMULx8MT_1) ? : 1;
     id->MLEN  = vectorMLEN1(riscv) ? 1 : (id->SEW / id->vregs);
+    id->EGS   = state->attrs->EGS ? : 1;
 
     // return effective class for this operation
     return vlClass;
@@ -9233,8 +9583,8 @@ static RISCV_MORPH_FN(emitVectorOp) {
         // so it must be done before zero-length vector check)
         getVectorOpRegisters(state, &id);
 
-        // validate vstart is zero if required
-        checkVStartZero(state, &id);
+        // validate vstart and vl constraints if required
+        checkVStartVL(state, &id);
 
         if(!validateVArgWidths(state, &id)) {
 
@@ -9294,7 +9644,7 @@ static RISCV_MORPH_FN(emitScalarOp) {
 
     if(emitCheckVILL(state) && validVFPRM(state)) {
 
-        iterDesc       id      = {0};
+        iterDesc       id      = {isScalar:True};
         Bool           scalarD = !isVReg(getRVReg(state, 0));
         riscvVLClassMt vlClass = fillVectorOperationData(state, &id);
 
@@ -9303,8 +9653,8 @@ static RISCV_MORPH_FN(emitScalarOp) {
         // so it must be done before zero-length vector check)
         getVectorOpRegisters(state, &id);
 
-        // validate vstart is zero if required
-        checkVStartZero(state, &id);
+        // validate vstart and vl constraints if required
+        checkVStartVL(state, &id);
 
         if(!validateVArgWidths(state, &id)) {
 
@@ -9810,7 +10160,10 @@ static memConstraint getLoadStoreConstraintV(riscvMorphStateP state) {
     riscvP riscv     = state->riscv;
     Bool   unaligned = riscv->configInfo.unalignedV;
 
-    return doAligned(unaligned);
+    return composeConstraint(
+         doAligned(unaligned),
+         riscv->configInfo.vector_constraint
+    );
 }
 
 //
@@ -9972,10 +10325,34 @@ static RISCV_CHECKV_FN(indexedVLdStOk) {
 }
 
 //
+// Additional operation-specific argument checks for unit-stride memory
+// operations
+//
+static RISCV_CHECKV_FN(unitVLdStOk) {
+
+    riscvP       riscv   = state->riscv;
+    riscvVShape  vShape  = state->attrs->vShape;
+    Uns32        memBits = getVMemBits(state, id);
+    Bool         isLoad  = (vShape==RVVW_V1I_V1I_V1I_LD);
+    unpackedReg  ra      = unpackRX(state, 1);
+
+    // emit custom unit-stride load/store access check if required
+    ITER_EXT_CB(
+        riscv, extCB, unitStrideCheck,
+        extCB->unitStrideCheck(
+            riscv, extCB->clientData, ra.r, memBits, isLoad
+        );
+    )
+
+    // this function never itself signals failure
+    return True;
+}
+
+//
 // Operation-specific argument checks for unit stride loads and stores
 //
 static RISCV_CHECKV_FN(emitVLdStCheckUCB) {
-    return emitVLdStCheckCB(state, id);
+    return emitVLdStCheckCB(state, id) && unitVLdStOk(state, id);
 }
 
 //
@@ -10063,8 +10440,10 @@ static RISCV_MORPHV_FN(emitVLdStInitCB) {
     } else if(!state->riscv->configInfo.align_whole) {
         // alignment checking not enabled
     } else if(eew<=id->SEW) {
-        // encoded EEW does not exceed effective SEW
+        // encoded EEW does not exceed effective SEW (or a store, which always
+        // has minimum SEW and no hint)
     } else {
+        // align using width hint if required (only for load instructions)
         unpackedReg ra = unpackRX(state, 1);
         emitTryLoadRC(riscv, eew, 0, ra.r, getLoadStoreConstraintV(state));
     }
@@ -10781,6 +11160,17 @@ static RISCV_MORPHV_FN(emitVRBinaryIntCB) {
 }
 
 //
+// Per-element callback for integer instructions with two register operands
+// in reversed order
+//
+static RISCV_MORPHV_FN(emitVRBinaryIntRCB) {
+
+    vmiReg arg2 = id->r[2];
+
+    vmimtBinopRRR(id->SEW, state->attrs->binop, id->r[0], arg2, id->r[1], 0);
+}
+
+//
 // Per-element callback for integer instructions with register and constant
 // operands
 //
@@ -10789,6 +11179,26 @@ static RISCV_MORPHV_FN(emitVIBinaryIntCB) {
     Uns64 arg2 = state->info.c;
 
     vmimtBinopRRC(id->SEW, state->attrs->binop, id->r[0], id->r[1], arg2, 0);
+}
+
+//
+// Per-element callback for integer instructions with register and constant
+// operands in reversed order
+//
+static RISCV_MORPHV_FN(emitVIBinaryIntRCB) {
+
+    Uns64 arg2 = state->info.c;
+
+    vmimtBinopRCR(id->SEW, state->attrs->binop, id->r[0], arg2, id->r[1], 0);
+}
+
+//
+// Per-element callback for BREV8 with one register operand
+//
+static RISCV_MORPHV_FN(emitVBREV8) {
+
+    vmimtUnopRR(id->SEW, vmi_SWP,  id->r[0], id->r[1], 0);
+    vmimtUnopR( id->SEW, vmi_RBIT, id->r[0], 0);
 }
 
 //
@@ -11511,26 +11921,20 @@ static vmiFType getVConvertType(
     Uns32            argIndex
 ) {
     riscvVShape vShape = state->attrs->vShape;
-    vmiFType    result;
+    vmiFType    base;
 
     // get basic operand type
-    if(isFloatN(vShape, argIndex)) {
-        result = VMI_FT_IEEE_754;
+    if(isBF16N(id, argIndex)) {
+        base = vmi_FT_BFLOAT16;
+    } else if(isFloatN(vShape, argIndex)) {
+        base = VMI_FT_IEEE_754;
     } else if(isAnyVArgSigned(state)) {
-        result = VMI_FT_INT;
+        base = VMI_FT_INT;
     } else {
-        result = VMI_FT_UNS;
+        base = VMI_FT_UNS;
     }
 
-    // include element width
-    result |= getEEW(id, argIndex);
-
-    // use BFLOAT16 type if required
-    if((result==vmi_FT_16_IEEE_754) && enableBFLOAT16(state->riscv)) {
-    	result = vmi_FT_BFLOAT16;
-    }
-
-    return result;
+    return createRegFType(state, base, argIndex, getEEW(id, argIndex));
 }
 
 //
@@ -12024,6 +12428,245 @@ static RISCV_MORPHV_FN(emitVCOMPRESSCB) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// VECTOR CRYPTOGRAPHIC OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Descriptor of vector EGW operation
+//
+typedef struct EGWOpDescS {
+    vmiCallFn opCB;
+    Uns32     EGW;
+} EGWOpDesc;
+
+//
+// Get descriptor of vector cryptographic EGW operation
+//
+static EGWOpDesc getKEGWOpDesc(riscvMorphStateP state, iterDescP id) {
+
+    EGWOpDesc desc = {
+        opCB : riscvGetKOpCB(state->riscv, state->attrs->kExtOp, id->SEW),
+        EGW  : id->SEW * id->EGS
+    };
+
+    return desc;
+}
+
+//
+// Emit EGW argument
+//
+static void emitVEGWArg(iterDescP id, Uns32 EGW, Uns32 arg) {
+
+    Uns32 i;
+
+    for(i=0; i<EGW; i+=64) {
+        vmimtArgReg(VPRRAT_64, VMI_REG_DELTA(id->r[arg], i/8));
+    }
+}
+
+//
+// Emit EGW argument half
+//
+static void emitVEGWArgH(iterDescP id, Uns32 EGW, Uns32 arg, Bool high) {
+
+    Uns32 i;
+
+    for(i=0; i<EGW; i+=64) {
+
+        Bool isHigh = i/(EGW/2);
+
+        if(isHigh==high) {
+            vmimtArgReg(VPRRAT_64, VMI_REG_DELTA(id->r[arg], i/8));
+        }
+    }
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2)
+//
+static RISCV_MORPHV_FN(emitVKEGWVdVs2CB) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 0);
+    emitVEGWArg(id, desc.EGW, 1);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2, Vs1)
+//
+static RISCV_MORPHV_FN(emitVKEGWVdVs2Vs1CB) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 0);
+    emitVEGWArg(id, desc.EGW, 1);
+    emitVEGWArg(id, desc.EGW, 2);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2, Vs1)
+// emitting selected half of Vs1
+//
+static void emitVKEGWVdVs2Vs1H(riscvMorphStateP state, iterDescP id, Bool high) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 0);
+    emitVEGWArg(id, desc.EGW, 1);
+    emitVEGWArgH(id, desc.EGW, 2, high);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2, Vs1)
+// emitting low half of Vs1
+//
+static RISCV_MORPHV_FN(emitVKEGWVdVs2Vs1LCB) {
+    emitVKEGWVdVs2Vs1H(state, id, False);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2, Vs1)
+// emitting high half of Vs1
+//
+static RISCV_MORPHV_FN(emitVKEGWVdVs2Vs1HCB) {
+    emitVKEGWVdVs2Vs1H(state, id, True);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vs2, Vs1)
+//
+static RISCV_MORPHV_FN(emitVKEGWVs2Vs1CB) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 1);
+    emitVEGWArg(id, desc.EGW, 2);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vs2, C)
+//
+static RISCV_MORPHV_FN(emitVKEGWVs2CCB) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 1);
+    vmimtArgUns32(state->info.c);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for EGW vector cryptographic operation (Vd, Vs2, C)
+//
+static RISCV_MORPHV_FN(emitVKEGWVdVs2CCB) {
+
+    EGWOpDesc desc = getKEGWOpDesc(state, id);
+
+    // emit call to EGW function
+    vmimtArgProcessor();
+    emitVEGWArg(id, desc.EGW, 0);
+    emitVEGWArg(id, desc.EGW, 1);
+    vmimtArgUns32(state->info.c);
+    vmimtCallAttrs(desc.opCB, VMCA_NA);
+    vmimtMoveRR(desc.EGW, id->r[0], RISCV_VTMP);
+}
+
+//
+// Per-element callback for vector AES binary operation
+//
+static RISCV_MORPHV_FN(emitVAESBinaryRRCB) {
+
+    vmiBinop op  = state->attrs->binop;
+    vmiReg   rd  = id->r[0];
+    vmiReg   rs  = id->r[1];
+    Uns32    EGW = id->SEW*id->EGS;
+
+    // do the specified operation
+    vmimtBinopRR(EGW, op, rd, rs, 0);
+}
+
+//
+// Per-element callback for vector AES bitwise operation
+//
+static RISCV_MORPHV_FN(emitVAESBitwiseRRCB) {
+
+    vmiBinop op   = state->attrs->binop;
+    vmiReg   rd   = id->r[0];
+    vmiReg   rs   = id->r[1];
+    Uns32    EGW  = id->SEW*id->EGS;
+    Uns32    bits = 64;
+    Uns32    i;
+
+    for(i=0; i<EGW; i+=bits) {
+
+        // do the specified operation
+        vmimtBinopRR(bits, op, rd, rs, 0);
+
+        // step to next part
+        rd = VMI_REG_DELTA(rd, bits/8);
+        rs = VMI_REG_DELTA(rs, bits/8);
+    }
+}
+
+//
+// Check vd is not the same as vs2 or vs1
+//
+static Bool checkVdOverlap(riscvMorphStateP state, Bool vs2, Bool vs1) {
+
+    riscvP riscv = state->riscv;
+    Bool   ok    = True;
+
+    if(vs2 && (state->info.r[0]==state->info.r[1])) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "IOVP", "Illegal overlap of Vd and Vs2"
+        );
+        ok = False;
+    } else if(vs1 && (state->info.r[0]==state->info.r[2])) {
+        ILLEGAL_INSTRUCTION_MESSAGE(
+            riscv, "IOVP", "Illegal overlap of Vd and Vs1"
+        );
+        ok = False;
+    }
+
+    return ok;
+}
+
+//
+// Operation-specific check that Vd is not the same as Vs2
+//
+static RISCV_CHECKV_FN(emitVdVs2CheckCB) {
+    return checkVdOverlap(state, True, False);
+}
+
+//
+// Operation-specific check that Vd is not the same as Vs2 or Vs1
+//
+static RISCV_CHECKV_FN(emitVdVs12CheckCB) {
+    return checkVdOverlap(state, True, True);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // EXTERNALLY-IMPLEMENTED VECTOR OPERATIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -12049,7 +12692,7 @@ static RISCV_CHECKV_FN(emitQMACCheckCB) {
 
     if(!riscv->configInfo.Zvqmac) {
 
-        // VLMUL must be 1 for load/store segment instructions
+        // Zvqmac must be configured
         ILLEGAL_INSTRUCTION_MESSAGE(
             riscv, "IVQMAC", "Zvqmac extension not configured"
         );
@@ -13816,9 +14459,11 @@ const static riscvMorphAttr dispatchTable[] = {
     // NOP pseudo-instruction
     [RV_IT_NOP]              = {morph:emitNOP},
 
-    // move pseudo-instructions (register and constant source)
+    // move pseudo-instructions
     [RV_IT_MV_R]             = {morph:emitMoveRR,    ZfhminOK:1},
-    [RV_IT_MV_C]             = {morph:emitMoveRC},
+    [RV_IT_MV_C]             = {morph:emitMoveRC               },
+    [RV_IT_MVH_R]            = {morph:emitMoveHRR              },
+    [RV_IT_MV_RR]            = {morph:emitMoveRRR              },
 
     // base R-type instructions
     [RV_IT_ADD_R]            = {morph:emitBinopRRR,  binop:vmi_ADD,    iClass:OCL_IC_INTEGER},
@@ -13917,15 +14562,22 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_FADD_R]           = {fpConfig:RVFP_NORMAL, morph:emitFBinop,   fpBinop : vmi_FADD                          },
     [RV_IT_FCLASS_R]         = {fpConfig:RVFP_NORMAL, morph:emitFClass,                                               },
     [RV_IT_FCVTX_R]          = {fpConfig:RVFP_NORMAL, morph:emitFConvert                                              },
+    [RV_IT_FCVTMODX_R]       = {fpConfig:RVFP_FCVTMD, morph:emitFConvert,                                             },
     [RV_IT_FCVTF_R]          = {fpConfig:RVFP_NORMAL, morph:emitFConvert, ZfhminOK:1                                  },
     [RV_IT_FDIV_R]           = {fpConfig:RVFP_NORMAL, morph:emitFBinop,   fpBinop : vmi_FDIV,   iClass:OCL_IC_DIVIDE  },
     [RV_IT_FEQ_R]            = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_EQ                         },
     [RV_IT_FLE_R]            = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_LE                         },
     [RV_IT_FLT_R]            = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_LT                         },
+    [RV_IT_FLEQ_R]           = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_LEQ                        },
+    [RV_IT_FLTQ_R]           = {fpConfig:RVFP_NORMAL, morph:emitFCompare, fpRel   : RVFCMP_LTQ                        },
     [RV_IT_FMAX_R]           = {fpConfig:RVFP_FMAX,   morph:emitFBinop,   fpBinop : vmi_FMAX,                         },
     [RV_IT_FMIN_R]           = {fpConfig:RVFP_FMIN,   morph:emitFBinop,   fpBinop : vmi_FMIN,                         },
+    [RV_IT_FMAXM_R]          = {fpConfig:RVFP_FMAXM,  morph:emitFBinop,   fpBinop : vmi_FMAX,                         },
+    [RV_IT_FMINM_R]          = {fpConfig:RVFP_FMINM,  morph:emitFBinop,   fpBinop : vmi_FMIN,                         },
     [RV_IT_FMUL_R]           = {fpConfig:RVFP_NORMAL, morph:emitFBinop,   fpBinop : vmi_FMUL,   iClass:OCL_IC_MULTIPLY},
     [RV_IT_FNEG_R]           = {fpConfig:RVFP_NORMAL, morph:emitFUnop,    fpUnop  : vmi_FQNEG                         },
+    [RV_IT_FROUND_R]         = {fpConfig:RVFP_FROUND, morph:emitFUnop,    fpUnop  : vmi_FROUNDC                       },
+    [RV_IT_FROUNDNX_R]       = {fpConfig:RVFP_NORMAL, morph:emitFUnop,    fpUnop  : vmi_FROUNDC                       },
     [RV_IT_FSGNJ_R]          = {fpConfig:RVFP_NORMAL, morph:emitFSgn,     clearFS1:1, negFS2:0,                       },
     [RV_IT_FSGNJN_R]         = {fpConfig:RVFP_NORMAL, morph:emitFSgn,     clearFS1:1, negFS2:1,                       },
     [RV_IT_FSGNJX_R]         = {fpConfig:RVFP_NORMAL, morph:emitFSgn,     clearFS1:0, negFS2:0,                       },
@@ -14147,6 +14799,9 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VSSRA_VR]         = {morph:emitVectorOp, opTCB:emitVRRShiftIntCB,                         binop:vmi_SAR,      vShape:RVVW_V1I_V1I_V1I_VXRM                 },
     [RV_IT_VNCLIPU_VR]       = {morph:emitVectorOp, opTCB:emitVRRShiftIntCB,                         binop:vmi_SHR,      vShape:RVVW_V1I_V2I_V1I_SAT,  argType:RVVX_UU},
     [RV_IT_VNCLIP_VR]        = {morph:emitVectorOp, opTCB:emitVRRShiftIntCB,                         binop:vmi_SAR,      vShape:RVVW_V1I_V2I_V1I_SAT,  argType:RVVX_SS},
+    [RV_IT_VANDN_VR]         = {morph:emitVectorOp, opTCB:emitVRBinaryIntRCB,                        binop:vmi_ANDN,     kExtOp:RVKOP_Zvkb                            },
+    [RV_IT_VROR_VR]          = {morph:emitVectorOp, opTCB:emitVRBinaryIntCB,                         binop:vmi_ROR,      kExtOp:RVKOP_Zvkb                            },
+    [RV_IT_VROL_VR]          = {morph:emitVectorOp, opTCB:emitVRBinaryIntCB,                         binop:vmi_ROL,      kExtOp:RVKOP_Zvkb                            },
 
     // V-extension MVV/MVX-type common instructions
     [RV_IT_VDIVU_VR]         = {morph:emitVectorOp, opTCB:emitVRBinaryIntCB,                         binop:vmi_DIV                                                  },
@@ -14176,6 +14831,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VWMACC_VR]        = {morph:emitVectorOp, opTCB:emitVRMAccIntCB,                           binop:vmi_ADD,      vShape:RVVW_V2I_V1I_V1I,    argType:RVVX_SS},
     [RV_IT_VWMACCSU_VR]      = {morph:emitVectorOp, opTCB:emitVRMAccIntCB,                           binop:vmi_ADD,      vShape:RVVW_V2I_V1I_V1I,    argType:RVVX_SU},
     [RV_IT_VWMACCUS_VR]      = {morph:emitVectorOp, opTCB:emitVRMAccIntCB,                           binop:vmi_ADD,      vShape:RVVW_V2I_V1I_V1I,    argType:RVVX_US},
+    [RV_IT_VCLMUL_VR]        = {morph:emitVectorOp, opTCB:emitVRBinaryIntCB,                         binop:vmi_PMUL,     kExtOp:RVKOP_Zvkb,          SEW:SEWMT_64   },
+    [RV_IT_VCLMULH_VR]       = {morph:emitVectorOp, opTCB:emitVRMulHIntCB,                           binop:vmi_PMUL,     kExtOp:RVKOP_Zvkb,          SEW:SEWMT_64   },
 
     // V-extension MVV/MVX-type common instructions (Zvqmac extension)
     [RV_IT_VQMACCU_VR]       = {morph:emitVectorOp, opTCB:emitVRMAccIntCB, checkCB:emitQMACCheckCB,  binop:vmi_ADD,      vShape:RVVW_V4I_V1I_V1I,    argType:RVVX_UU},
@@ -14184,8 +14841,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VQMACCUS_VR]      = {morph:emitVectorOp, opTCB:emitVRMAccIntCB, checkCB:emitQMACCheckCB,  binop:vmi_ADD,      vShape:RVVW_V4I_V1I_V1I,    argType:RVVX_US},
 
     // V-extension IVV-type instructions
-    [RV_IT_VWREDSUMU_VS]     = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_ADD, vShape:RVVW_S2I_V1I_S2I, argType:RVVX_UU, vstart0:RVVS_ZERO},
-    [RV_IT_VWREDSUM_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_ADD, vShape:RVVW_S2I_V1I_S2I, argType:RVVX_SS, vstart0:RVVS_ZERO},
+    [RV_IT_VWREDSUMU_VS]     = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, binop:vmi_ADD, vShape:RVVW_S2I_V1I_S2I, argType:RVVX_UU, vstart0:RVVS_ZERO},
+    [RV_IT_VWREDSUM_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, binop:vmi_ADD, vShape:RVVW_S2I_V1I_S2I, argType:RVVX_SS, vstart0:RVVS_ZERO},
     [RV_IT_VDOTU_VV]         = {morph:emitVectorOp, checkCB:emitEDIVCheckCB},
     [RV_IT_VDOT_VV]          = {morph:emitVectorOp, checkCB:emitEDIVCheckCB},
 
@@ -14231,100 +14888,126 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_VFGT_VR]          = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRFCmpFltCB,    fpRel:RVFCMP_GT,     vShape:RVVW_P1I_V1F_V1F},
 
     // V-extension FVV-type instructions
-    [RV_IT_VFREDSUM_VS]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FADD, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
-    [RV_IT_VFREDOSUM_VS]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FADD, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
-    [RV_IT_VFREDMIN_VS]      = {fpConfig:RVFP_FMIN,   morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FMIN, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
-    [RV_IT_VFREDMAX_VS]      = {fpConfig:RVFP_FMAX,   morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FMAX, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
-    [RV_IT_VFMV_F_S]         = {                      morph:emitScalarOp, opTCB:emitVFMVFS,         vShape:RVVW_V1F_S1F_V1F                   },
-    [RV_IT_VFCVT_XUF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1I_V1F,       argType:RVVX_UU},
-    [RV_IT_VFCVT_XF_V]       = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1I_V1F,       argType:RVVX_SS},
-    [RV_IT_VFCVT_FXU_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1F_V1I,       argType:RVVX_UU},
-    [RV_IT_VFCVT_FX_V]       = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1F_V1I,       argType:RVVX_SS},
-    [RV_IT_VFWCVT_XUF_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V2I_V1F,       argType:RVVX_UU},
-    [RV_IT_VFWCVT_XF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V2I_V1F,       argType:RVVX_SS},
-    [RV_IT_VFWCVT_FXU_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V2F_V1I,       argType:RVVX_UU},
-    [RV_IT_VFWCVT_FX_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V2F_V1I,       argType:RVVX_SS},
-    [RV_IT_VFWCVT_FF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V2F_V1F_V1F_IW                },
-    [RV_IT_VFNCVT_XUF_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1I_V2F_IW,    argType:RVVX_UU},
-    [RV_IT_VFNCVT_XF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1I_V2F_IW,    argType:RVVX_SS},
-    [RV_IT_VFNCVT_FXU_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1F_V2I_IW,    argType:RVVX_UU},
-    [RV_IT_VFNCVT_FX_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1F_V2I_IW,    argType:RVVX_SS},
-    [RV_IT_VFNCVT_FF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB, vShape:RVVW_V1F_V2F_V1F_IW                },
-    [RV_IT_VFCLASS_V]        = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRFClassFltCB,  vShape:RVVW_V1F_V1F_V1F                   },
-    [RV_IT_VFWREDSUM_VS]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FADD, vShape:RVVW_S2F_V1F_S2F, vstart0:RVVS_ZERO},
-    [RV_IT_VFWREDOSUM_VS]    = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, initCB:initVRedCB, endCB:endVRedCB, fpBinop:vmi_FADD, vShape:RVVW_S2F_V1F_S2F, vstart0:RVVS_ZERO},
-    [RV_IT_VFDOT_VV]         = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, checkCB:emitEDIVCheckCB,  vShape:RVVW_V1F_V1F_V1F                   },
+    [RV_IT_VFREDSUM_VS]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FADD, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
+    [RV_IT_VFREDOSUM_VS]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FADD, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
+    [RV_IT_VFREDMIN_VS]      = {fpConfig:RVFP_FMIN,   morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FMIN, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
+    [RV_IT_VFREDMAX_VS]      = {fpConfig:RVFP_FMAX,   morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FMAX, vShape:RVVW_S1F_V1F_S1F, vstart0:RVVS_ZERO},
+    [RV_IT_VFMV_F_S]         = {                      morph:emitScalarOp, opTCB:emitVFMVFS,                            vShape:RVVW_V1F_S1F_V1F                   },
+    [RV_IT_VFCVT_XUF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1I_V1F,       argType:RVVX_UU},
+    [RV_IT_VFCVT_XF_V]       = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1I_V1F,       argType:RVVX_SS},
+    [RV_IT_VFCVT_FXU_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1F_V1I,       argType:RVVX_UU},
+    [RV_IT_VFCVT_FX_V]       = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1F_V1I,       argType:RVVX_SS},
+    [RV_IT_VFWCVT_XUF_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V2I_V1F,       argType:RVVX_UU},
+    [RV_IT_VFWCVT_XF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V2I_V1F,       argType:RVVX_SS},
+    [RV_IT_VFWCVT_FXU_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V2F_V1I,       argType:RVVX_UU},
+    [RV_IT_VFWCVT_FX_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V2F_V1I,       argType:RVVX_SS},
+    [RV_IT_VFWCVT_FF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,  ZfhminOK:1,       vShape:RVVW_V2F_V1F_V1F_IW                },
+    [RV_IT_VFNCVT_XUF_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1I_V2F_IW,    argType:RVVX_UU},
+    [RV_IT_VFNCVT_XF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1I_V2F_IW,    argType:RVVX_SS},
+    [RV_IT_VFNCVT_FXU_V]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1F_V2I_IW,    argType:RVVX_UU},
+    [RV_IT_VFNCVT_FX_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,                    vShape:RVVW_V1F_V2I_IW,    argType:RVVX_SS},
+    [RV_IT_VFNCVT_FF_V]      = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRConvertFltCB,  ZfhminOK:1,       vShape:RVVW_V1F_V2F_V1F_IW                },
+    [RV_IT_VFCLASS_V]        = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRFClassFltCB,                     vShape:RVVW_V1F_V1F_V1F                   },
+    [RV_IT_VFWREDSUM_VS]     = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FADD, vShape:RVVW_S2F_V1F_S2F, vstart0:RVVS_ZERO},
+    [RV_IT_VFWREDOSUM_VS]    = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, opTCB:emitVRedBinaryFltCB, fpBinop:vmi_FADD, vShape:RVVW_S2F_V1F_S2F, vstart0:RVVS_ZERO},
+    [RV_IT_VFDOT_VV]         = {fpConfig:RVFP_NORMAL, morph:emitVectorOp, checkCB:emitEDIVCheckCB,                     vShape:RVVW_V1F_V1F_V1F                   },
 
     // V-extension MVV-type instructions
-    [RV_IT_VREDSUM_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_ADD,  vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDAND_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_AND,  vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDOR_VS]        = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_OR,   vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDXOR_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_XOR,  vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDMINU_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_MIN,  vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDMIN_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_IMIN, vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDMAXU_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_MAX,  vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VREDMAX_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB, initCB:initVRedCB, endCB:endVRedCB, binop:vmi_IMAX, vShape:RVVW_S1I_V1I_S1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VEXT_X_V]         = {morph:emitScalarOp, opTCB:emitVEXTXV,                                                              vShape:RVVW_V1I_S1I_V1I,                      },
-    [RV_IT_VPOPC_M]          = {morph:emitVectorOp, opTCB:emitVPOPCCB,                     checkCB:initVPOPCCB,                    vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VFIRST_M]         = {morph:emitVectorOp, opTCB:emitVFIRSTCB,                    checkCB:initVFIRSTCB,                   vShape:RVVW_P1I_P1I_P1I,     vstart0:RVVS_ZERO},
-    [RV_IT_VMSBF_M]          = {morph:emitVectorOp, opTCB:emitVMSBFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
-    [RV_IT_VMSOF_M]          = {morph:emitVectorOp, opTCB:emitVMSOFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
-    [RV_IT_VMSIF_M]          = {morph:emitVectorOp, opTCB:emitVMSIFCB,                     initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF,vstart0:RVVS_ZERO},
-    [RV_IT_VIOTA_M]          = {morph:emitVectorOp, opTCB:emitVIOTACB,                     initCB:initVIOTACB,                     vShape:RVVW_V1I_P1I_P1I_IOTA,vstart0:RVVS_ZERO},
-    [RV_IT_VID_V]            = {morph:emitVectorOp, opTCB:emitVIDCB,                                                               vShape:RVVW_V1I_P1I_P1I_ID,                   },
-    [RV_IT_VCOMPRESS_VM]     = {morph:emitVectorOp, opTCB:emitVCOMPRESSCB,                 initCB:initVCOMPRESSCB,                 vShape:RVVW_V1I_V1I_V1I_CMP, vstart0:RVVS_ZERO, implicitTZ:1},
-    [RV_IT_VMAND_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_AND,  vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMANDNOT_MM]      = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_ANDN, vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMOR_MM]          = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_OR,   vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMXOR_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_XOR,  vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMORNOT_MM]       = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_ORN,  vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMNAND_MM]        = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_NAND, vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMNOR_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_NOR,  vShape:RVVW_P1I_P1I_P1I},
-    [RV_IT_VMXNOR_MM]        = {morph:emitVectorOp, opTCB:emitMBinaryCB, binop:vmi_XNOR, vShape:RVVW_P1I_P1I_P1I},
+    [RV_IT_VREDSUM_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_ADD,  vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDAND_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_AND,  vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDOR_VS]        = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_OR,   vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDXOR_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_XOR,  vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDMINU_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_MIN,  vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDMIN_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_IMIN, vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDMAXU_VS]      = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_MAX,  vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VREDMAX_VS]       = {morph:emitVectorOp, opTCB:emitVRedBinaryIntCB,                         binop:vmi_IMAX, vShape:RVVW_S1I_V1I_S1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VEXT_X_V]         = {morph:emitScalarOp, opTCB:emitVEXTXV,                                                  vShape:RVVW_V1I_S1I_V1I,                       },
+    [RV_IT_VPOPC_M]          = {morph:emitVectorOp, opTCB:emitVPOPCCB,         checkCB:initVPOPCCB,                    vShape:RVVW_P1I_P1I_P1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VFIRST_M]         = {morph:emitVectorOp, opTCB:emitVFIRSTCB,        checkCB:initVFIRSTCB,                   vShape:RVVW_P1I_P1I_P1I,      vstart0:RVVS_ZERO},
+    [RV_IT_VMSBF_M]          = {morph:emitVectorOp, opTCB:emitVMSBFCB,         initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF, vstart0:RVVS_ZERO},
+    [RV_IT_VMSOF_M]          = {morph:emitVectorOp, opTCB:emitVMSOFCB,         initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF, vstart0:RVVS_ZERO},
+    [RV_IT_VMSIF_M]          = {morph:emitVectorOp, opTCB:emitVMSIFCB,         initCB:initVMSFCB,                      vShape:RVVW_P1I_P1I_P1I_VMSF, vstart0:RVVS_ZERO},
+    [RV_IT_VIOTA_M]          = {morph:emitVectorOp, opTCB:emitVIOTACB,         initCB:initVIOTACB,                     vShape:RVVW_V1I_P1I_P1I_IOTA, vstart0:RVVS_ZERO},
+    [RV_IT_VID_V]            = {morph:emitVectorOp, opTCB:emitVIDCB,                                                   vShape:RVVW_V1I_P1I_P1I_ID,                    },
+    [RV_IT_VCOMPRESS_VM]     = {morph:emitVectorOp, opTCB:emitVCOMPRESSCB,     initCB:initVCOMPRESSCB,                 vShape:RVVW_V1I_V1I_V1I_CMP,  vstart0:RVVS_ZERO, implicitTZ:1},
+    [RV_IT_VMAND_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_AND,  vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMANDNOT_MM]      = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_ANDN, vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMOR_MM]          = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_OR,   vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMXOR_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_XOR,  vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMORNOT_MM]       = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_ORN,  vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMNAND_MM]        = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_NAND, vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMNOR_MM]         = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_NOR,  vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VMXNOR_MM]        = {morph:emitVectorOp, opTCB:emitMBinaryCB,                               binop:vmi_XNOR, vShape:RVVW_P1I_P1I_P1I                        },
+    [RV_IT_VBREV8_V]         = {morph:emitVectorOp, opTCB:emitVBREV8,                                                  kExtOp:RVKOP_Zvkb                              },
+    [RV_IT_VREV8_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,                            unop :vmi_SWP,  kExtOp:RVKOP_Zvkb                              },
 
     // V-extension IVI-type instructions
     [RV_IT_VMERGE_VI]        = {morph:emitVectorOp, opTCB:emitVIMERGETCB, opFCB:emitVRMERGEFCB},
-    [RV_IT_VADD_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB, binop:vmi_ADD},
-    [RV_IT_VRSUB_VI]         = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB, binop:vmi_RSUB},
-    [RV_IT_VAND_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB, binop:vmi_AND},
-    [RV_IT_VOR_VI]           = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB, binop:vmi_OR },
-    [RV_IT_VXOR_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB, binop:vmi_XOR},
-    [RV_IT_VRGATHER_VI]      = {morph:emitVectorOp, opTCB:emitVIRGATHERCB,   initCB:initVIRGATHERCB, vShape:RVVW_V1I_V1I_V1I_GR},
-    [RV_IT_VSLIDEUP_VI]      = {morph:emitVectorOp, opTCB:emitVISLIDEUPCB,                           vShape:RVVW_V1I_V1I_V1I_UP},
-    [RV_IT_VSLIDEDOWN_VI]    = {morph:emitVectorOp, opTCB:emitVISLIDEDOWNCB,                         vShape:RVVW_V1I_V1I_V1I_DN},
-    [RV_IT_VADC_VI]          = {morph:emitVectorOp, opTCB:emitVIAdcIntCB,    binop:vmi_ADC,          vShape:RVVW_V1I_V1I_V1I_CIN},
-    [RV_IT_VMADC_VI]         = {morph:emitVectorOp, opTCB:emitVIAdcIntCB,    binop:vmi_ADC,          vShape:RVVW_P1I_V1I_V1I_CIN},
-    [RV_IT_VSEQ_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_EQ,      vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSNE_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_NE,      vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSLEU_VI]         = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_BE,      vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSLE_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_LE,      vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSGTU_VI]         = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_NBE,     vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSGT_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,    cond :vmi_COND_NLE,     vShape:RVVW_P1I_V1I_V1I},
-    [RV_IT_VSADDU_VI]        = {morph:emitVectorOp, opTCB:emitVISBinaryCB,   binop:vmi_ADDUQ,        vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_UU},
-    [RV_IT_VSADD_VI]         = {morph:emitVectorOp, opTCB:emitVISBinaryCB,   binop:vmi_ADDSQ,        vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_SS},
-    [RV_IT_VAADD_VI]         = {morph:emitVectorOp, opTCB:emitVIABinaryCB,   binop:vmi_ADDSH,        vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_SS},
-    [RV_IT_VSLL_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,  binop:vmi_SHL},
-    [RV_IT_VMVR_VI]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,  unop :vmi_MOV, checkCB:emitVMVRCheckCB},
-    [RV_IT_VSRL_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,  binop:vmi_SHR},
-    [RV_IT_VSRA_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,  binop:vmi_SAR},
-    [RV_IT_VSSRL_VI]         = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB, binop:vmi_SHR,          vShape:RVVW_V1I_V1I_V1I_VXRM},
-    [RV_IT_VSSRA_VI]         = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB, binop:vmi_SAR,          vShape:RVVW_V1I_V1I_V1I_VXRM},
-    [RV_IT_VNSRL_VI]         = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,  binop:vmi_SHR,          vShape:RVVW_V1I_V2I_V1I},
-    [RV_IT_VNSRA_VI]         = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,  binop:vmi_SAR,          vShape:RVVW_V1I_V2I_V1I},
-    [RV_IT_VNCLIPU_VI]       = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB, binop:vmi_SHR,          vShape:RVVW_V1I_V2I_V1I_SAT, argType:RVVX_UU},
-    [RV_IT_VNCLIP_VI]        = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB, binop:vmi_SAR,          vShape:RVVW_V1I_V2I_V1I_SAT, argType:RVVX_SS},
+    [RV_IT_VADD_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB,  binop:vmi_ADD },
+    [RV_IT_VRSUB_VI]         = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB,  binop:vmi_RSUB},
+    [RV_IT_VAND_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB,  binop:vmi_AND },
+    [RV_IT_VOR_VI]           = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB,  binop:vmi_OR  },
+    [RV_IT_VXOR_VI]          = {morph:emitVectorOp, opTCB:emitVIBinaryIntCB,  binop:vmi_XOR },
+    [RV_IT_VRGATHER_VI]      = {morph:emitVectorOp, opTCB:emitVIRGATHERCB,    initCB:initVIRGATHERCB,             vShape:RVVW_V1I_V1I_V1I_GR},
+    [RV_IT_VSLIDEUP_VI]      = {morph:emitVectorOp, opTCB:emitVISLIDEUPCB,                                        vShape:RVVW_V1I_V1I_V1I_UP},
+    [RV_IT_VSLIDEDOWN_VI]    = {morph:emitVectorOp, opTCB:emitVISLIDEDOWNCB,                                      vShape:RVVW_V1I_V1I_V1I_DN},
+    [RV_IT_VADC_VI]          = {morph:emitVectorOp, opTCB:emitVIAdcIntCB,     binop:vmi_ADC,                      vShape:RVVW_V1I_V1I_V1I_CIN},
+    [RV_IT_VMADC_VI]         = {morph:emitVectorOp, opTCB:emitVIAdcIntCB,     binop:vmi_ADC,                      vShape:RVVW_P1I_V1I_V1I_CIN},
+    [RV_IT_VSEQ_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_EQ,                  vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSNE_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_NE,                  vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSLEU_VI]         = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_BE,                  vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSLE_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_LE,                  vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSGTU_VI]         = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_NBE,                 vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSGT_VI]          = {morph:emitVectorOp, opTCB:emitVICmpIntCB,     cond :vmi_COND_NLE,                 vShape:RVVW_P1I_V1I_V1I},
+    [RV_IT_VSADDU_VI]        = {morph:emitVectorOp, opTCB:emitVISBinaryCB,    binop:vmi_ADDUQ,                    vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_UU},
+    [RV_IT_VSADD_VI]         = {morph:emitVectorOp, opTCB:emitVISBinaryCB,    binop:vmi_ADDSQ,                    vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_SS},
+    [RV_IT_VAADD_VI]         = {morph:emitVectorOp, opTCB:emitVIABinaryCB,    binop:vmi_ADDSH,                    vShape:RVVW_V1I_V1I_V1I_SAT, argType:RVVX_SS},
+    [RV_IT_VSLL_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_SHL},
+    [RV_IT_VMVR_VI]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV, checkCB:emitVMVRCheckCB},
+    [RV_IT_VSRL_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_SHR},
+    [RV_IT_VSRA_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_SAR},
+    [RV_IT_VSSRL_VI]         = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB,  binop:vmi_SHR,                      vShape:RVVW_V1I_V1I_V1I_VXRM},
+    [RV_IT_VSSRA_VI]         = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB,  binop:vmi_SAR,                      vShape:RVVW_V1I_V1I_V1I_VXRM},
+    [RV_IT_VNSRL_VI]         = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_SHR,                      vShape:RVVW_V1I_V2I_V1I},
+    [RV_IT_VNSRA_VI]         = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_SAR,                      vShape:RVVW_V1I_V2I_V1I},
+    [RV_IT_VNCLIPU_VI]       = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB,  binop:vmi_SHR,                      vShape:RVVW_V1I_V2I_V1I_SAT, argType:RVVX_UU},
+    [RV_IT_VNCLIP_VI]        = {morph:emitVectorOp, opTCB:emitVIRShiftIntCB,  binop:vmi_SAR,                      vShape:RVVW_V1I_V2I_V1I_SAT, argType:RVVX_SS},
+    [RV_IT_VANDN_VI]         = {morph:emitVectorOp, opTCB:emitVIBinaryIntRCB, binop:vmi_ANDN,                     kExtOp:RVKOP_Zvkb},
+    [RV_IT_VROR_VI]          = {morph:emitVectorOp, opTCB:emitVIShiftIntCB,   binop:vmi_ROR,                      kExtOp:RVKOP_Zvkb},
 
     // V-extension FVF-type instructions
-    [RV_IT_VFMV_S_F]         = {morph:emitScalarOp, opTCB:emitVFMVSF,                                vShape:RVVW_S1F_V1I_V1I},
-    [RV_IT_VFSLIDE1UP_VF]    = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVFSLIDE1CB, vShape:RVVW_V1F_V1F_V1I_UP},
-    [RV_IT_VFSLIDE1DOWN_VF]  = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVFSLIDE1CB, vShape:RVVW_V1F_V1F_V1I_DN},
+    [RV_IT_VFMV_S_F]         = {morph:emitScalarOp, opTCB:emitVFMVSF,                                            vShape:RVVW_S1F_V1I_V1I},
+    [RV_IT_VFSLIDE1UP_VF]    = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVFSLIDE1CB,             vShape:RVVW_V1F_V1F_V1I_UP},
+    [RV_IT_VFSLIDE1DOWN_VF]  = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVFSLIDE1CB,             vShape:RVVW_V1F_V1F_V1I_DN},
 
     // V-extension MVX-type instructions
-    [RV_IT_VMV_S_X]          = {morph:emitScalarOp, opTCB:emitVMVSX,                                 vShape:RVVW_S1I_V1I_V1I},
-    [RV_IT_VSLIDE1UP_VX]     = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVXSLIDE1CB, vShape:RVVW_V1I_V1I_V1I_UP},
-    [RV_IT_VSLIDE1DOWN_VX]   = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVXSLIDE1CB, vShape:RVVW_V1I_V1I_V1I_DN},
-    [RV_IT_VZEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_UU},
-    [RV_IT_VSEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,         vShape:RVVW_V1I_V2I_FN, argType:RVVX_SS},
+    [RV_IT_VMV_S_X]          = {morph:emitScalarOp, opTCB:emitVMVSX,                                             vShape:RVVW_S1I_V1I_V1I},
+    [RV_IT_VSLIDE1UP_VX]     = {morph:emitVectorOp, opTCB:emitVRSLIDE1UPCB,   initCB:initVXSLIDE1CB,             vShape:RVVW_V1I_V1I_V1I_UP},
+    [RV_IT_VSLIDE1DOWN_VX]   = {morph:emitVectorOp, opTCB:emitVRSLIDE1DOWNCB, initCB:initVXSLIDE1CB,             vShape:RVVW_V1I_V1I_V1I_DN},
+    [RV_IT_VZEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,                     vShape:RVVW_V1I_V2I_FN, argType:RVVX_UU},
+    [RV_IT_VSEXT_V]          = {morph:emitVectorOp, opTCB:emitVRUnaryIntCB,   unop :vmi_MOV,                     vShape:RVVW_V1I_V2I_FN, argType:RVVX_SS},
+
+    // V-extension MVV-type instructions (OP-P)
+    [RV_IT_VAESDM_VV]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESDEC1,  kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VAESDM_VS]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESDEC1,  kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VAESDF_VV]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESDEC1L, kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VAESDF_VS]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESDEC1L, kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VAESEM_VV]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESENC1,  kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VAESEM_VS]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESENC1,  kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VAESEF_VV]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESENC1L, kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VAESEF_VS]        = {morph:emitVectorOp, opTCB:emitVAESBinaryRRCB,   binop:vmi_AESENC1L, kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VAESZ_VS]         = {morph:emitVectorOp, opTCB:emitVAESBitwiseRRCB,  binop:vmi_XOR,      kExtOp:RVKOP_Zvkns,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VAESKF1_VI]       = {morph:emitVectorOp, opTCB:emitVKEGWVs2CCB,                          kExtOp:RVKOP_VAESKF1, EGS:4, SEW:SEWMT_32,                              },
+    [RV_IT_VAESKF2_VI]       = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2CCB,                        kExtOp:RVKOP_VAESKF2, EGS:4, SEW:SEWMT_32,                              },
+    [RV_IT_VGHMAC_VV]        = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2Vs1CB,                      kExtOp:RVKOP_VGHMAC,  EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VSM3ME_VV]        = {morph:emitVectorOp, opTCB:emitVKEGWVs2Vs1CB,                        kExtOp:RVKOP_VSM3ME,  EGS:8, SEW:SEWMT_32,    checkCB:emitVdVs2CheckCB  },
+    [RV_IT_VSM3C_VI]         = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2CCB,                        kExtOp:RVKOP_VSM3C,   EGS:8, SEW:SEWMT_32,    checkCB:emitVdVs2CheckCB  },
+    [RV_IT_VSM4K_VI]         = {morph:emitVectorOp, opTCB:emitVKEGWVs2CCB,                          kExtOp:RVKOP_VSM4K,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VSM4R_VV]         = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2CB,                         kExtOp:RVKOP_VSM4R,   EGS:4, SEW:SEWMT_32                               },
+    [RV_IT_VSM4R_VS]         = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2CB,                         kExtOp:RVKOP_VSM4R,   EGS:4, SEW:SEWMT_32,    vShape:RVVW_V1I_S1I_V1I   },
+    [RV_IT_VSHA2MS_VV]       = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2Vs1CB,                      kExtOp:RVKOP_VSHA2MS, EGS:4, SEW:SEWMT_32_64, checkCB:emitVdVs12CheckCB },
+    [RV_IT_VSHA2CL_VV]       = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2Vs1LCB,                     kExtOp:RVKOP_VSHA2CL, EGS:4, SEW:SEWMT_32_64, checkCB:emitVdVs12CheckCB },
+    [RV_IT_VSHA2CH_VV]       = {morph:emitVectorOp, opTCB:emitVKEGWVdVs2Vs1HCB,                     kExtOp:RVKOP_VSHA2CH, EGS:4, SEW:SEWMT_32_64, checkCB:emitVdVs12CheckCB },
 
     // P-extension instructions (RV32 and RV64)
     [RV_IT_ADD_Sx]           = {morph:emitBinopRRR_Sx,   binop:vmi_ADD,                                                                             iClass:OCL_IC_INTEGER},

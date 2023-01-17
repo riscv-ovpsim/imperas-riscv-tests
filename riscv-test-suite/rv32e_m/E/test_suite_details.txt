@@ -26,22 +26,22 @@ Instruction category: arithmetic
   lui : 7,062
   addi : 14,983
   auipc : 3,502
-  sub : 510
   add : 1,524
+  sub : 510
 Instruction category: logical 
   andi : 170
   ori : 170
-  xori : 170
   xor : 172
+  xori : 170
   or : 172
   and : 172
 Instruction category: branch 
-  beq : 282
-  bne : 171
   blt : 171
+  beq : 282
   bge : 171
-  bltu : 171
   bgeu : 171
+  bltu : 171
+  bne : 171
 Instruction category: OPI_IMN 
   ecall : 37
 Instruction category: synch 
@@ -50,26 +50,26 @@ Instruction category: jump
   jal : 694
   jalr : 169
 Instruction category: load 
-  lb : 169
-  lw : 676
   lh : 169
-  lhu : 169
+  lw : 676
+  lb : 169
   lbu : 169
+  lhu : 169
 Instruction category: store 
   sw : 6,475
-  sh : 169
   sb : 169
+  sh : 169
 Instruction category: shift 
-  srli : 170
-  sll : 172
   slli : 170
+  srli : 170
   srai : 170
+  sll : 172
   srl : 172
   sra : 172
 Instruction category: compare 
-  slti : 170
-  slt : 172
   sltiu : 170
+  slt : 172
+  slti : 170
   sltu : 172
 
 Other instructions (those not the focus of this suite)

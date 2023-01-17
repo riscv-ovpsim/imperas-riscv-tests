@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ static void fillSvModes(char *result, Uns32 Sv_modes) {
 }
 
 //
-// Add documentation of xtvec regiser
+// Add documentation of xtvec register
 //
 static void addDocXTVec(
     riscvConfigCP cfg,
@@ -626,7 +626,9 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
                 SNPRINTF_TGT(string),
                 "\"mclicbase_undefined\": this Boolean parameter indicates "
                 "whether the mclicbase CSR register is implemented (if True) "
-                "or unimplemented (if False). The default value in this "
+                "or unimplemented (if False); for CLIC versions after "
+                "0.9-draft-20220315, this feature is not configurable and "
+                "this parameter is always True. The default value in this "
                 "variant is %s.",
                 riscv->configInfo.mclicbase_undefined ? "True" : "False"
             );
@@ -960,6 +962,25 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
                 "- new parameter INTTHRESHBITS allows implemented bits in "
                 "xintthresh CSRs to be restricted."
             );
+            vmidocAddText(
+                Version,
+                "- whether interrupt handling is in CLIC or CLINT mode is now "
+                "determined by mtvec.MODE at all privilege levels (when both "
+                "modes are supported)."
+            );
+            vmidocAddText(
+                Version,
+                "- xintstatus registers have been relocated at read-only CSR "
+                "addresses."
+            );
+            vmidocAddText(
+                Version,
+                "- cliccfg.nvbits field has been removed."
+            );
+            vmidocAddText(
+                Version,
+                "- clicinfo memory-mapped register has been removed."
+            );
         }
     }
 }
@@ -999,6 +1020,333 @@ static void docCLINT(riscvP riscv, vmiDocNodeP Root) {
             cfg->mtime_Hz
         );
         vmidocAddText(CLINT, string);
+    }
+}
+
+//
+// Document AIA if required
+//
+static void docAIA(riscvP riscv, vmiDocNodeP Root) {
+
+    riscvConfigCP cfg = &riscv->configInfo;
+    char string[1024];
+
+    if(riscv->parent) {
+
+        // document at root level only
+
+    } else if(!cfg->Smaia) {
+
+        vmiDocNodeP AIA = vmidocAddSection(
+            Root, "Advanced Interrupt Architecture"
+        );
+
+        vmidocAddText(
+            AIA,
+            "The model can be configured to implement the Advanced Interrupt "
+            "Architecture (AIA) interface using Boolean parameter \"Smaia\"; "
+            "when True, the AIA interface is present as described in the "
+            "RISC-V Advanced Interrupt Architecture specification, and further "
+            "parameters are made available to configure other aspects of the "
+            "interface. \"Smaia\" is False in this variant, indicating that "
+            "the AIA interface is not implemented."
+        );
+
+    } else {
+
+        vmiDocNodeP AIA = vmidocAddSection(
+            Root, "Advanced Interrupt Architecture"
+        );
+
+        vmidocAddText(
+            AIA,
+            "This model implements Advanced Interrupt Architecture (AIA) "
+            "interface as described in the RISC-V Advanced Interrupt "
+            "Architecture specification (see references). Set parameter "
+            "\"Smaia\" to False to indicate the AIA interface is not "
+            "implemented."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA PARAMETERS
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                AIA, "AIA Interface Parameters"
+            );
+
+            // document IPRIOLEN
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"IPRIOLEN\": this parameter specifies the number of priority "
+                "bits implemented for external interrupts. The default value "
+                "in this variant is %u.",
+                cfg->IPRIOLEN
+            );
+            vmidocAddText(Parameters, string);
+
+            // document HIPRIOLEN
+            if(cfg->arch&ISA_H) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"HIPRIOLEN\": this parameter specifies the number of "
+                    "priority bits implemented for virtual interrupts in "
+                    "\"hviprio\" registers. The default value in this variant "
+                    "is %u.",
+                    cfg->HIPRIOLEN
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document IMSIC_present
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"IMSIC_present\": this parameter specifies whether an "
+                "incoming message-signalled interrupt controller (IMSIC) is "
+                "implemented in the platform. The default value in this "
+                "variant is %s. When an IMSIC is present it must be interfaced "
+                "as described in the next section.",
+                cfg->IMSIC_present ? "True" : "False"
+            );
+            vmidocAddText(Parameters, string);
+
+            // document mvip_mask
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"mvip_mask\": this Uns64 parameter specifies writable bits "
+                "in the \"mvip\" CSR (or \"mvip\"/\"mviph\" pair when "
+                "XLEN is 32). The default value in this variant is 0x"FMT_Ax,
+                cfg->csrMask.mvip.u64.bits
+            );
+            vmidocAddText(Parameters, string);
+
+            // document mvien_mask
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"mvien_mask\": this Uns64 parameter specifies writable or "
+                "non-zero bits in the \"mvien\" CSR (or \"mvien\"/\"mvienh\" "
+                "pair when XLEN is 32). Bits that are set in \"mvip_mask\" but "
+                "clear in \"mvien_mask\" will be hard-wired to 1 in "
+                "\"mvien\". The default value in this variant is 0x"FMT_Ax,
+                cfg->csrMask.mvien.u64.bits
+            );
+            vmidocAddText(Parameters, string);
+
+            // document hvien_mask
+            if(cfg->arch&ISA_H) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"hvien_mask\": this Uns64 parameter specifies writable "
+                    "or non-zero bits in the \"hvien\" CSR (or \"hvien\"/"
+                    "\"hvienh\" pair when XLEN is 32). Bits that are set in "
+                    "\"hvip_mask\" but clear in \"hvien_mask\" will be "
+                    "hard-wired to 1 in \"hvien\". The default value in this "
+                    "variant is 0x"FMT_Ax,
+                    cfg->csrMask.hvien.u64.bits
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document miprio_mask
+            snprintf(
+                SNPRINTF_TGT(string),
+                "\"miprio_mask\": this Uns64 parameter specifies which M-mode "
+                "IPRIO array entries are writable. An IPRIO entry with index i "
+                "is writable only if bit i of \"miprio_mask\" is set. The "
+                "default value in this variant is 0x"FMT_Ax,
+                cfg->miprio_mask
+            );
+            vmidocAddText(Parameters, string);
+
+            // document siprio_mask
+            if(cfg->arch&ISA_S) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"siprio_mask\": this Uns64 parameter specifies which "
+                    "S-mode IPRIO array entries are writable. An IPRIO entry "
+                    "with index i is writable only if bit i of \"siprio_mask\" "
+                    "is set. The default value in this variant is 0x"FMT_Ax,
+                    cfg->siprio_mask
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document hviprio_mask
+            if(cfg->arch&ISA_H) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"hviprio_mask\": this Uns64 parameter specifies which "
+                    "entries in \"hviprio\" registers are writable. An \"hviprio\" "
+                    "register entry corresponding to interrupt i is writable only "
+                    "if bit i of \"hviprio_mask\" is set. The default value in "
+                    "this variant is 0x"FMT_Ax,
+                    cfg->hviprio_mask
+                );
+                vmidocAddText(Parameters, string);
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA NET PORT INTERFACE
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP External = vmidocAddSection(
+                AIA, "AIA Net Port Interface"
+            );
+
+            vmidocAddText(
+                External,
+                "When the AIA is implemented, net ports are present allowing "
+                "the external AIA model to supply the highest-priority "
+                "pending interrupt. These are:"
+            );
+
+            vmidocAddText(
+                External,
+                "\"miprio\": this input should be written with the id of the "
+                "highest-priority pending M-mode interrupt from the external "
+                "interrupt controller model."
+            );
+
+            if(cfg->arch&ISA_S) {
+                vmidocAddText(
+                    External,
+                    "\"siprio\": this input should be written with the id of "
+                    "the highest-priority pending S-mode interrupt from the "
+                    "external interrupt controller model."
+                );
+            }
+
+            if(cfg->arch&ISA_H) {
+                vmidocAddText(
+                    External,
+                    "\"vsiprio\": this input should be written with the id of "
+                    "the highest-priority pending VS-mode interrupt from the "
+                    "external interrupt controller model."
+                );
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA INTERRUPT CONTROLLER INTEGRATION
+        /////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP IMSIC = vmidocAddSection(
+                AIA, "IMSIC Interrupt Controller Integration"
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "This model does not implement an interrupt controller to "
+                "drive the AIA interface: this must be implemented as a "
+                "platform component and connected to the processor model. For "
+                "an APLIC, use the standard hart interrupt net ports plus the "
+                "priority ports described in the previous section. When an "
+                "IMSIC is implemented (\"IMSIC_present\" is True), additional "
+                "work is required, as follows:"
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "1. Connect a 16-bit bus to the artifact \"CSR\" bus of the "
+                "hart (this bus port is present when \"IMSIC_present\" is "
+                "True). This will be used to observe and react to changes to "
+                "IMSIC-related CSRs."
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "2. Connect a second 16-bit bus to the artifact \"IMSIC\" bus "
+                "of the hart (also present when \"IMSIC_present\" is True). "
+                "This bus is used to implement IMSIC registers."
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "3. Install watchpoints on the CSR bus to observe writes to "
+                "\"mtopei\", \"stopei\" and \"vstopei\" CSRs. Writes made by "
+                "the hart must cause the highest-priority pending interrupt of "
+                "the indicated type to be acknowledged by the IMSIC. These "
+                "CSRs have indices 0x35C, 0x15C and 0x25C respectively, "
+                "meaning write callbacks must be installed at addresses "
+                "0x35C0, 0x15C0 and 0x25C0 on the \"CSR\" artifact bus. See "
+                "section \"CSR Register External Implementation\" for more "
+                "information about CSR bus callbacks."
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "4. Also install a watchpoint on the CSR bus to observe writes "
+                "to the \"hstatus\" CSR (0x600). The value written to "
+                "\"hstatus.VGIEN\" selects the guest interrupt file that "
+                "should be reported by the IMSIC via the \"vsiprio\" input and "
+                "also the IMSIC registers mapped using \"vsiselect\" and "
+                "\"vsireg\"."
+            );
+
+            vmidocAddText(
+                IMSIC,
+                "5. Expose IMSIC indirectly-accessed interrupt-file registers "
+                "to the hart by installing read and write callbacks on the "
+                "\"IMSIC\" artifact bus. An IMSIC register with index 0xAB is "
+                "mapped on the bus at address 0xMAB0, where \"M\" indicates "
+                "the register mode (S=1, VS=2, M=3); as a concrete example, "
+                "implementing Machine-mode IMSIC register 0x72 requires "
+                "installation of 4-byte or 8-byte callbacks at address 0x3720 "
+                "on the \"IMSIC\" artifact bus."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                AIA, "AIA Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "The AIA specification has been under active development. "
+                "The specific version to use can be selected using the "
+                "AIA_version parameter, as described below."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA VERSION 1.0-RC1
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                AIA, "Version 1.0-RC1"
+            );
+
+            vmidocAddText(
+                Version,
+                "1.0-RC1 version of November 8 2022."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // AIA VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                AIA, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVAIA_MASTER_DATE" (commit "
+                RVAIA_MASTER_TAG"), currently identical to 1.0-RC1."
+            );
+        }
     }
 }
 
@@ -1529,8 +1877,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     "that \"time\" is unimplemented and reads of it should "
                     "cause Illegal Instruction traps. Usually, the value of "
                     "the \"time\" CSR should be provided by the platform - see "
-                    "notes below about the artifact \"CSR\" bus for "
-                    "information about how this is done."
+                    "section \"Time and Timers\" for more information."
                 );
             }
         }
@@ -1660,73 +2007,131 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(sub, string);
         }
 
-        vmiDocNodeP pmp = vmidocAddSection(Features, "PMP");
-
         // document PMP regions
-        if(cfg->PMP_registers) {
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "PMP");
 
-            Uns64 grainBytes = 4ULL<<cfg->PMP_grain;
+            if(cfg->PMP_registers) {
 
-            snprintf(
-                SNPRINTF_TGT(string),
-                "%u PMP entries are implemented by this variant. Use parameter "
-                "\"PMP_registers\" to specify a different number of PMP "
-                "entries; set the parameter to 0 to disable the PMP unit. "
-                "The PMP grain size (G) is %u, meaning that PMP regions as "
-                "small as "FMT_Au" bytes are implemented. Use parameter "
-                "\"PMP_grain\" to specify a different grain size if required. "
-                "Unaligned PMP accesses are %sdecomposed into separate aligned "
-                "accesses; use parameter \"PMP_decompose\" to modify this "
-                "behavior if required. Parameters to change the write masks for "
-                "the PMP CSRs are %senabled; use parameter \"PMP_maskparams\" "
-                "to modify this behavior if required. Parameters to change the reset values "
-                "for the PMP CSRs are %senabled; use parameter \"PMP_initialparams\" "
-                "to modify this behavior if required",
-                cfg->PMP_registers,
-                cfg->PMP_grain,
-                grainBytes,
-                cfg->PMP_decompose     ? "" : "not ",
-                cfg->PMP_maskparams    ? "" : "not ",
-                cfg->PMP_initialparams ? "" : "not "
-            );
+                Uns64 grainBytes = 4ULL<<cfg->PMP_grain;
 
-            vmidocAddText(pmp, string);
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "%u PMP entries are implemented by this variant. Use "
+                    "parameter \"PMP_registers\" to specify a different number "
+                    "of PMP entries; set the parameter to 0 to disable the PMP "
+                    "unit. The PMP grain size (G) is %u, meaning that PMP "
+                    "regions as small as "FMT_Au" bytes are implemented. Use "
+                    "parameter \"PMP_grain\" to specify a different grain size "
+                    "if required. Unaligned PMP accesses are %sdecomposed into "
+                    "separate aligned accesses; use parameter "
+                    "\"PMP_decompose\" to modify this behavior if required. "
+                    "Parameters to change the write masks for the PMP CSRs are "
+                    "%senabled; use parameter \"PMP_maskparams\" to modify "
+                    "this behavior if required. Parameters to change the reset "
+                    "values for the PMP CSRs are %senabled; use parameter "
+                    "\"PMP_initialparams\" to modify this behavior if required",
+                    cfg->PMP_registers,
+                    cfg->PMP_grain,
+                    grainBytes,
+                    cfg->PMP_decompose     ? "" : "not ",
+                    cfg->PMP_maskparams    ? "" : "not ",
+                    cfg->PMP_initialparams ? "" : "not "
+                );
 
-            if(cfg->Smepmp_version) {
+                vmidocAddText(sub, string);
+
+                if(cfg->Smepmp_version) {
+                    vmidocAddText(
+                        sub,
+                        "This variant implements the Smepmp extension with "
+                        "version specified in the References section of this "
+                        "document. Note that parameter \"Smepmp_version\" can "
+                        "be used to select the required version if required."
+                    );
+                }
+
+            } else {
+
                 vmidocAddText(
-                    pmp,
-                    "This variant implements the Smepmp extension with version "
-                    "specified in the References section of this document. "
-                    "Note that parameter \"Smepmp_version\" can be used to "
-                    "select the required version if required."
+                    sub,
+                    "A PMP unit is not implemented by this variant. Set "
+                    "parameter \"PMP_registers\" to indicate that the unit "
+                    "should be implemented with that number of PMP entries."
                 );
             }
 
-        } else {
-
-            vmidocAddText(
-                pmp,
-                "A PMP unit is not implemented by this variant. Set parameter "
-                "\"PMP_registers\" to indicate that the unit should be "
-                "implemented with that number of PMP entries."
-            );
+            if(cfg->PMP_undefined) {
+                vmidocAddText(
+                    sub,
+                    "Accesses to unimplemented PMP registers cause Illegal "
+                    "Instruction exceptions on this variant. Set parameter "
+                    "\"PMP_undefined\" to False to indicate that these "
+                    "registers are hard-wired to zero instead."
+                );
+            } else {
+                vmidocAddText(
+                    sub,
+                    "Accesses to unimplemented PMP registers are write-ignored "
+                    "and read as zero on this variant. Set parameter "
+                    "\"PMP_undefined\" to True to indicate that such accesses "
+                    "should cause Illegal Instruction exceptions instead."
+                );
+            }
         }
 
-        if(cfg->PMP_undefined) {
+        // document time and timers
+        {
+            vmiDocNodeP sub = vmidocAddSection(Features, "Time and Timers");
+
             vmidocAddText(
-                pmp,
-                "Accesses to unimplemented PMP registers cause Illegal "
-                "Instruction exceptions on this variant. Set parameter "
-                "\"PMP_undefined\" to False to indicate that these registers "
-                "are hard-wired to zero instead."
+                sub,
+                "A RISC-V hart requires a time source to be available in any "
+                "of the following cases:"
             );
-        } else {
             vmidocAddText(
-                pmp,
-                "Accesses to unimplemented PMP registers are write-ignored "
-                "and read as zero on this variant. Set parameter "
-                "\"PMP_undefined\" to True to indicate that such accesses "
-                "should cause Illegal Instruction exceptions instead."
+                sub,
+                "1. The \"time\" CSR is implemented (\"time_undefined\" is "
+                "False);"
+            );
+            vmidocAddText(
+                sub,
+                "2. The \"Sstc\" extension is present (\"Sstc\" is True);"
+            );
+            vmidocAddText(
+                sub,
+                "3. The internal CLINT model is enabled (\"CLINT_address\" "
+                "is non-zero)."
+            );
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "For cases 1 and 2, a 64-bit input port \"mtime\" is present. "
+                "If this port is connected, it must be driven periodically by "
+                "an external source with the current time value, which is "
+                "visible in the \"time\" CSR and used for timer calculations "
+                "by the \"Sstc\" extension. If the port is not connected, the "
+                "value of time is internally derived with a period specified "
+                "by the \"mtime_Hz\" parameter (%gHz by default).",
+                cfg->mtime_Hz
+            );
+            vmidocAddText(sub, string);
+
+            vmidocAddText(
+                sub,
+                "For case 3, time is always internally derived and the "
+                "\"mtime\" port is not present."
+            );
+
+            vmidocAddText(
+                sub,
+                "If the \"time\" CSR is implemented but the \"Sstc\" extension "
+                "and the internal CLINT model are both absent, then it is also "
+                "possible to implement the \"time\" CSR using a read callback "
+                "on the CSR bus instead of using the \"mtime\" port: this "
+                "may improve simulation performance if \"time\" increments at "
+                "high frequency. See section \"CSR Register External "
+                "Implementation\" for more information."
             );
         }
     }
@@ -1955,15 +2360,37 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         // document 16-bit floating point support
-        if(cfg->fp16_version) {
+        if(cfg->fp16_version==RVFP16_DYNAMIC) {
+
+            vmidocAddText(
+                Features,
+                "Dynamic 16-bit floating floating point is implemented. Use "
+                "parameter \"fp16_version\" to disable this if required."
+            );
+
+            vmidocAddText(
+                Features,
+                "Artifact register \"fp16Format\" indicates the format to be "
+                "used for 16-bit floating point operations. Writes to this "
+                "register allow the format to be changed dynamically."
+            );
+
+            vmidocAddText(Features, "0: use IEEE 754 half-precision format;");
+            vmidocAddText(Features, "1: use BFLOAT16 format.");
+
+        } else if(cfg->fp16_version) {
+
             snprintf(
                 SNPRINTF_TGT(string),
                 "16-bit floating point is implemented (%s format). Use "
                 "parameter \"Zfh\" to disable this if required.",
                 riscvGetFP16VersionDesc(riscv)
             );
+
             vmidocAddText(Features, string);
+
         } else {
+
             vmidocAddText(
                 Features,
                 "Half precision floating point is not implemented. Use "
@@ -2988,6 +3415,39 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             DOC_VPROFILE(riscv, Parameters, string, Zve64f);
             DOC_VPROFILE(riscv, Parameters, string, Zve64d);
 
+            if(riscv->configInfo.fp16_version && (cfg->arch&ISA_DF)) {
+
+                // document Zvfh
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter Zvfh is used to specify whether the Zvfh "
+                    "extension is implemented. By default, Zvfh is set to %u "
+                    "in this variant.",
+                    riscv->configInfo.Zvfh
+                );
+                vmidocAddText(Parameters, string);
+
+                // document Zvfhmin
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "Parameter Zvfhmin is used to specify whether the Zvfhmin "
+                    "extension is implemented. By default, Zvfhmin is set to "
+                    "%u in  this variant.",
+                    riscv->configInfo.Zvfhmin
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document Zvfbfmin
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter Zvfbfmin is used to specify whether the Zvfbfmin "
+                "extension is implemented (from version 1.0 only). By default, "
+                "Zvfbfmin is set to %u in this variant.",
+                riscv->configInfo.Zvfbfmin
+            );
+            vmidocAddText(Parameters, string);
+
             // document require_vstart0
             snprintf(
                 SNPRINTF_TGT(string),
@@ -3571,6 +4031,95 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     }
 
     ////////////////////////////////////////////////////////////////////////////
+    // VECTOR CRYPTOGRAPHIC EXTENSION
+    ////////////////////////////////////////////////////////////////////////////
+
+    if((cfg->arch&ISA_VK)==ISA_VK) {
+
+        vmiDocNodeP extK = vmidocAddSection(
+            Root, "Vector Cryptographic Extension"
+        );
+
+        vmidocAddText(
+            extK,
+            "This variant implements the RISC-V vector cryptographic extension "
+            "with version specified in the References section of this document."
+        );
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION PARAMETERS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Parameters = vmidocAddSection(
+                extK, "Vector Cryptographic Extension Parameters"
+            );
+
+            // add subset control parameter description
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkb, "Zvkb",
+                "vector cryptographic bit-manipulation"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkg, "Zvkg",
+                "vector cryptographic GCM/GMAC"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkns, "Zvkns",
+                "vector NIST AES block cipher"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvknha, "Zvknha",
+                "vector NIST SHA2-256 hash function"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvknhb, "Zvknhb",
+                "vector NIST SHA2-512 hash function"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvksed, "Zvksed",
+                "vector SM4 encryption and decryption"
+            );
+            addKFeature(
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvksh, "Zvksh",
+                "vector SM3 hash function"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                extK, "Vector Cryptographic Extension Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "Supported Vector Cryptographic Extension specification "
+                "versions are listed below, in chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                extK, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVKVV_MASTER_DATE" (commit "
+                RVKVV_MASTER_TAG")"
+            );
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     // DSP EXTENSION
     ////////////////////////////////////////////////////////////////////////////
 
@@ -3883,6 +4432,26 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "currently implemented."
             );
         }
+
+        // document Sstc
+        if(cfgHas64S(cfg)) {
+
+            static const char *meaningsS[] = {
+                "stimecmp is not implemented",
+                "stimecmp is implemented",
+            };
+
+            static const char *meaningsH[] = {
+                "stimecmp and vstimecmp are not implemented",
+                "stimecmp and vstimecmp are implemented",
+            };
+
+            docBoolParam(
+                extP, "Sstc", cfg->Sstc,
+                cfg->arch&ISA_H ? meaningsH : meaningsS
+            );
+        }
+
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3896,6 +4465,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     ////////////////////////////////////////////////////////////////////////////
 
     docCLINT(riscv, Root);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // AIA
+    ////////////////////////////////////////////////////////////////////////////
+
+    docAIA(riscv, Root);
 
     ////////////////////////////////////////////////////////////////////////////
     // LR/SC LOCKING
@@ -4041,11 +4616,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             Interrupts,
             "Parameter \"external_int_id\" can be used to enable extra "
             "interrupt ID input ports on each hart. If the parameter is True "
-            "then when an external interrupt is applied the value on the "
-            "ID port is sampled and used to fill the Exception Code field "
-            "in the \"mcause\" CSR (or the equivalent CSR for other execution "
-            "levels). For Machine mode, the extra interrupt ID port is called "
-            "\"MExternalInterruptID\"."
+            "then when an external interrupt is taken the value on the ID port "
+            "is sampled and used to fill the Exception Code field in the "
+            "relevant \"xcause\" CSR. For Machine External interrupts, the "
+            "extra interrupt ID port is called \"MExternalInterruptID\"; for "
+            "Supervisor External interrupts, the extra interrupt ID port is "
+            "called \"SExternalInterruptID\"."
         );
         vmidocAddText(
             Interrupts,
@@ -4642,8 +5218,22 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             "icmMapExternalMemory, depending on the client API). A CSR with "
             "index 0xABC is mapped on the bus at address 0xABC0; as a concrete "
             "example, implementing CSR \"time\" (number 0xC01) externally "
-            "requires installation of callbacks at address 0xC010 on the CSR "
-            "bus."
+            "requires installation of a read callback at address 0xC010 on the "
+            "CSR bus."
+        );
+
+        vmidocAddText(
+            leafSection,
+            "If both read and write callbacks are installed, or if a read "
+            "callback is installed and the CSR is in the read-only address "
+            "space, then the read callback will be used to provide the value "
+            "for both true accesses and for trace and API register read (using "
+            "opRegRead, etc). However, if only a read callback is installed "
+            "and the CSR is in the CSR read/write address space then the "
+            "callback will be used for true register reads *only*; in this "
+            "case, the *model* CSR implementation will be used for trace and "
+            "API register read. This idiom allows values to be injected "
+            "for volatile CSRs without changing fundamental model behavior."
         );
 
         if(cfg->arch&ISA_A) {
@@ -4715,6 +5305,42 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "flag bits are sticky)."
             );
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // INSTRUCTION DISASSEMBLY
+    ////////////////////////////////////////////////////////////////////////////
+
+    {
+        vmiDocNodeP disass = vmidocAddSection(Root, "Instruction Disassembly");
+
+        vmidocAddText(
+            disass,
+            "This model implements a number of parameters to control "
+            "instruction disassembly, as shown in trace output."
+        );
+
+        vmidocAddText(
+            disass,
+            "If parameter \"use_hw_reg_names\" is True, instruction "
+            "disassembly shows hardware names x0-x31. If \"use_hw_reg_names\" "
+            "is False, ABI names are shown instead."
+        );
+
+        vmidocAddText(
+            disass,
+            "If parameter \"no_pseudo_inst\" is True, instruction disassembly "
+            "always shows true instructions. If \"no_pseudo_inst\" is False, "
+            "pseudo-instructions are shown instead where applicable."
+        );
+
+        vmidocAddText(
+            disass,
+            "If parameter \"show_c_prefix\" is True, instruction disassembly "
+            "of 16-bit instructions will include a compressed prefix (e.g. "
+            "\"c.\" or \"cm.\"). If \"show_c_prefix\" is False, the compressed "
+            "prefix will be omitted."
+        );
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4896,6 +5522,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(References, string);
         }
 
+        if((cfg->arch&ISA_VK)==ISA_VK) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V \"K\" Vector Cryptographic Extension (%s)",
+                riscvGetVCryptographicVersionDesc(riscv)
+            );
+            vmidocAddText(References, string);
+        }
+
         if(cfg->arch&ISA_P) {
             snprintf(
                 SNPRINTF_TGT(string),
@@ -4928,6 +5563,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 SNPRINTF_TGT(string),
                 "RISC-V Core-Local Interrupt Controller (%s)",
                 riscvGetCLICVersionDesc(riscv)
+            );
+            vmidocAddText(References, string);
+        }
+
+        if(cfg->Smaia) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "RISC-V Advanced Interrupt Architecture Interface (%s)",
+                riscvGetAIAVersionDesc(riscv)
             );
             vmidocAddText(References, string);
         }
@@ -5004,6 +5648,12 @@ static vmiDocNodeP docAMP(riscvP ampRoot) {
     ////////////////////////////////////////////////////////////////////////////
 
     docCLINT(ampRoot, Root);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // AIA
+    ////////////////////////////////////////////////////////////////////////////
+
+    docAIA(ampRoot, Root);
 
     return Root;
 }

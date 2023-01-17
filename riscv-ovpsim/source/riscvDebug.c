@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@
 #include "vmi/vmiRt.h"
 
 // model header files
+#include "riscvBus.h"
 #include "riscvCLINT.h"
 #include "riscvCluster.h"
 #include "riscvCSR.h"
@@ -188,7 +189,14 @@ static ISR_PRESENT_FN(presentFFlagsI) {
 }
 
 //
-// Is CLINT register present?
+// Is dynamic FP16 format selection enabled?
+//
+static ISR_PRESENT_FN(dynamicFP16) {
+    return riscv->configInfo.fp16_version==RVFP16_DYNAMIC;
+}
+
+//
+// Are CLINT-specific registers present?
 //
 static ISR_PRESENT_FN(presentCLINT) {
     return riscv->clint;
@@ -316,6 +324,33 @@ static VMI_REG_READ_FN(readASYNCPE) {
 }
 
 //
+// Return indication of whether FP16 format is in use
+//
+static VMI_REG_READ_FN(readFP16) {
+
+    riscvP riscv      = (riscvP)processor;
+    Uns8  *usingBF16P = buffer;
+
+    *usingBF16P = riscv->usingBF16;
+
+    return True;
+}
+
+//
+// Write indication of whether FP16 format is in use
+//
+static VMI_REG_WRITE_FN(writeFP16) {
+
+    riscvP      riscv      = (riscvP)processor;
+    const Uns8 *usingBF16P = buffer;
+    Uns8        usingBF16  = *usingBF16P;
+
+    riscvUpdateDynamicBF16(riscv, usingBF16&1);
+
+    return True;
+}
+
+//
 // Read CLINT msip
 //
 static VMI_REG_READ_FN(readMSIP) {
@@ -323,7 +358,7 @@ static VMI_REG_READ_FN(readMSIP) {
     riscvP riscv = (riscvP)processor;
     Uns8  *msipP = buffer;
 
-    *msipP = riscvReadCLINTMSIP(riscv->clint);
+    *msipP = riscvReadCLINTMSIP(riscv);
 
     return True;
 }
@@ -337,7 +372,7 @@ static VMI_REG_WRITE_FN(writeMSIP) {
     const Uns8 *msipP = buffer;
     Uns8        msip  = *msipP;
 
-    riscvWriteCLINTMSIP(riscv->clint, msip&1);
+    riscvWriteCLINTMSIP(riscv, msip&1);
 
     return True;
 }
@@ -350,7 +385,7 @@ static VMI_REG_READ_FN(readMTIMECMP) {
     riscvP riscv     = (riscvP)processor;
     Uns64 *mtimecmpP = buffer;
 
-    *mtimecmpP = riscvReadCLINTMTIMECMP(riscv->clint);
+    *mtimecmpP = riscvReadMTIMECMP(riscv);
 
     return True;
 }
@@ -364,7 +399,7 @@ static VMI_REG_WRITE_FN(writeMTIMECMP) {
     const Uns64 *mtimecmpP = buffer;
     Uns64        mtimecmp  = *mtimecmpP;
 
-    riscvWriteCLINTMTIMECMP(riscv->clint, mtimecmp);
+    riscvWriteMTIMECMP(riscv, mtimecmp);
 
     return True;
 }
@@ -377,7 +412,7 @@ static VMI_REG_READ_FN(readMTIME) {
     riscvP riscv  = (riscvP)processor;
     Uns64 *mtimeP = buffer;
 
-    *mtimeP = riscvReadCLINTMTIME(riscv->clint);
+    *mtimeP = riscvReadMTIME(riscv);
 
     return True;
 }
@@ -391,7 +426,7 @@ static VMI_REG_WRITE_FN(writeMTIME) {
     const Uns64 *mtimeP = buffer;
     Uns64        mtime  = *mtimeP;
 
-    riscvWriteCLINTMTIME(riscv->clint, mtime);
+    riscvWriteCLINTMTIME(riscv, mtime);
 
     return True;
 }
@@ -514,6 +549,7 @@ static const supDetails supRegs[] = {
     {"PTWLevel",     "PTW active level",                        ISA_S,  6,  8, VMI_NOREG,        readPTWLevel,     0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
     {"fflags_i",     "Per-instruction floating point flags",    ISA_DF, 7,  8, VMI_NOREG,        readFFlagsI,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 0, 0, 1, 0, presentFFlagsI},
     {"ASYNCPE",      "Asynchronous Event Pending & Enabled",    0,      8,  8, VMI_NOREG,        readASYNCPE,      0,             vmi_RA_R,  RV_GROUP(INTEGRATION), 1, 1, 0, 0, 0             },
+    {"fp16Format",   "Dynamic 16-bit floating point format",    0,      9,  8, VMI_NOREG,        readFP16,         writeFP16,     vmi_RA_RW, RV_GROUP(INTEGRATION), 1, 1, 0, 0, dynamicFP16   },
     {"msip",         "CLINT msip",                              0,     16,  8, VMI_NOREG,        readMSIP,         writeMSIP,     vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, 0, presentCLINT  },
     {"mtimecmp",     "CLINT mtimecmp",                          0,     17, 64, VMI_NOREG,        readMTIMECMP,     writeMTIMECMP, vmi_RA_RW, RV_GROUP(CLINT),       0, 0, 0, 0, presentCLINT  },
     {"mtime",        "CLINT mtime",                             0,     18, 64, VMI_NOREG,        readMTIME,        writeMTIME,    vmi_RA_RW, RV_GROUP(CLINT),       1, 0, 0, 0, presentCLINT  },
@@ -1171,6 +1207,54 @@ VMI_REG_IMPL_FN(riscvRegImpl) {
     RISCV_FIELD_IMPL_IGNORE(triggerVA);
     RISCV_FIELD_IMPL_IGNORE(triggerLV);
     RISCV_FIELD_IMPL_IGNORE(fpFlagsI);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MEMORY ACCESS TRACE ELABORATION
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Patch vmiRegInfo objects for CSRs that use the CSR bus so that callbacks are
+// always used
+//
+static void patchCSRBusCallbacksInt(riscvP riscv, Bool normal) {
+
+    vmiRegInfoP this;
+
+    for(this=riscv->regInfo[normal]; this && this->name; this++) {
+
+        if(
+            (this->group==RV_GROUP(U_CSR)) ||
+            (this->group==RV_GROUP(S_CSR)) ||
+            (this->group==RV_GROUP(H_CSR)) ||
+            (this->group==RV_GROUP(M_CSR))
+        ) {
+            riscvCSRAttrsCP attrs = this->userData;
+
+            if(riscvCSRImplementExternalRead(attrs, riscv, True)) {
+                this->readCB = readCSR;
+            }
+
+            if(riscvCSRImplementExternalWrite(attrs, riscv)) {
+                this->writeCB = writeCSR;
+            }
+        }
+    }
+}
+
+//
+// If the CSR bus is used, it is possible that this could be connected or
+// filled *after* the first access to a register through the OP/ICM interface,
+// in which case vmiRegInfo entries implemented using the CSR bus must be
+// modified to use callbacks here
+//
+void riscvPatchCSRBusCallbacks(riscvP riscv) {
+
+    if(riscvGetExternalCSRDomain(riscv)) {
+        patchCSRBusCallbacksInt(riscv, False);
+        patchCSRBusCallbacksInt(riscv, True);
+    }
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,17 +28,18 @@
 #define EMIT_R4         '\004'
 #define EMIT_CS         '\005'
 #define EMIT_CX         '\006'
-#define EMIT_UI         '\007'
-#define EMIT_TGT        '\010'
-#define EMIT_CSR        '\011'
-#define EMIT_PRED       '\012'
-#define EMIT_SUCC       '\013'
-#define EMIT_VTYPE      '\014'
-#define EMIT_RM         '\015'
-#define EMIT_RMR        '\016'
-#define EMIT_RLIST      '\017'
-#define EMIT_ALIST      '\020'
-#define EMIT_RETVAL     '\021'
+#define EMIT_CF         '\007'
+#define EMIT_UI         '\010'
+#define EMIT_TGT        '\011'
+#define EMIT_CSR        '\012'
+#define EMIT_PRED       '\013'
+#define EMIT_SUCC       '\014'
+#define EMIT_VTYPE      '\015'
+#define EMIT_RM         '\016'
+#define EMIT_RMR        '\017'
+#define EMIT_RLIST      '\020'
+#define EMIT_ALIST      '\021'
+#define EMIT_RETVAL     '\022'
 
 //
 // These are placeholders in disassembly format strings
@@ -49,17 +50,18 @@
 #define EMIT_R4_S       "\004"
 #define EMIT_CS_S       "\005"
 #define EMIT_CX_S       "\006"
-#define EMIT_UI_S       "\007"
-#define EMIT_TGT_S      "\010"
-#define EMIT_CSR_S      "\011"
-#define EMIT_PRED_S     "\012"
-#define EMIT_SUCC_S     "\013"
-#define EMIT_VTYPE_S    "\014"
-#define EMIT_RM_S       "\015"
-#define EMIT_RMR_S      "\016"
-#define EMIT_RLIST_S    "\017"
-#define EMIT_ALIST_S    "\020"
-#define EMIT_RETVAL_S   "\021"
+#define EMIT_CF_S       "\007"
+#define EMIT_UI_S       "\010"
+#define EMIT_TGT_S      "\011"
+#define EMIT_CSR_S      "\012"
+#define EMIT_PRED_S     "\013"
+#define EMIT_SUCC_S     "\014"
+#define EMIT_VTYPE_S    "\015"
+#define EMIT_RM_S       "\016"
+#define EMIT_RMR_S      "\017"
+#define EMIT_RLIST_S    "\020"
+#define EMIT_ALIST_S    "\021"
+#define EMIT_RETVAL_S   "\022"
 
 //
 // These are disassembly format strings
@@ -71,6 +73,7 @@
 #define FMT_R3_R4               EMIT_R3_S "," EMIT_R4_S
 #define FMT_R1NZ_R2             "*" EMIT_R1_S "," EMIT_R2_S
 #define FMT_R1_SIMM             EMIT_R1_S "," EMIT_CS_S
+#define FMT_R1_FIMM             EMIT_R1_S "," EMIT_CF_S
 #define FMT_R1_R3               EMIT_R1_S "," EMIT_R3_S
 #define FMT_R1_R2_R3            EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S
 #define FMT_R1_R2_RMR           EMIT_R1_S "," EMIT_R2_S "," EMIT_RMR_S

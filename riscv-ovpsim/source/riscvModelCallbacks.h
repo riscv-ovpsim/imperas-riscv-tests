@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -882,6 +882,7 @@ typedef struct riscvExtCBS {
     riscvDerivedMorphFn       postMorph;
     riscvDerivedMorphFn       AMOCheck;
     riscvDerivedMorphFn       AMOMorph;
+    riscvUnitStrideCheckFn    unitStrideCheck;
 
     // transaction support actions
     riscvIASSwitchFn          switchCB;

@@ -33,28 +33,28 @@ Other instructions (those not the focus of this suite)
   csrrw : 100
   mret : 50
   slli : 42,263
-  beq : 831
+  blt : 674
   sd : 17,434
   fence : 51
   ecall : 50
-  addw : 678
-  add : 679
-  and : 677
+  beq : 831
+  bltu : 814
   sext.w : 27
-  bge : 674
-  bgeu : 821
+  addw : 678
+  sw : 136
+  lw : 34
+  and : 677
   jalr : 97
   xori : 689
   andi : 684
   sub : 1,330
-  sw : 136
-  lw : 34
-  blt : 674
-  bltu : 814
   bne : 678
-  lb : 32
-  lbu : 33
+  bge : 674
+  add : 679
+  bgeu : 821
   ld : 32
+  lbu : 33
+  lb : 32
   lh : 32
   lhu : 32
   lwu : 32
@@ -62,21 +62,21 @@ Other instructions (those not the focus of this suite)
   ori : 622
   sb : 135
   sh : 133
-  sll : 153
-  slliw : 150
-  sllw : 153
-  slt : 676
-  sltiu : 759
-  slti : 617
-  sltu : 819
-  srai : 152
-  sra : 154
-  sraw : 154
-  srli : 153
   srl : 153
-  sraiw : 152
-  srliw : 152
+  slliw : 150
+  sll : 153
+  srai : 152
+  sllw : 153
+  slti : 617
+  sltiu : 759
+  sltu : 819
+  sra : 154
+  slt : 676
+  srli : 153
+  sraw : 154
   srlw : 154
+  sraiw : 152
   subw : 678
   xor : 675
+  srliw : 152
 

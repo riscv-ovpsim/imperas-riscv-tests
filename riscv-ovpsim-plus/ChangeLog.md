@@ -1,6 +1,6 @@
 riscvOVPsim Change Log
 ===
-Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the riscvOVPsim (and derivative) fixed platforms which include information of the OVP Simulator and RISCV processor model
 
@@ -11,6 +11,60 @@ NOTE: X-commit messages below refer to git commits in the following
   I-commit: https://github.com/riscv/riscv-isa-manual
   V-commit: https://github.com/riscv/riscv-v-spec
   C-commit: https://github.com/riscv/riscv-fast-interrupt
+
+- When floating point is implemented, new parameter Zfa enables additional
+  floating point instructions defined by the Zfa extension.
+- When the vector extension is present, new parameters Zvfh and Zvfhmin enable
+  full or minimal half-precision vector floating point instructions,
+  respectively.
+- Vector Cryptographic Extension is now implemented if both K and V extensions
+  are enabled. New parameters Zvkb, Zvkg, Zvknha, Zvknhb, Zvkns, Zvksed and
+  Zvksh control the subset of instructions that are present. This specification
+  is currently unstable; the "master" version is subject to change.
+- Disassembly of push/pop instructions when use_hw_reg_names is specified has
+  been corrected (previously, these showed ABI names).
+- New parameters scounteren_zero_mask and hcounteren_zero_mask specify bits that
+  are hard-wired to zero in scounteren and hcounteren even if they are writeable
+  in mcounteren.
+- If debug mode is implemented, trigger type 15 (unavailable) is now supported
+  if it is indicated as present in the tinfo CSR.
+- An issue has been corrected that caused CSR instret to appear to decrement
+  when some instruction traps were taken.
+- When the time CSR is implemented or the Sstc extension is implemented, a 
+  64-bit input net port called mtime is now present on the model. If connected,
+  this should be periodically written with a time value by an external model.
+  If unconnected, an incrementing time value will be generated automatically
+  by the RISC-V model.
+- The mode-specific timer interrupt extension (Sstc) has been implemented when
+  enabled by parameter Sstc.
+- Hypervisor version 1.0 has been added for completeness. In the model, this is
+  functionally identical to version 0.6.1.
+- The Zvfbfmin extension is now implemented (when the Vector Extension is
+  enabled and parameter Zvfbfmin is True).
+- In legacy Resumable NMI extension version 0.2.1, reads of mnstatus by CSR
+  access instructions now mask the NMIE bit, which is not defined in that
+  specification version. Artifact accesses are unaffected (required so that
+  save/restore of this CSR including the implicit enable bit is possible).
+- The Advanced Interrupt Architecture extension is now implemented. See the
+  OVP RISC-V Model Custom Extension Guide for detailed information.
+- When the Hypervisor extension is implemented, writeable non-standard bits in
+  CSR hvip are now masked by parameter hvip_mask, and are not subject to masking
+  by mideleg. Previously, writeable bits were masked by mideleg. This change is
+  required to support the Advanced Interrupt Architecture extension.
+- The CLIC version master branch now has these extra differences compared to
+  the previous 0.9-draft-20220315 version:
+  - C-commit c0dc4db: whether interrupt handling is in CLIC or CLINT mode is
+    now determined by mtvec.MODE at all privilege levels (when both modes are
+    supported).
+  - C-commit 3006a21: xintstatus registers have been relocated at read-only
+    CSR addresses.
+  - C-commit a75cb28: cliccfg.nvbits field has been removed.
+  - C-commit a75cb28: clicinfo memory-mapped register has been removed.
+  - C-commit a75cb28: mclicbase CSR is always absent.
+
+Date 2022-October-18
+Release 20221017.0
+===
 
 - Compressed extension version 1.0.0-RC5.7 is now implemented if parameter
   compress_version is set to "1.0.0-RC5.7". Compared to version 0.70.5:

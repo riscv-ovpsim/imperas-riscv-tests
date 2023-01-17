@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@
     .vect_version     = RVVV_DEFAULT,                           \
     .dbg_version      = RVDBG_DEFAULT,                          \
     .CLIC_version     = RVCLC_DEFAULT,                          \
+    .AIA_version      = RVAIA_DEFAULT,                          \
     .CLICSELHVEC      = True,                                   \
     .CSIP_present     = True,                                   \
     .debug_priority   = RVDP_693,                               \

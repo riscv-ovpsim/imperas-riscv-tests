@@ -34,23 +34,22 @@ Other instructions (those not the focus of this suite)
   mret : 34
   lui : 8,126
   slli : 18,806
-  c-addi : 1,926
+  c-andi : 466
   sd : 7,329
+  c-addi : 1,926
   fence : 33
   ecall : 33
   c-li : 131
   beq : 100
-  c-addiw : 438
-  c-sdsp : 255
-  c-addw : 678
   c-add : 669
-  c-ldsp : 31
-  c-bnez : 149
   jal : 261
-  c-jr : 31
+  c-beqz : 149
+  c-and : 671
+  c-jalr : 31
   xori : 62
-  andi : 36
   sub : 593
+  andi : 36
+  c-sdsp : 255
   jalr : 2
   c-ebreak : 1
   ld : 22
@@ -58,19 +57,20 @@ Other instructions (those not the focus of this suite)
   sll : 1
   sw : 133
   bne : 1
-  c-andi : 466
-  c-jalr : 31
-  c-beqz : 149
-  c-and : 671
-  c-lwsp : 31
-  lw : 13
-  c-or : 680
-  c-mv : 149
+  c-addiw : 438
+  c-jr : 31
+  c-ldsp : 31
+  c-addw : 678
+  c-bnez : 149
   c-slli : 148
+  lw : 13
+  c-mv : 149
   c-srai : 148
+  c-lwsp : 31
   c-srli : 149
-  c-sub : 671
+  c-or : 680
   c-subw : 670
+  c-sub : 671
   c-swsp : 133
   c-xor : 663
 

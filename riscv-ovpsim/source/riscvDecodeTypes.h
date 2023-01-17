@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ typedef enum riscvITypeE {
     // move pseudo-instructions (register and constant source)
     RV_IT_MV_R,
     RV_IT_MV_C,
+    RV_IT_MV_RR,
+    RV_IT_MVH_R,
 
     // base R-type instructions
     RV_IT_ADD_R,
@@ -138,15 +140,22 @@ typedef enum riscvITypeE {
     RV_IT_FADD_R,
     RV_IT_FCLASS_R,
     RV_IT_FCVTX_R,
+    RV_IT_FCVTMODX_R,
     RV_IT_FCVTF_R,
     RV_IT_FDIV_R,
     RV_IT_FEQ_R,
     RV_IT_FLE_R,
     RV_IT_FLT_R,
+    RV_IT_FLEQ_R,
+    RV_IT_FLTQ_R,
     RV_IT_FMAX_R,
     RV_IT_FMIN_R,
+    RV_IT_FMAXM_R,
+    RV_IT_FMINM_R,
     RV_IT_FMUL_R,
     RV_IT_FNEG_R,
+    RV_IT_FROUND_R,
+    RV_IT_FROUNDNX_R,
     RV_IT_FSGNJ_R,
     RV_IT_FSGNJN_R,
     RV_IT_FSGNJX_R,
@@ -372,6 +381,9 @@ typedef enum riscvITypeE {
     RV_IT_VSSRA_VR,
     RV_IT_VNCLIPU_VR,
     RV_IT_VNCLIP_VR,
+    RV_IT_VANDN_VR,
+    RV_IT_VROR_VR,
+    RV_IT_VROL_VR,
 
     // V-extension MVV/MVX-type common instructions
     RV_IT_VDIVU_VR,
@@ -405,6 +417,8 @@ typedef enum riscvITypeE {
     RV_IT_VQMACC_VR,
     RV_IT_VQMACCSU_VR,
     RV_IT_VQMACCUS_VR,
+    RV_IT_VCLMUL_VR,
+    RV_IT_VCLMULH_VR,
 
     // V-extension IVV-type instructions
     RV_IT_VWREDSUMU_VS,
@@ -504,6 +518,8 @@ typedef enum riscvITypeE {
     RV_IT_VMNAND_MM,
     RV_IT_VMNOR_MM,
     RV_IT_VMXNOR_MM,
+    RV_IT_VBREV8_V,
+    RV_IT_VREV8_V,
 
     // V-extension IVI-type instructions
     RV_IT_VADD_VI,
@@ -536,6 +552,8 @@ typedef enum riscvITypeE {
     RV_IT_VNSRA_VI,
     RV_IT_VNCLIPU_VI,
     RV_IT_VNCLIP_VI,
+    RV_IT_VANDN_VI,
+    RV_IT_VROR_VI,
 
     // V-extension FVF-type instructions
     RV_IT_VFMV_S_F,
@@ -548,6 +566,28 @@ typedef enum riscvITypeE {
     RV_IT_VSLIDE1DOWN_VX,
     RV_IT_VZEXT_V,
     RV_IT_VSEXT_V,
+
+    // V-extension MVV-type instructions (OP-P)
+    RV_IT_VAESDM_VV,
+    RV_IT_VAESDM_VS,
+    RV_IT_VAESDF_VV,
+    RV_IT_VAESDF_VS,
+    RV_IT_VAESEM_VV,
+    RV_IT_VAESEM_VS,
+    RV_IT_VAESEF_VV,
+    RV_IT_VAESEF_VS,
+    RV_IT_VAESZ_VS,
+    RV_IT_VAESKF1_VI,
+    RV_IT_VAESKF2_VI,
+    RV_IT_VGHMAC_VV,
+    RV_IT_VSM3ME_VV,
+    RV_IT_VSM3C_VI,
+    RV_IT_VSM4K_VI,
+    RV_IT_VSM4R_VV,
+    RV_IT_VSM4R_VS,
+    RV_IT_VSHA2MS_VV,
+    RV_IT_VSHA2CL_VV,
+    RV_IT_VSHA2CH_VV,
 
     // P-extension instructions (RV32 and RV64)
     RV_IT_ADD_Sx,
@@ -845,52 +885,16 @@ typedef enum riscvPackDescE {
 } riscvPackDesc;
 
 //
-// This is used specify the register list for Zcea PUSH/POP
-//
-typedef enum riscvRListDescE {
-
-    RV_RL_x_RA,             // {ra}                 both
-    RV_RL_x_RA_S0,          // {ra,s0}              both
-    RV_RL_x_RA_S0_1,        // {ra,s0-s1}           both
-    RV_RL_U_RA_S0_2,        // {ra,s0-s2}           UABI
-    RV_RL_U_RA_S0_3,        // {ra,s0-s3}           UABI
-    RV_RL_U_RA_S0_4,        // {ra,s0-s4}           UABI
-    RV_RL_U_RA_S0_5,        // {ra,s0-s5}           UABI
-    RV_RL_U_RA_S0_6,        // {ra,s0-s6}           UABI
-    RV_RL_U_RA_S0_7,        // {ra,s0-s7}           UABI
-    RV_RL_U_RA_S0_8,        // {ra,s0-s8}           UABI
-    RV_RL_U_RA_S0_9,        // {ra,s0-s9}           UABI
-    RV_RL_U_RA_S0_10,       // {ra,s0-s10}          UABI
-    RV_RL_U_RA_S0_11,       // {ra,s0-s11}          UABI
-    RV_RL_E_RA_S0_2,        // {ra,s0-s2}           EABI
-    RV_RL_E_RA_S3_S0_2,     // {ra,s3,s0-s2}        EABI
-    RV_RL_E_RA_S3_4_S0_2,   // {ra,s3-s4,s0-s2}     EABI
-
-} riscvRListDesc;
-
-//
-// This is used specify the argument register list for Zcea PUSH
-//
-typedef enum riscvAListDescE {
-
-    RV_AL_NA,               // {}
-    RV_AL_A0,               // {a0}
-    RV_AL_A0_1,             // {a0-a1}
-    RV_AL_A0_2,             // {a0-a2}
-    RV_AL_A0_3,             // {a0-a3}
-
-} riscvAListDesc;
-
-//
 // This is used specify return value for Zcea POP
 //
 typedef enum riscvRetValDescE {
 
-    RV_RV_NA,               // {}
-    RV_RV_0,                // {0}
-    RV_RV_P1,               // {1}
-    RV_RV_M1,               // {-1}
-    RV_RV_Z,                // explicit Z in opcode
+    RV_RV_NA,       // {}
+    RV_RV_0,        // {0}
+    RV_RV_P1,       // {1}
+    RV_RV_M1,       // {-1}
+    RV_RV_Z,        // explicit Z in opcode
+    RV_RV_LAST      // KEEP LAST: for sizing
 
 } riscvRetValDesc;
 
@@ -904,6 +908,18 @@ typedef enum riscvXPERMDescE {
     RV_XP_BITS,     // use bits suffix
 
 } riscvXPERMDesc;
+
+//
+// Suffix when compressed extension disassembly is in use
+//
+typedef enum riscvCSufDescE {
+
+    RV_CS_NA,       // no suffix
+    RV_CS_SP,       // "sp" suffix
+    RV_CS_16SP,     // "16sp" suffix
+    RV_CS_4SPN,     // "4spn" suffix
+
+} riscvCSufDesc;
 
 //
 // This defines the maximum number of argument registers
@@ -941,13 +957,15 @@ typedef struct riscvInstrInfoS {
     riscvCrossOpDesc  crossOp;          // cross operation
     riscvHalfDesc     half;             // top/bottom half operation
     riscvPackDesc     pack;             // byte packing
-    riscvRListDesc    rlist;            // register list (Zcea push/pop)
-    riscvAListDesc    alist;            // argument register list (Zcea push)
+    Uns32             rlist;            // register list (Zcea push/pop)
+    Uns32             alist;            // argument register list (Zcea push)
     riscvRetValDesc   retval;           // return value (Zcea pop)
     riscvXPERMDesc    xperm;            // XPER descriptor
+    riscvCSufDesc     cSuffix;          // compressed suffix
     Uns32             csr;              // CSR index
     Uns8              nf;               // nf value
     Uns8              eewDiv;           // explicit EEW divisor
+    Uns8              eewIndex;         // number of EEW index operand
     Uns8              shN;              // shN prefix
     Uns8              elemSize;         // element size
     Uns8              explicitType;     // whether types are explicit in opcode
@@ -962,6 +980,7 @@ typedef struct riscvInstrInfoS {
     Bool              isFF;             // is this a first-fault instruction?
     Bool              doRet;            // do return (Zcea pop)
     Bool              Zmmul;            // whether affected by Zmmul
+    Bool              embedded;         // whether embedded modifier required
 
 } riscvInstrInfo;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ typedef struct riscvParamValuesS {
     VMI_STRING_PARAM(clusterVariants);
     VMI_BOOL_PARAM(use_hw_reg_names);
     VMI_BOOL_PARAM(no_pseudo_inst);
+    VMI_BOOL_PARAM(show_c_prefix);
     VMI_BOOL_PARAM(ABI_d);
     VMI_BOOL_PARAM(verbose);
     VMI_BOOL_PARAM(traceVolatile);
@@ -115,11 +116,13 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(compress_version);
     VMI_ENUM_PARAM(hypervisor_version);
     VMI_ENUM_PARAM(crypto_version);
+    VMI_ENUM_PARAM(vcrypto_version);
     VMI_ENUM_PARAM(dsp_version);
     VMI_ENUM_PARAM(debug_version);
     VMI_ENUM_PARAM(rnmi_version);
     VMI_ENUM_PARAM(Smepmp_version);
     VMI_ENUM_PARAM(CLIC_version);
+    VMI_ENUM_PARAM(AIA_version);
     VMI_ENUM_PARAM(fp16_version);
     VMI_ENUM_PARAM(mstatus_fs_mode);
     VMI_UNS32_PARAM(numHarts);
@@ -132,6 +135,7 @@ typedef struct riscvParamValuesS {
     VMI_ENUM_PARAM(amo_constraint);
     VMI_ENUM_PARAM(lr_sc_constraint);
     VMI_ENUM_PARAM(push_pop_constraint);
+    VMI_ENUM_PARAM(vector_constraint);
     VMI_BOOL_PARAM(updatePTEA);
     VMI_BOOL_PARAM(updatePTED);
     VMI_BOOL_PARAM(unaligned_low_pri);
@@ -141,6 +145,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(wfi_is_nop);
     VMI_BOOL_PARAM(mtvec_is_ro);
     VMI_UNS32_PARAM(counteren_mask);
+    VMI_UNS32_PARAM(scounteren_zero_mask);
+    VMI_UNS32_PARAM(hcounteren_zero_mask);
     VMI_UNS32_PARAM(noinhibit_mask);
     VMI_UNS32_PARAM(tvec_align);
     VMI_UNS64_PARAM(mtvec_mask);
@@ -155,6 +161,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(sip_mask);
     VMI_UNS64_PARAM(uip_mask);
     VMI_UNS64_PARAM(hip_mask);
+    VMI_UNS64_PARAM(hvip_mask);
     VMI_UNS64_PARAM(envcfg_mask);
     VMI_BOOL_PARAM(mtvec_sext);
     VMI_BOOL_PARAM(stvec_sext);
@@ -217,6 +224,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(cmoz_bytes);
     VMI_UNS32_PARAM(Sv_modes);
     VMI_BOOL_PARAM(Smstateen);
+    VMI_BOOL_PARAM(Sstc);
     VMI_BOOL_PARAM(Svpbmt);
     VMI_BOOL_PARAM(Svinval);
     VMI_UNS32_PARAM(lr_sc_grain);
@@ -275,6 +283,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zve64x);
     VMI_BOOL_PARAM(Zve64f);
     VMI_BOOL_PARAM(Zve64d);
+    VMI_BOOL_PARAM(Zvfbfmin);
     VMI_BOOL_PARAM(Zba);
     VMI_BOOL_PARAM(Zbb);
     VMI_BOOL_PARAM(Zbc);
@@ -299,10 +308,20 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zknh);
     VMI_BOOL_PARAM(Zksed);
     VMI_BOOL_PARAM(Zksh);
+    VMI_BOOL_PARAM(Zvkb);
+    VMI_BOOL_PARAM(Zvkg);
+    VMI_BOOL_PARAM(Zvknha);
+    VMI_BOOL_PARAM(Zvknhb);
+    VMI_BOOL_PARAM(Zvkns);
+    VMI_BOOL_PARAM(Zvksed);
+    VMI_BOOL_PARAM(Zvksh);
     VMI_BOOL_PARAM(Zkb);
     VMI_BOOL_PARAM(Zkg);
+    VMI_BOOL_PARAM(Zfa);
     VMI_BOOL_PARAM(Zfh);
     VMI_BOOL_PARAM(Zfhmin);
+    VMI_BOOL_PARAM(Zvfh);
+    VMI_BOOL_PARAM(Zvfhmin);
     VMI_BOOL_PARAM(Zpsfoperand);
     VMI_ENUM_PARAM(Zfinx_version);
     VMI_ENUM_PARAM(Zcea_version);
@@ -341,12 +360,15 @@ typedef struct riscvParamValuesS {
 
     // AIA configuration
     VMI_BOOL_PARAM(Smaia);
-    VMI_BOOL_PARAM(IPRIOLEN);
+    VMI_UNS32_PARAM(IPRIOLEN);
+    VMI_UNS32_PARAM(HIPRIOLEN);
     VMI_BOOL_PARAM(IMSIC_present);
     VMI_UNS64_PARAM(mvip_mask);
     VMI_UNS64_PARAM(mvien_mask);
+    VMI_UNS64_PARAM(hvien_mask);
     VMI_UNS64_PARAM(miprio_mask);
     VMI_UNS64_PARAM(siprio_mask);
+    VMI_UNS64_PARAM(hviprio_mask);
 
     // Hypervisor configuration
     VMI_UNS32_PARAM(GEILEN);
@@ -411,6 +433,11 @@ const char *riscvGetHypervisorVersionDesc(riscvP riscv);
 const char *riscvGetCryptographicVersionDesc(riscvP riscv);
 
 //
+// Return Vector Cryptographic Architecture description
+//
+const char *riscvGetVCryptographicVersionDesc(riscvP riscv);
+
+//
 // Return DSP Architecture description
 //
 const char *riscvGetDSPVersionDesc(riscvP riscv);
@@ -434,6 +461,11 @@ const char *riscvGetSmepmpVersionName(riscvP riscv);
 // Return CLIC description
 //
 const char *riscvGetCLICVersionDesc(riscvP riscv);
+
+//
+// Return AIA description
+//
+const char *riscvGetAIAVersionDesc(riscvP riscv);
 
 //
 // Return Zfinx version description

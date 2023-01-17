@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1043,6 +1043,20 @@
 }
 
 //
+// Fd, Fs1, RM
+//
+#define ATTR32_FD_FS1_R(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_F_19_15,          \
+    wF       : WF_26_25,            \
+    rm       : RM_14_12,            \
+}
+
+//
 // Fd, Fs1, Fs2, RM
 //
 #define ATTR32_FD_FS1_FS2_R(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1167,6 +1181,19 @@
 }
 
 //
+// instructions like FLI.S
+//
+#define ATTR32_FLI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_FIMM,         \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    cs       : CS_F_19_15,          \
+    wF       : WF_26_25,            \
+}
+
+//
 // instructions like FMV.D.X
 //
 #define ATTR32_FMVFX(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1193,6 +1220,35 @@
     r2       : RS_F_19_15,          \
     wF       : WF_26_25,            \
     wX       : WX_25,               \
+    notZfinx : True,                \
+}
+
+//
+// instructions like FMVH.X.D
+//
+#define ATTR32_FMVHXF(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_XX_11_7,          \
+    r2       : RS_F_19_15,          \
+    wF       : WF_26_25,            \
+    notZfinx : True,                \
+}
+
+//
+// instructions like FMVP.D.X
+//
+#define ATTR32_FMVPFX(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_XX_19_15,         \
+    r3       : RS_XX_24_20,         \
+    wF       : WF_26_25,            \
     notZfinx : True,                \
 }
 
@@ -1405,6 +1461,7 @@
     nf       : NF_31_29,            \
     VIType   : RV_VIT_V,            \
     eew      : EEW_28_14_12,        \
+    eewIndex : 2,                   \
 }
 
 //
@@ -1423,6 +1480,7 @@
     memBits  : MBS_SEW,             \
     VIType   : RV_VIT_V,            \
     eew      : EEW_14_12,           \
+    eewIndex : 2,                   \
 }
 
 //
@@ -1500,6 +1558,36 @@
 }
 
 //
+// Vd, Vs1, Vm (V, BF16)
+//
+#define ATTR32_VD_VS1BF16_M_V(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20_BF16,     \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_V,            \
+    rm       : RM_CUR,              \
+}
+
+//
+// Vd, Vs1, Vm (W, BF16)
+//
+#define ATTR32_VDBF16_VS1_M_W(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7_BF16,      \
+    r2       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_W,            \
+    rm       : RM_CUR,              \
+}
+
+//
 // Vd, Vs1, Vm (VN, cur)
 //
 #define ATTR32_VD_VS1_M_VN_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1573,6 +1661,21 @@
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VV,           \
     eew      : EEW_16,              \
+    eewIndex : 2,                   \
+}
+
+//
+// Vd, Vs2, Vm (V)
+//
+#define ATTR32_VD_VS2_M_V(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_V,            \
 }
 
 //
@@ -1662,6 +1765,34 @@
     r1       : RS_V_11_7,           \
     r2       : RS_V_24_20,          \
     r3       : RS_V_19_15,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VS,           \
+}
+
+//
+// Vd, Vs1, Vm (VV)
+//
+#define ATTR32_VD_VS1_M_VV(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VV,           \
+}
+
+//
+// Vd, Vs1, Vm (VS)
+//
+#define ATTR32_VD_VS1_M_VS(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_RM,        \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VS,           \
 }
@@ -1836,6 +1967,21 @@
     r1       : RS_V_11_7,           \
     r2       : RS_V_24_20,          \
     cs       : CS_U_19_15,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VI,           \
+}
+
+//
+// Vd, Vs1, UIMM, Vm (VI)
+//
+#define ATTR32_VD_VS1_UIP32_M_VI(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_SIMM_RM,   \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_24_20,          \
+    cs       : CS_U_19_15_P32,      \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VI,           \
 }
@@ -3057,6 +3203,7 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_ADDI16SP,     \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_16SP,        \
 }
 
 //
@@ -3071,6 +3218,7 @@
     r2     : RS_X_SP,           \
     cs     : CS_C_ADDI4SPN,     \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_4SPN,        \
 }
 
 //
@@ -3252,6 +3400,7 @@
     cs     : CS_C_LDSP,         \
     memBits: MBS_D,             \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_SP,          \
 }
 
 //
@@ -3267,6 +3416,7 @@
     cs     : CS_C_SDSP,         \
     memBits: MBS_D,             \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_SP,          \
 }
 
 //
@@ -3299,6 +3449,7 @@
     memBits: MBS_W,             \
     xQuiet : True,              \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_SP,          \
 }
 
 //
@@ -3314,6 +3465,7 @@
     cs     : CS_C_SWSP,         \
     memBits: MBS_W,             \
     Zc     : RVCS_##_ZC,        \
+    cSuffix: RV_CS_SP,          \
 }
 
 //
@@ -3350,6 +3502,7 @@
     xQuiet   : True,                \
     notZfinx : True,                \
     Zc       : RVCS_##_ZC,          \
+    cSuffix  : RV_CS_SP,            \
 }
 
 //
@@ -3368,6 +3521,7 @@
     xQuiet   : True,                \
     notZfinx : True,                \
     Zc       : RVCS_##_ZC,          \
+    cSuffix  : RV_CS_SP,            \
 }
 
 //
@@ -3404,6 +3558,7 @@
     xQuiet   : True,                \
     notZfinx : True,                \
     Zc       : RVCS_##_ZC,          \
+    cSuffix  : RV_CS_SP,            \
 }
 
 //
@@ -3422,6 +3577,7 @@
     xQuiet   : True,                \
     notZfinx : True,                \
     Zc       : RVCS_##_ZC,          \
+    cSuffix  : RV_CS_SP,            \
 }
 
 //

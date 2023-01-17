@@ -23,13 +23,13 @@ Architectural Test Suite Data for RV32ZBS B Bit Manipulation:
     6,864 total instructions
 
 Instruction category: OPB_SBIT Single-Bit
-  bclri : 170
-  bclr : 172
-  binv : 172
   bexti : 170
+  binv : 172
+  bclri : 170
+  bset : 172
   bseti : 170
   binvi : 170
-  bset : 172
+  bclr : 172
 Instruction category: OPB_EXDE Bit Extract/Deposit
   bext : 172
 

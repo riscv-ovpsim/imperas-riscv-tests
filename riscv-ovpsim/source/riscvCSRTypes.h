@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,6 +86,9 @@ typedef RISCV_CSR_PRESENTFN((*riscvCSRPresentFn));
 // CSR DEFINITION TYPE
 ////////////////////////////////////////////////////////////////////////////////
 
+//
+// CSR trace constraints
+//
 typedef enum riscvCSRTraceE {
     RCSRT_YES,          // always trace CSR
     RCSRT_NO,           // never trace CSR
@@ -93,33 +96,65 @@ typedef enum riscvCSRTraceE {
 } riscvCSRTrace;
 
 //
+// Stateen standard feature bits
+//
+typedef enum riscvCSRStateenBitE {
+    bit_stateen_NA       = 0,
+    bit_stateen_Zfinx    = 1,
+    bit_stateen_Zcmt     = 2,
+    bit_stateen_xcse     = 57,
+    bit_stateen_IMSIC    = 58,
+    bit_stateen_AIA      = 59,
+    bit_stateen_sireg    = 60,
+    bit_stateen_xenvcfg  = 62,
+    bit_stateen_xstateen = 63,
+} riscvCSRStateenBit;
+
+// macro to define Stateen standard feature mask
+#define STATEEN_MASK(_N) WM64_stateen_##_N = (1ULL<<bit_stateen_##_N)
+
+//
+// Stateen standard feature masks
+//
+typedef enum riscvCSRStateenBitStateenMaskE {
+    STATEEN_MASK(Zfinx),
+    STATEEN_MASK(Zcmt),
+    STATEEN_MASK(xcse),
+    STATEEN_MASK(IMSIC),
+    STATEEN_MASK(AIA),
+    STATEEN_MASK(sireg),
+    STATEEN_MASK(xenvcfg),
+    STATEEN_MASK(xstateen),
+} riscvCSRStateenBitStateenMask;
+
+//
 // This structure records information about each CSR
 //
 typedef struct riscvCSRAttrsS {
-    const char       *name;             // register name
-    const char       *desc;             // register description
-    void             *object;           // client-specific object
-    Uns32             csrNum;           // CSR number (includes privilege and r/w access)
-    riscvArchitecture arch;             // required architecture (presence)
-    riscvArchitecture access;           // required architecture (access)
-    riscvPrivVer      version;          // minimum specification version
-    riscvCSRTrace     noTraceChange:2;  // trace mode
-    Bool              wEndBlock    :1;  // whether write terminates this block
-    Bool              wEndRM       :1;  // whether write invalidates RM assumption
-    Bool              noSaveRestore:1;  // whether to exclude from save/restore
-    Bool              TVMT         :1;  // whether trapped by mstatus.TVM
-    Bool              writeRd      :1;  // whether write updates Rd
-    Bool              aliasV       :1;  // whether CSR has virtual alias
-    Bool              undefined    :1;  // whether CSR is undefined
-    Bool              Smstateen    :1;  // whether xstateen-controlled access
-    riscvCSRPresentFn presentCB;        // CSR present callback
-    riscvCSRReadFn    readCB;           // read callback
-    riscvCSRReadFn    readWriteCB;      // read callback (in r/w context)
-    riscvCSRWriteFn   writeCB;          // write callback
-    riscvCSRWStateFn  wstateCB;         // adjust JIT code generator state
-    vmiReg            reg;              // register
-    vmiReg            writeMaskV;       // variable write mask
-    Uns32             writeMaskC32;     // constant 32-bit write mask
-    Uns64             writeMaskC64;     // constant 64-bit write mask
+    const char        *name;            // register name
+    const char        *desc;            // register description
+    void              *object;          // client-specific object
+    Uns32              csrNum;          // CSR number (includes privilege and r/w access)
+    riscvArchitecture  arch;            // required architecture (presence)
+    riscvArchitecture  access;          // required architecture (access)
+    riscvPrivVer       version;         // minimum specification version
+    riscvCSRTrace      noTraceChange:2; // trace mode
+    Bool               wEndBlock    :1; // whether write terminates this block
+    Bool               wEndRM       :1; // whether write invalidates RM assumption
+    Bool               noSaveRestore:1; // whether to exclude from save/restore
+    Uns32              trap         :2; // whether trapped
+    Bool               writeRd      :1; // whether write updates Rd
+    Bool               aliasV       :1; // whether CSR has virtual alias
+    Bool               undefined    :1; // whether CSR is undefined
+    riscvCSRStateenBit Smstateen    :8; // whether xstateen-controlled access
+    riscvCSRPresentFn  presentCB;       // CSR present callback
+    riscvCSRReadFn     readCB;          // read callback
+    riscvCSRReadFn     readWriteCB;     // read callback (in r/w context)
+    riscvCSRWriteFn    writeCB;         // write callback
+    riscvCSRWStateFn   wstateCB;        // adjust JIT code generator state
+    vmiReg             reg;             // register
+    vmiReg             writeMaskV;      // variable write mask
+    Uns32              writeMaskC32;    // constant 32-bit write mask
+    Uns64              writeMaskC64;    // constant 64-bit write mask
 } riscvCSRAttrs;
 

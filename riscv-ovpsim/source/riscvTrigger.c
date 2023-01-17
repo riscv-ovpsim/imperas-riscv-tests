@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 // model header files
 #include "riscvExceptions.h"
 #include "riscvMessage.h"
+#include "riscvMode.h"
 #include "riscvStructure.h"
 #include "riscvTrigger.h"
 #include "riscvUtils.h"
@@ -571,7 +572,7 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta, Bool complete) {
 //
 // Take action for a trigger
 //
-static void doTriggerAction(riscvP riscv, triggerAction action, Bool baseValid) {
+static void doTriggerAction(riscvP riscv, triggerAction action) {
 
     Uns64 tval = getPC(riscv);
     Uns32 i;
@@ -594,13 +595,11 @@ static void doTriggerAction(riscvP riscv, triggerAction action, Bool baseValid) 
         }
     }
 
-    // adjust base instruction count to allow for instruction retirement
-    if(baseValid || riscvInhibitInstret(riscv)) {
-        // no action
-    } else if(action==TA_DEBUG_BEFORE) {
-        riscv->baseInstructions++;
-    } else if(action==TA_BKPT_AFTER) {
-        riscv->baseInstructions--;
+    // adjust base instruction count to allow for instruction non-retirement
+    // if trigger action is before instruction execution and not performing a
+    // fetch (so trigger activated by code within instruction)
+    if(action==TA_DEBUG_BEFORE) {
+        riscvNoRetire(riscv);
     }
 
     // either enter Debug mode or take M-mode exception
@@ -623,7 +622,7 @@ inline static void scheduleTriggerAfter(riscvP riscv) {
 // Take action for a trigger *before* the current instruction if required
 // (or schedule action after the instruction completes)
 //
-static Bool doTriggerBefore(riscvP riscv, Bool baseValid) {
+static Bool doTriggerBefore(riscvP riscv) {
 
     triggerAction action = getActiveAction(riscv, 0, True);
 
@@ -632,7 +631,7 @@ static Bool doTriggerBefore(riscvP riscv, Bool baseValid) {
     } else if(!(action & TA_BEFORE)) {
         scheduleTriggerAfter(riscv);
     } else {
-        doTriggerAction(riscv, action, baseValid);
+        doTriggerAction(riscv, action);
     }
 
     // indicate if some exception is taken
@@ -651,7 +650,7 @@ static Bool doTriggerAfter(riscvP riscv, Bool complete) {
         riscv->netValue.triggerAfter = False;
     } else if(complete) {
         riscv->netValue.triggerAfter = False;
-        doTriggerAction(riscv, action, False);
+        doTriggerAction(riscv, action);
     }
 
     // indicate if some exception is taken
@@ -748,7 +747,7 @@ static Bool doTriggerADMATCH(
     // if some trigger has matched, scan again to see whether action is
     // required
     if(someMatch) {
-        except = doTriggerBefore(riscv, onlyBefore);
+        except = doTriggerBefore(riscv);
     }
 
     return except;

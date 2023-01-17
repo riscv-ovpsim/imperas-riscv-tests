@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -173,22 +173,27 @@ typedef enum riscvExceptionPriorityE {
     riscv_E_Local47Priority    = 250,
 
     // local interrupt default priorities when AIA absent
-    riscv_E_LocalPriority      = 140
+    riscv_E_LocalPriority      = 260
 
 } riscvExceptionPriority;
 
 //
-// Detail of Access Fault
+// Detail of exception reason to differentiate causes further
 //
-typedef enum riscvAccessFaultS {
-    riscv_AFault_None,      // not an access fault
-    riscv_AFault_PMP,       // access fault because of PMP permission error
-    riscv_AFault_Bus,       // access fault because of bus error
-    riscv_AFault_Device,    // access fault because of device error
-    riscv_AFault_Custom1,   // access fault because of custom reason (1)
-    riscv_AFault_Custom2,   // access fault because of custom reason (2)
-    riscv_AFault_Explicit,  // explicit Access Fault value
-} riscvAccessFault;
+typedef enum riscvExceptionDtlS {
+    riscv_ED_None,      // no detail
+    riscv_ED_PMP,       // PMP permission error
+    riscv_ED_Bus,       // bus error
+    riscv_ED_Atomic,    // illegal atomic access
+    riscv_ED_Device,    // device error
+    riscv_ED_FS,        // FP disabled
+    riscv_ED_VS,        // V extension disabled
+    riscv_ED_Custom1,   // custom reason (1)
+    riscv_ED_Custom2,   // custom reason (2)
+    riscv_ED_Custom3,   // custom reason (3)
+    riscv_ED_Custom4,   // custom reason (4)
+    riscv_ED_LAST,      // KEEP LAST: for sizing
+} riscvExceptionDtl;
 
 //
 // Specify enabled interrupt mode

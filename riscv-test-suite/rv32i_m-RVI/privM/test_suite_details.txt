@@ -34,20 +34,20 @@ Other instructions (those not the focus of this suite)
   jalr : 38
   sw : 278
   beq : 65
-  bne : 18
   lw : 168
   sub : 83
   blt : 39
   andi : 22
   sll : 29
+  xori : 3
+  bne : 18
   fence : 16
   ecall : 17
+  bltu : 1
   bge : 20
   bgeu : 1
   ebreak : 1
-  xori : 3
-  bltu : 1
   lhu : 1
-  lh : 1
   sh : 1
+  lh : 1
 

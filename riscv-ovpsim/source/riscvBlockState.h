@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ typedef enum riscvSEWMtE {
     SEWMT_128     =  128,
     SEWMT_256     =  256,
     SEWMT_512     =  512,
-    SEWMT_1024    = 1024
+    SEWMT_1024    = 1024,
+    SEWMT_32_64   = SEWMT_32|SEWMT_64,
 } riscvSEWMt;
 
 //

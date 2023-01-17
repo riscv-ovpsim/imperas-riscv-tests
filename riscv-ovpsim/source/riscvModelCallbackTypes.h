@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,7 +279,7 @@ DEFINE_CS(extCSRAttrs);
 // Defined but unimplemented CSR
 //
 #define XCSR_ATTR_NIP( \
-    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -290,7 +290,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
     }                                               \
 }
 
@@ -298,7 +298,7 @@ DEFINE_CS(extCSRAttrs);
 // Implemented using vmiReg and optional callbacks, no mask
 //
 #define XCSR_ATTR_T__( \
-    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC, _RCB, _RWCB, _WCB \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -309,7 +309,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
@@ -323,7 +323,7 @@ DEFINE_CS(extCSRAttrs);
 // Implemented using vmiReg and optional callbacks, constant write mask
 //
 #define XCSR_ATTR_TC_( \
-    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC, _RCB, _RWCB, _WCB \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -334,7 +334,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
@@ -348,7 +348,7 @@ DEFINE_CS(extCSRAttrs);
 // Implemented using vmiReg and optional callbacks, variable write mask
 //
 #define XCSR_ATTR_TV_( \
-    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC, _RCB, _RWCB, _WCB \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -359,7 +359,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
@@ -372,7 +372,7 @@ DEFINE_CS(extCSRAttrs);
 // Implemented using optional callbacks, no mask
 //
 #define XCSR_ATTR_P__( \
-    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC, _RCB, _RWCB, _WCB \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -383,7 +383,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
@@ -396,7 +396,7 @@ DEFINE_CS(extCSRAttrs);
 // Implemented using vmiReg and optional callbacks, no mask, high half
 //
 #define XCSR_ATTR_TH_( \
-    _ID, _ID2, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TVMT, _DESC, _RCB, _RWCB, _WCB \
+    _ID, _ID2, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -407,7 +407,7 @@ DEFINE_CS(extCSRAttrs);
         wEndBlock     : _ENDB,                      \
         wEndRM        : _ENDRM,                     \
         noTraceChange : _NOTR,                      \
-        TVMT          : _TVMT,                      \
+        trap          : _TRAP,                      \
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \

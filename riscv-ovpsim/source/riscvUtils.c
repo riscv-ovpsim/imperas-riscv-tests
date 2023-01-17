@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "riscvBlockState.h"
 #include "riscvCSR.h"
 #include "riscvDecode.h"
+#include "riscvDecodeTypes.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
 #include "riscvMessage.h"
@@ -72,9 +73,13 @@ Bool riscvModeIsXLEN64(riscvP riscv, riscvMode mode) {
 // Is Zfinx enabled in the current processor mode?
 //
 static Bool enableZfinx(riscvP riscv) {
+
     return (
         Zfinx(riscv) &&
-        riscvStateenFeatureEnabled(riscv, bit_stateen_Zfinx, False, False)
+        (
+            !(RD_CSR_MASK64(riscv, mstateen[0]) & WM64_stateen_Zfinx) ||
+            riscvStateenFeatureEnabled(riscv, bit_stateen_Zfinx, False)
+        )
     );
 }
 
@@ -186,12 +191,35 @@ void riscvSetCurrentArch(riscvP riscv) {
     // handle trigger state
     arch |= riscvGetCurrentTriggers(riscv);
 
+    // handle dynamic BFLOAT16 state
+    if(riscv->usingBF16) {
+        arch |= ISA_BF16;
+    }
+
     if(riscv->currentArch != arch) {
 
         vmiProcessorP processor = (vmiProcessorP)riscv;
 
         // update current block mask to match architecture
         vmirtSetBlockMask64(processor, &riscv->currentArch, arch);
+    }
+}
+
+//
+// Update dynamic BFLOAT16 state
+//
+void riscvUpdateDynamicBF16(riscvP riscv, Bool newBF16) {
+
+    if(riscv->usingBF16 != newBF16) {
+
+        // update dynamic BF16 state
+        riscv->usingBF16 = newBF16;
+
+        // flush dictionaries if dynamic BF16 check is required
+        if(!riscv->dynamicBF16) {
+            riscv->dynamicBF16 = True;
+            vmirtFlushAllDicts((vmiProcessorP)riscv);
+        }
     }
 }
 
@@ -743,6 +771,14 @@ const char *riscvGetXRegName(riscvP riscv, Uns32 index) {
         "s8",   "s9",   "s10",  "s11",  "t3",   "t4",   "t5",   "t6",
     };
 
+    static const char *mapABIE[] = {
+        "zero", "ra",   "sp",   "gp",   "tp",   "t0",   "s3",   "s4",
+        "s0",   "s1",   "a0",   "a1",   "a2",   "a3",   "s2",   "t1",
+        // these are illegal when embedded extension is active
+        "x16",  "x17",  "x18",  "x19",  "x20",  "x21",  "x22",  "x23",
+        "x24",  "x25",  "x26",  "x27",  "x28",  "x29",  "x30",  "x31",
+    };
+
     static const char *mapHW[] = {
         "x0",   "x1",   "x2",   "x3",   "x4",   "x5",   "x6",   "x7",
         "x8",   "x9",   "x10",  "x11",  "x12",  "x13",  "x14",  "x15",
@@ -753,7 +789,13 @@ const char *riscvGetXRegName(riscvP riscv, Uns32 index) {
     // sanity check index is in range
     VMI_ASSERT(index<NUM_MEMBERS(mapABI), "Illegal index %u", index);
 
-    return riscv->configInfo.use_hw_reg_names ? mapHW[index] : mapABI[index];
+    if(riscv->configInfo.use_hw_reg_names) {
+        return mapHW[index];
+    } else if(riscv->currentArch & ISA_E) {
+        return mapABIE[index];
+    } else {
+        return mapABI[index];
+    }
 }
 
 //

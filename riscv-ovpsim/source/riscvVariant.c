@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -252,3 +252,24 @@ Bool riscvVFSupport(riscvP riscv, riscvVFeature feature) {
 
     return map[riscv->configInfo.vect_version][feature];
 }
+
+//
+// Return any compressed instruction prefix to use for an instruction in the
+// given compressed set
+//
+const char *riscvGetCPrefix(riscvP riscv, riscvCompressSet Zc) {
+
+    const char *result = "";
+
+    if(!riscv->configInfo.show_c_prefix) {
+        // no action
+    } else if(RISCV_COMPRESS_VERSION(riscv) && (Zc & RVCS_ZcNotD)) {
+        result = "cm.";
+    } else {
+        result = "c.";
+    }
+
+    return result;
+}
+
+

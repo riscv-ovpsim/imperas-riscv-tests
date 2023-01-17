@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,12 +46,15 @@ typedef enum riscvRegDescE {
     RV_RD_V          = RV_RD_F*2,           // vector register
     RV_RD_TYPE_MASK  = (RV_RD_X|RV_RD_F|RV_RD_V|RV_RD_BITS_MASK),
 
+                                            // REGISTER TYPE MODIFIERS
+    RV_RD_ZFINX      = RV_RD_V*2,           // Zfinx-modified register
+    RV_RD_BF16       = RV_RD_ZFINX*2,       // explicit BFLOAT16 register
+
                                             // DISASSEMBLY CONTROL
-    RV_RD_Q          = RV_RD_V*2,           // quiet (don't show type)
+    RV_RD_Q          = RV_RD_BF16*2,        // quiet (don't show type)
     RV_RD_WL         = RV_RD_Q*2,           // explicit w/l type name
     RV_RD_FX         = RV_RD_WL*2,          // explicit x type name
     RV_RD_U          = RV_RD_FX*2,          // explicit u type name
-    RV_RD_ZFINX      = RV_RD_U*2,           // Zfinx-modified register
 
 } riscvRegDesc;
 
@@ -74,6 +77,13 @@ inline static Bool isFReg(riscvRegDesc r) {
 //
 inline static Bool isVReg(riscvRegDesc r) {
     return (r&RV_RD_V) && True;
+}
+
+//
+// Is the register a V register?
+//
+inline static Bool isBF16Reg(riscvRegDesc r) {
+    return (r&RV_RD_BF16) && True;
 }
 
 //

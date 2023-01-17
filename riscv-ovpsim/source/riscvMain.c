@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -533,7 +533,7 @@ static void setVProfile(riscvP riscv, riscvParamValuesP params) {
     }
 
     // include half-precision vector instructions if required
-    if(cfg->fp16_version && (V&RVVS_F)) {
+    if((cfg->Zvfh || cfg->Zvfhmin) && (V&RVVS_F)) {
         V |= RVVS_H;
     }
 
@@ -562,7 +562,7 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->externalCLIC        = params->externalCLIC;
     cfg->tvt_undefined       = params->tvt_undefined;
     cfg->intthresh_undefined = params->intthresh_undefined;
-    cfg->mclicbase_undefined = params->mclicbase_undefined;
+    cfg->mclicbase_undefined = mclicbaseAbsent(riscv) || params->mclicbase_undefined;
     cfg->CSIP_present        = params->CSIP_present;
     cfg->nlbits_valid        = params->nlbits_valid;
     cfg->posedge_0_63        = params->posedge_0_63;
@@ -571,6 +571,7 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->poslevel_other      = params->poslevel_other;
     cfg->CLINT_address       = params->CLINT_address;
     cfg->mtime_Hz            = params->mtime_Hz;
+    cfg->AIA_version         = params->AIA_version;
 
     // get uninterpreted CSR configuration parameters
     cfg->csr.mclicbase.u64.bits = params->mclicbase;
@@ -629,6 +630,7 @@ static void copyParentConfig(riscvP riscv) {
     dst->poslevel_other      = src->poslevel_other;
     dst->CLINT_address       = src->CLINT_address;
     dst->mtime_Hz            = src->mtime_Hz;
+    dst->AIA_version         = src->AIA_version;
 
     // get uninterpreted CSR configuration parameters
     dst->csr.mclicbase.u64.bits = src->csr.mclicbase.u64.bits;
@@ -749,7 +751,9 @@ static void applyParamsSMP(
     cfg->csrMask.sip.u64.bits    = params->sip_mask;
     cfg->csrMask.uip.u64.bits    = params->uip_mask;
     cfg->csrMask.hip.u64.bits    = params->hip_mask;
+    cfg->csrMask.hvip.u64.bits   = params->hvip_mask;
     cfg->csrMask.mvien.u64.bits  = params->mvien_mask;
+    cfg->csrMask.hvien.u64.bits  = params->hvien_mask;
     cfg->csrMask.mvip.u64.bits   = params->mvip_mask;
     cfg->csrMask.envcfg.u64.bits = params->envcfg_mask;
 
@@ -770,7 +774,9 @@ static void applyParamsSMP(
     // handle specification of half-precision format
     if(params->SETBIT(fp16_version)) {
         cfg->fp16_version = params->fp16_version;
-    } else if((params->Zfh || params->Zfhmin) && !cfg->fp16_version) {
+    } else if(cfg->fp16_version) {
+        // floating point version is specified
+    } else if(params->Zfh || params->Zfhmin || params->Zvfh || params->Zvfhmin) {
         cfg->fp16_version = RVFP16_IEEE754;
     }
 
@@ -779,9 +785,11 @@ static void applyParamsSMP(
     cfg->endianFixed          = params->endianFixed;
     cfg->use_hw_reg_names     = params->use_hw_reg_names;
     cfg->no_pseudo_inst       = params->no_pseudo_inst;
+    cfg->show_c_prefix        = params->show_c_prefix;
     cfg->ABI_d                = params->ABI_d;
     cfg->user_version         = params->user_version;
     cfg->priv_version         = params->priv_version;
+    cfg->vcrypto_version      = params->vcrypto_version;
     cfg->compress_version     = params->compress_version;
     cfg->hyp_version          = params->hypervisor_version;
     cfg->dsp_version          = params->dsp_version;
@@ -840,6 +848,7 @@ static void applyParamsSMP(
     cfg->cmoz_bytes           = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
     cfg->Sv_modes             = params->Sv_modes | RISCV_VMM_BARE;
     cfg->Smstateen            = params->Smstateen;
+    cfg->Sstc                 = params->Sstc;
     cfg->Svpbmt               = params->Svpbmt;
     cfg->Svinval              = params->Svinval;
     cfg->Smaia                = params->Smaia;
@@ -871,6 +880,8 @@ static void applyParamsSMP(
     cfg->wfi_is_nop           = params->wfi_is_nop;
     cfg->mtvec_is_ro          = params->mtvec_is_ro;
     cfg->counteren_mask       = params->counteren_mask;
+    cfg->scounteren_zero_mask = params->scounteren_zero_mask;
+    cfg->hcounteren_zero_mask = params->hcounteren_zero_mask;
     cfg->noinhibit_mask       = params->noinhibit_mask;
     cfg->tvec_align           = params->tvec_align;
     cfg->tval_zero            = params->tval_zero;
@@ -909,7 +920,10 @@ static void applyParamsSMP(
     cfg->EEW_index            = powerOfTwo(params->EEW_index, "EEW_index");
     cfg->SEW_min              = powerOfTwo(params->SEW_min,   "SEW_min");
     cfg->Zmmul                = params->Zmmul;
-    cfg->Zfhmin               = params->Zfhmin;
+    cfg->Zfa                  = params->Zfa;
+    cfg->Zfhmin               = params->Zfhmin && !params->Zfh;
+    cfg->Zvfh                 = params->Zvfh;
+    cfg->Zvfhmin              = params->Zvfhmin && !params->Zvfh;
     cfg->Zvlsseg              = params->Zvlsseg;
     cfg->Zvamo                = params->Zvamo;
     cfg->Zvediv               = params->Zvediv;
@@ -921,12 +935,15 @@ static void applyParamsSMP(
     cfg->Zicbop               = params->Zicbop;
     cfg->Zicboz               = params->Zicboz;
     cfg->Svnapot_page_mask    = params->Svnapot_page_mask;
-    cfg->miprio_mask          = params->miprio_mask & ~WM32_meip;
-    cfg->siprio_mask          = params->siprio_mask & ~WM32_seip;
+    cfg->miprio_mask          = params->miprio_mask & ~WM64_meip;
+    cfg->siprio_mask          = params->siprio_mask & ~WM64_seip;
+    cfg->hviprio_mask         = params->hviprio_mask;
     cfg->IPRIOLEN             = params->IPRIOLEN;
+    cfg->HIPRIOLEN            = params->HIPRIOLEN;
     cfg->amo_constraint       = params->amo_constraint;
     cfg->lr_sc_constraint     = params->lr_sc_constraint;
     cfg->push_pop_constraint  = params->push_pop_constraint;
+    cfg->vector_constraint    = params->vector_constraint;
 
     // cycle_undefined and instret_undefined depend on mcycle_undefined and
     // minstret_undefined
@@ -1088,6 +1105,10 @@ static void applyParamsSMP(
     REQUIRE_COMMERCIAL(riscv, params, Zve64x);
     REQUIRE_COMMERCIAL(riscv, params, Zve64f);
     REQUIRE_COMMERCIAL(riscv, params, Zve64d);
+    REQUIRE_COMMERCIAL(riscv, params, Zvqmac);
+    REQUIRE_COMMERCIAL(riscv, params, Zvfh);
+    REQUIRE_COMMERCIAL(riscv, params, Zvfhmin);
+    REQUIRE_COMMERCIAL(riscv, params, Zvfbfmin);
 
     // trigger module parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, tinfo_undefined);
@@ -1138,6 +1159,9 @@ static void applyParamsSMP(
 
     // Zvqmac extension is only available after version RVVV_0_8_20191004
     cfg->Zvqmac = params->Zvqmac && (params->vector_version>RVVV_0_8_20191004);
+
+    // Zvfbfmin extension is only available from version RVVV_1_0
+    cfg->Zvfbfmin = params->Zvfbfmin && (params->vector_version>=RVVV_1_0);
 
     // force VLEN >= ELEN unless explicitly supported
     if((cfg->VLEN<cfg->ELEN) && !riscvVFSupport(riscv, RVVF_ELEN_GT_VLEN)) {
@@ -1225,6 +1249,41 @@ static void applyParamsSMP(
     ADD_K_SET(riscv, cfg, params, Zknh);
     ADD_K_SET(riscv, cfg, params, Zksed);
     ADD_K_SET(riscv, cfg, params, Zksh);
+    ADD_K_SET(riscv, cfg, params, Zvkb);
+    ADD_K_SET(riscv, cfg, params, Zvkg);
+    ADD_K_SET(riscv, cfg, params, Zvknha);
+    ADD_K_SET(riscv, cfg, params, Zvknhb);
+    ADD_K_SET(riscv, cfg, params, Zvkns);
+    ADD_K_SET(riscv, cfg, params, Zvksed);
+    ADD_K_SET(riscv, cfg, params, Zvksh);
+
+    // Zvknhb implies Zvknha for feature presence
+    if(!(cfg->crypto_absent & RVKS_Zvknhb)) {
+        cfg->crypto_absent &= ~RVKS_Zvknha;
+    }
+
+    // when vector cryptographic extension is present, force misa.K to be
+    // implicit if there are no scalar cryptographic subsets present (this field
+    // is implicit from scalar K extension 1.0.0, but if all subsets are absent
+    // the user might not specify scalar version)
+    if((cfg->arch&ISA_VK)==ISA_VK) {
+
+        static const riscvCryptoSet scalarK =
+            RVKS_Zbkb  |
+            RVKS_Zbkc  |
+            RVKS_Zbkx  |
+            RVKS_Zkr   |
+            RVKS_Zknd  |
+            RVKS_Zkne  |
+            RVKS_Zknh  |
+            RVKS_Zksed |
+            RVKS_Zksh;
+
+        if((cfg->crypto_absent & scalarK) == scalarK) {
+            cfg->archMask     &= ~ISA_K;
+            cfg->archImplicit |=  ISA_K;
+        }
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // COMPRESSED EXTENSION CONFIGURATION
@@ -1302,6 +1361,19 @@ static void applyParamsSMP(
     // seed mask of hardwired-to-1 bits in xintthresh CSRs
     if(cfg->INTTHRESHBITS<8) {
         riscv->threshOnes = (1<<(8-cfg->INTTHRESHBITS))-1;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // AIA CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    // HIPRIOLEN must be at least as large as IPRIOLEN
+    if(cfg->HIPRIOLEN<cfg->IPRIOLEN) {
+        vmiMessage("W", CPU_PREFIX"_IHIPRIOLEN",
+            "'IPRIOLEN' (%u) exceeds 'HIPRIOLEN' (%u) - forcing HIPRIOLEN=%u",
+            cfg->IPRIOLEN, cfg->HIPRIOLEN, cfg->IPRIOLEN
+        );
+        cfg->HIPRIOLEN = cfg->IPRIOLEN;
     }
 }
 

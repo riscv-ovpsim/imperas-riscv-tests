@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -278,6 +278,11 @@ void riscvEmitTrapTVM(riscvP riscv);
 //
 void riscvEmitTrapTSR(riscvP riscv);
 
+//
+// Emit trap when hvictl.VTI=1 in Virtual Supervisor mode
+//
+void riscvEmitTrapVTI(riscvP riscv);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // VECTOR EXTENSION
@@ -297,6 +302,11 @@ void riscvFreeVector(riscvP riscv);
 // Adjust JIT code generator state after write of vstart CSR
 //
 void riscvWVStart(riscvMorphStateP state, Bool useRS1);
+
+//
+// Get effective SEW
+//
+riscvSEWMt riscvGetSEWMt(riscvP riscv);
 
 //
 // Return maximum vector length for the given vector type settings

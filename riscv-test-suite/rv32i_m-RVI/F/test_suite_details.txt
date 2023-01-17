@@ -40,20 +40,20 @@ Other instructions (those not the focus of this suite)
   fence : 146
   ecall : 146
   beq : 438
-  fclass.s : 33
-  add : 184
   lw : 460
+  fcvt.s.wu : 197
+  add : 184
+  fclass.s : 33
   fcvt.s.w : 197
   fcvt.w.s : 372
-  fcvt.s.wu : 197
   fcvt.wu.s : 372
   fdiv.s : 6,433
   feq.s : 1,650
   fle.s : 1,650
   flt.s : 1,566
   fmadd.s : 56,525
-  fmax.s : 1,537
   fmin.s : 1,573
+  fmax.s : 1,537
   fmsub.s : 56,526
   fmul.s : 5,650
   fmv.s.x : 98
@@ -62,11 +62,11 @@ Other instructions (those not the focus of this suite)
   fnmsub.s : 56,528
   fsgnj.s : 576
   fmv.s : 2
-  fsqrt.s : 483
-  fsgnjx.s : 576
-  fabs.s : 2
   fsgnjn.s : 576
   fneg.s : 2
+  fsgnjx.s : 576
+  fabs.s : 2
+  fsqrt.s : 483
   fsub.s : 11,525
   sub : 32
 

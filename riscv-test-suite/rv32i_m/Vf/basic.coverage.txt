@@ -1,6 +1,6 @@
 Imperas RISC-V Instruction Coverage Report
 
-Extension : Vf, instructions: 91
+Extension : Vf, instructions: 97
     vfadd_vf       
         fs1            
             fpr            
@@ -3275,6 +3275,80 @@ Extension : Vf, instructions: 91
             vpr 16/32 :  50.00%
         vs2 16/32 :  50.00%
     vfncvt_xu_f_w 48/64 :  75.00%
+    vfncvtbf16_f_f_w
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfncvtbf16_f_f_w 0/64 :   0.00%
     vfnmacc_vf     
         fs1            
             fpr            
@@ -6435,6 +6509,80 @@ Extension : Vf, instructions: 91
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfwcvt_xu_f_v 48/64 :  75.00%
+    vfwcvtbf16_f_f_v
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfwcvtbf16_f_f_v 0/64 :   0.00%
     vfwmacc_vf     
         fs1            
             fpr            
@@ -6655,6 +6803,226 @@ Extension : Vf, instructions: 91
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfwmacc_vv 80/96 :  83.33%
+    vfwmaccbf16_vf 
+        fs1            
+            fpr            
+                fa0          0/1 :   0.00% ZERO
+                fa1          0/1 :   0.00% ZERO
+                fa2          0/1 :   0.00% ZERO
+                fa3          0/1 :   0.00% ZERO
+                fa4          0/1 :   0.00% ZERO
+                fa5          0/1 :   0.00% ZERO
+                fa6          0/1 :   0.00% ZERO
+                fa7          0/1 :   0.00% ZERO
+                fs0          0/1 :   0.00% ZERO
+                fs1          0/1 :   0.00% ZERO
+                fs2          0/1 :   0.00% ZERO
+                fs3          0/1 :   0.00% ZERO
+                fs4          0/1 :   0.00% ZERO
+                fs5          0/1 :   0.00% ZERO
+                fs6          0/1 :   0.00% ZERO
+                fs7          0/1 :   0.00% ZERO
+                fs8          0/1 :   0.00% ZERO
+                fs9          0/1 :   0.00% ZERO
+                fs10         0/1 :   0.00% ZERO
+                fs11         0/1 :   0.00% ZERO
+                ft0          0/1 :   0.00% ZERO
+                ft1          0/1 :   0.00% ZERO
+                ft2          0/1 :   0.00% ZERO
+                ft3          0/1 :   0.00% ZERO
+                ft4          0/1 :   0.00% ZERO
+                ft5          0/1 :   0.00% ZERO
+                ft6          0/1 :   0.00% ZERO
+                ft7          0/1 :   0.00% ZERO
+                ft8          0/1 :   0.00% ZERO
+                ft9          0/1 :   0.00% ZERO
+                ft10         0/1 :   0.00% ZERO
+                ft11         0/1 :   0.00% ZERO
+            fpr 0/32 :   0.00%
+        fs1 0/32 :   0.00%
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfwmaccbf16_vf 0/96 :   0.00%
+    vfwmaccbf16_vv 
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs1            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs1 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfwmaccbf16_vv 0/96 :   0.00%
     vfwmsac_vf     
         fs1            
             fpr            
@@ -7095,6 +7463,226 @@ Extension : Vf, instructions: 91
             vpr 32/32 : 100.00%
         vs2 32/32 : 100.00%
     vfwmul_vv 80/96 :  83.33%
+    vfwmulbf16_vf  
+        fs1            
+            fpr            
+                fa0          0/1 :   0.00% ZERO
+                fa1          0/1 :   0.00% ZERO
+                fa2          0/1 :   0.00% ZERO
+                fa3          0/1 :   0.00% ZERO
+                fa4          0/1 :   0.00% ZERO
+                fa5          0/1 :   0.00% ZERO
+                fa6          0/1 :   0.00% ZERO
+                fa7          0/1 :   0.00% ZERO
+                fs0          0/1 :   0.00% ZERO
+                fs1          0/1 :   0.00% ZERO
+                fs2          0/1 :   0.00% ZERO
+                fs3          0/1 :   0.00% ZERO
+                fs4          0/1 :   0.00% ZERO
+                fs5          0/1 :   0.00% ZERO
+                fs6          0/1 :   0.00% ZERO
+                fs7          0/1 :   0.00% ZERO
+                fs8          0/1 :   0.00% ZERO
+                fs9          0/1 :   0.00% ZERO
+                fs10         0/1 :   0.00% ZERO
+                fs11         0/1 :   0.00% ZERO
+                ft0          0/1 :   0.00% ZERO
+                ft1          0/1 :   0.00% ZERO
+                ft2          0/1 :   0.00% ZERO
+                ft3          0/1 :   0.00% ZERO
+                ft4          0/1 :   0.00% ZERO
+                ft5          0/1 :   0.00% ZERO
+                ft6          0/1 :   0.00% ZERO
+                ft7          0/1 :   0.00% ZERO
+                ft8          0/1 :   0.00% ZERO
+                ft9          0/1 :   0.00% ZERO
+                ft10         0/1 :   0.00% ZERO
+                ft11         0/1 :   0.00% ZERO
+            fpr 0/32 :   0.00%
+        fs1 0/32 :   0.00%
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfwmulbf16_vf 0/96 :   0.00%
+    vfwmulbf16_vv  
+        vd             
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vd 0/32 :   0.00%
+        vs1            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs1 0/32 :   0.00%
+        vs2            
+            vpr            
+                v0           0/1 :   0.00% ZERO
+                v1           0/1 :   0.00% ZERO
+                v2           0/1 :   0.00% ZERO
+                v3           0/1 :   0.00% ZERO
+                v4           0/1 :   0.00% ZERO
+                v5           0/1 :   0.00% ZERO
+                v6           0/1 :   0.00% ZERO
+                v7           0/1 :   0.00% ZERO
+                v8           0/1 :   0.00% ZERO
+                v9           0/1 :   0.00% ZERO
+                v10          0/1 :   0.00% ZERO
+                v11          0/1 :   0.00% ZERO
+                v12          0/1 :   0.00% ZERO
+                v13          0/1 :   0.00% ZERO
+                v14          0/1 :   0.00% ZERO
+                v15          0/1 :   0.00% ZERO
+                v16          0/1 :   0.00% ZERO
+                v17          0/1 :   0.00% ZERO
+                v18          0/1 :   0.00% ZERO
+                v19          0/1 :   0.00% ZERO
+                v20          0/1 :   0.00% ZERO
+                v21          0/1 :   0.00% ZERO
+                v22          0/1 :   0.00% ZERO
+                v23          0/1 :   0.00% ZERO
+                v24          0/1 :   0.00% ZERO
+                v25          0/1 :   0.00% ZERO
+                v26          0/1 :   0.00% ZERO
+                v27          0/1 :   0.00% ZERO
+                v28          0/1 :   0.00% ZERO
+                v29          0/1 :   0.00% ZERO
+                v30          0/1 :   0.00% ZERO
+                v31          0/1 :   0.00% ZERO
+            vpr 0/32 :   0.00%
+        vs2 0/32 :   0.00%
+    vfwmulbf16_vv 0/96 :   0.00%
     vfwnmacc_vf    
         fs1            
             fpr            
@@ -9206,6 +9794,70 @@ Coverage points missed:
   vfncvt_xu_f_w/vs2/vpr/v27
   vfncvt_xu_f_w/vs2/vpr/v29
   vfncvt_xu_f_w/vs2/vpr/v31
+  vfncvtbf16_f_f_w/vd/vpr/v0
+  vfncvtbf16_f_f_w/vd/vpr/v1
+  vfncvtbf16_f_f_w/vd/vpr/v2
+  vfncvtbf16_f_f_w/vd/vpr/v3
+  vfncvtbf16_f_f_w/vd/vpr/v4
+  vfncvtbf16_f_f_w/vd/vpr/v5
+  vfncvtbf16_f_f_w/vd/vpr/v6
+  vfncvtbf16_f_f_w/vd/vpr/v7
+  vfncvtbf16_f_f_w/vd/vpr/v8
+  vfncvtbf16_f_f_w/vd/vpr/v9
+  vfncvtbf16_f_f_w/vd/vpr/v10
+  vfncvtbf16_f_f_w/vd/vpr/v11
+  vfncvtbf16_f_f_w/vd/vpr/v12
+  vfncvtbf16_f_f_w/vd/vpr/v13
+  vfncvtbf16_f_f_w/vd/vpr/v14
+  vfncvtbf16_f_f_w/vd/vpr/v15
+  vfncvtbf16_f_f_w/vd/vpr/v16
+  vfncvtbf16_f_f_w/vd/vpr/v17
+  vfncvtbf16_f_f_w/vd/vpr/v18
+  vfncvtbf16_f_f_w/vd/vpr/v19
+  vfncvtbf16_f_f_w/vd/vpr/v20
+  vfncvtbf16_f_f_w/vd/vpr/v21
+  vfncvtbf16_f_f_w/vd/vpr/v22
+  vfncvtbf16_f_f_w/vd/vpr/v23
+  vfncvtbf16_f_f_w/vd/vpr/v24
+  vfncvtbf16_f_f_w/vd/vpr/v25
+  vfncvtbf16_f_f_w/vd/vpr/v26
+  vfncvtbf16_f_f_w/vd/vpr/v27
+  vfncvtbf16_f_f_w/vd/vpr/v28
+  vfncvtbf16_f_f_w/vd/vpr/v29
+  vfncvtbf16_f_f_w/vd/vpr/v30
+  vfncvtbf16_f_f_w/vd/vpr/v31
+  vfncvtbf16_f_f_w/vs2/vpr/v0
+  vfncvtbf16_f_f_w/vs2/vpr/v1
+  vfncvtbf16_f_f_w/vs2/vpr/v2
+  vfncvtbf16_f_f_w/vs2/vpr/v3
+  vfncvtbf16_f_f_w/vs2/vpr/v4
+  vfncvtbf16_f_f_w/vs2/vpr/v5
+  vfncvtbf16_f_f_w/vs2/vpr/v6
+  vfncvtbf16_f_f_w/vs2/vpr/v7
+  vfncvtbf16_f_f_w/vs2/vpr/v8
+  vfncvtbf16_f_f_w/vs2/vpr/v9
+  vfncvtbf16_f_f_w/vs2/vpr/v10
+  vfncvtbf16_f_f_w/vs2/vpr/v11
+  vfncvtbf16_f_f_w/vs2/vpr/v12
+  vfncvtbf16_f_f_w/vs2/vpr/v13
+  vfncvtbf16_f_f_w/vs2/vpr/v14
+  vfncvtbf16_f_f_w/vs2/vpr/v15
+  vfncvtbf16_f_f_w/vs2/vpr/v16
+  vfncvtbf16_f_f_w/vs2/vpr/v17
+  vfncvtbf16_f_f_w/vs2/vpr/v18
+  vfncvtbf16_f_f_w/vs2/vpr/v19
+  vfncvtbf16_f_f_w/vs2/vpr/v20
+  vfncvtbf16_f_f_w/vs2/vpr/v21
+  vfncvtbf16_f_f_w/vs2/vpr/v22
+  vfncvtbf16_f_f_w/vs2/vpr/v23
+  vfncvtbf16_f_f_w/vs2/vpr/v24
+  vfncvtbf16_f_f_w/vs2/vpr/v25
+  vfncvtbf16_f_f_w/vs2/vpr/v26
+  vfncvtbf16_f_f_w/vs2/vpr/v27
+  vfncvtbf16_f_f_w/vs2/vpr/v28
+  vfncvtbf16_f_f_w/vs2/vpr/v29
+  vfncvtbf16_f_f_w/vs2/vpr/v30
+  vfncvtbf16_f_f_w/vs2/vpr/v31
   vfwadd_vf/vd/vpr/v1
   vfwadd_vf/vd/vpr/v3
   vfwadd_vf/vd/vpr/v5
@@ -9414,6 +10066,70 @@ Coverage points missed:
   vfwcvt_xu_f_v/vd/vpr/v27
   vfwcvt_xu_f_v/vd/vpr/v29
   vfwcvt_xu_f_v/vd/vpr/v31
+  vfwcvtbf16_f_f_v/vd/vpr/v0
+  vfwcvtbf16_f_f_v/vd/vpr/v1
+  vfwcvtbf16_f_f_v/vd/vpr/v2
+  vfwcvtbf16_f_f_v/vd/vpr/v3
+  vfwcvtbf16_f_f_v/vd/vpr/v4
+  vfwcvtbf16_f_f_v/vd/vpr/v5
+  vfwcvtbf16_f_f_v/vd/vpr/v6
+  vfwcvtbf16_f_f_v/vd/vpr/v7
+  vfwcvtbf16_f_f_v/vd/vpr/v8
+  vfwcvtbf16_f_f_v/vd/vpr/v9
+  vfwcvtbf16_f_f_v/vd/vpr/v10
+  vfwcvtbf16_f_f_v/vd/vpr/v11
+  vfwcvtbf16_f_f_v/vd/vpr/v12
+  vfwcvtbf16_f_f_v/vd/vpr/v13
+  vfwcvtbf16_f_f_v/vd/vpr/v14
+  vfwcvtbf16_f_f_v/vd/vpr/v15
+  vfwcvtbf16_f_f_v/vd/vpr/v16
+  vfwcvtbf16_f_f_v/vd/vpr/v17
+  vfwcvtbf16_f_f_v/vd/vpr/v18
+  vfwcvtbf16_f_f_v/vd/vpr/v19
+  vfwcvtbf16_f_f_v/vd/vpr/v20
+  vfwcvtbf16_f_f_v/vd/vpr/v21
+  vfwcvtbf16_f_f_v/vd/vpr/v22
+  vfwcvtbf16_f_f_v/vd/vpr/v23
+  vfwcvtbf16_f_f_v/vd/vpr/v24
+  vfwcvtbf16_f_f_v/vd/vpr/v25
+  vfwcvtbf16_f_f_v/vd/vpr/v26
+  vfwcvtbf16_f_f_v/vd/vpr/v27
+  vfwcvtbf16_f_f_v/vd/vpr/v28
+  vfwcvtbf16_f_f_v/vd/vpr/v29
+  vfwcvtbf16_f_f_v/vd/vpr/v30
+  vfwcvtbf16_f_f_v/vd/vpr/v31
+  vfwcvtbf16_f_f_v/vs2/vpr/v0
+  vfwcvtbf16_f_f_v/vs2/vpr/v1
+  vfwcvtbf16_f_f_v/vs2/vpr/v2
+  vfwcvtbf16_f_f_v/vs2/vpr/v3
+  vfwcvtbf16_f_f_v/vs2/vpr/v4
+  vfwcvtbf16_f_f_v/vs2/vpr/v5
+  vfwcvtbf16_f_f_v/vs2/vpr/v6
+  vfwcvtbf16_f_f_v/vs2/vpr/v7
+  vfwcvtbf16_f_f_v/vs2/vpr/v8
+  vfwcvtbf16_f_f_v/vs2/vpr/v9
+  vfwcvtbf16_f_f_v/vs2/vpr/v10
+  vfwcvtbf16_f_f_v/vs2/vpr/v11
+  vfwcvtbf16_f_f_v/vs2/vpr/v12
+  vfwcvtbf16_f_f_v/vs2/vpr/v13
+  vfwcvtbf16_f_f_v/vs2/vpr/v14
+  vfwcvtbf16_f_f_v/vs2/vpr/v15
+  vfwcvtbf16_f_f_v/vs2/vpr/v16
+  vfwcvtbf16_f_f_v/vs2/vpr/v17
+  vfwcvtbf16_f_f_v/vs2/vpr/v18
+  vfwcvtbf16_f_f_v/vs2/vpr/v19
+  vfwcvtbf16_f_f_v/vs2/vpr/v20
+  vfwcvtbf16_f_f_v/vs2/vpr/v21
+  vfwcvtbf16_f_f_v/vs2/vpr/v22
+  vfwcvtbf16_f_f_v/vs2/vpr/v23
+  vfwcvtbf16_f_f_v/vs2/vpr/v24
+  vfwcvtbf16_f_f_v/vs2/vpr/v25
+  vfwcvtbf16_f_f_v/vs2/vpr/v26
+  vfwcvtbf16_f_f_v/vs2/vpr/v27
+  vfwcvtbf16_f_f_v/vs2/vpr/v28
+  vfwcvtbf16_f_f_v/vs2/vpr/v29
+  vfwcvtbf16_f_f_v/vs2/vpr/v30
+  vfwcvtbf16_f_f_v/vs2/vpr/v31
   vfwmacc_vf/vd/vpr/v1
   vfwmacc_vf/vd/vpr/v3
   vfwmacc_vf/vd/vpr/v5
@@ -9446,6 +10162,198 @@ Coverage points missed:
   vfwmacc_vv/vd/vpr/v27
   vfwmacc_vv/vd/vpr/v29
   vfwmacc_vv/vd/vpr/v31
+  vfwmaccbf16_vf/fs1/fpr/fa0
+  vfwmaccbf16_vf/fs1/fpr/fa1
+  vfwmaccbf16_vf/fs1/fpr/fa2
+  vfwmaccbf16_vf/fs1/fpr/fa3
+  vfwmaccbf16_vf/fs1/fpr/fa4
+  vfwmaccbf16_vf/fs1/fpr/fa5
+  vfwmaccbf16_vf/fs1/fpr/fa6
+  vfwmaccbf16_vf/fs1/fpr/fa7
+  vfwmaccbf16_vf/fs1/fpr/fs0
+  vfwmaccbf16_vf/fs1/fpr/fs1
+  vfwmaccbf16_vf/fs1/fpr/fs2
+  vfwmaccbf16_vf/fs1/fpr/fs3
+  vfwmaccbf16_vf/fs1/fpr/fs4
+  vfwmaccbf16_vf/fs1/fpr/fs5
+  vfwmaccbf16_vf/fs1/fpr/fs6
+  vfwmaccbf16_vf/fs1/fpr/fs7
+  vfwmaccbf16_vf/fs1/fpr/fs8
+  vfwmaccbf16_vf/fs1/fpr/fs9
+  vfwmaccbf16_vf/fs1/fpr/fs10
+  vfwmaccbf16_vf/fs1/fpr/fs11
+  vfwmaccbf16_vf/fs1/fpr/ft0
+  vfwmaccbf16_vf/fs1/fpr/ft1
+  vfwmaccbf16_vf/fs1/fpr/ft2
+  vfwmaccbf16_vf/fs1/fpr/ft3
+  vfwmaccbf16_vf/fs1/fpr/ft4
+  vfwmaccbf16_vf/fs1/fpr/ft5
+  vfwmaccbf16_vf/fs1/fpr/ft6
+  vfwmaccbf16_vf/fs1/fpr/ft7
+  vfwmaccbf16_vf/fs1/fpr/ft8
+  vfwmaccbf16_vf/fs1/fpr/ft9
+  vfwmaccbf16_vf/fs1/fpr/ft10
+  vfwmaccbf16_vf/fs1/fpr/ft11
+  vfwmaccbf16_vf/vd/vpr/v0
+  vfwmaccbf16_vf/vd/vpr/v1
+  vfwmaccbf16_vf/vd/vpr/v2
+  vfwmaccbf16_vf/vd/vpr/v3
+  vfwmaccbf16_vf/vd/vpr/v4
+  vfwmaccbf16_vf/vd/vpr/v5
+  vfwmaccbf16_vf/vd/vpr/v6
+  vfwmaccbf16_vf/vd/vpr/v7
+  vfwmaccbf16_vf/vd/vpr/v8
+  vfwmaccbf16_vf/vd/vpr/v9
+  vfwmaccbf16_vf/vd/vpr/v10
+  vfwmaccbf16_vf/vd/vpr/v11
+  vfwmaccbf16_vf/vd/vpr/v12
+  vfwmaccbf16_vf/vd/vpr/v13
+  vfwmaccbf16_vf/vd/vpr/v14
+  vfwmaccbf16_vf/vd/vpr/v15
+  vfwmaccbf16_vf/vd/vpr/v16
+  vfwmaccbf16_vf/vd/vpr/v17
+  vfwmaccbf16_vf/vd/vpr/v18
+  vfwmaccbf16_vf/vd/vpr/v19
+  vfwmaccbf16_vf/vd/vpr/v20
+  vfwmaccbf16_vf/vd/vpr/v21
+  vfwmaccbf16_vf/vd/vpr/v22
+  vfwmaccbf16_vf/vd/vpr/v23
+  vfwmaccbf16_vf/vd/vpr/v24
+  vfwmaccbf16_vf/vd/vpr/v25
+  vfwmaccbf16_vf/vd/vpr/v26
+  vfwmaccbf16_vf/vd/vpr/v27
+  vfwmaccbf16_vf/vd/vpr/v28
+  vfwmaccbf16_vf/vd/vpr/v29
+  vfwmaccbf16_vf/vd/vpr/v30
+  vfwmaccbf16_vf/vd/vpr/v31
+  vfwmaccbf16_vf/vs2/vpr/v0
+  vfwmaccbf16_vf/vs2/vpr/v1
+  vfwmaccbf16_vf/vs2/vpr/v2
+  vfwmaccbf16_vf/vs2/vpr/v3
+  vfwmaccbf16_vf/vs2/vpr/v4
+  vfwmaccbf16_vf/vs2/vpr/v5
+  vfwmaccbf16_vf/vs2/vpr/v6
+  vfwmaccbf16_vf/vs2/vpr/v7
+  vfwmaccbf16_vf/vs2/vpr/v8
+  vfwmaccbf16_vf/vs2/vpr/v9
+  vfwmaccbf16_vf/vs2/vpr/v10
+  vfwmaccbf16_vf/vs2/vpr/v11
+  vfwmaccbf16_vf/vs2/vpr/v12
+  vfwmaccbf16_vf/vs2/vpr/v13
+  vfwmaccbf16_vf/vs2/vpr/v14
+  vfwmaccbf16_vf/vs2/vpr/v15
+  vfwmaccbf16_vf/vs2/vpr/v16
+  vfwmaccbf16_vf/vs2/vpr/v17
+  vfwmaccbf16_vf/vs2/vpr/v18
+  vfwmaccbf16_vf/vs2/vpr/v19
+  vfwmaccbf16_vf/vs2/vpr/v20
+  vfwmaccbf16_vf/vs2/vpr/v21
+  vfwmaccbf16_vf/vs2/vpr/v22
+  vfwmaccbf16_vf/vs2/vpr/v23
+  vfwmaccbf16_vf/vs2/vpr/v24
+  vfwmaccbf16_vf/vs2/vpr/v25
+  vfwmaccbf16_vf/vs2/vpr/v26
+  vfwmaccbf16_vf/vs2/vpr/v27
+  vfwmaccbf16_vf/vs2/vpr/v28
+  vfwmaccbf16_vf/vs2/vpr/v29
+  vfwmaccbf16_vf/vs2/vpr/v30
+  vfwmaccbf16_vf/vs2/vpr/v31
+  vfwmaccbf16_vv/vd/vpr/v0
+  vfwmaccbf16_vv/vd/vpr/v1
+  vfwmaccbf16_vv/vd/vpr/v2
+  vfwmaccbf16_vv/vd/vpr/v3
+  vfwmaccbf16_vv/vd/vpr/v4
+  vfwmaccbf16_vv/vd/vpr/v5
+  vfwmaccbf16_vv/vd/vpr/v6
+  vfwmaccbf16_vv/vd/vpr/v7
+  vfwmaccbf16_vv/vd/vpr/v8
+  vfwmaccbf16_vv/vd/vpr/v9
+  vfwmaccbf16_vv/vd/vpr/v10
+  vfwmaccbf16_vv/vd/vpr/v11
+  vfwmaccbf16_vv/vd/vpr/v12
+  vfwmaccbf16_vv/vd/vpr/v13
+  vfwmaccbf16_vv/vd/vpr/v14
+  vfwmaccbf16_vv/vd/vpr/v15
+  vfwmaccbf16_vv/vd/vpr/v16
+  vfwmaccbf16_vv/vd/vpr/v17
+  vfwmaccbf16_vv/vd/vpr/v18
+  vfwmaccbf16_vv/vd/vpr/v19
+  vfwmaccbf16_vv/vd/vpr/v20
+  vfwmaccbf16_vv/vd/vpr/v21
+  vfwmaccbf16_vv/vd/vpr/v22
+  vfwmaccbf16_vv/vd/vpr/v23
+  vfwmaccbf16_vv/vd/vpr/v24
+  vfwmaccbf16_vv/vd/vpr/v25
+  vfwmaccbf16_vv/vd/vpr/v26
+  vfwmaccbf16_vv/vd/vpr/v27
+  vfwmaccbf16_vv/vd/vpr/v28
+  vfwmaccbf16_vv/vd/vpr/v29
+  vfwmaccbf16_vv/vd/vpr/v30
+  vfwmaccbf16_vv/vd/vpr/v31
+  vfwmaccbf16_vv/vs1/vpr/v0
+  vfwmaccbf16_vv/vs1/vpr/v1
+  vfwmaccbf16_vv/vs1/vpr/v2
+  vfwmaccbf16_vv/vs1/vpr/v3
+  vfwmaccbf16_vv/vs1/vpr/v4
+  vfwmaccbf16_vv/vs1/vpr/v5
+  vfwmaccbf16_vv/vs1/vpr/v6
+  vfwmaccbf16_vv/vs1/vpr/v7
+  vfwmaccbf16_vv/vs1/vpr/v8
+  vfwmaccbf16_vv/vs1/vpr/v9
+  vfwmaccbf16_vv/vs1/vpr/v10
+  vfwmaccbf16_vv/vs1/vpr/v11
+  vfwmaccbf16_vv/vs1/vpr/v12
+  vfwmaccbf16_vv/vs1/vpr/v13
+  vfwmaccbf16_vv/vs1/vpr/v14
+  vfwmaccbf16_vv/vs1/vpr/v15
+  vfwmaccbf16_vv/vs1/vpr/v16
+  vfwmaccbf16_vv/vs1/vpr/v17
+  vfwmaccbf16_vv/vs1/vpr/v18
+  vfwmaccbf16_vv/vs1/vpr/v19
+  vfwmaccbf16_vv/vs1/vpr/v20
+  vfwmaccbf16_vv/vs1/vpr/v21
+  vfwmaccbf16_vv/vs1/vpr/v22
+  vfwmaccbf16_vv/vs1/vpr/v23
+  vfwmaccbf16_vv/vs1/vpr/v24
+  vfwmaccbf16_vv/vs1/vpr/v25
+  vfwmaccbf16_vv/vs1/vpr/v26
+  vfwmaccbf16_vv/vs1/vpr/v27
+  vfwmaccbf16_vv/vs1/vpr/v28
+  vfwmaccbf16_vv/vs1/vpr/v29
+  vfwmaccbf16_vv/vs1/vpr/v30
+  vfwmaccbf16_vv/vs1/vpr/v31
+  vfwmaccbf16_vv/vs2/vpr/v0
+  vfwmaccbf16_vv/vs2/vpr/v1
+  vfwmaccbf16_vv/vs2/vpr/v2
+  vfwmaccbf16_vv/vs2/vpr/v3
+  vfwmaccbf16_vv/vs2/vpr/v4
+  vfwmaccbf16_vv/vs2/vpr/v5
+  vfwmaccbf16_vv/vs2/vpr/v6
+  vfwmaccbf16_vv/vs2/vpr/v7
+  vfwmaccbf16_vv/vs2/vpr/v8
+  vfwmaccbf16_vv/vs2/vpr/v9
+  vfwmaccbf16_vv/vs2/vpr/v10
+  vfwmaccbf16_vv/vs2/vpr/v11
+  vfwmaccbf16_vv/vs2/vpr/v12
+  vfwmaccbf16_vv/vs2/vpr/v13
+  vfwmaccbf16_vv/vs2/vpr/v14
+  vfwmaccbf16_vv/vs2/vpr/v15
+  vfwmaccbf16_vv/vs2/vpr/v16
+  vfwmaccbf16_vv/vs2/vpr/v17
+  vfwmaccbf16_vv/vs2/vpr/v18
+  vfwmaccbf16_vv/vs2/vpr/v19
+  vfwmaccbf16_vv/vs2/vpr/v20
+  vfwmaccbf16_vv/vs2/vpr/v21
+  vfwmaccbf16_vv/vs2/vpr/v22
+  vfwmaccbf16_vv/vs2/vpr/v23
+  vfwmaccbf16_vv/vs2/vpr/v24
+  vfwmaccbf16_vv/vs2/vpr/v25
+  vfwmaccbf16_vv/vs2/vpr/v26
+  vfwmaccbf16_vv/vs2/vpr/v27
+  vfwmaccbf16_vv/vs2/vpr/v28
+  vfwmaccbf16_vv/vs2/vpr/v29
+  vfwmaccbf16_vv/vs2/vpr/v30
+  vfwmaccbf16_vv/vs2/vpr/v31
   vfwmsac_vf/vd/vpr/v1
   vfwmsac_vf/vd/vpr/v3
   vfwmsac_vf/vd/vpr/v5
@@ -9510,6 +10418,198 @@ Coverage points missed:
   vfwmul_vv/vd/vpr/v27
   vfwmul_vv/vd/vpr/v29
   vfwmul_vv/vd/vpr/v31
+  vfwmulbf16_vf/fs1/fpr/fa0
+  vfwmulbf16_vf/fs1/fpr/fa1
+  vfwmulbf16_vf/fs1/fpr/fa2
+  vfwmulbf16_vf/fs1/fpr/fa3
+  vfwmulbf16_vf/fs1/fpr/fa4
+  vfwmulbf16_vf/fs1/fpr/fa5
+  vfwmulbf16_vf/fs1/fpr/fa6
+  vfwmulbf16_vf/fs1/fpr/fa7
+  vfwmulbf16_vf/fs1/fpr/fs0
+  vfwmulbf16_vf/fs1/fpr/fs1
+  vfwmulbf16_vf/fs1/fpr/fs2
+  vfwmulbf16_vf/fs1/fpr/fs3
+  vfwmulbf16_vf/fs1/fpr/fs4
+  vfwmulbf16_vf/fs1/fpr/fs5
+  vfwmulbf16_vf/fs1/fpr/fs6
+  vfwmulbf16_vf/fs1/fpr/fs7
+  vfwmulbf16_vf/fs1/fpr/fs8
+  vfwmulbf16_vf/fs1/fpr/fs9
+  vfwmulbf16_vf/fs1/fpr/fs10
+  vfwmulbf16_vf/fs1/fpr/fs11
+  vfwmulbf16_vf/fs1/fpr/ft0
+  vfwmulbf16_vf/fs1/fpr/ft1
+  vfwmulbf16_vf/fs1/fpr/ft2
+  vfwmulbf16_vf/fs1/fpr/ft3
+  vfwmulbf16_vf/fs1/fpr/ft4
+  vfwmulbf16_vf/fs1/fpr/ft5
+  vfwmulbf16_vf/fs1/fpr/ft6
+  vfwmulbf16_vf/fs1/fpr/ft7
+  vfwmulbf16_vf/fs1/fpr/ft8
+  vfwmulbf16_vf/fs1/fpr/ft9
+  vfwmulbf16_vf/fs1/fpr/ft10
+  vfwmulbf16_vf/fs1/fpr/ft11
+  vfwmulbf16_vf/vd/vpr/v0
+  vfwmulbf16_vf/vd/vpr/v1
+  vfwmulbf16_vf/vd/vpr/v2
+  vfwmulbf16_vf/vd/vpr/v3
+  vfwmulbf16_vf/vd/vpr/v4
+  vfwmulbf16_vf/vd/vpr/v5
+  vfwmulbf16_vf/vd/vpr/v6
+  vfwmulbf16_vf/vd/vpr/v7
+  vfwmulbf16_vf/vd/vpr/v8
+  vfwmulbf16_vf/vd/vpr/v9
+  vfwmulbf16_vf/vd/vpr/v10
+  vfwmulbf16_vf/vd/vpr/v11
+  vfwmulbf16_vf/vd/vpr/v12
+  vfwmulbf16_vf/vd/vpr/v13
+  vfwmulbf16_vf/vd/vpr/v14
+  vfwmulbf16_vf/vd/vpr/v15
+  vfwmulbf16_vf/vd/vpr/v16
+  vfwmulbf16_vf/vd/vpr/v17
+  vfwmulbf16_vf/vd/vpr/v18
+  vfwmulbf16_vf/vd/vpr/v19
+  vfwmulbf16_vf/vd/vpr/v20
+  vfwmulbf16_vf/vd/vpr/v21
+  vfwmulbf16_vf/vd/vpr/v22
+  vfwmulbf16_vf/vd/vpr/v23
+  vfwmulbf16_vf/vd/vpr/v24
+  vfwmulbf16_vf/vd/vpr/v25
+  vfwmulbf16_vf/vd/vpr/v26
+  vfwmulbf16_vf/vd/vpr/v27
+  vfwmulbf16_vf/vd/vpr/v28
+  vfwmulbf16_vf/vd/vpr/v29
+  vfwmulbf16_vf/vd/vpr/v30
+  vfwmulbf16_vf/vd/vpr/v31
+  vfwmulbf16_vf/vs2/vpr/v0
+  vfwmulbf16_vf/vs2/vpr/v1
+  vfwmulbf16_vf/vs2/vpr/v2
+  vfwmulbf16_vf/vs2/vpr/v3
+  vfwmulbf16_vf/vs2/vpr/v4
+  vfwmulbf16_vf/vs2/vpr/v5
+  vfwmulbf16_vf/vs2/vpr/v6
+  vfwmulbf16_vf/vs2/vpr/v7
+  vfwmulbf16_vf/vs2/vpr/v8
+  vfwmulbf16_vf/vs2/vpr/v9
+  vfwmulbf16_vf/vs2/vpr/v10
+  vfwmulbf16_vf/vs2/vpr/v11
+  vfwmulbf16_vf/vs2/vpr/v12
+  vfwmulbf16_vf/vs2/vpr/v13
+  vfwmulbf16_vf/vs2/vpr/v14
+  vfwmulbf16_vf/vs2/vpr/v15
+  vfwmulbf16_vf/vs2/vpr/v16
+  vfwmulbf16_vf/vs2/vpr/v17
+  vfwmulbf16_vf/vs2/vpr/v18
+  vfwmulbf16_vf/vs2/vpr/v19
+  vfwmulbf16_vf/vs2/vpr/v20
+  vfwmulbf16_vf/vs2/vpr/v21
+  vfwmulbf16_vf/vs2/vpr/v22
+  vfwmulbf16_vf/vs2/vpr/v23
+  vfwmulbf16_vf/vs2/vpr/v24
+  vfwmulbf16_vf/vs2/vpr/v25
+  vfwmulbf16_vf/vs2/vpr/v26
+  vfwmulbf16_vf/vs2/vpr/v27
+  vfwmulbf16_vf/vs2/vpr/v28
+  vfwmulbf16_vf/vs2/vpr/v29
+  vfwmulbf16_vf/vs2/vpr/v30
+  vfwmulbf16_vf/vs2/vpr/v31
+  vfwmulbf16_vv/vd/vpr/v0
+  vfwmulbf16_vv/vd/vpr/v1
+  vfwmulbf16_vv/vd/vpr/v2
+  vfwmulbf16_vv/vd/vpr/v3
+  vfwmulbf16_vv/vd/vpr/v4
+  vfwmulbf16_vv/vd/vpr/v5
+  vfwmulbf16_vv/vd/vpr/v6
+  vfwmulbf16_vv/vd/vpr/v7
+  vfwmulbf16_vv/vd/vpr/v8
+  vfwmulbf16_vv/vd/vpr/v9
+  vfwmulbf16_vv/vd/vpr/v10
+  vfwmulbf16_vv/vd/vpr/v11
+  vfwmulbf16_vv/vd/vpr/v12
+  vfwmulbf16_vv/vd/vpr/v13
+  vfwmulbf16_vv/vd/vpr/v14
+  vfwmulbf16_vv/vd/vpr/v15
+  vfwmulbf16_vv/vd/vpr/v16
+  vfwmulbf16_vv/vd/vpr/v17
+  vfwmulbf16_vv/vd/vpr/v18
+  vfwmulbf16_vv/vd/vpr/v19
+  vfwmulbf16_vv/vd/vpr/v20
+  vfwmulbf16_vv/vd/vpr/v21
+  vfwmulbf16_vv/vd/vpr/v22
+  vfwmulbf16_vv/vd/vpr/v23
+  vfwmulbf16_vv/vd/vpr/v24
+  vfwmulbf16_vv/vd/vpr/v25
+  vfwmulbf16_vv/vd/vpr/v26
+  vfwmulbf16_vv/vd/vpr/v27
+  vfwmulbf16_vv/vd/vpr/v28
+  vfwmulbf16_vv/vd/vpr/v29
+  vfwmulbf16_vv/vd/vpr/v30
+  vfwmulbf16_vv/vd/vpr/v31
+  vfwmulbf16_vv/vs1/vpr/v0
+  vfwmulbf16_vv/vs1/vpr/v1
+  vfwmulbf16_vv/vs1/vpr/v2
+  vfwmulbf16_vv/vs1/vpr/v3
+  vfwmulbf16_vv/vs1/vpr/v4
+  vfwmulbf16_vv/vs1/vpr/v5
+  vfwmulbf16_vv/vs1/vpr/v6
+  vfwmulbf16_vv/vs1/vpr/v7
+  vfwmulbf16_vv/vs1/vpr/v8
+  vfwmulbf16_vv/vs1/vpr/v9
+  vfwmulbf16_vv/vs1/vpr/v10
+  vfwmulbf16_vv/vs1/vpr/v11
+  vfwmulbf16_vv/vs1/vpr/v12
+  vfwmulbf16_vv/vs1/vpr/v13
+  vfwmulbf16_vv/vs1/vpr/v14
+  vfwmulbf16_vv/vs1/vpr/v15
+  vfwmulbf16_vv/vs1/vpr/v16
+  vfwmulbf16_vv/vs1/vpr/v17
+  vfwmulbf16_vv/vs1/vpr/v18
+  vfwmulbf16_vv/vs1/vpr/v19
+  vfwmulbf16_vv/vs1/vpr/v20
+  vfwmulbf16_vv/vs1/vpr/v21
+  vfwmulbf16_vv/vs1/vpr/v22
+  vfwmulbf16_vv/vs1/vpr/v23
+  vfwmulbf16_vv/vs1/vpr/v24
+  vfwmulbf16_vv/vs1/vpr/v25
+  vfwmulbf16_vv/vs1/vpr/v26
+  vfwmulbf16_vv/vs1/vpr/v27
+  vfwmulbf16_vv/vs1/vpr/v28
+  vfwmulbf16_vv/vs1/vpr/v29
+  vfwmulbf16_vv/vs1/vpr/v30
+  vfwmulbf16_vv/vs1/vpr/v31
+  vfwmulbf16_vv/vs2/vpr/v0
+  vfwmulbf16_vv/vs2/vpr/v1
+  vfwmulbf16_vv/vs2/vpr/v2
+  vfwmulbf16_vv/vs2/vpr/v3
+  vfwmulbf16_vv/vs2/vpr/v4
+  vfwmulbf16_vv/vs2/vpr/v5
+  vfwmulbf16_vv/vs2/vpr/v6
+  vfwmulbf16_vv/vs2/vpr/v7
+  vfwmulbf16_vv/vs2/vpr/v8
+  vfwmulbf16_vv/vs2/vpr/v9
+  vfwmulbf16_vv/vs2/vpr/v10
+  vfwmulbf16_vv/vs2/vpr/v11
+  vfwmulbf16_vv/vs2/vpr/v12
+  vfwmulbf16_vv/vs2/vpr/v13
+  vfwmulbf16_vv/vs2/vpr/v14
+  vfwmulbf16_vv/vs2/vpr/v15
+  vfwmulbf16_vv/vs2/vpr/v16
+  vfwmulbf16_vv/vs2/vpr/v17
+  vfwmulbf16_vv/vs2/vpr/v18
+  vfwmulbf16_vv/vs2/vpr/v19
+  vfwmulbf16_vv/vs2/vpr/v20
+  vfwmulbf16_vv/vs2/vpr/v21
+  vfwmulbf16_vv/vs2/vpr/v22
+  vfwmulbf16_vv/vs2/vpr/v23
+  vfwmulbf16_vv/vs2/vpr/v24
+  vfwmulbf16_vv/vs2/vpr/v25
+  vfwmulbf16_vv/vs2/vpr/v26
+  vfwmulbf16_vv/vs2/vpr/v27
+  vfwmulbf16_vv/vs2/vpr/v28
+  vfwmulbf16_vv/vs2/vpr/v29
+  vfwmulbf16_vv/vs2/vpr/v30
+  vfwmulbf16_vv/vs2/vpr/v31
   vfwnmacc_vf/vd/vpr/v1
   vfwnmacc_vf/vd/vpr/v3
   vfwnmacc_vf/vd/vpr/v5
@@ -9670,10 +10770,10 @@ Coverage points missed:
   vfwsub_wv/vs2/vpr/v27
   vfwsub_wv/vs2/vpr/v29
   vfwsub_wv/vs2/vpr/v31
-Coverage points missed: 594/7904
+Coverage points missed: 1106/8416
 
 Info TOTAL INSTRUCTION COVERAGE : Vf
 Info   Threshold             : 1
 Info   Instructions counted  : 0
-Info   Unique instructions   : 91/91 : 100.00%
-Info   Coverage points hit   : 7310/7904 :  92.48%
+Info   Unique instructions   : 91/97 :  93.81%
+Info   Coverage points hit   : 7310/8416 :  86.86%

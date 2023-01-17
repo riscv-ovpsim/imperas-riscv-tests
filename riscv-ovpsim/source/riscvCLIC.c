@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 #include "riscvCluster.h"
 #include "riscvExceptions.h"
 #include "riscvMessage.h"
+#include "riscvMode.h"
 #include "riscvStructure.h"
 #include "riscvTypeRefs.h"
 
@@ -178,9 +179,9 @@ static riscvMode getCLICPageMode(riscvP root, Uns32 offset) {
     VMI_ASSERT(type!=CPT_C, "expected interrupt page");
 
     static const riscvMode map[] = {
-        [CPT_M] = RISCV_MODE_MACHINE,
-        [CPT_S] = RISCV_MODE_SUPERVISOR,
-        [CPT_U] = RISCV_MODE_USER
+        [CPT_M] = RISCV_MODE_M,
+        [CPT_S] = RISCV_MODE_S,
+        [CPT_U] = RISCV_MODE_U
     };
 
     return map[type];
@@ -496,7 +497,7 @@ static void writeCLICInterruptAttr(
     }
 
     // clear shv field if Selective Hardware Vectoring is not implemented
-    if(!root->clic.cliccfg.fields.nvbits) {
+    if(!root->configInfo.CLICSELHVEC) {
         clicintattr.fields.shv = 0;
     }
 
@@ -507,11 +508,11 @@ static void writeCLICInterruptAttr(
         // if CLICCFGMBITS is zero do not allow mode change from Machine
         (CLICCFGMBITS==0) ||
         // do not allow mode change to illegal H mode
-        (intMode==RISCV_MODE_HYPERVISOR) ||
+        (intMode==RISCV_MODE_H) ||
         // do not allow mode change to S mode if only M and U supported
-        ((CLICCFGMBITS<2) && (intMode==RISCV_MODE_SUPERVISOR)) ||
+        ((CLICCFGMBITS<2) && (intMode==RISCV_MODE_S)) ||
         // do not allow mode change to U mode if N extension is absent
-        ((intMode==RISCV_MODE_USER) && !(hart->configInfo.arch&ISA_N))
+        ((intMode==RISCV_MODE_U) && !(hart->configInfo.arch&ISA_N))
     ) {
         intMode = pageMode;
     }
@@ -546,7 +547,7 @@ static riscvMode getCLICInterruptMode(riscvP hart, Uns32 intIndex) {
     riscvP    root             = getCLICRoot(hart);
     Uns8      attr_mode        = clicintattr.fields.mode;
     Uns32     nmbits           = root->clic.cliccfg.fields.nmbits;
-    riscvMode intMode          = RISCV_MODE_MACHINE;
+    riscvMode intMode          = RISCV_MODE_M;
 
     if(nmbits == 0) {
 
@@ -558,7 +559,7 @@ static riscvMode getCLICInterruptMode(riscvP hart, Uns32 intIndex) {
         // priv-modes nmbits clicintattr[i].mode  Interpretation
         //      M/U      1       0x               U-mode interrupt
         //      M/U      1       1x               M-mode interrupt
-        intMode = (attr_mode&2) ? RISCV_MODE_MACHINE : RISCV_MODE_USER;
+        intMode = (attr_mode&2) ? RISCV_MODE_M : RISCV_MODE_U;
 
     } else {
 
@@ -861,7 +862,7 @@ static void cliccfgW(riscvP root, Uns8 newValue) {
     }
 
     // preserve read-only nvbits field
-    cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
+    cliccfg.fields.nvbits = haveNVbits(root) && root->configInfo.CLICSELHVEC;
 
     // update register and refresh interrupt state if changed
     if(root->clic.cliccfg.bits!=cliccfg.bits) {
@@ -889,7 +890,7 @@ static Uns8 readCLICInt(riscvP root, Uns32 raw, Uns32 offset) {
         result = readCLICInterrupt(root, offset);
     } else if(word==0) {
         result = root->clic.cliccfg.bits;
-    } else if(word==1) {
+    } else if((word==1) && !clicinfoAbsent(root)) {
         result = root->clic.clicinfo.bits;
     }
 
@@ -1282,7 +1283,9 @@ void riscvNewCLIC(riscvP root) {
         Uns32 intNum   = riscvGetIntNum(root);
 
         // initialise read-only nvbits in cliccfg using configuration option
-        root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
+        if(haveNVbits(root)) {
+            root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
+        }
 
         // initialise nlbits in cliccfg to smallest legal value using
         // configuration option
@@ -1353,7 +1356,7 @@ void riscvFillCLIC(riscvP riscv) {
             INT_TO_INDEX_MASK(i, word, mask);
 
             // get default value for clicintattr
-            CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_MACHINE}};
+            CLIC_REG_DECL(clicintattr) = {fields:{mode:RISCV_MODE_M}};
 
             // handle fixed positive edge/level triggered interrupts
             if(word ? posedge_other : (mask&posedge_0_63)) {

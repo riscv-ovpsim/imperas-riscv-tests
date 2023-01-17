@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,26 @@
 #include "riscvTypeRefs.h"
 #include "riscvTypes.h"
 
+
+//
+// Get M-mode interrupt mode
+//
+riscvICMode riscvGetIntModeM(riscvP riscv);
+
+//
+// Get S-mode interrupt mode
+//
+riscvICMode riscvGetIntModeS(riscvP riscv);
+
+//
+// Get U-mode interrupt mode
+//
+riscvICMode riscvGetIntModeU(riscvP riscv);
+
+//
+// Get VS-mode interrupt mode
+//
+riscvICMode riscvGetIntModeVS(riscvP riscv);
 
 //
 // Halt the passed processor for the given reason
@@ -249,6 +269,36 @@ Uns32 riscvGetMTOPI(riscvP riscv);
 Uns32 riscvGetSTOPI(riscvP riscv);
 
 //
+// Return the computed value of vstopi
+//
+Uns32 riscvGetVSTOPI(riscvP riscv);
+
+//
+// Read mtimecmp
+//
+Uns64 riscvReadMTIMECMP(riscvP hart);
+
+//
+// Write mtimecmp
+//
+void riscvWriteMTIMECMP(riscvP hart, Uns64 value);
+
+//
+// Read mtime
+//
+Uns64 riscvReadMTIME(riscvP hart);
+
+//
+// Write mtime
+//
+void riscvWriteMTIME(riscvP hart, Uns64 value);
+
+//
+// Refresh timer interrupt state controlled by mtimecmp, stimecmp and vstimecmp
+//
+void riscvUpdateTimer(riscvP hart);
+
+//
 // Allocate ports for this variant
 //
 void riscvNewNetPorts(riscvP riscv);
@@ -257,6 +307,11 @@ void riscvNewNetPorts(riscvP riscv);
 // Free ports
 //
 void riscvFreeNetPorts(riscvP riscv);
+
+//
+// Create mtime timer if required
+//
+void riscvNewMTIMETimer(riscvP riscv);
 
 //
 // Allocate timers

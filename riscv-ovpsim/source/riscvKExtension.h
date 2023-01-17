@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ typedef enum riscvKExtOpE {
 
     RVKOP_NONE,         // not a K-extension operation
 
-    // operation subsets (if not callbacks)
+    // scalar operation subsets (if not callbacks)
     RVKOP_Zkr,          // entropy source
     RVKOP_Zknd,         // NIST AES decryption instructions
     RVKOP_Zkne,         // NIST AES encryption instructions
@@ -43,7 +43,16 @@ typedef enum riscvKExtOpE {
     RVKOP_Zksed,        // SM4 instructions
     RVKOP_Zksh,         // SM3 hash function instructions
 
-    // operations implemented as callbacks or version-specific
+    // vector operation subsets (if not callbacks)
+    RVKOP_Zvkb,         // vector cryptographic bit-manipulation
+    RVKOP_Zvkg,         // vector cryptographic GCM/GMAC
+    RVKOP_Zvknha,       // vector NIST SHA2-256 hash function
+    RVKOP_Zvknhb,       // vector NIST SHA2-512 hash function
+    RVKOP_Zvkns,        // vector NIST AES block cipher
+    RVKOP_Zvksed,       // vector SM4 encryption and decryption
+    RVKOP_Zvksh,        // vector SM3 hash function
+
+    // scalar operations implemented as callbacks or version-specific
     RVKOP_LUT4LO,       // lut4lo
     RVKOP_LUT4HI,       // lut4hi
     RVKOP_LUT4,         // lut4
@@ -76,6 +85,18 @@ typedef enum riscvKExtOpE {
     RVKOP_SSHA512_SIG1, // sha512sig1
     RVKOP_SSHA512_SUM0, // sha512sum0
     RVKOP_SSHA512_SUM1, // sha512sum1
+
+    // vector operations implemented as callbacks
+    RVKOP_VAESKF1,      // vaeskf1.vi
+    RVKOP_VAESKF2,      // vaeskf2.vi
+    RVKOP_VGHMAC,       // vghmac.vv
+    RVKOP_VSM3ME,       // vsm3me.vv
+    RVKOP_VSM3C,        // vsm3c.vi
+    RVKOP_VSM4K,        // vsm4k.vi
+    RVKOP_VSM4R,        // vsm4r.[vv,vs]
+    RVKOP_VSHA2MS,      // vsha2ms.vv
+    RVKOP_VSHA2CL,      // vsha2cl.vv
+    RVKOP_VSHA2CH,      // vsha2ch.vv
 
     RVKOP_LAST,         // KEEP LAST: for sizing
 

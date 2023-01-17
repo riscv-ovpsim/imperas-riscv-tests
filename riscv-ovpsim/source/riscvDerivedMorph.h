@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,4 +28,16 @@
 #define RISCV_DERIVED_MORPH_FN(_NAME) void _NAME(riscvP riscv, void *clientData)
 typedef RISCV_DERIVED_MORPH_FN((*riscvDerivedMorphFn));
 
+//
+// Emit code to perform custom check for otherwise-legal vector unit-stride
+// load/store operations
+//
+#define RISCV_UNIT_STRIDE_CHECK_FN(_NAME) void _NAME( \
+    riscvP riscv,       \
+    void  *clientData,  \
+    vmiReg baseAddr,    \
+    Uns32  memBits,     \
+    Bool   isLoad       \
+)
+typedef RISCV_UNIT_STRIDE_CHECK_FN((*riscvUnitStrideCheckFn));
 

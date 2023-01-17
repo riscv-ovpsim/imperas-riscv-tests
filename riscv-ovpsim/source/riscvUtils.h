@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,11 @@ Bool riscvModeIsXLEN64(riscvP riscv, riscvMode mode);
 // Update the currently-enabled architecture settings
 //
 void riscvSetCurrentArch(riscvP riscv);
+
+//
+// Update dynamic BFLOAT16 state
+//
+void riscvUpdateDynamicBF16(riscvP riscv, Bool newBF16);
 
 //
 // Return the configured XLEN (may not be the current XLEN if dynamic update

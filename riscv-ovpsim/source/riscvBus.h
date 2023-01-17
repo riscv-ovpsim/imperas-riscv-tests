@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,3 +51,7 @@ void riscvFreeBusPorts(riscvP riscv);
 //
 memDomainP riscvGetExternalCSRDomain(riscvP riscv);
 
+//
+// Return any domain connected to the artifact port implementing IMSIC registers
+//
+memDomainP riscvGetExternalIMSICDomain(riscvP riscv);

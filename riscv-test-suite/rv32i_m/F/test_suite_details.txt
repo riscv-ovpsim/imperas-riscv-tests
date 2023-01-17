@@ -48,8 +48,8 @@ Instruction category: OPF_SCM Single-Precision Floating-Point Conversion and Mov
   fsgnjx.s : 31
 Instruction category: OPF_SCP Single-Precision Floating-Point Compare
   feq.s : 31
-  flt.s : 31
   fle.s : 31
+  flt.s : 31
 Instruction category: OPF_SLS Single-Precision Floating-Point Load and Store
   fsw : 3,658
   flw : 31

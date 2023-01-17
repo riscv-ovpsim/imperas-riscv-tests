@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,40 +57,15 @@ void riscvResetCLINT(riscvP riscv);
 //
 // Read msip[i]
 //
-Bool riscvReadCLINTMSIP(riscvCLINTP clint);
+Bool riscvReadCLINTMSIP(riscvP hart);
 
 //
 // Write msip[i]
 //
-void riscvWriteCLINTMSIP(riscvCLINTP clint, Bool value);
-
-//
-// Read mtime (common to all harts)
-//
-Uns64 riscvReadCLINTMTIME(riscvCLINTP clint);
+void riscvWriteCLINTMSIP(riscvP hart, Bool value);
 
 //
 // Write mtime (common to all harts)
 //
-void riscvWriteCLINTMTIME(riscvCLINTP clint, Uns64 value);
-
-//
-// Read mtimecmp[i]
-//
-Uns64 riscvReadCLINTMTIMECMP(riscvCLINTP clint);
-
-//
-// Write mtimecmp
-//
-void riscvWriteCLINTMTIMECMP(riscvCLINTP clint, Uns64 value);
-
-//
-// Save CLINT state not covered by register read/write API
-//
-void riscvSaveCLINT(riscvP riscv, vmiSaveContextP cxt);
-
-//
-// Restore CLINT state not covered by register read/write API
-//
-void riscvRestoreCLINT(riscvP riscv, vmiRestoreContextP cxt);
+void riscvWriteCLINTMTIME(riscvP hart, Uns64 value);
 

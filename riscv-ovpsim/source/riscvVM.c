@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,11 @@
 // Model header files
 #include "riscvCLIC.h"
 #include "riscvCLINT.h"
+#include "riscvDebug.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
 #include "riscvMessage.h"
+#include "riscvMode.h"
 #include "riscvStructure.h"
 #include "riscvUtils.h"
 #include "riscvVM.h"
@@ -381,8 +383,9 @@ static void setPMPPriv(
 
     // emit debug if required
     if(updatePriv && RISCV_DEBUG_MMU(riscv)) {
-        vmiPrintf(
-            "PMP PRIV=%s 0x"FMT_6408x":0x"FMT_6408x" (mode %s)\n",
+        vmiMessage("I", CPU_PREFIX "_PMP",
+            NO_SRCREF_FMT "PMP PRIV=%s 0x"FMT_6408x":0x"FMT_6408x" (mode %s)\n",
+            NO_SRCREF_ARGS(riscv),
             privName(priv), low, high, riscvGetModeName(getBaseMode(mode))
         );
     }
@@ -1004,7 +1007,7 @@ static void refinePMPRegionRange(
 // This defines the maximum number of PMP regions that can be straddled by a
 // single access
 //
-#define MAX_PMP_STRADDLE_NUM 3
+#define MAX_PMP_STRADDLE_NUM 16
 
 //
 // Return PMP privileges for regions with no match
@@ -1056,7 +1059,7 @@ static void mapPMP(
             PMPMapP map = &maps[mapNum++];
             Int32   i;
 
-            // sanity check the number of PMP regions strddled
+            // sanity check the number of PMP regions straddled
             VMI_ASSERT(
                 mapNum<=MAX_PMP_STRADDLE_NUM,
                 "access 0x"FMT_Ax":0x"FMT_Ax" straddling too many PMP regions",
@@ -1104,7 +1107,7 @@ static void mapPMP(
         if(mapBad) {
 
             // invalid permissions or access straddling multiple regions
-            riscv->AFErrorIn = riscv_AFault_PMP;
+            riscv->exceptionDetail = riscv_ED_PMP;
 
         } else {
 
@@ -1211,7 +1214,7 @@ void savePMP(riscvP riscv, vmiSaveContextP cxt) {
 }
 
 //
-// Resrore PMP structures
+// Restore PMP structures
 //
 void restorePMP(riscvP riscv, vmiRestoreContextP cxt) {
 
@@ -1478,8 +1481,9 @@ static void setMPUPriv(
 
     // emit debug if required
     if(updatePriv && RISCV_DEBUG_MMU(riscv)) {
-        vmiPrintf(
-            "MPU PRIV=%s 0x"FMT_6408x":0x"FMT_6408x" (mode %s)\n",
+        vmiMessage("I", CPU_PREFIX "_MPU",
+            NO_SRCREF_FMT "MPU PRIV=%s 0x"FMT_6408x":0x"FMT_6408x" (mode %s)\n",
+            NO_SRCREF_ARGS(riscv),
             privName(priv), low, high, riscvGetModeName(mode)
         );
     }
@@ -2114,7 +2118,11 @@ static void aliasPMA(
 
     // emit debug if required
     if(RISCV_DEBUG_MMU(riscv)) {
-        vmiPrintf("PMA ALIAS 0x"FMT_6408x":0x"FMT_6408x"\n", lowPA, highPA);
+        vmiMessage("I", CPU_PREFIX "_PMA",
+            NO_SRCREF_FMT "PMA ALIAS 0x"FMT_6408x":0x"FMT_6408x,
+            NO_SRCREF_ARGS(riscv),
+            lowPA, highPA
+        );
     }
 
     // establish page alias
@@ -3924,9 +3932,10 @@ static void dumpTLBEntry(riscvP riscv, tlbEntryP entry) {
         sprintf(asidString, " ASID=%u", getEntryASID(entry));
     }
 
-    vmiPrintf(
-        "VA 0x"FMT_6408x":0x"FMT_6408x" PA 0x"FMT_6408x":0x"FMT_6408x
-        " %s U=%u G=%u A=%u D=%u%s%s\n",
+    vmiMessage("I", CPU_PREFIX "_TLB",
+        NO_SRCREF_FMT "VA 0x"FMT_6408x":0x"FMT_6408x" PA 0x"FMT_6408x":0x"FMT_6408x
+        " %s U=%u G=%u A=%u D=%u%s%s",
+        NO_SRCREF_ARGS(riscv),
         entryLowVA, entryHighVA, entryLowPA, entryHighPA,
         privName(entry->priv), entry->U, entry->G, entry->A, entry->D,
         vmidString, asidString
@@ -3938,7 +3947,11 @@ static void dumpTLBEntry(riscvP riscv, tlbEntryP entry) {
 //
 static void reportDeleteTLBEntry(riscvP riscv, tlbEntryP entry) {
     if(!entry->artifact && RISCV_DEBUG_MMU(riscv)) {
-        vmiPrintf("DELETE %s ENTRY:\n", getTLBName(riscv, entry->tlb));
+        vmiMessage("I", CPU_PREFIX "_TLB",
+            NO_SRCREF_FMT "DELETE %s ENTRY:",
+            NO_SRCREF_ARGS(riscv),
+            getTLBName(riscv, entry->tlb)
+        );
         dumpTLBEntry(riscv, entry);
     }
 }
@@ -4188,7 +4201,13 @@ static tlbEntryP allocateTLBEntry(riscvP riscv, riscvTLBP tlb, tlbEntryP base) {
 
     // emit debug if required
     if(!entry->artifact && RISCV_DEBUG_MMU(riscv)) {
-        vmiPrintf("CREATE %s ENTRY:\n", getTLBName(riscv, getTLBId(riscv, tlb)));
+
+        vmiMessage("I", CPU_PREFIX "_TLB",
+            NO_SRCREF_FMT "CREATE %s ENTRY:",
+            NO_SRCREF_ARGS(riscv),
+            getTLBName(riscv, getTLBId(riscv, tlb))
+        );
+
         dumpTLBEntry(riscv, entry);
     }
 
@@ -4826,7 +4845,11 @@ static void dumpTLB(riscvP riscv, riscvTLBP tlb) {
 
     if(tlb) {
 
-        vmiPrintf("%s CONTENTS:\n", getTLBName(riscv, getTLBId(riscv, tlb)));
+        vmiMessage("I", CPU_PREFIX "_TLB",
+            NO_SRCREF_FMT "%s CONTENTS:",
+            NO_SRCREF_ARGS(riscv),
+            getTLBName(riscv, getTLBId(riscv, tlb))
+        );
 
         ITER_TLB_ENTRY_RANGE(
             riscv, tlb, 0, RISCV_MAX_ADDR, entry,
@@ -5340,6 +5363,19 @@ VMI_VMINIT_FN(riscvVMInit) {
         createTLB(riscv, RISCV_TLB_VS1);
         createTLB(riscv, RISCV_TLB_VS2);
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // POST-PORT-CONNECTION ACTIONS
+    //
+    // these actions are not related to virtual memory construction, but must be
+    // done at this late stage after port connection has been done
+    ////////////////////////////////////////////////////////////////////////////
+
+    // patch CSR registers to access CSR bus if required
+    riscvPatchCSRBusCallbacks(riscv);
+
+    // create mtime timer if required
+    riscvNewMTIMETimer(riscv);
 }
 
 
@@ -5433,7 +5469,7 @@ Bool riscvVMMiss(
     riscv->hlvxActive |= startHLVX(riscv, &domain, &requiredPriv);
 
     // assume any Access Fault error generated here will be a Bus Error
-    riscv->AFErrorIn = riscv_AFault_Bus;
+    riscv->exceptionDetail = riscv_ED_Bus;
 
     // identify access to a mapped domain
     domainType dt = getDomainType(riscv, domain, &mode, &isCode);

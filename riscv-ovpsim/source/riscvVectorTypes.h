@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ typedef enum riscvVShapeE {
     RVVW_V1I_V1I_V1I_ST,    // vector store operations
     RVVW_V1I_V1I_V1I_SAT,   // saturating result
     RVVW_V1I_V1I_V1I_VXRM,  // uses vxrm
-    RVVW_V1I_V1I_V1I_SEW8,  // uses SEW8
+    RVVW_V1I_V1I_V1I_SEW8,  // uses SEW8 and current LMUL
     RVVW_V1I_S1I_V1I,       // src1 is scalar
     RVVW_S1I_V1I_V1I,       // Vd is scalar
     RVVW_P1I_V1I_V1I,       // Vd is predicate

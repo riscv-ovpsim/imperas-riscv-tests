@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@
 #include "vmi/vmiMessage.h"
 #include "vmi/vmiRt.h"
 
+// OCL area includes
+#include "ocl/oclStringVar.h"
+
 // model header files
 #include "riscvAIATypes.h"
 #include "riscvCLIC.h"
@@ -40,6 +43,7 @@
 #include "riscvExceptionDefinitions.h"
 #include "riscvFunctions.h"
 #include "riscvMessage.h"
+#include "riscvMode.h"
 #include "riscvStructure.h"
 #include "riscvTrigger.h"
 #include "riscvUtils.h"
@@ -132,6 +136,11 @@ static const riscvExceptionDesc exceptions[] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// This is the minimum priority when no interrupt is pending
+//
+#define RV_NO_PRI   (1ULL<<63)
+
+//
 // Helper macros for defining interrupt priorities
 //
 #define STD_INDEX(_NAME)     (riscv_E_##_NAME##Interrupt-riscv_E_Interrupt)
@@ -219,6 +228,36 @@ Bool riscvIsLoadStoreAMOFault(riscvException exception) {
         case riscv_E_StoreAMOPageFault:
         case riscv_E_LoadGuestPageFault:
         case riscv_E_StoreAMOGuestPageFault:
+            return True;
+        default:
+            return False;
+    }
+}
+
+//
+// Is the exception a standard S-mode interrupt?
+//
+static Bool isSStandardInterrupt(riscvException exception) {
+
+    switch(exception) {
+        case riscv_E_SSWInterrupt:
+        case riscv_E_STimerInterrupt:
+        case riscv_E_SExternalInterrupt:
+            return True;
+        default:
+            return False;
+    }
+}
+
+//
+// Is the exception a standard VS-mode interrupt?
+//
+static Bool isVSStandardInterrupt(riscvException exception) {
+
+    switch(exception) {
+        case riscv_E_VSSWInterrupt:
+        case riscv_E_VSTimerInterrupt:
+        case riscv_E_VSExternalInterrupt:
             return True;
         default:
             return False;
@@ -407,26 +446,6 @@ void riscvRestart(riscvP riscv, riscvDisableReason reason) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// INTERRUPT DELEGATION FROM M-MODE
-////////////////////////////////////////////////////////////////////////////////
-
-//
-// Return effective mvien value
-//
-inline static Uns64 getEffectiveMvien(riscvP riscv) {
-    return RD_CSR64(riscv, mvien) & ~RD_CSR64(riscv, mideleg);
-}
-
-//
-// Return the effective mideleg value in basic interrupt mode, taking into
-// account the effect of mvien
-//
-static Uns64 getEffectiveMidelegBasic(riscvP riscv) {
-    return RD_CSR64(riscv, mideleg) | getEffectiveMvien(riscv);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
 // TAKING EXCEPTIONS
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -476,20 +495,6 @@ static riscvMode getModeX(
 }
 
 //
-// Return the mode to which to take the given interrupt (mode X)
-//
-static riscvMode getInterruptModeX(riscvP riscv, riscvException ecode) {
-
-    return getModeX(
-        riscv,
-        getEffectiveMidelegBasic(riscv),
-        RD_CSR64(riscv, hideleg),
-        RD_CSR64(riscv, sideleg),
-        ecode
-    );
-}
-
-//
 // Return the mode to which to take the given exception (mode X)
 //
 static riscvMode getExceptionModeX(riscvP riscv, riscvException ecode) {
@@ -521,16 +526,6 @@ static riscvMode getExceptionModeX(riscvP riscv, riscvException ecode) {
     }
 
     return modeX;
-}
-
-//
-// Return either normal or RNMI trap address
-//
-inline static Uns64 getExceptBase(riscvP riscv, Uns64 base) {
-
-    Bool rnmie = RD_CSR_FIELDC(riscv, mnstatus, NMIE);
-
-    return rnmie ? (base<<2) : riscv->configInfo.nmiexc_address;
 }
 
 //
@@ -566,21 +561,88 @@ typedef struct trapCxtS {
 //
 static Uns32 mapVSIntCode(trapCxtP cxt) {
 
-    Uns32 result = cxt->ecodeMod;
+    Uns32 ecode = cxt->ecodeMod;
 
-    if(cxt->isInt) {
-        switch(intToException(result)) {
-           case riscv_E_VSSWInterrupt:
-           case riscv_E_VSTimerInterrupt:
-           case riscv_E_VSExternalInterrupt:
-               result--;
-               break;
-           default:
-               break;   // LCOV_EXCL_LINE
+    if(cxt->isInt && isVSStandardInterrupt(intToException(ecode))) {
+        ecode--;
+    }
+
+    return ecode;
+}
+
+//
+// Get interrupt mode dependent on M-mode interrupt mode
+//
+static riscvICMode getIntModeWRTM(riscvP riscv, riscvICMode mode) {
+
+    if(mtvecDeterminesCLICMode(riscv)) {
+
+        riscvICMode modeM = RD_CSR_FIELD_M(riscv, mtvec, MODE);
+
+        if(modeM & riscv_int_CLIC) {
+            mode = modeM;
+        } else {
+            mode &= ~riscv_int_CLIC;
         }
     }
 
-    return result;
+    return mode;
+}
+
+//
+// Get M-mode interrupt mode
+//
+riscvICMode riscvGetIntModeM(riscvP riscv) {
+    return RD_CSR_FIELD_M(riscv, mtvec, MODE);
+}
+
+//
+// Get S-mode interrupt mode
+//
+riscvICMode riscvGetIntModeS(riscvP riscv) {
+    return getIntModeWRTM(riscv, RD_CSR_FIELD_S(riscv, stvec, MODE));
+}
+
+//
+// Get U-mode interrupt mode
+//
+riscvICMode riscvGetIntModeU(riscvP riscv) {
+    return getIntModeWRTM(riscv, RD_CSR_FIELD_U(riscv, utvec, MODE));
+}
+
+//
+// Get VS-mode interrupt mode
+//
+riscvICMode riscvGetIntModeVS(riscvP riscv) {
+    return getIntModeWRTM(riscv, RD_CSR_FIELD_VS(riscv, vstvec, MODE));
+}
+
+//
+// Fill exception base address and mode for CLINT, CLIC or RNMI
+//
+static void getExceptBaseMode(
+    riscvP      riscv,
+    trapCxtP    cxt,
+    Uns64       tvec,
+    riscvICMode customMode,
+    riscvICMode tvecMode
+) {
+    Uns64 base = tvec & -4;
+
+    if(!RD_CSR_FIELDC(riscv, mnstatus, NMIE)) {
+
+        // use nmiexc_address for NMI
+        base = riscv->configInfo.nmiexc_address;
+
+    } else if(tvecMode&riscv_int_CLIC) {
+
+        // apply further fixed alignment constraint in CLIC mode
+        base &= -0x40;
+    }
+
+    // fill base and mode
+    cxt->base = base;
+    cxt->mode = getIMode(customMode, tvecMode);
 }
 
 //
@@ -614,9 +676,11 @@ static void trapU(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, utval, cxt->tval);
 
     // get exception base address and mode
-    cxt->base = getExceptBase(riscv, RD_CSR_FIELD_U(riscv, utvec, BASE));
-    cxt->mode = getIMode(riscv->UIMode, RD_CSR_FIELD_U(riscv, utvec, MODE));
-    cxt->tvt  = RD_CSR_U(riscv, utvt);
+    Uns64 tvec = RD_CSR_U(riscv, utvec);
+    getExceptBaseMode(riscv, cxt, tvec, riscv->UIMode, riscvGetIntModeU(riscv));
+
+    // fill tvt address
+    cxt->tvt = RD_CSR_U(riscv, utvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -653,8 +717,8 @@ static void trapVU(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, utval, cxt->tval);
 
     // get exception base address and mode
-    cxt->base = getExceptBase(riscv, RD_CSR_FIELD_VU(riscv, utvec, BASE));
-    cxt->mode = getIMode(riscv->UIMode, RD_CSR_FIELD_VU(riscv, utvec, MODE));
+    Uns64 tvec = RD_CSR_VU(riscv, utvec);
+    getExceptBaseMode(riscv, cxt, tvec, riscv->UIMode, riscvGetIntModeU(riscv));
 }
 
 //
@@ -693,9 +757,11 @@ static void trapHS(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, htinst, riscv->tinst);
 
     // get exception base address and mode
-    cxt->base = getExceptBase(riscv, RD_CSR_FIELD_S(riscv, stvec, BASE));
-    cxt->mode = getIMode(riscv->SIMode, RD_CSR_FIELD_S(riscv, stvec, MODE));
-    cxt->tvt  = RD_CSR_S(riscv, stvt);
+    Uns64 tvec = RD_CSR_S(riscv, stvec);
+    getExceptBaseMode(riscv, cxt, tvec, riscv->SIMode, riscvGetIntModeS(riscv));
+
+    // fill tvt address
+    cxt->tvt = RD_CSR_S(riscv, stvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -742,8 +808,8 @@ static void trapVS(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, vstval, cxt->tval);
 
     // get exception base address and mode
-    cxt->base = getExceptBase(riscv, RD_CSR_FIELD_VS(riscv, vstvec, BASE));
-    cxt->mode = getIMode(riscv->SIMode, RD_CSR_FIELD_VS(riscv, vstvec, MODE));
+    Uns64 tvec = RD_CSR_VS(riscv, vstvec);
+    getExceptBaseMode(riscv, cxt, tvec, riscv->SIMode, riscvGetIntModeVS(riscv));
 
     // update previous mode
     WR_CSR_FIELDC(riscv, vsstatus, SPP, cxt->modeY);
@@ -785,9 +851,11 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
     WR_CSR64(riscv, mtinst, riscv->tinst);
 
     // get exception base address and mode
-    cxt->base = getExceptBase(riscv, RD_CSR_FIELD_M(riscv, mtvec, BASE));
-    cxt->mode = getIMode(riscv->MIMode, RD_CSR_FIELD_M(riscv, mtvec, MODE));
-    cxt->tvt  = RD_CSR_M(riscv, mtvt);
+    Uns64 tvec = RD_CSR_M(riscv, mtvec);
+    getExceptBaseMode(riscv, cxt, tvec, riscv->MIMode, riscvGetIntModeM(riscv));
+
+    // fill tvt address
+    cxt->tvt = RD_CSR_M(riscv, mtvt);
 
     // update exception level
     if(cxt->level>=0) {
@@ -858,23 +926,6 @@ static Bool getCLICVHandlerPC(riscvP riscv, trapCxtP cxt) {
 
     // get target PC from calculated address
     return getCLICVPC(riscv, address, &cxt->handlerPC);
-}
-
-//
-// Does this exception code correspond to an Access Fault?
-//
-static Bool accessFaultCode(riscvException exception) {
-
-    switch(exception) {
-
-        case riscv_E_InstructionAccessFault:
-        case riscv_E_LoadAccessFault:
-        case riscv_E_StoreAMOAccessFault:
-            return True;
-
-        default:
-            return False;
-    }
 }
 
 //
@@ -1017,18 +1068,20 @@ void riscvTakeException(
     riscvException exception,
     Uns64          tval
 ) {
+    // S-mode external, timer and software interrupts taken to VS-mode should
+    // be mapped to VS-mode equivalents in this function
+    if(isSStandardInterrupt(exception) && (riscv->pendEnab.priv==RISCV_MODE_VS)) {
+        exception++;
+    }
+
     // indicate the taken exception
     riscv->exception = exception;
 
     // clear active HLV/HLVX/HSV indication and atomic state
     clearVirtualAtomic(riscv);
 
-    // adjust baseInstructions based on the exception code to take into account
-    // whether the previous instruction has retired, unless inhibited by
-    // mcountinhibit.IR
-    if(!isInterrupt(exception) && !riscvInhibitInstret(riscv)) {
-        riscv->baseInstructions++;
-    }
+    // indicate any executing instruction will not retire
+    riscvNoRetire(riscv);
 
     // unless step mode bug workaround is enabled, anything causing entry to
     // exception handler counts as a successful step for debug purposes, so
@@ -1066,13 +1119,6 @@ void riscvTakeException(
             isInt     : isInterrupt(exception)
         };
 
-        // latch or clear Access Fault detail depending on exception type
-        if(accessFaultCode(exception)) {
-            riscv->AFErrorOut = riscv->AFErrorIn;
-        } else {
-            riscv->AFErrorOut = riscv_AFault_None;
-        }
-
         // clear any active exclusive access if required
         if(!riscv->configInfo.trap_preserves_lr) {
             clearEA(riscv);
@@ -1081,10 +1127,8 @@ void riscvTakeException(
         // get exception target mode (X)
         if(!cxt.isInt) {
             cxt.modeX = getExceptionModeX(riscv, ecode);
-        } else if(riscv->pendEnab.isCLIC) {
-            cxt.modeX = riscv->pendEnab.priv;
         } else {
-            cxt.modeX = getInterruptModeX(riscv, ecode);
+            cxt.modeX = riscv->pendEnab.priv;
         }
 
         if(!inhv) {
@@ -1123,6 +1167,9 @@ void riscvTakeException(
 
         // notify derived model of exception entry if required
         preNotifyTrapDerived(riscv, cxt.modeX);
+
+        // clear exception detail before possible nested exception
+        riscv->exceptionDetail = riscv_ED_None;
 
         // update state dependent on target exception level
         if(cxt.modeX==RISCV_MODE_U) {
@@ -1212,6 +1259,11 @@ void riscvTakeAsynchonousException(
 ) {
     // restart from WFI state if required
     riscvRestart(riscv, RVD_RESTART_WFI);
+
+    // this function is intended for use with exceptions, but if used to
+    // signal an *interrupt* in a custom manner, assume that the interrupt must
+    // be taken at M-mode (probably an NMI)
+    riscv->pendEnab.priv = RISCV_MODE_M;
 
     // take exception
     riscvTakeException(riscv, exception, tval);
@@ -2063,7 +2115,7 @@ static void enterDM(riscvP riscv, dmCause cause) {
         WR_CSR_M(riscv, dpc, getEPC(riscv));
 
         // switch to Machine mode
-        riscvSetMode(riscv, RISCV_MODE_MACHINE);
+        riscvSetMode(riscv, RISCV_MODE_M);
 
         // refresh state after possible inhibit update
         riscvPostInhibit(riscv, &state, False);
@@ -2234,10 +2286,8 @@ void riscvEBREAK(riscvP riscv) {
 
     if(inDebugMode(riscv) || (RD_CSRC(riscv, dcsr) & modeMask)) {
 
-        // ebreak never increments instret
-        if(!riscvInhibitInstret(riscv)) {
-            riscv->baseInstructions++;
-        }
+        // ebreak is not considered to retire
+        riscvNoRetire(riscv);
 
         // don't count the ebreak instruction if dcsr.stopcount is set
         if(RD_CSR_FIELDC(riscv, dcsr, stopcount)) {
@@ -2259,6 +2309,153 @@ void riscvEBREAK(riscvP riscv) {
         // EBREAK sets mtval to epc
         riscvTakeMemoryException(riscv, riscv_E_Breakpoint, getPC(riscv));
     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TIME SUPPORT
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Read mtimecmp
+//
+Uns64 riscvReadMTIMECMP(riscvP hart) {
+
+    return hart->mtimecmp;
+}
+
+//
+// Write mtimecmp
+//
+void riscvWriteMTIMECMP(riscvP hart, Uns64 value) {
+
+    hart->mtimecmp = value;
+
+    riscvUpdateTimer(hart);
+}
+
+//
+// Read mtime
+//
+Uns64 riscvReadMTIME(riscvP hart) {
+
+    Uns64 result = hart->mtimebase;
+
+    if(hart->mtime) {
+        result += vmirtGetModelTimerCurrentCount(hart->mtime, True);
+    }
+
+    return result;
+}
+
+//
+// Write mtime
+//
+void riscvWriteMTIME(riscvP hart, Uns64 value) {
+
+    hart->mtimebase = value;
+
+    if(hart->mtime) {
+        hart->mtimebase -= vmirtGetModelTimerCurrentCount(hart->mtime, True);
+    }
+
+    riscvUpdateTimer(hart);
+}
+
+//
+// Refresh timer state given time and timecmp values, returning Boolean
+// indicating whether this timer is now pending
+//
+static Bool updateTimerInt(
+    riscvP riscv,
+    Uns64  time,
+    Uns64  timecmp,
+    Uns64 *timeoutP
+) {
+    Bool  pending = (time>=timecmp);
+    Uns64 timeout = pending ? -time : (timecmp-time);
+
+    // adjust timeout
+    if(*timeoutP>timeout) {
+        *timeoutP = timeout;
+    }
+
+    return pending;
+}
+
+//
+// Refresh timer interrupt state controlled by mtimecmp, stimecmp and vstimecmp
+//
+void riscvUpdateTimer(riscvP hart) {
+
+    Uns64 mtime           = riscvReadMTIME(hart);
+    Bool  mtimecmpPresent = hart->clint;
+    Bool  stimecmpPresent = Sstc(hart);
+    Uns64 timeout         = -1;
+
+    // handle mtimecmp effect
+    if(mtimecmpPresent) {
+
+        Uns32 intNum   = exceptionToInt(riscv_E_MTimerInterrupt);
+        Bool  oldValue = hart->ip[0] & (1<<intNum);
+        Uns64 mtimecmp = riscvReadMTIMECMP(hart);
+        Bool  newValue = updateTimerInt(hart, mtime, mtimecmp, &timeout);
+
+        // modify mtip pending state if required
+        if(oldValue!=newValue) {
+            riscvUpdateInterrupt(hart, intNum, newValue);
+        }
+    }
+
+    // handle stimecmp effect
+    if(stimecmpPresent) {
+
+        Uns64 stimecmp = RD_CSR64(hart, stimecmp);
+        Bool  newValue = updateTimerInt(hart, mtime, stimecmp, &timeout);
+
+        // modify stip pending state if required
+        if(hart->stimecmp!=newValue) {
+            hart->stimecmp = newValue;
+            riscvUpdatePending(hart);
+        }
+    }
+
+    // handle vstimecmp effect
+    if(stimecmpPresent && hypervisorPresent(hart)) {
+
+        Uns64 vstimecmp = RD_CSR64(hart, vstimecmp);
+        Uns64 vmtime    = mtime + RD_CSR64(hart, htimedelta);
+        Bool  newValue  = updateTimerInt(hart, vmtime, vstimecmp, &timeout);
+
+        // modify vstip pending state if required
+        if(hart->vstimecmp!=newValue) {
+            hart->vstimecmp = newValue;
+            riscvUpdatePending(hart);
+        }
+    }
+
+    // set next timeout
+    if(hart->mtime && (mtimecmpPresent || stimecmpPresent)) {
+        vmirtSetModelTimer(hart->mtime, timeout ? : -1);
+    }
+}
+
+//
+// Timer timeout callback: refresh timer
+//
+static VMI_ICOUNT_FN(mtimeCB) {
+    riscvUpdateTimer((riscvP)processor);
+}
+
+//
+// Externally-sourced mtime value change
+//
+static VMI_NET_CHANGE_FN(mtimePortCB) {
+
+    riscvInterruptInfoP ii    = userData;
+    riscvP              riscv = ii->hart;
+
+    riscvWriteMTIME(riscv, newValue);
 }
 
 
@@ -2480,13 +2677,20 @@ VMI_WR_ABORT_EXCEPT_FN(riscvWrAbortExcept) {
 }
 
 //
+// Return device error, distinguishing atomic instructions
+//
+inline static riscvExceptionDtl getDeviceError(riscvP riscv) {
+    return riscv->atomic ? riscv_ED_Atomic : riscv_ED_Device;
+}
+
+//
 // Read device exception handler
 //
 VMI_RD_DEVICE_EXCEPT_FN(riscvRdDeviceExcept) {
 
     riscvP riscv = (riscvP)processor;
 
-    riscv->AFErrorIn = riscv_AFault_Device;
+    riscv->exceptionDetail = getDeviceError(riscv);
     riscvTakeMemoryException(riscv, riscv_E_LoadAccessFault, address);
 
     return 0;
@@ -2499,7 +2703,7 @@ VMI_WR_DEVICE_EXCEPT_FN(riscvWrDeviceExcept) {
 
     riscvP riscv = (riscvP)processor;
 
-    riscv->AFErrorIn = riscv_AFault_Device;
+    riscv->exceptionDetail = getDeviceError(riscv);
     riscvTakeMemoryException(riscv, riscv_E_StoreAMOAccessFault, address);
 
     return 0;
@@ -2646,24 +2850,123 @@ static Bool getIE(riscvP riscv, Bool IE, riscvMode modeIE, Bool useCLIC) {
 }
 
 //
-// Return mask of pending and locally enabled basic mode interrupts that would
-// cause resumption from WFI (note that these could however be masked by global
-// interrupt enable or delegation bits - see the Privileged Architecture
+// Relocate VSEIP, VSTIP and VSSIE to SEIP, STIP and SSIE locations in the
+// given value
+//
+static Uns64 relocateVStoS(Uns64 ip) {
+
+    ip &= ~(WM64_hvip>>1);
+    ip |= (ip&WM64_hvip)>>1;
+    ip &= ~WM64_hvip;
+
+    return ip;
+}
+
+//
+// Get pending and enabled interrupts in mip/mie
+//
+inline static Uns64 getPendingEnabledMIP(riscvP riscv) {
+    return RD_CSR64(riscv, mie) & RD_CSR64(riscv, mip) & ~riscv->disableMask;
+}
+
+//
+// Get pending and enabled interrupts in mvip/mvien
+//
+inline static Uns64 getPendingEnabledMVIP(riscvP riscv) {
+
+    Uns64 mvien = getEffectiveMvien(riscv);
+    Uns64 mvip  = RD_CSR64(riscv, mvip) & riscv->svie & mvien;
+
+    return mvip;
+}
+
+//
+// Are there pending and enabled virtual interrupts targeting HS mode?
+// (Note that hideleg is *not* masked by mideleg in this case)
+//
+static Uns64 getPendingEnabledVirtualHS(riscvP riscv) {
+
+    // get pending-and-enabled mvip virtual interrupts directed to HS mode
+    Uns64 mvip   = getPendingEnabledMVIP(riscv);
+    Uns64 mvipHS = mvip & ~RD_CSR64(riscv, hideleg);
+
+    return mvipHS;
+}
+
+//
+// Are there pending and enabled virtual interrupts targeting VS mode?
+// (Note that hideleg is *not* masked by mideleg in this case)
+//
+static Uns64 getPendingEnabledVirtualVS(riscvP riscv) {
+
+    // get pending-and-enabled mvip virtual interrupts directed to VS mode
+    Uns64 mvip   = getPendingEnabledMVIP(riscv);
+    Uns64 hvien  = getEffectiveHvien(riscv);
+    Uns64 mvipVS = mvip & RD_CSR64(riscv, hideleg) & ~hvien;
+
+    // get pending-and-enabled hvip virtual interrupts directed to VS mode
+    Uns64 hvipVS = RD_CSR64(riscv, hvip) & RD_CSR64(riscv, vsie) & hvien;
+
+    return mvipVS | hvipVS;
+}
+
+//
+// Fill intBasic structure to indicate which exceptions are pending and enabled
+// at each target exception level (note that these could however be masked by
+// global interrupt enable or delegation bits - see the Privileged Architecture
 // specification)
 //
-static Uns64 getPendingLocallyEnabledBasic(riscvP riscv) {
+static Bool getPendingLocallyEnabledBasic(
+    riscvP              riscv,
+    riscvBasicIntStateP intState
+) {
+    // initially assume no interrupts are pending and enabled
+    *intState = (riscvBasicIntState){{0}};
 
-    // get mask of sources that should use mvip
-    Uns64 mvien = getEffectiveMvien(riscv);
+    // get pending-and-enabled standard interrupts
+    Uns64 ip = getPendingEnabledMIP(riscv);
 
-    // handle standard interrupt sources
-    Uns64 ip = RD_CSR64(riscv, mie) & RD_CSR64(riscv, mip) & ~mvien;
+    if(ip) {
 
-    // handle virtual interrupt sources
-    ip |= (RD_CSR64(riscv, mvip) & riscv->svie & mvien);
+        ////////////////////////////////////////////////////////////////////////
+        // HANDLE TRUE INTERRUPTS PENDED USING MIP/MIE OR ALIASES
+        ////////////////////////////////////////////////////////////////////////
 
-    // exclude any sources with custom disable
-    return ip & ~riscv->disableMask;
+        Uns64 mideleg = RD_CSR64(riscv, mideleg);
+        Uns64 sideleg = RD_CSR64(riscv, sideleg) & mideleg;
+        Uns64 hideleg = RD_CSR64(riscv, hideleg) & mideleg;
+
+        // fill pending-and-enabled true interrupts for each target mode
+        intState->ip[RISCV_MODE_M]  = ip & ~mideleg;
+        intState->ip[RISCV_MODE_S]  = ip & (mideleg & ~(hideleg|sideleg));
+        intState->ip[RISCV_MODE_U]  = ip & sideleg;
+        intState->ip[RISCV_MODE_VS] = relocateVStoS(ip & hideleg);
+    }
+
+    if(Smaia(riscv)) {
+
+        ////////////////////////////////////////////////////////////////////////
+        // HANDLE AIA VS AND HS LEVEL VIRTUAL INTERRUPTS PENDED USING MVIP/HVIP
+        ////////////////////////////////////////////////////////////////////////
+
+        // add to pending S-mode and VS-mode interrupts
+        ip |= (intState->ip[RISCV_MODE_S]  |= getPendingEnabledVirtualHS(riscv));
+        ip |= (intState->ip[RISCV_MODE_VS] |= getPendingEnabledVirtualVS(riscv));
+
+        ////////////////////////////////////////////////////////////////////////
+        // HANDLE AIA VS LEVEL INTERRUPTS INJECTED USING HVICTL
+        ////////////////////////////////////////////////////////////////////////
+
+        Uns32 seiid = exceptionToInt(riscv_E_SExternalInterrupt);
+        Uns32 IID   = RD_CSR_FIELDC(riscv, hvictl, IID);
+        Uns32 VTI   = RD_CSR_FIELDC(riscv, hvictl, VTI);
+
+        // vstopi case 5 is not signalled by pending bits but is directly
+        // injected using hvictl
+        ip |= (intState->hvictl = (VTI && (IID!=seiid)));
+    }
+
+    return ip;
 }
 
 //
@@ -2677,17 +2980,6 @@ inline static Bool getPendingLocallyEnabledCLIC(riscvP riscv) {
 }
 
 //
-// Return indication if whether any interrupt is pending and locally enabled
-// (either basic mode or CLIC mode)
-//
-inline static Bool getPendingLocallyEnabled(riscvP riscv) {
-    return (
-        getPendingLocallyEnabledBasic(riscv) ||
-        getPendingLocallyEnabledCLIC(riscv)
-    );
-}
-
-//
 // Structure representing composed interrupt priority value
 //
 typedef union fullPriU {
@@ -2696,8 +2988,8 @@ typedef union fullPriU {
 
     struct {
         Int32 tiebreak : 16;
-        Uns32 xiprioN  : 16;
-        Int32 basePri  : 32;
+        Uns32 minor    : 16;
+        Int32 major    : 32;
     } parts;
 
 } fullPri;
@@ -2723,10 +3015,10 @@ typedef union xtopiU {
 //
 static Uns32 getMIPRIORaw(riscvP riscv, Uns32 id) {
 
-    if(id==exceptionToInt(riscv_E_MExternalInterrupt)) {
-        return riscv->aia->meiprio;
-    } else {
+    if(id!=exceptionToInt(riscv_E_MExternalInterrupt)) {
         return riscv->aia->miprio[id];
+    } else {
+        return riscv->aia->meiprio;
     }
 }
 
@@ -2735,22 +3027,59 @@ static Uns32 getMIPRIORaw(riscvP riscv, Uns32 id) {
 //
 static Uns32 getSIPRIORaw(riscvP riscv, Uns32 id) {
 
-    if(id==exceptionToInt(riscv_E_SExternalInterrupt)) {
-        return riscv->aia->seiprio;
-    } else {
+    if(id!=exceptionToInt(riscv_E_SExternalInterrupt)) {
         return riscv->aia->siprio[id];
+    } else {
+        return riscv->aia->seiprio;
     }
 }
 
 //
-// Get priority for the indexed interrupt in basic mode (intNum<=63)
+// Return VS-mode raw priority for interrupt
 //
-static Int64 getIntPriBasic(riscvP riscv, riscvPendEnab this) {
-    
-    Uns32 id     = this.id;
+static Uns32 getVSIPRIORaw(riscvP riscv, Uns32 id) {
+    return riscv->aia->vsiprio[id];
+}
+
+//
+// Invert raw xiprio
+//
+inline static Uns16 xiprioInvert(Uns16 xiprio) {
+    return 0xffff-xiprio;
+}
+
+//
+// Return full interrupt priority
+//
+static Int64 getIntPriBasicID(
+    Int64                  basePri,
+    Uns32                  xiprio,
+    riscvExceptionPriority major
+) {
+    Int32 tiebreak = basePri - riscv_E_MinPriority;
+
+    // compose full priority value, inverting sense of xiprio (higher numbers
+    // imply higher priority in this format)
+    fullPri pri = {
+        parts : {
+            major    : major,
+            minor    : xiprioInvert(xiprio),
+            tiebreak : tiebreak
+        }
+    };
+
+    // return priority
+    return pri.full;
+}
+
+//
+// Get default priority for the indexed interrupt in basic mode
+//
+static Int64 getDefaultPriBasic(riscvP riscv, Uns32 id) {
+
     Int64 result = 0;
 
-    // get and defined custom interrupt priority
+    // get any defined custom interrupt priority
     ITER_EXT_CB_WHILE(
         riscv, extCB, getInterruptPri, !result,
         result = extCB->getInterruptPri(riscv, id, extCB->clientData);
@@ -2769,48 +3098,46 @@ static Int64 getIntPriBasic(riscvP riscv, riscvPendEnab this) {
     } else {
 
         // get standard interrupt priority
-        result = intPri[id];
+        result = (id<64) ? intPri[id] : riscv_E_LocalPriority+id-riscv_E_Local;
     }
+
+    return result;
+}
+
+//
+// Get priority for the indexed interrupt in basic mode (intNum<=63)
+//
+static Int64 getIntPriBasic(riscvP riscv, riscvPendEnab this) {
+    
+    Uns32 id     = this.id;
+    Int64 result = getDefaultPriBasic(riscv, id);
 
     // handle Smaia priority adjustment
     if(Smaia(riscv)) {
 
-        Int64 basePri  = result;
-        Int32 tiebreak = basePri - riscv_E_MinPriority;
-        Uns16 xiprio   = 0;
+        riscvExceptionPriority major;
+        Uns16                  xiprio;
 
         if(this.priv==RISCV_MODE_M) {
 
             // interrupt targets M-mode
+            major  = riscv_E_MExternalPriority;
             xiprio = getMIPRIORaw(riscv, id);
-
-            // insert into M-mode external interrupt range if required
-            if(xiprio) {
-                basePri = riscv_E_MExternalPriority;
-            }
 
         } else if(this.priv==RISCV_MODE_S) {
 
             // interrupt targets S-mode
+            major  = riscv_E_SExternalPriority;
             xiprio = getSIPRIORaw(riscv, id);
 
-            // insert into S-mode external interrupt range if required
-            if(xiprio) {
-                basePri = riscv_E_SExternalPriority;
-            }
+        } else {
+
+            // interrupt targets VS-mode
+            major  = riscv_E_SExternalPriority;
+            xiprio = getVSIPRIORaw(riscv, id);
         }
 
-        // compose full priority value, inverting sense of xiprio (higher
-        // numbers imply higher priority in this format)
-        fullPri pri = {
-            parts : {
-                basePri  : basePri,
-                xiprioN  : -xiprio,
-                tiebreak : tiebreak
-            }
-        };
-
-        result = pri.full;
+        result = getIntPriBasicID(result, xiprio, xiprio ? major : result);
     }
 
     return result;
@@ -2825,70 +3152,181 @@ inline static riscvPendEnab noInt(void) {
 
 //
 // Return the highest-priority pending and enabled interrupt from the given
-// set of enabled interrupts
+// set of enabled interrupts for the given mode
 //
-static riscvPendEnab getHighestPriorityBasic(
-    riscvP riscv,
-    Uns64  pendingEnabled
+static Int64 getHighestPriorityBasicMode(
+    riscvP              riscv,
+    riscvPendEnabP      result,
+    riscvBasicIntStateP intState,
+    riscvMode           priv
 ) {
-    riscvPendEnab result    = noInt();
-    Int32         id        = 0;
-    Uns8          selPri    = 0;
-    Int64         selIntPri = 0;
+    riscvPendEnab try       = {priv:priv};
+    Int64         selIntPri = RV_NO_PRI;
+    Uns64         ip        = intState->ip[priv];
 
-    do {
+    while(ip) {
 
-        if(pendingEnabled&1) {
-
-            riscvPendEnab try = {
-                id   : id,
-                priv : getInterruptModeX(riscv, id)
-            };
+        if(ip&1) {
 
             // get relative priority of candidate interrupt
-            Uns8  tryPri = mode5Priority(try.priv);
-            Int64 tryIntPri;
+            Int64 tryIntPri = getIntPriBasic(riscv, try);
 
-            if(selPri < tryPri) {
-                // higher destination privilege mode
-                result    = try;
-                selPri    = tryPri;
-                selIntPri = getIntPriBasic(riscv, try);
-            } else if(selPri > tryPri) {
-                // lower destination privilege mode
-            } else if(selIntPri<=(tryIntPri=getIntPriBasic(riscv, try))) {
-                // higher fixed priority order and same destination mode
-                result    = try;
-                selPri    = tryPri;
+            // select if highest-priority
+            if(selIntPri<=tryIntPri) {
+                *result   = try;
                 selIntPri = tryIntPri;
             }
         }
 
         // step to next potential pending-and-enabled interrupt
-        pendingEnabled >>= 1;
-        id++;
+        ip >>= 1;
+        try.id++;
+    }
 
-    } while(pendingEnabled);
+    // return selected interrupt priority or zero if no match
+    return selIntPri!=RV_NO_PRI ? selIntPri : 0;
+}
 
-    return result;
+//
+// Return the highest-priority pending and enabled interrupt from the given
+// set of enabled interrupts targeting VS mode
+//
+static Int64 getHighestPriorityBasicVSInt(
+    riscvP              riscv,
+    riscvPendEnabP      result,
+    riscvBasicIntStateP intState
+) {
+    Uns32         seiid     = exceptionToInt(riscv_E_SExternalInterrupt);
+    Uns64         seiMask   = (1<<seiid);
+    Int64         seiDefPri = riscv_E_SExternalPriority;
+    Uns32         VGEIN     = RD_CSR_FIELDC(riscv, hstatus, VGEIN);
+    Uns32         IID       = RD_CSR_FIELDC(riscv, hvictl, IID);
+    Uns32         IPRIO     = RD_CSR_FIELDC(riscv, hvictl, IPRIO);
+    riscvPendEnab try123    = {priv:RISCV_MODE_VS, id:seiid};
+    Int64         pri123    = 0;
+    Int64         pri45     = 0;
+
+    // determine effective supervisor external interrupt priority for exclusive
+    // cases 1 to 3
+    if(intState->ip[RISCV_MODE_VS] & seiMask) {
+
+        // case 3 default value
+        Uns32 vsiprio = 256;
+
+        if(!VGEIN) {
+            // use case 3 default value
+        } else if(riscv->aia->vseiprio) {
+            vsiprio = riscv->aia->vseiprio;
+        } else if((IID!=seiid) && IPRIO) {
+            vsiprio = IPRIO;
+        }
+
+        // determine full supervisor external interrupt priority for exclusive
+        // cases 1 to 3
+        pri123 = getIntPriBasicID(seiDefPri, vsiprio, seiDefPri);
+    }
+
+    // determine full interrupt priority for exclusive cases 4 and 5
+    if(!RD_CSR_FIELDC(riscv, hvictl, VTI)) {
+
+        // ignore supervisor external interrupt in case 4
+        intState->ip[RISCV_MODE_VS] &= ~seiMask;
+
+        // select remaining interrupt of highest priority
+        pri45 = getHighestPriorityBasicMode(
+            riscv, result, intState, RISCV_MODE_VS
+        );
+
+    } else if(IID!=seiid) {
+
+        // case 5 - get default priority relative to SEI
+        Int32 adjust = RD_CSR_FIELDC(riscv, hvictl, DPR) ? -1 : 1;
+        Int64 defPri = seiDefPri + adjust;
+
+        pri45 = getIntPriBasicID(defPri, IPRIO, seiDefPri);
+
+        result->priv = RISCV_MODE_VS;
+        result->id   = IID;
+    }
+
+    // select highest priority interrupt from the two exclusive groups
+    if(pri123 && (!pri45 || (pri123>pri45))) {
+        *result = try123;
+        pri45   = pri123;
+    }
+
+    // return selected interrupt priority
+    return pri45;
+}
+
+//
+// Return the highest-priority pending and enabled interrupt from the given
+// set of enabled interrupts targeting VS mode
+//
+static Int64 getHighestPriorityBasicVS(
+    riscvP              riscv,
+    riscvPendEnabP      result,
+    riscvBasicIntStateP intState
+) {
+    riscvMode mode   = RISCV_MODE_VS;
+    Int64     intPri = 0;
+
+    if(!Smaia(riscv)) {
+        intPri = getHighestPriorityBasicMode(riscv, result, intState, mode);
+    } else if(inVMode(riscv)) {
+        intPri = getHighestPriorityBasicVSInt(riscv, result, intState);
+    }
+
+    return intPri;
+}
+
+//
+// Return the highest-priority pending and enabled interrupt from the given
+// set of enabled interrupts
+//
+static void getHighestPriorityBasic(
+    riscvP              riscv,
+    riscvPendEnabP      result,
+    riscvBasicIntStateP intState
+) {
+    if(
+        getHighestPriorityBasicMode(riscv, result, intState, RISCV_MODE_M ) ||
+        getHighestPriorityBasicMode(riscv, result, intState, RISCV_MODE_S ) ||
+        getHighestPriorityBasicMode(riscv, result, intState, RISCV_MODE_U ) ||
+        getHighestPriorityBasicVS  (riscv, result, intState               ) ||
+        getHighestPriorityBasicMode(riscv, result, intState, RISCV_MODE_VU)
+    ) {}
 }
 
 //
 // Return highest priority interrupt from the set specified by mask in xtopi
 // format
 //
-static Uns32 getXTOPIInt(riscvP riscv, Uns64 mask, riscvExceptionPriority xeiPri) {
+static Uns32 getXTOPIInt(
+    riscvP                 riscv,
+    riscvMode              mode,
+    riscvExceptionPriority xeiPri,
+    Bool                   ipriom
+) {
+    xtopi              result = {0};
+    riscvPendEnab      hpInt  = noInt();
+    riscvBasicIntState intState;
+    Int64              intPri;
 
-    Uns64 xint   = getPendingLocallyEnabledBasic(riscv) & mask;
-    xtopi result = {0};
+    getPendingLocallyEnabledBasic(riscv, &intState);
 
-    // select highest-priority pending-and-enabled interrupt
-    if(xint) {
+    // get highest-priority pending-and-enabled interrupt and its priority
+    if(mode==RISCV_MODE_VS) {
+        intPri = getHighestPriorityBasicVSInt(riscv, &hpInt, &intState);
+    } else {
+        intPri = getHighestPriorityBasicMode(riscv, &hpInt, &intState, mode);
+    }
 
-        riscvPendEnab hpInt  = getHighestPriorityBasic(riscv, xint);
-        fullPri       pri    = {full : getIntPriBasic(riscv, hpInt)};
-        Uns16         xiprio = -pri.parts.xiprioN;
-        Int32         defPri = pri.parts.tiebreak + riscv_E_MinPriority;
+    if(intPri) {
+
+        fullPri pri    = {full : intPri};
+        Uns16   xiprio = xiprioInvert(pri.parts.minor);
+        Int32   defPri = pri.parts.tiebreak + riscv_E_MinPriority;
 
         // adjust reported priority for low-priority interrupts
         if((xiprio>255) || (!xiprio && (defPri<xeiPri))) {
@@ -2897,7 +3335,7 @@ static Uns32 getXTOPIInt(riscvP riscv, Uns64 mask, riscvExceptionPriority xeiPri
 
         // fill result
         result.parts.IID   = hpInt.id;
-        result.parts.IPRIO = xiprio;
+        result.parts.IPRIO = ipriom ? xiprio : 1;
     }
 
     return result.full;
@@ -2907,23 +3345,78 @@ static Uns32 getXTOPIInt(riscvP riscv, Uns64 mask, riscvExceptionPriority xeiPri
 // Return the computed value of mtopi
 //
 Uns32 riscvGetMTOPI(riscvP riscv) {
-
-    Uns64 mMask = ~getEffectiveMidelegBasic(riscv);
-
-    return getXTOPIInt(riscv, mMask, riscv_E_MExternalPriority);
+    return getXTOPIInt(riscv, RISCV_MODE_M, riscv_E_MExternalPriority, True);
 }
 
 //
 // Return the computed value of stopi
 //
 Uns32 riscvGetSTOPI(riscvP riscv) {
+    return getXTOPIInt(riscv, RISCV_MODE_S, riscv_E_SExternalPriority, True);
+}
 
-    Uns64 mideleg = getEffectiveMidelegBasic(riscv);
-    Uns64 sideleg = RD_CSR64(riscv, sideleg) & mideleg;
-    Uns64 hideleg = RD_CSR64(riscv, hideleg) & mideleg;
-    Uns64 hsMask  = mideleg & ~(hideleg|sideleg);
+//
+// Return the computed value of vstopi
+//
+Uns32 riscvGetVSTOPI(riscvP riscv) {
+    Bool ipriom = RD_CSR_FIELDC(riscv, hvictl, IPRIOM);
+    return getXTOPIInt(riscv, RISCV_MODE_VS, riscv_E_SExternalPriority, ipriom);
+}
 
-    return getXTOPIInt(riscv, hsMask, riscv_E_SExternalPriority);
+//
+// Emit debug of interrupt state change if required
+//
+static void debugIntState(riscvP riscv, riscvBasicIntStateP intState) {
+
+    // short mode names
+    static const char *modeNames[RISCV_MODE_LAST] = {
+        [RISCV_MODE_M]  = "M",
+        [RISCV_MODE_S]  = "S",
+        [RISCV_MODE_U]  = "U",
+        [RISCV_MODE_VS] = "VS",
+        [RISCV_MODE_VU] = "VU"
+    };
+
+    if(
+        memcmp(&riscv->intState.ip, &intState->ip, sizeof(intState->ip)) ||
+        (riscv->intState.hvictl != intState->hvictl)
+    ) {
+        octStringVarP sv = oclSVnew();
+        riscvMode     mode;
+
+        // report changed interrupt state visible in pending bits
+        for(mode=0; mode<RISCV_MODE_LAST; mode++) {
+            if(riscv->intState.ip[mode] != intState->ip[mode]) {
+                oclSVprintf(
+                    sv,
+                    " %sIP:"FMT_A08x"->"FMT_A08x,
+                    modeNames[mode],
+                    riscv->intState.ip[mode],
+                    intState->ip[mode]
+                );
+            }
+        }
+
+        // report changed interrupt state visible in hvictl
+        if(riscv->intState.hvictl != intState->hvictl) {
+            oclSVprintf(
+                sv,
+                " hvictl[%u]->hvictl[%u]",
+                riscv->intState.hvictl,
+                intState->hvictl
+            );
+        }
+
+        // emit message
+        vmiMessage("I", CPU_PREFIX "_IS",
+            SRCREF_FMT"%s",
+            SRCREF_ARGS(riscv, getPC(riscv)),
+            oclSVstring(sv)
+        );
+
+        // track previous pending state
+        riscv->intState = *intState;
+    }
 }
 
 //
@@ -2931,10 +3424,12 @@ Uns32 riscvGetSTOPI(riscvP riscv) {
 //
 static void refreshPendingAndEnabledBasic(riscvP riscv) {
 
-    Uns64 pendingEnabled = getPendingLocallyEnabledBasic(riscv);
-
-    // apply interrupt masks
-    if(pendingEnabled) {
+    Bool               pendingEnabled = False;
+    riscvBasicIntState intState;
+    riscvMode          mode;
+    
+    // apply interrupt masks to pending and enabled interrupts
+    if(getPendingLocallyEnabledBasic(riscv, &intState)) {
 
         // get raw interrupt enable bits
         Bool MIE  = RD_CSR_FIELDC(riscv, mstatus,  MIE);
@@ -2943,75 +3438,41 @@ static void refreshPendingAndEnabledBasic(riscvP riscv) {
         Bool VSIE = RD_CSR_FIELDC(riscv, vsstatus, SIE);
         Bool VUIE = RD_CSR_FIELDC(riscv, vsstatus, UIE);
 
-        // modify effective interrupt enables based on current mode
-        MIE  = getIE(riscv, MIE,  RISCV_MODE_M,  useCLICM(riscv));
-        HSIE = getIE(riscv, HSIE, RISCV_MODE_S,  useCLICS(riscv));
-        HUIE = getIE(riscv, HUIE, RISCV_MODE_U,  useCLICU(riscv));
-        VSIE = getIE(riscv, VSIE, RISCV_MODE_VS, useCLICVS(riscv));
-        VUIE = getIE(riscv, VUIE, RISCV_MODE_VU, useCLICVU(riscv));
-
-        // get interrupt mask applicable for each mode
-        Uns64 mideleg = getEffectiveMidelegBasic(riscv);
-        Uns64 sideleg = RD_CSR64(riscv, sideleg) & mideleg;
-        Uns64 hideleg = RD_CSR64(riscv, hideleg) & mideleg;
-        Uns64 mMask   = ~mideleg;
-        Uns64 hsMask  = mideleg & ~(hideleg|sideleg);
-        Uns64 huMask  = sideleg;
-        Uns64 vsMask  = hideleg;
-        Uns64 vuMask  = 0;
-
-        // handle masked interrupts
-        if(!MIE)  {pendingEnabled &= ~mMask;}
-        if(!HSIE) {pendingEnabled &= ~hsMask;}
-        if(!HUIE) {pendingEnabled &= ~huMask;}
-        if(!VSIE) {pendingEnabled &= ~vsMask;}
-        if(!VUIE) {pendingEnabled &= ~vuMask;}
-    }
-
-    // print exception status
-    if(RISCV_DEBUG_EXCEPT(riscv)) {
-
-        // get factors contributing to interrupt state
-        riscvBasicIntState intState = {
-            .pendingEnabled  = pendingEnabled,
-            .pending         = RD_CSR64(riscv, mip),
-            .pendingExternal = riscv->ip[0],
-            .pendingInternal = riscv->swip,
-            .mideleg         = RD_CSR64(riscv, mideleg),
-            .sideleg         = RD_CSR64(riscv, sideleg),
-            .mie             = RD_CSR_FIELDC(riscv, mstatus, MIE),
-            .sie             = RD_CSR_FIELDC(riscv, mstatus, SIE),
-            .uie             = RD_CSR_FIELDC(riscv, mstatus, UIE),
+        // get interrupt mask applicable for each mode for true interrupts
+        Bool ie[RISCV_MODE_LAST] = {
+            [RISCV_MODE_M]  = getIE(riscv, MIE,  RISCV_MODE_M,  useCLICM(riscv)),
+            [RISCV_MODE_S]  = getIE(riscv, HSIE, RISCV_MODE_S,  useCLICS(riscv)),
+            [RISCV_MODE_U]  = getIE(riscv, HUIE, RISCV_MODE_U,  useCLICU(riscv)),
+            [RISCV_MODE_VS] = getIE(riscv, VSIE, RISCV_MODE_VS, useCLICVS(riscv)),
+            [RISCV_MODE_VU] = getIE(riscv, VUIE, RISCV_MODE_VU, useCLICVU(riscv))
         };
 
-        // report only if interrupt state changes
-        if(memcmp(&riscv->intState, &intState, sizeof(intState))) {
-
-            vmiMessage("I", CPU_PREFIX "_IS",
-                SRCREF_FMT
-                "PENDING+ENABLED="FMT_A08x" PENDING="FMT_A08x" "
-                "[EXTERNAL_IP="FMT_A08x",SW_IP="FMT_A08x"] "
-                "MIDELEG="FMT_A08x" SIDELEG="FMT_A08x" MSTATUS.[MSU]IE=%u%u%u",
-                SRCREF_ARGS(riscv, getPC(riscv)),
-                intState.pendingEnabled,
-                intState.pending,
-                intState.pendingExternal,
-                intState.pendingInternal,
-                intState.mideleg,
-                intState.sideleg,
-                intState.mie,
-                intState.sie,
-                intState.uie
-            );
-
-            // track previous pending state
-            riscv->intState = intState;
+        // handle masked interrupt modes
+        for(mode=0; mode<RISCV_MODE_LAST; mode++) {
+            if(!ie[mode]) {
+                intState.ip[mode] = 0;
+            } else if(intState.ip[mode]) {
+                pendingEnabled = True;
+            }
         }
+
+        // if VS-mode interrupts are masked then hvictl-pended interrupts are
+        // disabled
+        if(!ie[RISCV_MODE_VS]) {
+            intState.hvictl = False;
+        } else if(intState.hvictl) {
+            pendingEnabled = True;
+        }
+    }
+
+    // debug interrupt state change if required
+    if(RISCV_DEBUG_EXCEPT(riscv)) {
+        debugIntState(riscv, &intState);
     }
 
     // select highest-priority pending-and-enabled interrupt
     if(pendingEnabled) {
-        riscv->pendEnab = getHighestPriorityBasic(riscv, pendingEnabled);
+        getHighestPriorityBasic(riscv, &riscv->pendEnab, &intState);
     }
 }
 
@@ -3054,11 +3515,11 @@ static void refreshPendingAndEnabledCLIC(riscvP hart) {
             // basic mode interrupt is higher priority
         } else if(mode>priv) {
             // execution priority is higher than interrupt priority
-        } else if(priv==RISCV_MODE_MACHINE) {
+        } else if(priv==RISCV_MODE_M) {
             enable = PRESENT_INT_CLIC(hart, M, m, level, mode);
-        } else if(priv==RISCV_MODE_SUPERVISOR) {
+        } else if(priv==RISCV_MODE_S) {
             enable = PRESENT_INT_CLIC(hart, S, s, level, mode);
-        } else if(priv==RISCV_MODE_USER) {
+        } else if(priv==RISCV_MODE_U) {
             enable = PRESENT_INT_CLIC(hart, U, u, level, mode);
         } else {
             VMI_ABORT("unimplemented case"); // LCOV_EXCL_LINE
@@ -3203,6 +3664,9 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     riscvDPriority priority     = riscv->configInfo.debug_priority;
     Bool           addressHiPri = (priority==RVDP_ORIG);
 
+    // set indication of exception during fetch
+    riscv->isFetch = True;
+
     ////////////////////////////////////////////////////////////////////////////
     // actions *after* preceding instruction
     ////////////////////////////////////////////////////////////////////////////
@@ -3277,6 +3741,9 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
         // no exception pending
         fetchOK = True;
     }
+
+    // clear indication of exception during fetch
+    riscv->isFetch = False;
 
     if(fetchOK) {
 
@@ -3475,8 +3942,8 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
             if(riscvHasStandardException(riscv, code)) {
 
                 vmiExceptionInfoP this = &all[numExcept++];
-                char              name[32];
-                char              description[32];
+                char              name[64];
+                char              desc[64];
 
                 if(i || !useCSIP16(riscv)) {
 
@@ -3484,7 +3951,7 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
                     sprintf(name, "LocalInterrupt%u", i);
 
                     // construct description
-                    getInterruptDesc(code, description);
+                    getInterruptDesc(code, desc);
 
                 } else {
 
@@ -3492,12 +3959,12 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
                     strcpy(name, "CSIP");
 
                     // construct description
-                    strcpy(description, "CLIC software interrupt");
+                    strcpy(desc, "CLIC software interrupt");
                 }
 
                 this->code        = code;
                 this->name        = name;
-                this->description = description;
+                this->description = desc;
 
                 // clone strings in exception structure
                 cloneExceptionStrings(this);
@@ -3640,10 +4107,14 @@ inline static Bool negedge(Uns32 old, Uns32 new) {
 //
 // Is resume from WFI required?
 //
-inline static Bool resumeFromWFI(riscvP riscv) {
+static Bool resumeFromWFI(riscvP riscv) {
+
+    riscvBasicIntState intState;
+
     return (
-        getPendingLocallyEnabled(riscv) ||
-        inDebugMode(riscv) ||
+        getPendingLocallyEnabledBasic(riscv, &intState) ||
+        getPendingLocallyEnabledCLIC(riscv)             ||
+        inDebugMode(riscv)                              ||
         RD_CSR_FIELDC(riscv, dcsr, step)
     );
 }
@@ -3716,7 +4187,7 @@ void riscvReset(riscvP riscv) {
     riscvSetDM(riscv, False);
 
     // switch to Machine mode
-    riscvSetMode(riscv, RISCV_MODE_MACHINE);
+    riscvSetMode(riscv, RISCV_MODE_M);
 
     // reset CSR state
     riscvCSRReset(riscv);
@@ -3726,6 +4197,9 @@ void riscvReset(riscvP riscv) {
 
     // reset CLIC state
     riscvResetCLIC(riscv);
+
+    // reset internal timer state
+    riscvUpdateTimer(riscv);
 
     // notify dependent model of reset event
     ITER_EXT_CB(
@@ -3748,9 +4222,8 @@ void riscvReset(riscvP riscv) {
 //
 static void doNMI(riscvP riscv) {
 
-    riscvMode MPP       = getCurrentMode3(riscv);
-    Bool      MPV       = inVMode(riscv);
-    Uns64     ecode_nmi = riscv->configInfo.ecode_nmi;
+    riscvMode MPP = getCurrentMode3(riscv);
+    Bool      MPV = inVMode(riscv);
 
     // do custom NMI behavior if required
     ITER_EXT_CB(
@@ -3760,8 +4233,11 @@ static void doNMI(riscvP riscv) {
         }
     )
 
+    // get NMI code after custom NMI handler (in case this is modified by that)
+    Uns64 ecode_nmi = riscv->configInfo.ecode_nmi;
+
     // switch to Machine mode
-    riscvSetMode(riscv, RISCV_MODE_MACHINE);
+    riscvSetMode(riscv, RISCV_MODE_M);
 
     if(RISCV_RNMI_VERSION(riscv)) {
 
@@ -3897,7 +4373,8 @@ static VMI_NET_CHANGE_FN(irqPortCB) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Set priority of M-mode external interrupt (from APLIC or IMSIC)
+// Set priority of M-mode highest-priority pending and enabled external
+// interrupt (from APLIC or IMSIC)
 //
 static VMI_NET_CHANGE_FN(miprioPortCB) {
 
@@ -3908,7 +4385,8 @@ static VMI_NET_CHANGE_FN(miprioPortCB) {
 }
 
 //
-// Set priority of S-mode external interrupt (from APLIC or IMSIC)
+// Set priority of S-mode highest-priority pending and enabled external
+// interrupt (from APLIC or IMSIC)
 //
 static VMI_NET_CHANGE_FN(siprioPortCB) {
 
@@ -3916,6 +4394,18 @@ static VMI_NET_CHANGE_FN(siprioPortCB) {
     riscvP              riscv = ii->hart;
 
     riscv->aia->seiprio = newValue;
+}
+
+//
+// Set priority of VS-mode highest-priority pending and enabled external
+// interrupt for currently-enabled guest interrupt file (from APLIC or IMSIC)
+//
+static VMI_NET_CHANGE_FN(vsiprioPortCB) {
+
+    riscvInterruptInfoP ii    = userData;
+    riscvP              riscv = ii->hart;
+
+    riscv->aia->vseiprio = newValue;
 }
 
 
@@ -3939,27 +4429,32 @@ static Uns32 getGuestEIP(riscvP riscv) {
 }
 
 //
-// Compose mip value from discrete sources
-//
-inline static void composeMIP(riscvP riscv) {
-    WR_CSR64(riscv, mip, riscv->ip[0] | riscv->swip | getGuestEIP(riscv));
-}
-
-//
-// Update interrupt state because of some pending state change (either from
+// Update visible state in mip because of some pending state change (either from
 // external interrupt source or software pending register)
 //
 void riscvUpdatePending(riscvP riscv) {
 
-    // compose mip value
-    Uns64 oldValue = RD_CSR64(riscv, mip);
-    composeMIP(riscv);
-    Uns64 newValue = RD_CSR64(riscv, mip);
+    Uns64 swip = riscv->swip;
 
-    // update register value and exception state on a change
-    if(oldValue != newValue) {
-        riscvTestInterrupt(riscv);
+    // reassign STIP and VSTIP from stimecmp and vstimecmp if required
+    if(stimecmpEnabled(riscv)) {
+
+        swip &= ~(1ULL<<exceptionToInt(riscv_E_STimerInterrupt));
+
+        if(riscv->stimecmp) {
+            swip |= 1ULL<<exceptionToInt(riscv_E_STimerInterrupt);
+        }
+
+        if(riscv->vstimecmp && vstimecmpEnabled(riscv)) {
+            swip |= 1ULL<<exceptionToInt(riscv_E_VSTimerInterrupt);
+        }
     }
+
+    // compose mip value
+    WR_CSR64(riscv, mip, riscv->ip[0] | swip | getGuestEIP(riscv));
+
+    // test for pending interrupts
+    riscvTestInterrupt(riscv);
 }
 
 //
@@ -4273,6 +4768,9 @@ typedef enum riscvPortIdE {
     RVP_nmi_cause,
     RVP_nmi_addr,
 
+    // timer ports
+    RVP_mtime,
+
     // RNMI ports
     RVP_nmiexc_addr,
 
@@ -4286,6 +4784,7 @@ typedef enum riscvPortIdE {
     // AIA ports
     RVP_miprio,
     RVP_siprio,
+    RVP_vsiprio,
 
     // interrupt status ports
     RVP_irq_ack_o,
@@ -4320,6 +4819,9 @@ static const vmiNetPort netPorts[] = {
     PORT_I(nmi_cause,    nmiCausePortCB,      0, "Externally-applied NMI cause"),
     PORT_I(nmi_addr,     nmiAddressPortCB,    0, "Externally-applied NMI address"),
 
+    // timer ports
+    PORT_I(mtime,        mtimePortCB,         0, "External mtime source"),
+
     // RNMI ports
     PORT_I(nmiexc_addr,  nmiexcAddressPortCB, 0, "Externally-applied RNMI exception address"),
 
@@ -4333,6 +4835,7 @@ static const vmiNetPort netPorts[] = {
     // AIA ports
     PORT_I(miprio,       miprioPortCB,        0, "Priority of external pending-and-enabled M-mode interrupt"),
     PORT_I(siprio,       siprioPortCB,        0, "Priority of external pending-and-enabled S-mode interrupt"),
+    PORT_I(vsiprio,      vsiprioPortCB,       0, "Priority of external pending-and-enabled VS-mode interrupt"),
 
     // interrupt status ports
     PORT_O(irq_ack_o,    irq_ack_Handle,      0, "Interrupt acknowledge (pulse)"),
@@ -4520,8 +5023,8 @@ static riscvNetPortPP addInterruptNetPorts(riscvP riscv, riscvNetPortPP tail) {
         if(riscvHasStandardException(riscv, code)) {
 
             // construct name and description
-            char name[32];
-            char desc[32];
+            char name[64];
+            char desc[64];
             sprintf(name, "LocalInterrupt%u", i);
             sprintf(desc, "Local interrupt %u", i);
 
@@ -4589,6 +5092,13 @@ void riscvNewNetPorts(riscvP riscv) {
     // add standard input ports
     tail = newNetPortsTemplate(riscv, tail, RVP_reset, RVP_nmi_addr);
 
+    // add standard interrupt ports if required
+    if(externalMTIME(riscv)) {
+        riscvNetPortPP mtimePortP = tail;
+        tail = newNetPortTemplate(riscv, tail, RVP_mtime);
+        riscv->mtimePort = *mtimePortP;
+    }
+
     // allocate nmiexc_addr port if RNMI configured
     if(RISCV_RNMI_VERSION(riscv)) {
         tail = newNetPortTemplate(riscv, tail, RVP_nmiexc_addr);
@@ -4617,6 +5127,11 @@ void riscvNewNetPorts(riscvP riscv) {
     // add S-mode AIA ports if required
     if(Smaia(riscv) && supervisorPresent(riscv)) {
         tail = newNetPortsTemplate(riscv, tail, RVP_siprio, RVP_siprio);
+    }
+
+    // add S-mode AIA ports if required
+    if(Smaia(riscv) && hypervisorPresent(riscv)) {
+        tail = newNetPortsTemplate(riscv, tail, RVP_vsiprio, RVP_vsiprio);
     }
 
     // add interrupt status ports
@@ -4685,6 +5200,25 @@ VMI_NET_PORT_SPECS_FN(riscvNetPortSpecs) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
+// Create mtime timer if required
+//
+void riscvNewMTIMETimer(riscvP riscv) {
+
+    if(internalMTIME(riscv)) {
+
+        // calculate time scale factor
+        vmiProcessorP processor = (vmiProcessorP)riscv;
+        Flt64         hart_Hz   = vmirtGetProcessorIPS(processor);
+        Flt64         mtime_Hz  = riscv->configInfo.mtime_Hz;
+        Uns32         scale     = hart_Hz/mtime_Hz;
+
+        riscv->mtime = vmirtCreateMonotonicModelTimer(
+            processor, mtimeCB, scale, 0
+        );
+    }
+}
+
+//
 // Create new cycle timer
 //
 inline static vmiModelTimerP newCycleTimer(riscvP riscv, vmiICountFn icountCB) {
@@ -4708,6 +5242,9 @@ void riscvNewTimers(riscvP riscv) {
 //
 void riscvFreeTimers(riscvP riscv) {
 
+    if(riscv->mtime) {
+        vmirtDeleteModelTimer(riscv->mtime);
+    }
     if(riscv->stepTimer) {
         vmirtDeleteModelTimer(riscv->stepTimer);
     }
@@ -4725,6 +5262,7 @@ void riscvFreeTimers(riscvP riscv) {
 // Save/restore field keys
 //
 #define RV_IP               "ip"
+#define RV_MTIME            "mtime"
 #define RV_AIA              "aia"
 #define RV_STEP_TIMER       "stepTimer"
 #define RV_ACK_TIMER        "ackTimer"
@@ -4748,11 +5286,6 @@ void riscvNetSave(
         // save basic-mode interrupt state
         if(basicICPresent(riscv)) {
             VMIRT_SAVE_FIELD(cxt, riscv, intState);
-        }
-
-        // save CLINT-mode interrupt state
-        if(CLINTInternal(riscv)) {
-            riscvSaveCLINT(riscv, cxt);
         }
 
         // save CLIC-mode interrupt state
@@ -4798,11 +5331,6 @@ void riscvNetRestore(
             VMIRT_RESTORE_FIELD(cxt, riscv, intState);
         }
 
-        // restore CLINT-mode interrupt state
-        if(CLINTInternal(riscv)) {
-            riscvRestoreCLINT(riscv, cxt);
-        }
-
         // restore CLIC-mode interrupt state
         if(CLICInternal(riscv)) {
             riscvRestoreCLIC(riscv, cxt);
@@ -4823,11 +5351,8 @@ void riscvNetRestore(
             VMIRT_RESTORE_FIELD(cxt, riscv, svie);
         }
 
-        // refresh derived mip
-        composeMIP(riscv);
-
         // check for pending interrupts
-        riscvTestInterrupt(riscv);
+        riscvUpdatePending(riscv);
     }
 }
 
@@ -4840,6 +5365,11 @@ void riscvTimerSave(
     vmiSaveRestorePhase phase
 ) {
     if(phase==SRT_END_CORE) {
+
+        if(riscv->mtime) {
+            VMIRT_SAVE_FIELD(cxt, riscv, mtimebase);
+            vmirtSaveModelTimer(cxt, RV_MTIME, riscv->mtime);
+        }
 
         if(riscv->stepTimer) {
             VMIRT_SAVE_FIELD(cxt, riscv, stepICount);
@@ -4859,6 +5389,12 @@ void riscvTimerRestore(
     vmiSaveRestorePhase phase
 ) {
     if(phase==SRT_END_CORE) {
+
+        if(riscv->mtime) {
+            VMIRT_RESTORE_FIELD(cxt, riscv, mtimebase);
+            vmirtRestoreModelTimer(cxt, RV_MTIME, riscv->mtime);
+            riscvUpdateTimer(riscv);
+        }
 
         if(riscv->stepTimer) {
             VMIRT_RESTORE_FIELD(cxt, riscv, stepICount);

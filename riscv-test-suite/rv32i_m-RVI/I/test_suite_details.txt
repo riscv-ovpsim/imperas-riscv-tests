@@ -35,35 +35,35 @@ Other instructions (those not the focus of this suite)
   fence : 39
   ecall : 38
   beq : 699
-  lw : 33
-  add : 588
-  bne : 584
-  blt : 580
-  bge : 590
-  bltu : 726
   bgeu : 726
   andi : 627
-  lbu : 32
-  lb : 33
-  and : 584
   sub : 930
+  and : 584
+  add : 588
+  lw : 33
+  blt : 580
+  lbu : 32
   jalr : 97
   xori : 631
-  lhu : 32
+  bge : 590
+  lb : 33
+  bltu : 726
+  bne : 584
   lh : 32
+  lhu : 32
   ori : 560
-  slli : 88
-  sh : 71
-  sb : 70
   sll : 89
-  or : 587
   slt : 584
-  slti : 560
-  sltu : 722
-  sltiu : 699
-  srl : 92
-  srli : 90
+  sh : 71
+  slli : 88
   sra : 90
+  sltu : 722
+  sb : 70
+  or : 587
+  sltiu : 699
   srai : 87
+  srli : 90
+  slti : 560
+  srl : 92
   xor : 588
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,12 @@
 // This holds AIA state for each hart
 //
 typedef struct riscvAIAS {
-    Uns8  miprio[64];   // M-mode interrupt priorities
-    Uns8  siprio[64];   // S-mode interrupt priorities
+    Uns8  miprio [64];  // M-mode interrupt priorities
+    Uns8  siprio [64];  // S-mode interrupt priorities
+    Uns8  vsiprio[64];  // VS-mode interrupt priorities
     Uns16 meiprio;      // M-mode external interrupt priority
     Uns16 seiprio;      // S-mode external interrupt priority
+    Uns16 vseiprio;     // VS-mode external interrupt priority
 } riscvAIA;
 
 

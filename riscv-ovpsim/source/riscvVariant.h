@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+ * Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,8 @@
 #define TM_LV_CHAR              ('Z'+18)
 #define TM_S_CHAR               ('Z'+19)
 #define TM_X_CHAR               ('Z'+20)
-#define RISCV_FAND_CHAR         ('Z'+21)
+#define BF16_CHAR               ('Z'+21)
+#define RISCV_FAND_CHAR         ('Z'+22)
 #define RISCV_FEATURE_INDEX(_C) ((_C)-'A')
 #define RISCV_FEATURE_BIT(_C)   (1ULL<<RISCV_FEATURE_INDEX(_C))
 #define XLEN_SHIFT              RISCV_FEATURE_INDEX(XLEN32_CHAR)
@@ -93,6 +94,9 @@ typedef enum riscvArchitectureE {
     ISA_TM_S   = RISCV_FEATURE_BIT(TM_S_CHAR),
     ISA_TM_X   = RISCV_FEATURE_BIT(TM_X_CHAR),
 
+    // DYNAMIC BF16 FORMAT
+    ISA_BF16   = RISCV_FEATURE_BIT(BF16_CHAR),
+
     // FEATURES A AND B
     ISA_and    = RISCV_FEATURE_BIT(RISCV_FAND_CHAR), // (CSR artifact)
 
@@ -126,6 +130,7 @@ typedef enum riscvArchitectureE {
     ISA_VS     = (ISA_S|ISA_H),             // virtual supervisor mode
     ISA_BK     = (ISA_B|ISA_K),             // either B or K extension
     ISA_VP     = (ISA_V|ISA_P),             // either V or P extension
+    ISA_VK     = (ISA_V|ISA_K),             // either V or K extension
     ISA_32     = ISA_XLEN_32,               // supported for XLEN=32
     ISA_64     = ISA_XLEN_64,               // supported for XLEN=64
     ISA_Sand32 = (ISA_S|ISA_32|ISA_and),    // 32-bit S mode
@@ -212,6 +217,7 @@ typedef enum riscvArchitectureE {
     RVANYCI  = RVANYC|RVANYI|ISA_and,
     RVANYCM  = RVANYC|RVANYM|ISA_and,
     RVANYVA  = RVANYV|RVANYA|ISA_and,
+    RVANYVK  = RVANYV|RVANYK|ISA_and,
     RVANYBK  = RVANYB|RVANYK,
 
 } riscvArchitecture;
@@ -438,21 +444,49 @@ typedef enum riscvCryptoVerE {
 } riscvCryptoVer;
 
 //
+// Date and tag of Vector Cryptographic Architecture master version
+//
+#define RVKVV_MASTER_DATE    "11 January 2023"
+#define RVKVV_MASTER_TAG     "053169b"
+
+//
+// Supported Vector Cryptographic Architecture versions
+//
+typedef enum riscvVCryptoVerE {
+    RVKVV_MASTER,                       // version master
+    RVKVV_LAST,                         // for sizing
+    RVKVV_DEFAULT = RVKVV_MASTER,       // default version
+} riscvVCryptoVer;
+
+//
 // Cryptographic Architecture subsets
 //
 typedef enum riscvCryptoSetE {
-    RVKS_Zk_   = 0,                     // absent for all sets
-    RVKS_Zbkb  = (1<<0),                // bitmanip subset not in Zbkc or Zbkx
-    RVKS_Zbkc  = (1<<1),                // bitmanip carry-less multiply
-    RVKS_Zbkx  = (1<<2),                // bitmanip crossbar permutation
-    RVKS_Zkr   = (1<<3),                // entropy source
-    RVKS_Zknd  = (1<<4),                // NIST AES decryption instructions
-    RVKS_Zkne  = (1<<5),                // NIST AES encryption instructions
-    RVKS_Zknh  = (1<<6),                // NIST SHA2 hash function instructions
-    RVKS_Zksed = (1<<7),                // SM4 instructions
-    RVKS_Zksh  = (1<<8),                // SM3 hash function instructions
-    RVKS_Zkb   = RVKS_Zbkb,             // (deprecated alias for Zbkb)
-    RVKS_Zkg   = RVKS_Zbkc,             // (deprecated alias for Zbkc)
+
+    RVKS_Zk_    = 0,                    // absent for all sets
+
+                                        // SCALAR SUBSETS
+    RVKS_Zbkb   = (1<<0),               // bitmanip subset not in Zbkc or Zbkx
+    RVKS_Zbkc   = (1<<1),               // bitmanip carry-less multiply
+    RVKS_Zbkx   = (1<<2),               // bitmanip crossbar permutation
+    RVKS_Zkr    = (1<<3),               // entropy source
+    RVKS_Zknd   = (1<<4),               // NIST AES decryption instructions
+    RVKS_Zkne   = (1<<5),               // NIST AES encryption instructions
+    RVKS_Zknh   = (1<<6),               // NIST SHA2 hash function instructions
+    RVKS_Zksed  = (1<<7),               // SM4 instructions
+    RVKS_Zksh   = (1<<8),               // SM3 hash function instructions
+    RVKS_Zkb    = RVKS_Zbkb,            // (deprecated alias for Zbkb)
+    RVKS_Zkg    = RVKS_Zbkc,            // (deprecated alias for Zbkc)
+
+                                        // VECTOR SUBSETS
+    RVKS_Zvkb   = (1<<9),               // vector cryptographic bit manipulation
+    RVKS_Zvkg   = (1<<10),              // vector GCM/GMAC
+    RVKS_Zvknha = (1<<11),              // vector SHA-256 secure hash
+    RVKS_Zvknhb = (1<<12),              // vector SHA-512 secure hash
+    RVKS_Zvkns  = (1<<13),              // vector AES block cipher
+    RVKS_Zvksed = (1<<14),              // vector SM4 instructions
+    RVKS_Zvksh  = (1<<15),              // vector SM3 instructions
+
 } riscvCryptoSet;
 
 //
@@ -478,8 +512,9 @@ typedef enum riscvDSPSetE {
 //
 typedef enum riscvHypVerE {
     RVHV_0_6_1,                         // version 0.6.1
+    RVHV_1_0,                           // version 1.0
     RVHV_LAST,                          // for sizing
-    RVHV_DEFAULT = RVHV_0_6_1,          // default version
+    RVHV_DEFAULT = RVHV_1_0,            // default version
 } riscvHypVer;
 
 //
@@ -496,8 +531,8 @@ typedef enum riscvDebugVerE {
 //
 // Date and tag of master version
 //
-#define RVCLC_MASTER_DATE    "27 September 2022"
-#define RVCLC_MASTER_TAG     "5301345"
+#define RVCLC_MASTER_DATE    "8 November 2022"
+#define RVCLC_MASTER_TAG     "e31cc78"
 
 //
 // Supported CLIC version
@@ -509,6 +544,21 @@ typedef enum riscvCLICVerE {
     RVCLC_MASTER,                       // master branch
     RVCLC_DEFAULT = RVCLC_0_9_20220315, // default version
 } riscvCLICVer;
+
+//
+// Date and tag of master version
+//
+#define RVAIA_MASTER_DATE    "8 November 2022"
+#define RVAIA_MASTER_TAG     "8604126"
+
+//
+// Supported AIA version
+//
+typedef enum riscvAIAVerE {
+    RVAIA_1_1_RC1,                      // 1.0-RC1
+    RVAIA_MASTER,                       // master branch
+    RVAIA_DEFAULT = RVAIA_1_1_RC1,      // default version
+} riscvAIAVer;
 
 //
 // Supported Zfinx versions
@@ -528,6 +578,7 @@ typedef enum riscvFP16VerE {
     RVFP16_NA,                          // no 16-bit floating point (default)
     RVFP16_IEEE754,                     // IEEE 754 half precision
     RVFP16_BFLOAT16,                    // BFLOAT16
+    RVFP16_DYNAMIC,                     // dynamic (IEEE 754 or BFLOAT16)
 } riscvFP16Ver;
 
 //
@@ -626,6 +677,9 @@ typedef enum riscvMConstraint {
 // macro returning Cryptographic Architecture version
 #define RISCV_CRYPTO_VERSION(_P)    ((_P)->configInfo.crypto_version)
 
+// macro returning Vector Cryptographic Architecture version
+#define RISCV_VCRYPTO_VERSION(_P)   ((_P)->configInfo.vcrypto_version)
+
 // macro returning DSP Architecture version
 #define RISCV_DSP_VERSION(_P)       ((_P)->configInfo.dsp_version)
 
@@ -637,6 +691,9 @@ typedef enum riscvMConstraint {
 
 // macro returning CLIC version
 #define RISCV_CLIC_VERSION(_P)      ((_P)->configInfo.CLIC_version)
+
+// macro returning AIA version
+#define RISCV_AIA_VERSION(_P)       ((_P)->configInfo.AIA_version)
 
 // macro returning Zfinx version
 #define RISCV_ZFINX_VERSION(_P)     ((_P)->configInfo.Zfinx_version)
@@ -706,3 +763,10 @@ riscvConfigCP riscvGetNamedConfig(riscvConfigCP list, const char *variant);
 // Is the indicated feature supported?
 //
 Bool riscvVFSupport(riscvP riscv, riscvVFeature feature);
+
+//
+// Return any compressed instruction prefix to use for an instruction in the
+// given compressed set
+//
+const char *riscvGetCPrefix(riscvP riscv, riscvCompressSet Zc);
+
