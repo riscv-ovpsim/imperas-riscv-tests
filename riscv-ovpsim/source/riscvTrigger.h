@@ -65,7 +65,7 @@ void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes);
 //
 // Handle any trigger activated after the previous instruction completes
 //
-Bool riscvTriggerAfter(riscvP riscv, Bool complete);
+Bool riscvTriggerAfter(riscvP riscv, Bool complete, Bool debug);
 
 //
 // Handle any trigger activated on an interrupt

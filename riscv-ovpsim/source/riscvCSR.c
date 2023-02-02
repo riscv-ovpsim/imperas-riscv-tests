@@ -1633,8 +1633,9 @@ static RISCV_CSR_WRITEFN(hvienhW) {
 static RISCV_CSR_WRITEFN(hvictlW) {
 
     Uns32 oldValue = RD_CSR_S(riscv, hvictl);
+    Uns64 wMask    = RD_CSR_MASK_S(riscv, hvictl);
 
-    newValue &= WM32_hvictl;
+    newValue &= wMask;
 
     // update the CSR
     WR_CSR_S(riscv, hvictl, newValue);
@@ -5655,6 +5656,11 @@ static riscvTData1UP unpackTData1(
             tdata1UP.action = RD_RAW_FIELDC(tdata1, itrigger.action);
             tdata1UP.timing = 1;
 
+            // nmi field moves to itrigger in later 1.0-STABLE specification
+            if(RISCV_DBG_VERSION(riscv)>=RVDBG_1_0) {
+                tdata1UP.nmi = RD_RAW_FIELDC(tdata1, itrigger.nmi);
+            }
+
             // hit field is at XLEN-specific location
             tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit);
 
@@ -5670,7 +5676,11 @@ static riscvTData1UP unpackTData1(
             // compose other fields
             tdata1UP.action = RD_RAW_FIELDC(tdata1, etrigger.action);
             tdata1UP.timing = 1;
-            tdata1UP.nmi    = RD_RAW_FIELDC(tdata1, etrigger.nmi);
+
+            // nmi field moves to itrigger in later 1.0-STABLE specification
+            if(RISCV_DBG_VERSION(riscv)<RVDBG_1_0) {
+                tdata1UP.nmi = RD_RAW_FIELDC(tdata1, etrigger.nmi);
+            }
 
             // hit field is at XLEN-specific location
             tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit);
@@ -5785,6 +5795,11 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
             WR_RAW_FIELDC(tdata1, itrigger.vu,     vu);
             WR_RAW_FIELDC(tdata1, itrigger.vs,     vs);
 
+            // nmi field moves to itrigger in later 1.0-STABLE specification
+            if(RISCV_DBG_VERSION(riscv)>=RVDBG_1_0) {
+                WR_RAW_FIELDC(tdata1, itrigger.nmi, tdata1UP.nmi);
+            }
+
             // hit field is at XLEN-specific location
             WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit, tdata1UP.hit);
 
@@ -5796,7 +5811,11 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
             WR_RAW_FIELDC(tdata1, etrigger.action, tdata1UP.action);
             WR_RAW_FIELDC(tdata1, etrigger.vu,     vu);
             WR_RAW_FIELDC(tdata1, etrigger.vs,     vs);
-            WR_RAW_FIELDC(tdata1, etrigger.nmi,    tdata1UP.nmi);
+
+            // nmi field moves to itrigger in later 1.0-STABLE specification
+            if(RISCV_DBG_VERSION(riscv)<RVDBG_1_0) {
+                WR_RAW_FIELDC(tdata1, etrigger.nmi, tdata1UP.nmi);
+            }
 
             // hit field is at XLEN-specific location
             WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit, tdata1UP.hit);
@@ -7911,7 +7930,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_PS_0_3  (hstateen,     0x60C, ISA_H,       0,          1_12,   0,0,0,0,0,0, bit_stateen_xstateen, "Hypervisor State Enable ",                              stateenP,    0,           hstateenR,     0,        hstateenW     ),
     CSR_ATTR_P__     (hidelegh,     0x613, ISA_H,       0,          1_10,   0,0,0,0,0,0, bit_stateen_AIA,      "Hypervisor Interrupt Delegation High",                  SmaiaP,      0,           hideleghR,     0,        hideleghW     ),
     CSR_ATTR_P__     (hvienh,       0x618, ISA_H,       0,          1_10,   0,0,0,0,0,0, bit_stateen_AIA,      "Hypervisor Virtual Interrupt Enable High",              SmaiaP,      0,           hvienhR,       0,        hvienhW       ),
-    CSR_ATTR_PH_     (henvcfg,      0x61A, ISA_H,       0,          1_12,   0,0,0,0,0,0, bit_stateen_xenvcfg,  "Hypervisor Environment Configuration High",             0,           0,           henvcfghR,      0,       henvcfghW     ),
+    CSR_ATTR_PH_     (henvcfg,      0x61A, ISA_H,       0,          1_12,   0,0,0,0,0,0, bit_stateen_xenvcfg,  "Hypervisor Environment Configuration High",             0,           0,           henvcfghR,     0,        henvcfghW     ),
     CSR_ATTR_PHS_0_3 (hstateen,     0x61C, ISA_H,       0,          1_12,   0,0,0,0,0,0, bit_stateen_xstateen, "Hypervisor State Enable High ",                         stateenP,    0,           hstateenhR,    0,        hstateenhW    ),
     CSR_ATTR_TH_     (htimedelta,   0x615, ISA_H,       0,          1_10,   0,0,0,0,0,0, 0,                    "Hypervisor Time Delta High",                            0,           0,           0,             0,        htimedeltahW  ),
     CSR_ATTR_T__     (htval,        0x643, ISA_H,       0,          1_10,   0,0,0,0,0,0, 0,                    "Hypervisor Trap Value",                                 0,           0,           0,             0,        0             ),
@@ -9598,6 +9617,13 @@ void riscvCSRInit(riscvP riscv) {
     // set masks for mvien and mvip
     WR_CSR_MASKC(riscv, hvien, hvien);
     WR_CSR_MASKC(riscv, hvip,  hvip);
+
+    //--------------------------------------------------------------------------
+    // hvictl write mask
+    //--------------------------------------------------------------------------
+
+    WR_CSR_MASKC(riscv, hvictl, WM64_hvictl);
+    WR_CSR_MASK_FIELDC(riscv, hvictl, IID, getAddressMask(cfg->hvictl_IID_bits));
 
     //--------------------------------------------------------------------------
     // mcontext and scontext write masks

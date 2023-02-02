@@ -140,9 +140,10 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(updatePTED);
     VMI_BOOL_PARAM(unaligned_low_pri);
     VMI_BOOL_PARAM(unaligned);
-    VMI_BOOL_PARAM(unalignedAMO);
+    VMI_BOOL_PARAM(Zam);
     VMI_BOOL_PARAM(unalignedV);
     VMI_BOOL_PARAM(wfi_is_nop);
+    VMI_BOOL_PARAM(wfi_resume_not_trap);
     VMI_BOOL_PARAM(mtvec_is_ro);
     VMI_UNS32_PARAM(counteren_mask);
     VMI_UNS32_PARAM(scounteren_zero_mask);
@@ -215,6 +216,8 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(svalue_bits);
     VMI_UNS32_PARAM(mcontrol_maskmax);
     VMI_UNS32_PARAM(VMID_bits);
+    VMI_UNS32_PARAM(TW_time_limit);
+    VMI_UNS32_PARAM(STO_time_limit);
 #if(ENABLE_SSMPU)
     VMI_UNS32_PARAM(MPU_grain);
     VMI_UNS32_PARAM(MPU_registers);
@@ -229,6 +232,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Svinval);
     VMI_UNS32_PARAM(lr_sc_grain);
     VMI_BOOL_PARAM(lr_sc_match_size);
+    VMI_BOOL_PARAM(ignore_non_leaf_DAU);
     VMI_UNS64_PARAM(reset_address);
     VMI_UNS64_PARAM(nmi_address);
     VMI_UNS64_PARAM(nmiexc_address);
@@ -273,6 +277,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(SXL_writable);
     VMI_BOOL_PARAM(UXL_writable);
     VMI_BOOL_PARAM(VSXL_writable);
+    VMI_BOOL_PARAM(Zawrs);
     VMI_BOOL_PARAM(Zmmul);
     VMI_BOOL_PARAM(Zvlsseg);
     VMI_BOOL_PARAM(Zvamo);
@@ -297,6 +302,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zbkb);
     VMI_BOOL_PARAM(Zbkc);
     VMI_BOOL_PARAM(Zbkx);
+    VMI_BOOL_PARAM(Zihintntl);
+    VMI_BOOL_PARAM(Zicond);
     VMI_BOOL_PARAM(Zicsr);
     VMI_BOOL_PARAM(Zifencei);
     VMI_BOOL_PARAM(Zicbom);
@@ -369,6 +376,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(miprio_mask);
     VMI_UNS64_PARAM(siprio_mask);
     VMI_UNS64_PARAM(hviprio_mask);
+    VMI_UNS32_PARAM(hvictl_IID_bits);
 
     // Hypervisor configuration
     VMI_UNS32_PARAM(GEILEN);

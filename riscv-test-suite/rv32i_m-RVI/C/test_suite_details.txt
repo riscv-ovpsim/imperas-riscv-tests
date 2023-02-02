@@ -40,6 +40,7 @@ Other instructions (those not the focus of this suite)
   beq : 82
   c-add : 585
   c-andi : 403
+  c-and : 586
   jalr : 2
   c-ebreak : 1
   jal : 176
@@ -49,20 +50,19 @@ Other instructions (those not the focus of this suite)
   andi : 54
   sll : 1
   bne : 1
-  c-jalr : 31
+  c-jr : 31
   xori : 80
   c-swsp : 207
-  c-bnez : 85
-  c-and : 586
-  c-jal : 18
   c-beqz : 85
-  c-jr : 31
+  c-jalr : 31
+  c-jal : 18
+  c-bnez : 85
   c-lwsp : 31
-  c-or : 590
-  c-slli : 86
-  c-sub : 581
   c-mv : 85
-  c-xor : 583
-  c-srai : 87
+  c-slli : 86
   c-srli : 85
+  c-srai : 87
+  c-or : 590
+  c-sub : 581
+  c-xor : 583
 

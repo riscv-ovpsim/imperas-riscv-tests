@@ -945,38 +945,37 @@ static const char *getKSubsetDesc(riscvCryptoSet requiredSet) {
 //
 Bool riscvValidateBExtSubset(riscvP riscv, riscvBExtOpSet op) {
 
-    const char *absent = 0;
+    const char *absent  = 0;
+    Bool        enabled = False;
 
+    // handle B extension subsets
     if(op.B && bitmanipEnabled(riscv)) {
 
-        // handle B extension subsets
         opDescBCP        desc        = getOpDescB(riscv, op.B);
         riscvBitManipSet requiredSet = desc->subset;
 
-        if(!(requiredSet&~riscv->configInfo.bitmanip_absent)) {
+        enabled = requiredSet & ~riscv->configInfo.bitmanip_absent;
+
+        if(!enabled) {
             absent = getBSubsetDesc(requiredSet);
         }
+    }
 
-    } else {
+    // handle K extension shared subsets
+    if(!enabled && op.K && cryptoEnabled(riscv)) {
 
-        Bool enabled = False;
+        riscvCryptoSet requiredSet = getRequiredSetK(riscv, op.K);
 
-        // handle K extension shared subsets
-        if(!enabled && op.K && cryptoEnabled(riscv)) {
+        enabled = requiredSet & ~riscv->configInfo.crypto_absent;
 
-            riscvCryptoSet requiredSet = getRequiredSetK(riscv, op.K);
-
-            enabled = requiredSet & ~riscv->configInfo.crypto_absent;
-
-            if(!enabled) {
-                absent = getKSubsetDesc(requiredSet);
-            }
+        if(!enabled) {
+            absent = getKSubsetDesc(requiredSet);
         }
+    }
 
-        // some extension with shared opcodes is enabled
-        if(enabled) {
-            absent = 0;
-        }
+    // some extension with shared opcodes is enabled
+    if(enabled) {
+        absent = 0;
     }
 
     // take Illegal Instruction for absent subset

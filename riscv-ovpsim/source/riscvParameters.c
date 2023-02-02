@@ -86,8 +86,10 @@ typedef enum riscvParamVariantE {
     RVPV_CLEG      = (1ULL<<31),    // present if legacy C extension
     RVPV_CNEW      = (1ULL<<32),    // present if new C extension
     RVPV_CV07      = (1ULL<<33),    // present if C extension 0.70.x
-    RVPV_SMAIA     = (1ULL<<34),    // requires Smaia extension
-    RVPV_TIMER     = (1ULL<<35),    // requires built-in timer
+    RVPV_WFI       = (1ULL<<34),    // requires true WFI (not NOP)
+    RVPV_SMAIA     = (1ULL<<35),    // requires Smaia extension
+    RVPV_ZAWRS     = (1ULL<<36),    // requires Zarws extension
+    RVPV_TIMER     = (1ULL<<37),    // requires built-in timer
 
                                     // COMPOSITE PARAMETER IDENTIFIERS
     RVPV_ROOT      = RVPV_ROOTINT|RVPV_CLIC,
@@ -118,37 +120,37 @@ typedef enum riscvParamVariantE {
 // Supported Privileged Architecture variants
 //
 static vmiEnumParameter privVariants[] = {
-    [RVPV_1_10] = {
+    {
         .name        = "1.10",
         .value       = RVPV_1_10,
         .description = "Privileged Architecture Version 1.10",
     },
-    [RVPV_1_11] = {
+    {
         .name        = "1.11",
         .value       = RVPV_20190608,
         .description = "Privileged Architecture Version 1.11, equivalent to 20190608",
     },
-    [RVPV_20190405] = {
+    {
         .name        = "20190405",
         .value       = RVPV_20190608,
         .description = "Deprecated and equivalent to 20190608",
     },
-    [RVPV_20190608] = {
+    {
         .name        = "20190608",
         .value       = RVPV_20190608,
         .description = "Privileged Architecture Version Ratified-IMFDQC-and-Priv-v1.11",
     },
-    [RVPV_20211203] = {
+    {
         .name        = "20211203",
         .value       = RVPV_1_12,
         .description = "Privileged Architecture Version 20211203",
     },
-    [RVPV_1_12] = {
+    {
         .name        = "1.12",
         .value       = RVPV_1_12,
         .description = "Privileged Architecture Version 1.12, equivalent to 20211203",
     },
-    [RVPV_MASTER] = {
+    {
         .name        = "master",
         .value       = RVPV_MASTER,
         .description = "Privileged Architecture Master Branch as of commit "
@@ -162,22 +164,22 @@ static vmiEnumParameter privVariants[] = {
 // Supported User Architecture variants
 //
 static vmiEnumParameter userVariants[] = {
-    [RVUV_2_2] = {
+    {
         .name        = "2.2",
         .value       = RVUV_2_2,
         .description = "User Architecture Version 2.2",
     },
-    [RVUV_2_3] = {
+    {
         .name        = "2.3",
         .value       = RVUV_20191213,
         .description = "Deprecated and equivalent to 20191213",
     },
-    [RVUV_20190305] = {
+    {
         .name        = "20190305",
         .value       = RVUV_20191213,
         .description = "Deprecated and equivalent to 20191213",
     },
-    [RVUV_20191213] = {
+    {
         .name        = "20191213",
         .value       = RVUV_20191213,
         .description = "User Architecture Version 20191213",
@@ -190,63 +192,63 @@ static vmiEnumParameter userVariants[] = {
 // Supported Vector Architecture variants
 //
 static vmiEnumParameter vectorVariants[] = {
-    [RVVV_0_7_1] = {
+    {
         .name        = "0.7.1-draft-20190605",
         .value       = RVVV_0_7_1,
         .description = "Vector Architecture Version 0.7.1-draft-20190605",
     },
-    [RVVV_0_7_1_P] = {
+    {
         .name        = "0.7.1-draft-20190605+",
         .value       = RVVV_0_7_1_P,
         .description = "Vector Architecture Version 0.7.1-draft-20190605 "
                        "with custom features (not for general use)",
     },
-    [RVVV_0_8_20190906] = {
+    {
         .name        = "0.8-draft-20190906",
         .value       = RVVV_0_8_20190906,
         .description = "Vector Architecture Version 0.8-draft-20190906",
     },
-    [RVVV_0_8_20191004] = {
+    {
         .name        = "0.8-draft-20191004",
         .value       = RVVV_0_8_20191004,
         .description = "Vector Architecture Version 0.8-draft-20191004",
     },
-    [RVVV_0_8_20191117] = {
+    {
         .name        = "0.8-draft-20191117",
         .value       = RVVV_0_8_20191117,
         .description = "Vector Architecture Version 0.8-draft-20191117",
     },
-    [RVVV_0_8_20191118] = {
+    {
         .name        = "0.8-draft-20191118",
         .value       = RVVV_0_8_20191118,
         .description = "Vector Architecture Version 0.8-draft-20191118",
     },
-    [RVVV_0_8] = {
+    {
         .name        = "0.8",
         .value       = RVVV_0_8,
         .description = "Vector Architecture Version 0.8",
     },
-    [RVVV_0_9] = {
+    {
         .name        = "0.9",
         .value       = RVVV_0_9,
         .description = "Vector Architecture Version 0.9",
     },
-    [RVVV_1_0_20210130] = {
+    {
         .name        = "1.0-draft-20210130",
         .value       = RVVV_1_0_20210130,
         .description = "Vector Architecture Version 1.0-draft-20210130",
     },
-    [RVVV_1_0_20210608] = {
+    {
         .name        = "1.0-rc1-20210608",
         .value       = RVVV_1_0_20210608,
         .description = "Vector Architecture Version 1.0-rc1-20210608",
     },
-    [RVVV_1_0] = {
+    {
         .name        = "1.0",
         .value       = RVVV_1_0,
         .description = "Vector Architecture Version 1.0 (frozen for public review)",
     },
-    [RVVV_MASTER] = {
+    {
         .name        = "master",
         .value       = RVVV_MASTER,
         .description = "Vector Architecture Master Branch as of commit "
@@ -260,22 +262,22 @@ static vmiEnumParameter vectorVariants[] = {
 // Supported Compressed Architecture variants
 //
 static vmiEnumParameter compressedVariants[] = {
-    [RVCV_NA_LEGACY] = {
+    {
         .name        = "legacy",
         .value       = RVCV_NA_LEGACY,
         .description = "Compressed Architecture absent or legacy version",
     },
-    [RVCV_0_70_1] = {
+    {
         .name        = "0.70.1",
         .value       = RVCV_0_70_1,
         .description = "Compressed Architecture Version 0.70.1",
     },
-    [RVCV_0_70_5] = {
+    {
         .name        = "0.70.5",
         .value       = RVCV_0_70_5,
         .description = "Compressed Architecture Version 0.70.5",
     },
-    [RVCV_1_0_0_RC57] = {
+    {
         .name        = "1.0.0-RC5.7",
         .value       = RVCV_1_0_0_RC57,
         .description = "Compressed Architecture Version 1.0.0-RC5.7",
@@ -288,42 +290,42 @@ static vmiEnumParameter compressedVariants[] = {
 // Supported Bit Manipulation Architecture variants
 //
 static vmiEnumParameter bitmanipVariants[] = {
-    [RVBV_0_90] = {
+    {
         .name        = "0.90",
         .value       = RVBV_0_90,
         .description = "Bit Manipulation Architecture Version v0.90-20190610",
     },
-    [RVBV_0_91] = {
+    {
         .name        = "0.91",
         .value       = RVBV_0_91,
         .description = "Bit Manipulation Architecture Version v0.91-20190829",
     },
-    [RVBV_0_92] = {
+    {
         .name        = "0.92",
         .value       = RVBV_0_92,
         .description = "Bit Manipulation Architecture Version v0.92-20191108",
     },
-    [RVBV_0_93_DRAFT] = {
+    {
         .name        = "0.93-draft",
         .value       = RVBV_0_93_DRAFT,
         .description = "Bit Manipulation Architecture Version 0.93-draft-20200129",
     },
-    [RVBV_0_93] = {
+    {
         .name        = "0.93",
         .value       = RVBV_0_93,
         .description = "Bit Manipulation Architecture Version v0.93-20210110",
     },
-    [RVBV_0_94] = {
+    {
         .name        = "0.94",
         .value       = RVBV_0_94,
         .description = "Bit Manipulation Architecture Version v0.94-20210120",
     },
-    [RVBV_1_0_0] = {
+    {
         .name        = "1.0.0",
         .value       = RVBV_1_0_0,
         .description = "Bit Manipulation Architecture Version 1.0.0",
     },
-    [RVBV_MASTER] = {
+    {
         .name        = "master",
         .value       = RVBV_MASTER,
         .description = "Bit Manipulation Master Branch as of commit "
@@ -337,12 +339,12 @@ static vmiEnumParameter bitmanipVariants[] = {
 // Supported Hypervisor Architecture variants
 //
 static vmiEnumParameter hypervisorVariants[] = {
-    [RVHV_0_6_1] = {
+    {
         .name        = "0.6.1",
         .value       = RVHV_0_6_1,
         .description = "Hypervisor Architecture Version 0.6.1",
     },
-    [RVHV_1_0] = {
+    {
         .name        = "1.0",
         .value       = RVHV_1_0,
         .description = "Hypervisor Architecture Version 1.0",
@@ -355,32 +357,32 @@ static vmiEnumParameter hypervisorVariants[] = {
 // Supported Cryptographic Architecture variants
 //
 static vmiEnumParameter cryptoVariants[] = {
-    [RVKV_0_7_2] = {
+    {
         .name        = "0.7.2",
         .value       = RVKV_0_7_2,
         .description = "Cryptographic Architecture Version 0.7.2",
     },
-    [RVKV_0_8_1] = {
+    {
         .name        = "0.8.1",
         .value       = RVKV_0_8_1,
         .description = "Cryptographic Architecture Version 0.8.1",
     },
-    [RVKV_0_9_0] = {
+    {
         .name        = "0.9.0",
         .value       = RVKV_0_9_0,
         .description = "Cryptographic Architecture Version 0.9.0",
     },
-    [RVKV_0_9_2] = {
+    {
         .name        = "0.9.2",
         .value       = RVKV_0_9_2,
         .description = "Cryptographic Architecture Version 0.9.2",
     },
-    [RVKV_1_0_0_RC1] = {
+    {
         .name        = "1.0.0-rc1",
         .value       = RVKV_1_0_0_RC1,
         .description = "Cryptographic Architecture Version 1.0.0-rc1",
     },
-    [RVKV_1_0_0_RC5] = {
+    {
         .name        = "1.0.0-rc5",
         .value       = RVKV_1_0_0_RC5,
         .description = "Cryptographic Architecture Version 1.0.0-rc5",
@@ -393,7 +395,7 @@ static vmiEnumParameter cryptoVariants[] = {
 // Supported Vector Cryptographic Architecture variants
 //
 static vmiEnumParameter vcryptoVariants[] = {
-    [RVKVV_MASTER] = {
+    {
         .name        = "master",
         .value       = RVKVV_MASTER,
         .description = "Vector Cryptographic Architecture Master Branch as of commit "
@@ -407,12 +409,12 @@ static vmiEnumParameter vcryptoVariants[] = {
 // Supported DSP Architecture variants
 //
 static vmiEnumParameter DSPVariants[] = {
-    [RVDSPV_0_5_2] = {
+    {
         .name        = "0.5.2",
         .value       = RVDSPV_0_5_2,
         .description = "DSP Architecture Version 0.5.2",
     },
-    [RVDSPV_0_9_6] = {
+    {
         .name        = "0.9.6",
         .value       = RVDSPV_0_9_6,
         .description = "DSP Architecture Version 0.9.6",
@@ -425,20 +427,25 @@ static vmiEnumParameter DSPVariants[] = {
 // Supported debug mode variants
 //
 static vmiEnumParameter debugVariants[] = {
-    [RVDBG_0_13_2] = {
+    {
         .name        = "0.13.2-DRAFT",
         .value       = RVDBG_0_13_2,
         .description = "RISC-V External Debug Support Version 0.13.2-DRAFT",
     },
-    [RVDBG_0_14_0] = {
+    {
         .name        = "0.14.0-DRAFT",
         .value       = RVDBG_0_14_0,
         .description = "RISC-V External Debug Support Version 0.14.0-DRAFT",
     },
-    [RVDBG_1_0_0] = {
+    {
         .name        = "1.0.0-STABLE",
         .value       = RVDBG_1_0_0,
         .description = "RISC-V External Debug Support Version 1.0.0-STABLE",
+    },
+    {
+        .name        = "1.0-STABLE",
+        .value       = RVDBG_1_0,
+        .description = "RISC-V External Debug Support Version 1.0-STABLE",
     },
     // KEEP LAST: terminator
     {0}
@@ -448,17 +455,17 @@ static vmiEnumParameter debugVariants[] = {
 // Supported RNMI variants
 //
 static vmiEnumParameter rnmiVariants[] = {
-    [RNMI_NONE] = {
+    {
         .name        = "none",
         .value       = RNMI_NONE,
         .description = "RNMI not implemented",
     },
-    [RNMI_0_2_1] = {
+    {
         .name        = "0.2.1",
         .value       = RNMI_0_2_1,
         .description = "RNMI version 0.2.1",
     },
-    [RNMI_0_4] = {
+    {
         .name        = "0.4",
         .value       = RNMI_0_4,
         .description = "RNMI version 0.4",
@@ -471,22 +478,22 @@ static vmiEnumParameter rnmiVariants[] = {
 // Supported CLIC variants
 //
 static vmiEnumParameter CLICVariants[] = {
-    [RVCLC_20180831] = {
+    {
         .name        = "20180831",
         .value       = RVCLC_20180831,
         .description = "CLIC Version 20180831",
     },
-    [RVCLC_0_9_20191208] = {
+    {
         .name        = "0.9-draft-20191208",
         .value       = RVCLC_0_9_20191208,
         .description = "CLIC Version 0.9-draft-20191208",
     },
-    [RVCLC_0_9_20220315] = {
+    {
         .name        = "0.9-draft-20220315",
         .value       = RVCLC_0_9_20220315,
         .description = "CLIC Version 0.9-draft-20220315",
     },
-    [RVCLC_MASTER] = {
+    {
         .name        = "master",
         .value       = RVCLC_MASTER,
         .description = "CLIC Master Branch as of commit "
@@ -500,12 +507,12 @@ static vmiEnumParameter CLICVariants[] = {
 // Supported AIA variants
 //
 static vmiEnumParameter AIAVariants[] = {
-    [RVAIA_1_1_RC1] = {
+    {
         .name        = "1.0-RC1",
-        .value       = RVAIA_1_1_RC1,
+        .value       = RVAIA_1_0_RC1,
         .description = "AIA Version 1.0-RC1",
     },
-    [RVAIA_MASTER] = {
+    {
         .name        = "master",
         .value       = RVAIA_MASTER,
         .description = "AIA Master Branch as of commit "
@@ -519,17 +526,17 @@ static vmiEnumParameter AIAVariants[] = {
 // Supported Xfinx variants
 //
 static vmiEnumParameter ZfinxVariants[] = {
-    [RVZFINX_NA] = {
+    {
         .name        = "none",
         .value       = RVZFINX_NA,
         .description = "Zfinx not implemented",
     },
-    [RVZFINX_0_4] = {
+    {
         .name        = "0.4",
         .value       = RVZFINX_0_4,
         .description = "Zfinx version 0.4",
     },
-    [RVZFINX_0_41] = {
+    {
         .name        = "0.41",
         .value       = RVZFINX_0_41,
         .description = "Zfinx version 0.41",
@@ -542,12 +549,12 @@ static vmiEnumParameter ZfinxVariants[] = {
 // Supported Zcea variants
 //
 static vmiEnumParameter ZceaVariants[] = {
-    [RVZCEA_NA] = {
+    {
         .name        = "none",
         .value       = RVZCEA_NA,
         .description = "Zcea not implemented",
     },
-    [RVZCEA_0_50_1] = {
+    {
         .name        = "0.50.1",
         .value       = RVZCEA_0_50_1,
         .description = "Zcea version 0.50.1",
@@ -560,12 +567,12 @@ static vmiEnumParameter ZceaVariants[] = {
 // Supported Zceb variants
 //
 static vmiEnumParameter ZcebVariants[] = {
-    [RVZCEB_NA] = {
+    {
         .name        = "none",
         .value       = RVZCEB_NA,
         .description = "Zceb not implemented",
     },
-    [RVZCEB_0_50_1] = {
+    {
         .name        = "0.50.1",
         .value       = RVZCEB_0_50_1,
         .description = "Zceb version 0.50.1",
@@ -578,12 +585,12 @@ static vmiEnumParameter ZcebVariants[] = {
 // Supported Zcee variants
 //
 static vmiEnumParameter ZceeVariants[] = {
-    [RVZCEE_NA] = {
+    {
         .name        = "none",
         .value       = RVZCEE_NA,
         .description = "Zcee not implemented",
     },
-    [RVZCEE_1_0_0_RC] = {
+    {
         .name        = "1.0.0-rc",
         .value       = RVZCEE_1_0_0_RC,
         .description = "Zcee version 1.0.0-rc",
@@ -596,22 +603,22 @@ static vmiEnumParameter ZceeVariants[] = {
 // Supported 16-bit floating point variants
 //
 static vmiEnumParameter fp16Variants[] = {
-    [RVFP16_NA] = {
+    {
         .name        = "none",
         .value       = RVFP16_NA,
         .description = "No 16-bit floating point implemented",
     },
-    [RVFP16_IEEE754] = {
+    {
         .name        = "IEEE754",
         .value       = RVFP16_IEEE754,
         .description = "IEEE 754 half precision implemented",
     },
-    [RVFP16_BFLOAT16] = {
+    {
         .name        = "BFLOAT16",
         .value       = RVFP16_BFLOAT16,
         .description = "BFLOAT16 implemented",
     },
-    [RVFP16_DYNAMIC] = {
+    {
         .name        = "dynamic",
         .value       = RVFP16_DYNAMIC,
         .description = "Dynamic 16-bit floating point implemented",
@@ -624,22 +631,22 @@ static vmiEnumParameter fp16Variants[] = {
 // Specify effect of flag writes on FS
 //
 static vmiEnumParameter FSModes[] = {
-    [RVFS_WRITE_NZ] = {
+    {
         .name        = "write_1",
         .value       = RVFS_WRITE_NZ,
         .description = "Any non-zero flag result sets mstatus.fs dirty",
     },
-    [RVFS_WRITE_ANY] = {
+    {
         .name        = "write_any",
         .value       = RVFS_WRITE_ANY,
         .description = "Any write of flags sets mstatus.fs dirty",
     },
-    [RVFS_ALWAYS_DIRTY] = {
+    {
         .name        = "always_dirty",
         .value       = RVFS_ALWAYS_DIRTY,
         .description = "mstatus.fs is either off or dirty",
     },
-    [RVFS_FORCE_DIRTY] = {
+    {
         .name        = "force_dirty",
         .value       = RVFS_FORCE_DIRTY,
         .description = "mstatus.fs is forced to dirty",
@@ -652,22 +659,22 @@ static vmiEnumParameter FSModes[] = {
 // Specify Debug mode operation
 //
 static vmiEnumParameter DMModes[] = {
-    [RVDM_NONE] = {
+    {
         .name        = "none",
         .value       = RVDM_NONE,
         .description = "Debug mode not implemented",
     },
-    [RVDM_VECTOR] = {
+    {
         .name        = "vector",
         .value       = RVDM_VECTOR,
         .description = "Debug mode implemented by execution at vector",
     },
-    [RVDM_INTERRUPT] = {
+    {
         .name        = "interrupt",
         .value       = RVDM_INTERRUPT,
         .description = "Debug mode implemented by interrupt",
     },
-    [RVDM_HALT] = {
+    {
         .name        = "halt",
         .value       = RVDM_HALT,
         .description = "Debug mode implemented by halt",
@@ -680,17 +687,17 @@ static vmiEnumParameter DMModes[] = {
 // Specify behavior of MRET, SRET or URET in Debug mode
 //
 static vmiEnumParameter DERETModes[] = {
-    [RVDRM_NOP] = {
+    {
         .name        = "nop",
         .value       = RVDRM_NOP,
         .description = "MRET, SRET or URET in Debug mode is a nop",
     },
-    [RVDRM_JUMP] = {
+    {
         .name        = "jump_to_dexc_address",
         .value       = RVDRM_JUMP,
         .description = "MRET, SRET or URET in Debug mode jumps to dexc_address",
     },
-    [RVDRM_TRAP] = {
+    {
         .name        = "trap_to_dexc_address",
         .value       = RVDRM_TRAP,
         .description = "MRET, SRET or URET in Debug mode traps to dexc_address",
@@ -700,23 +707,43 @@ static vmiEnumParameter DERETModes[] = {
 };
 
 //
-// Specify relative prioriies of simultaneous debug events
+// Specify relative priorities of simultaneous debug events
 //
 static vmiEnumParameter DebugPriorities[] = {
-    [RVDP_ORIG] = {
+    {
+        .name        = "asxh",
+        .value       = RVDP_A_S_X_H,
+        .description = "after trigger -> step -> execute address -> haltreq",
+    },
+    {
+        .name        = "ashx",
+        .value       = RVDP_A_S_H_X,
+        .description = "after trigger -> step -> haltreq -> execute address",
+    },
+    {
+        .name        = "ahsx",
+        .value       = RVDP_A_H_S_X,
+        .description = "after trigger -> haltreq -> step -> execute address",
+    },
+    {
+        .name        = "hasx",
+        .value       = RVDP_H_A_S_X,
+        .description = "haltreq -> after trigger -> step -> execute address",
+    },
+    {
         .name        = "original",
         .value       = RVDP_ORIG,
-        .description = "original debug priorities",
+        .description = "legacy alias of asxh",
     },
-    [RVDP_693] = {
+    {
         .name        = "PR693",
         .value       = RVDP_693,
-        .description = "priorities described specification PR 693",
+        .description = "legacy alias of ashx",
     },
-    [RVDP_HALT_NOT_STEP] = {
+    {
         .name        = "halt_not_step",
         .value       = RVDP_HALT_NOT_STEP,
-        .description = "treat haltreq as higher priority to step",
+        .description = "legacy alias of ahsx",
     },
     // KEEP LAST: terminator
     {0}
@@ -726,17 +753,17 @@ static vmiEnumParameter DebugPriorities[] = {
 // Supported Smepmp variants
 //
 static vmiEnumParameter SmepmpVariants[] = {
-    [RVSP_NONE] = {
+    {
         .name        = "none",
         .value       = RVSP_NONE,
         .description = "Smepmp not implemented",
     },
-    [RVSP_0_9_5] = {
+    {
         .name        = "0.9.5",
         .value       = RVSP_0_9_5,
         .description = "Smepmp version 0.9.5 (deprecated and identical to 1.0)",
     },
-    [RVSP_1_0] = {
+    {
         .name        = "1.0",
         .value       = RVSP_1_0,
         .description = "Smepmp version 1.0",
@@ -749,17 +776,17 @@ static vmiEnumParameter SmepmpVariants[] = {
 // Memory constraints
 //
 static vmiEnumParameter memoryConstraints[] = {
-    [RVMC_NONE] = {
+    {
         .name        = "none",
         .value       = RVMC_NONE,
         .description = "Memory access not constrained",
     },
-    [RVMC_USER1] = {
+    {
         .name        = "user1",
         .value       = RVMC_USER1,
         .description = "Memory access constrained by MEM_CONSTRAINT_USER1",
     },
-    [RVMC_USER2] = {
+    {
         .name        = "user2",
         .value       = RVMC_USER2,
         .description = "Memory access constrained by MEM_CONSTRAINT_USER2",
@@ -949,6 +976,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(unaligned);
 static RISCV_BOOL_PDEFAULT_CFG_FN(unalignedAMO);
 static RISCV_BOOL_PDEFAULT_CFG_FN(unalignedV);
 static RISCV_BOOL_PDEFAULT_CFG_FN(wfi_is_nop);
+static RISCV_BOOL_PDEFAULT_CFG_FN(wfi_resume_not_trap);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mtvec_is_ro);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero);
 static RISCV_BOOL_PDEFAULT_CFG_FN(nmi_is_latched);
@@ -1005,9 +1033,12 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(PMP_initialparams);
 static RISCV_BOOL_PDEFAULT_CFG_FN(posedge_other);
 static RISCV_BOOL_PDEFAULT_CFG_FN(poslevel_other);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tval_zero_ebreak);
+static RISCV_BOOL_PDEFAULT_CFG_FN(Zawrs);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zmmul);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zfa);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zfhmin);
+static RISCV_BOOL_PDEFAULT_CFG_FN(Zihintntl);
+static RISCV_BOOL_PDEFAULT_CFG_FN(Zicond);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zicbom);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zicbop);
 static RISCV_BOOL_PDEFAULT_CFG_FN(Zicboz);
@@ -1021,6 +1052,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(use_hw_reg_names);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_pseudo_inst);
 static RISCV_BOOL_PDEFAULT_CFG_FN(show_c_prefix);
 static RISCV_BOOL_PDEFAULT_CFG_FN(lr_sc_match_size);
+static RISCV_BOOL_PDEFAULT_CFG_FN(ignore_non_leaf_DAU);
 
 //
 // Set default value of raw negated Bool parameters
@@ -1047,6 +1079,8 @@ static RISCV_UNS32_PDEFAULT_CFG_FN(MPU_registers)
 static RISCV_UNS32_PDEFAULT_CFG_FN(PMP_grain)
 static RISCV_UNS32_PDEFAULT_CFG_FN(PMP_max_page)
 static RISCV_UNS32_PDEFAULT_CFG_FN(CLICLEVELS);
+static RISCV_UNS32_PDEFAULT_CFG_FN(TW_time_limit);
+static RISCV_UNS32_PDEFAULT_CFG_FN(STO_time_limit);
 
 //
 // Set default value of raw Uns64 parameters
@@ -1372,6 +1406,13 @@ static RISCV_PDEFAULT_FN(default_IPRIOLEN) {
 //
 static RISCV_PDEFAULT_FN(default_HIPRIOLEN) {
     setUns32ParamDefault(param, cfg->HIPRIOLEN ? : 8);
+}
+
+//
+// Specify implemented bits for AIA hvictl.IID
+//
+static RISCV_PDEFAULT_FN(default_hvictl_IID_bits) {
+    setUns32ParamDefault(param, cfg->hvictl_IID_bits ? : 12);
 }
 
 //
@@ -1929,9 +1970,12 @@ static riscvParameter parameters[] = {
     {  RVPV_S,       0,         default_updatePTED,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, updatePTED,              False,                     RV_GROUP(MEM),   "Specify whether hardware update of PTE D bit is supported")},
     {  RVPV_ALL,     0,         default_unaligned_low_pri,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unaligned_low_pri,       False,                     RV_GROUP(MEM),   "Specify whether address misaligned exceptions are lower priority than page or access fault exceptions")},
     {  RVPV_ALL,     0,         default_unaligned,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unaligned,               False,                     RV_GROUP(MEM),   "Specify whether the processor supports unaligned memory accesses")},
-    {  RVPV_A,       0,         default_unalignedAMO,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unalignedAMO,            False,                     RV_GROUP(MEM),   "Specify whether the processor supports unaligned memory accesses for AMO instructions")},
+    {  RVPV_A,       0,         default_unalignedAMO,         VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zam,                     False,                     RV_GROUP(MEM),   "Specify whether the processor supports unaligned memory accesses for AMO instructions")},
     {  RVPV_V,       0,         default_unalignedV,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, unalignedV,              False,                     RV_GROUP(V),     "Specify whether the processor supports unaligned memory accesses for vector instructions")},
-    {  RVPV_ALL,     0,         default_wfi_is_nop,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, wfi_is_nop,              False,                     RV_GROUP(ICSRB), "Specify whether WFI should be treated as a NOP (if not, halt while waiting for interrupts)")},
+    {  RVPV_PRE,     0,         default_wfi_is_nop,           VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, wfi_is_nop,              False,                     RV_GROUP(ICSRB), "Specify whether WFI should be treated as a NOP (if not, halt while waiting for interrupts)")},
+    {  RVPV_ALL,     0,         default_wfi_resume_not_trap,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, wfi_resume_not_trap,     False,                     RV_GROUP(ICSRB), "Specify whether pending wakeup events should cause WFI to be treated as a NOP instead of taking a trap")},
+    {  RVPV_WFI,     0,         default_TW_time_limit,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, TW_time_limit,           0, 0,          -1,         RV_GROUP(ICSRB), "Specify nominal cycle timeout for instructions controlled by mstatus.TW")},
+    {  RVPV_ZAWRS,   0,         default_STO_time_limit,       VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, STO_time_limit,          0, 0,          -1,         RV_GROUP(ICSRB), "Specify nominal short cycle timeout for WRS.STO")},
     {  RVPV_ALL,     0,         default_mtvec_is_ro,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mtvec_is_ro,             False,                     RV_GROUP(INTXC), "Specify whether mtvec CSR is read-only")},
     {  RVPV_ALL,     0,         default_tvec_align,           VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, tvec_align,              0, 0,          (1<<16),    RV_GROUP(INTXC), "Specify hardware-enforced alignment of mtvec/stvec/utvec when Vectored interrupt mode enabled")},
     {  RVPV_ALL,     0,         default_counteren_mask,       VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, counteren_mask,          0, 0,          -1,         RV_GROUP(ICSRB), "Specify hardware-enforced mask of writable bits in mcounteren/scounteren registers")},
@@ -1993,7 +2037,7 @@ static riscvParameter parameters[] = {
     {  RVPV_V,       0,         default_require_vstart0,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, require_vstart0,         False,                     RV_GROUP(V),     "Whether CSR vstart must be 0 for non-interruptible vector instructions")},
     {  RVPV_V,       0,         default_align_whole,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, align_whole,             False,                     RV_GROUP(V),     "Whether whole-register load addresses must be aligned using the encoded EEW")},
     {  RVPV_V,       0,         default_vill_trap,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, vill_trap,               False,                     RV_GROUP(V),     "Whether illegal vtype values cause trap instead of setting vtype.vill")},
-    {  RVPV_S,       0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_cache_size,         8, 0,          256,        RV_GROUP(ARTIF), "Specifies the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
+    {  RVPV_S,       0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_cache_size,         8, 0,          256,        RV_GROUP(ARTIF), "Specify the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
     {  RVPV_PRE,     0,         default_trigger_num,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, trigger_num,             0, 0,          255,        RV_GROUP(TRIG),  "Specify the number of implemented hardware triggers")},
     {  RVPV_TRIG,    0,         default_tinfo,                VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, tinfo,                   0, 0,          0xffff,     RV_GROUP(TRIG),  "Override tinfo register (for all triggers)")},
     {  RVPV_TRIG,    0,         default_trigger_match,        VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, trigger_match,           0, 1,          0xffff,     RV_GROUP(TRIG),  "Specify legal \"match\" values for triggers of type 2 and 6 (bitmask)")},
@@ -2006,6 +2050,7 @@ static riscvParameter parameters[] = {
     {  RVPV_H,       0,         default_VMID_bits,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, VMID_bits,               0, 0,          0,          RV_GROUP(H),     "Specify the number of implemented VMID bits")},
     {  RVPV_A,       0,         default_lr_sc_grain,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, lr_sc_grain,             1, 1,          (1<<16),    RV_GROUP(MEM),   "Specify byte granularity of LR/SC lock region (constrained to a power of two)")},
     {  RVPV_64A,     0,         default_lr_sc_match_size,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, lr_sc_match_size,        False,                     RV_GROUP(MEM),   "Whether LR/SC access sizes must match")},
+    {  RVPV_S,       0,         default_ignore_non_leaf_DAU,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, ignore_non_leaf_DAU,     False,                     RV_GROUP(MEM),   "Whether non-zero D, A and U bits in non-leaf PTEs are ignored (if False, a trap is taken)")},
     {  RVPV_ALL,     0,         default_reset_address,        VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, reset_address,           0, 0,          -1,         RV_GROUP(INTXC), "Override reset vector address")},
     {  RVPV_ALL,     0,         default_nmi_address,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmi_address,             0, 0,          -1,         RV_GROUP(INTXC), "Override NMI vector address")},
     {  RVPV_RNMI,    0,         default_nmiexc_address,       VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, nmiexc_address,          0, 0,          -1,         RV_GROUP(INTXC), "Override RNMI exception vector address")},
@@ -2058,11 +2103,14 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     0,         0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, sub_Extensions_mask,     "",                        RV_GROUP(FUND),  "Remove extensions specified by letters from mask of writable bits in misa.Extensions (for example, specify \"VD\" to remove V and D features)")},
     {  RVPV_PRE,     0,         0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, add_implicit_Extensions, "",                        RV_GROUP(FUND),  "Add extensions specified by letters to implicitly-present extensions not visible in misa.Extensions")},
     {  RVPV_PRE,     0,         0,                            VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, sub_implicit_Extensions, "",                        RV_GROUP(FUND),  "Remove extensions specified by letters from implicitly-present extensions not visible in misa.Extensions")},
+    {  RVPV_ALL,     0,         default_Zihintntl,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zihintntl,               False,                     RV_GROUP(EXT),   "Specify that Zihintntl is implemented (instruction decode only, implemented as NOP)")},
+    {  RVPV_ALL,     0,         default_Zicond,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicond,                  False,                     RV_GROUP(EXT),   "Specify that Zicond is implemented")},
     {  RVPV_ALL,     0,         default_Zicsr,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicsr,                   False,                     RV_GROUP(EXT),   "Specify that Zicsr is implemented")},
     {  RVPV_ALL,     0,         default_Zifencei,             VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zifencei,                False,                     RV_GROUP(EXT),   "Specify that Zifencei is implemented")},
     {  RVPV_PRE,     0,         default_Zicbom,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicbom,                  False,                     RV_GROUP(EXT),   "Specify that Zicbom is implemented")},
     {  RVPV_PRE,     0,         default_Zicbop,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicbop,                  False,                     RV_GROUP(EXT),   "Specify that Zicbop is implemented")},
     {  RVPV_PRE,     0,         default_Zicboz,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zicboz,                  False,                     RV_GROUP(EXT),   "Specify that Zicboz is implemented")},
+    {  RVPV_PRE,     0,         default_Zawrs,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zawrs,                   False,                     RV_GROUP(EXT),   "Specify that Zawrs is implemented")},
     {  RVPV_M,       0,         default_Zmmul,                VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, Zmmul,                   False,                     RV_GROUP(EXT),   "Specify that Zmmul is implemented")},
     {  RVPV_ALL,     0,         default_mvendorid,            VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, mvendorid,               0, 0,          -1,         RV_GROUP(CSRDV), "Override mvendorid register")},
     {  RVPV_ALL,     0,         default_marchid,              VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, marchid,                 0, 0,          -1,         RV_GROUP(CSRDV), "Override marchid register")},
@@ -2174,6 +2222,7 @@ static riscvParameter parameters[] = {
     {  RVPV_SMAIA,   0,         default_miprio_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, miprio_mask,             0,           0, -1,        RV_GROUP(AIA),   "Specify mask of writable entries in AIA M-mode iprio array")},
     {  RVPV_SMAIA_S, 0,         default_siprio_mask,          VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, siprio_mask,             0,           0, -1,        RV_GROUP(AIA),   "Specify mask of writable entries in AIA S-mode iprio array")},
     {  RVPV_SMAIA_H, 0,         default_hviprio_mask,         VMI_UNS64_GROUP_PARAM_SPEC (riscvParamValues, hviprio_mask,            0,           0, -1,        RV_GROUP(AIA),   "Specify mask of writable entries in emulated AIA VS-mode iprio array (accessed via hviprio CSRs")},
+    {  RVPV_SMAIA_H, 0,         default_hvictl_IID_bits,      VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, hvictl_IID_bits,         0,           6, 12,        RV_GROUP(AIA),   "Specify implemented bits in hvictl.IID")},
 
     // Hypervisor configuration
     {  RVPV_H,       0,         default_GEILEN,               VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, GEILEN,                  0, 0,          0,          RV_GROUP(H),     "Specify number of guest external interrupts")},
@@ -2455,6 +2504,16 @@ static Bool selectParameter(
 
         // include parameters that are only required for Smaia extension
         if((param->variant & RVPV_SMAIA) && !cfg->Smaia) {
+            return False;
+        }
+
+        // include parameters that are only required when WFI is not a NOP
+        if((param->variant & RVPV_WFI) && cfg->wfi_is_nop) {
+            return False;
+        }
+
+        // include parameters that are only required for Zawrs extension
+        if((param->variant & RVPV_ZAWRS) && !cfg->Zawrs) {
             return False;
         }
 
@@ -2878,6 +2937,12 @@ VMI_SET_PARAM_VALUES_FN(riscvGetPreParamValues) {
 
         // apply compress_version override if required
         APPLY_PREPARAM_IF_SET(riscv, params, compress_version);
+
+        // apply wfi_is_nop override if required
+        APPLY_PREPARAM_IF_SET(riscv, params, wfi_is_nop);
+
+        // apply Zawrs override if required
+        APPLY_PREPARAM_IF_SET(riscv, params, Zawrs);
 
         // apply AIA Smaia override if required
         APPLY_PREPARAM_IF_SET(riscv, params, Smaia);

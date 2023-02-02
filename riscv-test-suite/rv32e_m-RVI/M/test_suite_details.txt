@@ -36,11 +36,11 @@ Other instructions (those not the focus of this suite)
   fence : 8
   ecall : 8
   beq : 24
-  remu : 725
+  mul : 585
+  divu : 729
+  mulh : 591
   mulhu : 724
   mulhsu : 654
-  divu : 729
-  mul : 585
-  mulh : 591
   rem : 586
+  remu : 725
 

@@ -47,13 +47,13 @@ Instruction category: OPB_ROTS Rotations
   rori : 170
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
   sha256sig0 : 170
-  sha256sum1 : 170
-  sha256sum0 : 170
-  sha512sig1h : 172
   sha512sig0l : 172
+  sha256sum0 : 170
   sha256sig1 : 170
-  sha512sig1l : 172
   sha512sig0h : 172
+  sha256sum1 : 170
+  sha512sig1h : 172
+  sha512sig1l : 172
   sha512sum0r : 172
   sha512sum1r : 172
 Instruction category: OPB_XBAR Crossbar Permutation
@@ -71,6 +71,6 @@ Other instructions (those not the focus of this suite)
   ecall : 31
   beq : 93
   grevi : 170
-  shfli : 170
   unshfli : 170
+  shfli : 170
 

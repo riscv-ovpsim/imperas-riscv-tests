@@ -524,8 +524,9 @@ typedef enum riscvDebugVerE {
     RVDBG_0_13_2,                       // 0.13.2-DRAFT
     RVDBG_0_14_0,                       // 0.14.0-DRAFT
     RVDBG_1_0_0,                        // 1.0.0-STABLE
+    RVDBG_1_0,                          // 1.0-STABLE
     RVDBG_LAST,                         // for sizing
-    RVDBG_DEFAULT = RVDBG_1_0_0,        // default version
+    RVDBG_DEFAULT = RVDBG_1_0,          // default version
 } riscvDebugVer;
 
 //
@@ -555,9 +556,9 @@ typedef enum riscvCLICVerE {
 // Supported AIA version
 //
 typedef enum riscvAIAVerE {
-    RVAIA_1_1_RC1,                      // 1.0-RC1
+    RVAIA_1_0_RC1,                      // 1.0-RC1
     RVAIA_MASTER,                       // master branch
-    RVAIA_DEFAULT = RVAIA_1_1_RC1,      // default version
+    RVAIA_DEFAULT = RVAIA_1_0_RC1,      // default version
 } riscvAIAVer;
 
 //
@@ -620,12 +621,22 @@ typedef enum riscvDERETModeE {
 } riscvDERETMode;
 
 //
-// How debug event priorities are ordered
+// How debug event priorities are ordered for simultaneous step, execute
+// address, resethaltreq and haltreq events
 //
 typedef enum riscvDPriorityE {
-    RVDP_ORIG,                          // original priority ordering
-    RVDP_693,                           // priority ordering as in PR #693
-    RVDP_HALT_NOT_STEP,                 // haltreq preferred to step
+
+    RVDP_A_S_X_H,   // after trigger -> step -> execute address -> haltreq
+    RVDP_A_S_H_X,   // after trigger -> step -> haltreq -> execute address
+    RVDP_A_H_S_X,   // after trigger -> haltreq -> step -> execute address
+    RVDP_H_A_S_X,   // haltreq -> after trigger -> step -> execute address
+    RVDP_DEFAULT = RVDP_H_A_S_X,
+
+    // legacy aliases
+    RVDP_ORIG          = RVDP_A_S_X_H,
+    RVDP_693           = RVDP_A_S_H_X,
+    RVDP_HALT_NOT_STEP = RVDP_A_H_S_X,
+
 } riscvDPriority;
 
 //

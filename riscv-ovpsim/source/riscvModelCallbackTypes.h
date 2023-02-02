@@ -263,7 +263,8 @@ typedef struct extCSRAttrsS {
 DEFINE_CS(extCSRAttrs);
 
 //
-// Undefined CSR (overrides base model definition)
+// This macro declares an undefined CSR. This can be used where an extension
+// model does not implement a standard CSR for some reason.
 //
 #define XCSR_ATTR_UIP(_ID, _NUM, _ARCH, _EXT) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
@@ -276,7 +277,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Defined but unimplemented CSR
+// This macro declares a defined but unimplemented CSR. This can be used where
+// an extension model is under development and a temporary placeholder is needed
+// for future implementation.
 //
 #define XCSR_ATTR_NIP( \
     _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC \
@@ -295,7 +298,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Implemented using vmiReg and optional callbacks, no mask
+// This macro declares a CSR that has a value implemented by a field in the
+// extension object with no write mask constraints. There can optionally be
+// read or write callbacks.
 //
 #define XCSR_ATTR_T__( \
     _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
@@ -320,7 +325,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Implemented using vmiReg and optional callbacks, constant write mask
+// This macro declares a CSR that has a value implemented by a field in the
+// extension object and constant write masks. There can optionally be read or
+// write callbacks.
 //
 #define XCSR_ATTR_TC_( \
     _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
@@ -345,7 +352,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Implemented using vmiReg and optional callbacks, variable write mask
+// This macro declares a CSR that has a value implemented by a field in the
+// extension object and configurable write mask. There can optionally be read
+// or write callbacks.
 //
 #define XCSR_ATTR_TV_( \
     _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
@@ -369,7 +378,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Implemented using optional callbacks, no mask
+// This macro declares a CSR that is implemented by callbacks only and has no
+// corresponding value field in the extension object. If readCB is absent, the
+// CSR always reads zero. If writeCB is absent, writes are ignored.
 //
 #define XCSR_ATTR_P__( \
     _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
@@ -393,7 +404,9 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// Implemented using vmiReg and optional callbacks, no mask, high half
+// This macro declares a CSR that has a value implemented by a field in the
+// extension object with no write mask constraints. The value field is the high
+// half of a second CSR. There can optionally be read or write callbacks.
 //
 #define XCSR_ATTR_TH_( \
     _ID, _ID2, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
@@ -412,6 +425,8 @@ DEFINE_CS(extCSRAttrs);
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
         reg           : XCSR_REG64H_MT(_ID2),       \
+        writeMaskC32  : -1,                         \
+        writeMaskC64  : -1                          \
     }                                               \
 }
 

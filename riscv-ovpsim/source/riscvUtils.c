@@ -953,9 +953,7 @@ riscvArchitecture riscvParseExtensions(const char *extensions) {
 // If this memory access callback is triggered, abort any active load linked
 //
 static VMI_MEM_WATCH_FN(abortEA) {
-    if(processor) {
-        riscvAbortExclusiveAccess((riscvP)userData);
-    }
+    riscvAbortExclusiveAccess(userData);
 }
 
 //
@@ -995,6 +993,11 @@ void riscvAbortExclusiveAccess(riscvP riscv) {
             riscv, extCB, LRSCAbortFn,
             extCB->LRSCAbortFn(riscv, extCB->clientData);
         )
+
+        // restart from wait state if waiting for reservation set
+        if(riscv->disable & RVD_WRS) {
+            riscvRestart(riscv, RVD_RESTART_WFI);
+        }
     }
 }
 

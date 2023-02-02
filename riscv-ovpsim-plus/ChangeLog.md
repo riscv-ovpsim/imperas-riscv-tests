@@ -12,6 +12,51 @@ NOTE: X-commit messages below refer to git commits in the following
   V-commit: https://github.com/riscv/riscv-v-spec
   C-commit: https://github.com/riscv/riscv-fast-interrupt
 
+- Behavior of instructions shared by Bit Manipulation and Scalar Cryptographic
+  extensions has changed. Previously, when both extensions were present, only
+  Bit Manipulation subset information was used to determine instruction
+  presence; now, an instruction is present if it is in a configured Bit
+  Manipulation subset *or* a configured Scalar Cryptographic subset.
+- New parameter wfi_resume_not_trap specifies that a WFI instruction executed
+  when there is already a pending wakeup event for that WFI will not trap but
+  instead execute as a NOP.
+- New parameter ignore_non_leaf_DAU specifies that non-leaf PTE entries with
+  D, A or U bits set to 1 will be handled as if those fields are all 0 (and
+  not cause a page fault trap).
+
+Date 2023-January-31
+Release 20231030.0
+===
+
+- When the Advanced Interrupt Architecture (AIA) extension is implemented, new
+  parameter hvictl_IID_bits specifies the number of implemented bits in
+  hvictl.IID.
+
+Date 2023-January-26
+Release 20231025.0
+===
+
+- Specification of debug event priorities for simultaneous trigger-after, step,
+  execute-address and resethaltreq/haltreq events has been simplified.
+- Debug Mode has been enhanced:
+  - Version 1.0-STABLE has been defined, with these changes:
+    - nmi field has moved from etrigger to itrigger;
+    - nmi is now sensitive to mode bits in itrigger.
+- New parameter Zawrs enables the Zawrs extension (wait for reservation set).
+- An issue has been corrected where the fmv.x.h instruction produced an
+  incorrect result for source values that were not NaN-boxed.
+- New parameter TW_time_limit specifies the nominal time limit for instructions
+  controlled by mstatus.TW.
+- New parameter Zihintntl enables decode of non-temporal locality hints.
+- Parameter unalignedAMO has been renamed Zam to be consistent with the RISC-V
+  Unprivileged ISA specification.
+- New parameter Zicond enables conditional instructions defined by the Zicond
+  extension.
+
+Date 2023-January-17
+Release 20231016.0
+===
+
 - When floating point is implemented, new parameter Zfa enables additional
   floating point instructions defined by the Zfa extension.
 - When the vector extension is present, new parameters Zvfh and Zvfhmin enable

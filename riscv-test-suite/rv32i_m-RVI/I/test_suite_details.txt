@@ -31,39 +31,39 @@ Other instructions (those not the focus of this suite)
   auipc : 772
   csrrw : 76
   mret : 38
+  add : 588
   sw : 12,501
   fence : 39
   ecall : 38
   beq : 699
-  bgeu : 726
-  andi : 627
-  sub : 930
   and : 584
-  add : 588
-  lw : 33
-  blt : 580
-  lbu : 32
+  sub : 930
+  andi : 627
+  bge : 590
+  bgeu : 726
+  bltu : 726
   jalr : 97
   xori : 631
-  bge : 590
+  blt : 580
   lb : 33
-  bltu : 726
+  lbu : 32
   bne : 584
+  lw : 33
   lh : 32
   lhu : 32
-  ori : 560
-  sll : 89
-  slt : 584
-  sh : 71
-  slli : 88
-  sra : 90
-  sltu : 722
-  sb : 70
   or : 587
+  ori : 560
   sltiu : 699
-  srai : 87
-  srli : 90
+  slli : 88
+  slt : 584
+  sra : 90
+  sb : 70
+  sh : 71
+  sll : 89
   slti : 560
+  sltu : 722
+  srai : 87
   srl : 92
+  srli : 90
   xor : 588
 

@@ -49,16 +49,18 @@ typedef enum riscvTLBIdE {
 //
 typedef enum riscvDisableReasonE {
 
-    RVD_ACTIVE  = 0x0,  // processor running
-    RVD_WFI     = 0x1,  // processor halted in WFI
-    RVD_RESET   = 0x2,  // processor halted in reset
-    RVD_DEBUG   = 0x4,  // processor halted for debug
-    RVD_CUSTOMI = 0x8,  // processor halted for interruptible custom reason
+    RVD_ACTIVE  = 0x00, // processor running
+    RVD_WFI     = 0x01, // processor waiting in WFI
+    RVD_RESET   = 0x02, // processor waiting in reset
+    RVD_DEBUG   = 0x04, // processor waiting for debug
+    RVD_WRS     = 0x08, // processor waiting for reservation set (wrs.*)
+    RVD_STO     = 0x10, // processor waiting for reservation set (wrs.sto)
+    RVD_CUSTOMI = 0x20, // processor waiting for interruptible custom reason
 
     // states from which to restart
-    RVD_RESTART_WFI   = (RVD_WFI|RVD_CUSTOMI),
-    RVD_RESTART_NMI   = (RVD_WFI|RVD_CUSTOMI),
-    RVD_RESTART_RESET = (RVD_WFI|RVD_CUSTOMI|RVD_RESET)
+    RVD_RESTART_WFI   = RVD_WFI|RVD_WRS|RVD_STO|RVD_CUSTOMI,
+    RVD_RESTART_NMI   = RVD_RESTART_WFI,
+    RVD_RESTART_RESET = RVD_RESTART_WFI|RVD_RESET
 
 } riscvDisableReason;
 

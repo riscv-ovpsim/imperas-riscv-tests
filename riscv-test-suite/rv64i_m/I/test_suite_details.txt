@@ -32,19 +32,19 @@ Instruction category: arithmetic
   addw : 300
   subw : 300
 Instruction category: logical 
-  andi : 322
   ori : 299
+  andi : 322
   xori : 299
   xor : 301
-  or : 301
   and : 301
+  or : 301
 Instruction category: branch 
   beq : 482
   bne : 302
-  bgeu : 302
   bltu : 302
-  blt : 333
   bge : 302
+  blt : 333
+  bgeu : 302
 Instruction category: OPI_IMN 
   ecall : 61
   ebreak : 1
@@ -58,32 +58,32 @@ Instruction category: load
   lb : 298
   lh : 302
   lbu : 303
-  ld : 1,494
   lhu : 303
+  ld : 1,494
   lwu : 297
 Instruction category: store 
   sd : 14,998
   sb : 297
-  sw : 485
   sh : 301
+  sw : 485
 Instruction category: shift 
   slli : 17,385
-  srl : 301
   srli : 299
-  srai : 299
   sll : 301
+  srai : 299
+  srl : 301
   sra : 301
-  slliw : 298
   sraiw : 298
   srliw : 298
-  srlw : 300
+  slliw : 298
   sllw : 300
+  srlw : 300
   sraw : 300
 Instruction category: compare 
   slti : 299
   sltiu : 299
-  slt : 301
   sltu : 301
+  slt : 301
 
 Other instructions (those not the focus of this suite)
   csrrs : 253

@@ -29,28 +29,28 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 300
   xnor : 300
 Instruction category: OPB_CNT0 Count Leading/Trailing Zeros
-  ctz : 298
   clz : 298
-  clzw : 298
+  ctz : 298
   ctzw : 298
+  clzw : 298
 Instruction category: OPB_CNTB Count Bits
   cpop : 298
   cpopw : 298
 Instruction category: OPB_MNMX Min/Max
+  maxu : 300
   min : 300
   max : 300
-  maxu : 300
   minu : 300
 Instruction category: OPB_SEXT Sign Extend
   sext.h : 298
   sext.b : 298
 Instruction category: OPB_ROTS Rotations
-  rol : 300
-  ror : 300
   rori : 298
+  ror : 300
+  rol : 300
   rolw : 300
-  rorw : 300
   roriw : 298
+  rorw : 300
 
 Other instructions (those not the focus of this suite)
   jal : 24
@@ -66,7 +66,7 @@ Other instructions (those not the focus of this suite)
   fence : 24
   ecall : 24
   beq : 72
-  gorci : 298
   grevi : 298
+  gorci : 298
   packw : 298
 

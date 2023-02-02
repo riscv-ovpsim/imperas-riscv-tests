@@ -97,6 +97,8 @@ typedef enum riscvITypeE {
     RV_IT_URET_I,
     RV_IT_DRET_I,
     RV_IT_WFI_I,
+    RV_IT_WRS_NTO_I,
+    RV_IT_WRS_STO_I,
 
     // system fence I-type instruction
     RV_IT_FENCE_I,
@@ -734,7 +736,7 @@ typedef enum riscvITypeE {
     RV_IT_SMDRS_Sx,
     RV_IT_SMXDS_Sx,
 
-    // code size reduction instructions
+    // Zc instructions
     RV_IT_NOT_R,
     RV_IT_NEG_R,
     RV_IT_MVP_R,
@@ -756,6 +758,10 @@ typedef enum riscvITypeE {
 
     // Svinval instructions
     RV_IT_SFENCE_INVAL,
+
+    // Zicond instructions
+    RV_IT_CZERO_EQZ_R,
+    RV_IT_CZERO_NEZ_R,
 
     // KEEP LAST
     RV_IT_LAST

@@ -36,34 +36,34 @@ Other instructions (those not the focus of this suite)
   fence : 37
   ecall : 37
   beq : 716
+  bge : 586
   bgeu : 728
+  sub : 907
+  bne : 585
   andi : 597
   and : 588
-  sub : 907
+  blt : 586
   jalr : 59
   xori : 602
-  lb : 18
-  bge : 586
-  blt : 586
-  bne : 585
   bltu : 727
   lh : 16
   lbu : 17
+  lb : 18
   lhu : 16
-  or : 589
-  sb : 78
   lw : 16
-  sh : 71
   ori : 557
-  sll : 88
-  sltiu : 697
-  slt : 581
+  sb : 78
+  or : 589
   slli : 89
-  srl : 89
+  sltiu : 697
+  sh : 71
   slti : 561
+  slt : 581
   sltu : 722
-  srai : 87
   sra : 90
+  sll : 88
+  srl : 89
+  srai : 87
   srli : 88
   xor : 583
 

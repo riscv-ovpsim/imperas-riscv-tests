@@ -1640,7 +1640,7 @@ static void illegalVerbose(riscvP riscv, const char *reason) {
 //
 // Take custom Illegal Instruction exception for the given reason
 //
-void riscvIllegalCustom(
+static void takeInstructionExceptionMessage(
     riscvP         riscv,
     riscvException exception,
     const char    *reason
@@ -1654,6 +1654,18 @@ void riscvIllegalCustom(
     takeInstructionException(riscv, exception);
 }
 
+
+//
+// Take custom Illegal Instruction exception for the given reason
+//
+void riscvIllegalCustom(
+    riscvP         riscv,
+    riscvException exception,
+    const char    *reason
+) {
+    takeInstructionExceptionMessage(riscv, exception, reason);
+}
+
 //
 // Take Illegal Instruction exception
 //
@@ -1665,14 +1677,7 @@ void riscvIllegalInstruction(riscvP riscv) {
 // Take Illegal Instruction exception for the given reason
 //
 void riscvIllegalInstructionMessage(riscvP riscv, const char *reason) {
-
-    // emit verbose message if required
-    if(riscv->verbose) {
-        illegalVerbose(riscv, reason);
-    }
-
-    // take Illegal Instruction exception
-    riscvIllegalInstruction(riscv);
+    takeInstructionExceptionMessage(riscv, riscv_E_IllegalInstruction, reason);
 }
 
 //
@@ -1686,14 +1691,7 @@ void riscvVirtualInstruction(riscvP riscv) {
 // Take Virtual Instruction exception for the given reason
 //
 void riscvVirtualInstructionMessage(riscvP riscv, const char *reason) {
-
-    // emit verbose message if required
-    if(riscv->verbose) {
-        illegalVerbose(riscv, reason);
-    }
-
-    // take Virtual Instruction exception
-    riscvVirtualInstruction(riscv);
+    takeInstructionExceptionMessage(riscv, riscv_E_VirtualInstruction, reason);
 }
 
 //
@@ -2086,6 +2084,9 @@ inline static void setDM(riscvP riscv, Bool DM) {
 static void enterDM(riscvP riscv, dmCause cause) {
 
     Bool DM = inDebugMode(riscv);
+
+    // clear pending step request on debug mode entry (even for another reason)
+    riscv->netValue.stepreq = False;
 
     // indicate taken exception if a breakpoint
     if(cause!=DMC_NONE) {
@@ -3583,7 +3584,7 @@ inline static Bool interruptStepDisable(riscvP riscv) {
 }
 
 //
-// Return an indication of whether haltreq is pending to enter debug Mode
+// Return an indication of whether resethaltreq is pending to enter debug Mode
 //
 static Bool getPendingAndEnabledResethaltreq(riscvP riscv) {
     return (
@@ -3652,17 +3653,49 @@ static void doInterrupt(riscvP riscv) {
 static void doNMI(riscvP riscv);
 
 //
+// Do actions to handle pending haltreq or resethaltreq
+//
+static Bool doHaltReq(riscvP riscv, Bool complete) {
+
+    Bool didHaltReq = False;
+
+    if(getPendingAndEnabledResethaltreq(riscv)) {
+
+        // enter Debug mode out of reset
+        if(complete) {
+            riscv->netValue.resethaltreqS = False;
+            enterDM(riscv, DMC_RESETHALTREQ);
+        }
+
+        didHaltReq = True;
+
+    } else if(getPendingAndEnabledHaltreq(riscv)) {
+
+        // enter Debug mode
+        if(complete) {
+            enterDM(riscv, DMC_HALTREQ);
+        }
+
+        didHaltReq = True;
+    }
+
+    return didHaltReq;
+}
+
+//
 // This is called by the simulator when fetching from an instruction address.
 // It gives the model an opportunity to take an exception instead.
 //
 VMI_IFETCH_FN(riscvIFetchExcept) {
 
-    riscvP         riscv        = (riscvP)processor;
-    Uns64          thisPC       = address;
-    Bool           fetchOK      = False;
-    Bool           triggerX     = riscv->currentArch & ISA_TM_X;
-    riscvDPriority priority     = riscv->configInfo.debug_priority;
-    Bool           addressHiPri = (priority==RVDP_ORIG);
+    riscvP         riscv    = (riscvP)processor;
+    Uns64          thisPC   = address;
+    Bool           fetchOK  = False;
+    Bool           triggerX = riscv->currentArch & ISA_TM_X;
+    riscvDPriority priority = riscv->configInfo.debug_priority;
+    Bool           H_A      = (priority==RVDP_H_A_S_X);
+    Bool           H_S      = (priority==RVDP_A_H_S_X);
+    Bool           X_H      = (priority==RVDP_A_S_X_H);
 
     // set indication of exception during fetch
     riscv->isFetch = True;
@@ -3671,52 +3704,45 @@ VMI_IFETCH_FN(riscvIFetchExcept) {
     // actions *after* preceding instruction
     ////////////////////////////////////////////////////////////////////////////
 
-    if(riscv->netValue.triggerAfter && riscvTriggerAfter(riscv, complete)) {
+    if(H_A && doHaltReq(riscv, complete)) {
 
-        // trigger after preceding instruction (priority 4)
+        // enter Debug mode on haltreq or resethaltreq
+
+    } else if(riscvTriggerAfter(riscv, complete, True)) {
+
+        // debug trigger after preceding instruction
+
+    } else if(H_S && doHaltReq(riscv, complete)) {
+
+        // enter Debug mode on haltreq or resethaltreq
 
     } else if(riscv->netValue.stepreq) {
 
-        // enter Debug mode after instruction single-step (priority 0) unless
-        // in "original" debug priority mode and haltreq was also pending, in
-        // which case apply that the the preceding instruction (priority 1) -
-        // this is an odd case because normally haltreq is lower priority than
-        // address trap (priority 4), but if we are stepping an instruction then
-        // an address trap on the next instruction is expressly forbidden
-        // (section 4.4.1 Step Bit In Dcsr)
+        // handle pending step
         if(complete) {
-            Bool haltNotStep = (priority==RVDP_ORIG) || (priority==RVDP_HALT_NOT_STEP);
-            Bool doHaltReq   = haltNotStep && riscv->netValue.haltreq;
-            riscv->netValue.stepreq = False;
-            enterDM(riscv, doHaltReq ? DMC_HALTREQ : DMC_STEP);
+            enterDM(riscv, DMC_STEP);
         }
 
     ////////////////////////////////////////////////////////////////////////////
     // actions *before* next instruction
     ////////////////////////////////////////////////////////////////////////////
 
-    } else if(addressHiPri && complete && triggerX && riscvTriggerX0(riscv, thisPC)) {
+    } else if(X_H && complete && triggerX && riscvTriggerX0(riscv, thisPC)) {
 
-        // if in in "original" debug priority mode, execute address trap
-        // (priority 4, handled in riscvTriggerX0 only if a lower-priority case
-        // below would otherwise cause an exception - normally, this is handled
-        // by a call to riscvTriggerX2 or riscvTriggerX4 just before the
+        // if in "original" debug priority mode (RVDP_S_X_H), execute address
+        // trap (priority 4, handled in riscvTriggerX0 only if a lower-priority
+        // case below would otherwise cause an exception - normally, this is
+        // handled by a call to riscvTriggerX2 or riscvTriggerX4 just before the
         // instruction is executed)
 
-    } else if(getPendingAndEnabledResethaltreq(riscv)) {
+    } else if(!H_A && !H_S && doHaltReq(riscv, complete)) {
 
-        // enter Debug mode out of reset (priority 2)
-        if(complete) {
-            riscv->netValue.resethaltreqS = False;
-            enterDM(riscv, DMC_RESETHALTREQ);
-        }
+        // enter Debug mode on haltreq or resethaltreq
 
-    } else if(getPendingAndEnabledHaltreq(riscv)) {
+    } else if(riscvTriggerAfter(riscv, complete, False)) {
 
-        // enter Debug mode (priority 1)
-        if(complete) {
-            enterDM(riscv, DMC_HALTREQ);
-        }
+        // breakpoint trigger after preceding instruction (lower priority than
+        // all debug events)
 
     } else if(getPendingAndEnabledNMI(riscv)) {
 
@@ -4120,11 +4146,173 @@ static Bool resumeFromWFI(riscvP riscv) {
 }
 
 //
-// Halt the processor in WFI state if required
+// Return the type of trap resulting from WFI timeout or illegal operation
+//
+static riscvException getWFITrap(riscvP riscv, Bool isWRS) {
+
+    riscvMode      mode = getCurrentMode5(riscv);
+    riscvException trap = 0;
+
+    if(mode==RISCV_MODE_M) {
+
+        // no trap in M-mode
+
+    } else if(RD_CSR_FIELDC(riscv, mstatus, TW)) {
+
+        // take Illegal Instruction trap when mstatus.TW=1
+        trap = riscv_E_IllegalInstruction;
+
+    } else if(modeIsVirtual(mode) && RD_CSR_FIELDC(riscv, hstatus, VTW)) {
+
+        // take Virtual Instruction trap in virtual mode when hstatus.VTW=1
+        trap = riscv_E_VirtualInstruction;
+
+    } else if((mode!=RISCV_MODE_U) && (mode!=RISCV_MODE_VU)) {
+
+        // no trap possible unless in U-mode or VU-mode
+
+    } else if(isWRS) {
+
+        // U-mode does not trap when governing TW bit is zero for WRS.NTO
+
+    } else if(!(riscv->currentArch & ISA_S)) {
+
+        // no trap possible if S-mode is absent or disabled
+
+    } else if(riscv->currentArch & ISA_N) {
+
+        // no trap possible if N extension is enabled
+
+    } else if(mode==RISCV_MODE_VU) {
+
+        // take Virtual Instruction trap in VU-mode
+        trap = riscv_E_VirtualInstruction;
+
+    } else {
+
+        // take Illegal Instruction trap in U-mode
+        trap = riscv_E_IllegalInstruction;
+    }
+
+    return trap;
+}
+
+//
+// Take trap because of bounded time limit timeout
+//
+static void takeBLimitTrap(riscvP riscv, riscvException trap) {
+    takeInstructionExceptionMessage(riscv, trap, "bounded time limit exceeded");
+}
+
+//
+// Function called on expiry of bounded time limit controlled by mstatus.TW or
+// hstatus.VTW
+//
+static VMI_ICOUNT_FN(expiredTW) {
+
+    riscvP         riscv = (riscvP)processor;
+    riscvException trap;
+
+    if(riscv->disable&RVD_STO) {
+
+        // waiting in wrs.sto
+        riscvRestart(riscv, RVD_RESTART_WFI);
+
+    } else if((riscv->disable&RVD_WFI) && (trap=getWFITrap(riscv, False))) {
+
+        // waiting in wfi or wrs.nto
+        setPC(riscv, riscv->jumpBase);
+        riscvRestart(riscv, RVD_RESTART_WFI);
+        takeBLimitTrap(riscv, trap);
+    }
+}
+
+//
+// Return time limit for WFI or WRS instruction
+//
+inline static Uns32 getWFILimit(riscvP riscv, Bool isWRS) {
+
+    Bool useLimit = isWRS || !riscv->configInfo.wfi_is_nop;
+
+    return useLimit ? riscv->configInfo.TW_time_limit : 0;
+}
+
+//
+// Immediately take or schedule WFI trap if required
+//
+static Bool scheduleWFITrap(riscvP riscv, Bool isWRS) {
+
+    riscvException trap    = getWFITrap(riscv, isWRS);
+    Uns32          limit   = getWFILimit(riscv, isWRS);
+    Bool           trapNow = trap && !limit;
+
+    if(trapNow) {
+        takeBLimitTrap(riscv, trap);
+    } else if(trap) {
+        riscv->jumpBase = getPC(riscv);
+        vmirtSetModelTimer(riscv->twTimer, limit);
+    } else if(riscv->twTimer) {
+        vmirtClearModelTimer(riscv->twTimer);
+    }
+
+    return trapNow;
+}
+
+//
+// Stall the processor in WFI state if required
+//
+// NOTE: when time limit is zero, WFI should always be immediately trapped even
+// if there is a pending locally enabled interrupt, but when the time limit is
+// non-zero a pending locally enabled interrupt disables WFI altogether, even
+// though this seems inconsistent
 //
 void riscvWFI(riscvP riscv) {
-    if(!resumeFromWFI(riscv)) {
+
+    // should pending wakeup event be higher priority than potential trap?
+    Bool wfi_resume_not_trap = (
+        riscv->configInfo.wfi_resume_not_trap ||
+        getWFILimit(riscv, False)
+    );
+
+    if(wfi_resume_not_trap && resumeFromWFI(riscv)) {
+        // resume high priority: no action if pending locally enabled interrupts
+    } else if(scheduleWFITrap(riscv, False)) {
+        // no action if a WFI trap is immediately taken
+    } else if(!wfi_resume_not_trap && resumeFromWFI(riscv)) {
+        // resume low priority: no action if pending locally enabled interrupts
+    } else if(!riscv->configInfo.wfi_is_nop) {
         riscvHalt(riscv, RVD_WFI);
+    }
+}
+
+//
+// Stall the processor in WFI state while reservation set is valid if required
+//
+void riscvWRSNTO(riscvP riscv) {
+
+    if(riscv->exclusiveTag==RISCV_NO_TAG) {
+        // reservation set not valid
+    } else if(resumeFromWFI(riscv)) {
+        // do not stall if there are pending locally enabled interrupts
+    } else if(scheduleWFITrap(riscv, True)) {
+        // no action if a WFI trap is immediately taken
+    } else {
+        riscvHalt(riscv, RVD_WFI|RVD_WRS);
+    }
+}
+
+//
+// Stall the processor in WFI state while reservation set is valid if required
+//
+void riscvWRSSTO(riscvP riscv) {
+
+    if(riscv->exclusiveTag==RISCV_NO_TAG) {
+        // reservation set not valid
+    } else if(resumeFromWFI(riscv)) {
+        // do not stall if there are pending locally enabled interrupts
+    } else {
+        riscvHalt(riscv, RVD_WFI|RVD_WRS|RVD_STO);
+        vmirtSetModelTimer(riscv->twTimer, riscv->configInfo.STO_time_limit);
     }
 }
 
@@ -4548,7 +4736,7 @@ static VMI_NET_CHANGE_FN(nmiexcAddressPortCB) {
 }
 
 //
-// haltreq signal (edge triggered)
+// haltreq signal (level-sensitive)
 //
 static VMI_NET_CHANGE_FN(haltreqPortCB) {
 
@@ -5233,6 +5421,9 @@ void riscvNewTimers(riscvP riscv) {
     if(riscv->configInfo.debug_mode) {
         riscv->stepTimer = newCycleTimer(riscv, riscvStepExcept);
     }
+    if(riscv->configInfo.TW_time_limit || riscv->configInfo.STO_time_limit) {
+        riscv->twTimer = newCycleTimer(riscv, expiredTW);
+    }
 
     riscv->ackTimer = newCycleTimer(riscv, endIntAcknowledge);
 }
@@ -5247,6 +5438,9 @@ void riscvFreeTimers(riscvP riscv) {
     }
     if(riscv->stepTimer) {
         vmirtDeleteModelTimer(riscv->stepTimer);
+    }
+    if(riscv->twTimer) {
+        vmirtDeleteModelTimer(riscv->twTimer);
     }
     if(riscv->ackTimer) {
         vmirtDeleteModelTimer(riscv->ackTimer);
@@ -5266,6 +5460,7 @@ void riscvFreeTimers(riscvP riscv) {
 #define RV_AIA              "aia"
 #define RV_STEP_TIMER       "stepTimer"
 #define RV_ACK_TIMER        "ackTimer"
+#define RV_TW_TIMER         "twTimer"
 
 //
 // Save net state not covered by register read/write API
@@ -5376,6 +5571,10 @@ void riscvTimerSave(
             vmirtSaveModelTimer(cxt, RV_STEP_TIMER, riscv->stepTimer);
         }
 
+        if(riscv->twTimer) {
+            vmirtSaveModelTimer(cxt, RV_TW_TIMER, riscv->twTimer);
+        }
+
         vmirtSaveModelTimer(cxt, RV_ACK_TIMER, riscv->ackTimer);
     }
 }
@@ -5399,6 +5598,10 @@ void riscvTimerRestore(
         if(riscv->stepTimer) {
             VMIRT_RESTORE_FIELD(cxt, riscv, stepICount);
             vmirtRestoreModelTimer(cxt, RV_STEP_TIMER, riscv->stepTimer);
+        }
+
+        if(riscv->twTimer) {
+            vmirtRestoreModelTimer(cxt, RV_TW_TIMER, riscv->twTimer);
         }
 
         vmirtRestoreModelTimer(cxt, RV_ACK_TIMER, riscv->ackTimer);

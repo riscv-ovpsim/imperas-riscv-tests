@@ -25,8 +25,8 @@ Architectural Test Suite Data for RV32ZKND K Crypto/Scalar:
     5,024 total instructions
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
-  aes32dsmi : 428
   aes32dsi : 428
+  aes32dsmi : 428
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
 
 Other instructions (those not the focus of this suite)

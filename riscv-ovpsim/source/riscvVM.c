@@ -817,8 +817,8 @@ Uns64 riscvVMReadPMPAddr(riscvP riscv, Uns32 index) {
 //
 Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
 
-    Uns64 result   = 0;
-    Uns32 G        = riscv->configInfo.PMP_grain;
+    Uns64 result = 0;
+    Uns32 G      = riscv->configInfo.PMP_grain;
 
     // mask writable bits to implemented external bits
     newValue &= (getAddressMask(riscv->extBits) >> 2);
@@ -2714,6 +2714,8 @@ static pteError checkTableEntry(riscvP riscv, SvPTE PTE) {
         result = PTEE_R0W1;
     } else if(PTE.fields.priv) {
         result = PTEE_DONE;
+    } else if(riscv->configInfo.ignore_non_leaf_DAU) {
+        // ignore D, A and U bits in non-leaf PTEs
     } else if(PTE.fields.D) {
         result = PTEE_D_NL;
     } else if(PTE.fields.A) {

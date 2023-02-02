@@ -1,14 +1,10 @@
 # Imperas test framework Change Log
 
-Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
+Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
 
 This CHANGELOG contains information for the Imperas RISC-V test framework and tests.
 
 See the ChangeLog.md files in the simulator directories for their changes.
-
----
-Date 2023-January-17
-Release 20230116.0
 
 ---
 Date 2022-May-30

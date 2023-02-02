@@ -1185,6 +1185,19 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
                 );
                 vmidocAddText(Parameters, string);
             }
+
+            // document hvictl_IID_bits
+            if(cfg->arch&ISA_H) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"hvictl_IID_bits\": this parameter specifies the number "
+                    "of bits implemented in field \"hvictl.IID\". The default "
+                    "value in this variant is %u.",
+                    cfg->hvictl_IID_bits
+                );
+                vmidocAddText(Parameters, string);
+            }
+
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -1353,14 +1366,13 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
 //
 // Document a Boolean parameter
 //
-static vmiDocNodeP docBoolParam(
+static vmiDocNodeP docBoolParamInt(
     vmiDocNodeP  node,
     const char  *name,
     Bool         param,
     const char **meanings
 ) {
-    vmiDocNodeP sub = vmidocAddSection(node, name);
-    char        string[1024];
+    char string[1024];
 
     snprintf(
         SNPRINTF_TGT(string),
@@ -1369,9 +1381,21 @@ static vmiDocNodeP docBoolParam(
         name, param, meanings[param], name, !param, meanings[!param]
     );
 
-    vmidocAddText(sub, string);
+    vmidocAddText(node, string);
 
-    return sub;
+    return node;
+}
+
+//
+// Document a Boolean parameter
+//
+static vmiDocNodeP docBoolParam(
+    vmiDocNodeP  node,
+    const char  *name,
+    Bool         param,
+    const char **meanings
+) {
+    return docBoolParamInt(vmidocAddSection(node, name), name, param, meanings);
 }
 
 //
@@ -1809,22 +1833,47 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmiDocNodeP sub = vmidocAddSection(Features, "WFI");
 
             if(cfg->wfi_is_nop) {
+
                 vmidocAddText(
                     sub,
                     "WFI is implemented as a NOP. It can instead be configured "
-                    "to halt the processor until an interrupt occurs using "
-                    "parameter \"wfi_is_nop\". WFI timeout wait is implemented "
-                    "with a time limit of 0 (i.e. WFI causes an Illegal "
-                    "Instruction trap in Supervisor mode when mstatus.TW=1)."
+                    "to halt the processor until an interrupt occurs by "
+                    "setting parameter \"wfi_is_nop\" to False."
                 );
+
             } else {
+
                 vmidocAddText(
                     sub,
                     "WFI will halt the processor until an interrupt occurs. It "
-                    "can instead be configured as a NOP using parameter "
-                    "\"wfi_is_nop\". WFI timeout wait is implemented with a "
-                    "time limit of 0 (i.e. WFI causes an Illegal Instruction "
-                    "trap in Supervisor mode when mstatus.TW=1)."
+                    "can instead be configured as a NOP by setting parameter "
+                    "\"wfi_is_nop\" to True."
+                );
+
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "The nominal time limit for WFI instructions can be set by "
+                    "parameter \"TW_time_limit\". In this variant, the time "
+                    "limit is %u cycles.",
+                    cfg->TW_time_limit
+                );
+                vmidocAddText(sub, string);
+            }
+
+            if(cfg->wfi_is_nop || !cfg->TW_time_limit) {
+
+                static const char *meanings[] = {
+                    "pending wakeup events when WFI is executed will not "
+                    "prevent a trap occurring",
+                    "pending wakeup events when WFI is executed will cause the "
+                    "WFI to be treated as a NOP"
+                };
+
+                docBoolParamInt(
+                    sub,
+                    "wfi_resume_not_trap",
+                    cfg->wfi_resume_not_trap,
+                    meanings
                 );
             }
         }
@@ -1952,6 +2001,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 cfg->ASID_cache_size
             );
             vmidocAddText(sub, string);
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Boolean parameter \"ignore_non_leaf_DAU\" specifies how "
+                "non-zero D, A and U fields in non-leaf PTE entries are "
+                "handled. If \"ignore_non_leaf_DAU\" is False, then using "
+                "such entries will trigger Page Fault traps. If "
+                "\"ignore_non_leaf_DAU\" is True, then such entries will be "
+                "handled as if D, A and U fields are all zero. In this "
+                "variant, \"ignore_non_leaf_DAU\" is %u.",
+                cfg->ignore_non_leaf_DAU
+            );
+            vmidocAddText(sub, string);
         }
 
         // document unaligned access behavior
@@ -1981,15 +2043,15 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(
                     sub,
                     "Unaligned memory accesses are supported for AMO "
-                    "instructions by this variant. Set parameter "
-                    "\"unalignedAMO\" to \"F\" to disable such accesses."
+                    "instructions by this variant. Set parameter \"Zam\" to "
+                    "\"F\" to disable such accesses."
                 );
             } else {
                 vmidocAddText(
                     sub,
                     "Unaligned memory accesses are not supported for AMO "
-                    "instructions by this variant. Set parameter "
-                    "\"unalignedAMO\" to \"T\" to enable such accesses."
+                    "instructions by this variant. Set parameter \"Zam\" to "
+                    "\"T\" to enable such accesses."
                 );
             }
 
@@ -2398,6 +2460,16 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
         }
 
+        // document Zfa
+        snprintf(
+            SNPRINTF_TGT(string),
+            "Additional floating point instructions are %simplemented. Use "
+            "parameter \"Zfa\" to %s these if required.",
+            cfg->Zfa ? "" : "not ",
+            cfg->Zfa ? "disable" : "enable"
+        );
+        vmidocAddText(Features, string);
+
         if(cfg->Zfinx_version) {
 
             // document Zfinx
@@ -2468,7 +2540,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         // document Zfhmin
-        if(riscv->configInfo.fp16_version && (cfg->arch&ISA_DF)) {
+        if(riscv->configInfo.fp16_version) {
 
             Bool param = cfg->Zfhmin;
 
@@ -4452,6 +4524,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
         }
 
+        // document Zawrs
+        {
+            static const char *meanings[] = {
+                "wait-for-reservation-set instructions are not implemented",
+                "wait-for-reservation-set instructions are implemented, in "
+                "which case parameter \"TW_time_limit\" is used to specify the "
+                "nominal cycle delay for wrs.nto, and parameter "
+                "\"STO_time_limit\" is used to specify the nominal cycle delay "
+                "for wrs.sto"
+            };
+
+            docBoolParam(extP, "Zawrs", cfg->Zawrs, meanings);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4877,20 +4962,25 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 DebugPriority,
-                "The model supports two different models for determining which "
-                "debug exception occurs when multiple debug events are pending:"
+                "The model supports three different models for determining "
+                "which debug exception occurs when step, execute address, "
+                "resethaltreq and haltreq events are all pending. These "
+                "options are listed below, with highest-priority event first:"
             );
             vmidocAddText(
                 DebugPriority,
-                "1: original mode (when parameter \"debug_priority\"="
-                "\"original\");"
+                "1. when parameter \"debug_priority\"=\"sxh\": step -> execute "
+                "address -> resethaltreq -> haltreq;"
             );
             vmidocAddText(
                 DebugPriority,
-                "2: modified mode, as described in Debug Specification pull "
-                "request 693 (when parameter \"debug_priority\"=\"PR693\"). "
-                "This mode resolves some anomalous behavior of the original "
-                "specification."
+                "2. when parameter \"debug_priority\"=\"shx\": step -> "
+                "resethaltreq -> haltreq -> execute address;"
+            );
+            vmidocAddText(
+                DebugPriority,
+                "3. when parameter \"debug_priority\"=\"hsx\": resethaltreq -> "
+                "haltreq -> step -> execute address."
             );
         }
 
@@ -4917,6 +5007,92 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 Ports,
                 "Port \"resethaltreq\" is a level-sensitive signal that "
                 "triggers entry to Debug mode after reset (see above)."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DEBUG VERSIONS
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Versions = vmidocAddSection(
+                debugMode, "Debug Mode Versions"
+            );
+
+            vmidocAddText(
+                Versions,
+                "Debug mode specification has been under active development. "
+                "To enable simulation of hardware that may be based on an "
+                "older version of the specification, the model implements "
+                "behavior for a number of versions of the specification. The "
+                "differing features of these are listed below, in "
+                "chronological order."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DEBUG VERSION 0.13.2-DRAFT
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                debugMode, "Version 0.13.2-DRAFT"
+            );
+
+            vmidocAddText(
+                Version,
+                "0.13.2-DRAFT version of March 22 2019."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DEBUG VERSION 0.14.0-DRAFT
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                debugMode, "Version 0.14.0-DRAFT"
+            );
+
+            vmidocAddText(
+                Version,
+                "0.14.0-DRAFT version of November 6 2020."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DEBUG VERSION 1.0.0-STABLE
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                debugMode, "Version 1.0.0-STABLE"
+            );
+
+            vmidocAddText(
+                Version,
+                "1.0.0-STABLE version of February 9 2022."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // DEBUG VERSION 1.0-STABLE
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                debugMode, "Version 1.0-STABLE"
+            );
+
+            vmidocAddText(
+                Version,
+                "1.0-STABLE version of December 28 2022, with these "
+                "changes compared to version 1.0.0-STABLE:"
+            );
+            vmidocAddText(
+                Version,
+                "- nmi is moved from etrigger to itrigger and is now subject "
+                "to the mode bits in that trigger."
             );
         }
     }

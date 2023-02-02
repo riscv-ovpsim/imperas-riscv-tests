@@ -802,6 +802,8 @@ typedef enum riscvIType32E {
     IT32_URET_I,
     IT32_DRET_I,
     IT32_WFI_I,
+    IT32_WRS_NTO_I,
+    IT32_WRS_STO_I,
 
     // system fence I-type instruction
     IT32_FENCE_I,
@@ -1711,6 +1713,16 @@ typedef enum riscvIType32E {
     IT32_SFENCE_INVAL_IR,
     IT32_HINVAL_VVMA,
     IT32_HINVAL_GVMA,
+
+    // Zihintntl instructions
+    IT32_NTL_P1,
+    IT32_NTL_PALL,
+    IT32_NTL_S1,
+    IT32_NTL_ALL,
+
+    // Zicond instructions
+    IT32_CZERO_EQZ_R,
+    IT32_CZERO_NEZ_R,
 
     // KEEP LAST
     IT32_LAST
@@ -3896,11 +3908,38 @@ const static decodeEntry32 decodeP096[] = {
 };
 
 //
+// This specifies Zihintntl Extension decodes
+//
+const static decodeEntry32 decodeZihintntl[] = {
+
+    //                         | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY(   NTL_P1, "|0000000|00010|00000|000|00000|0110011|"),
+    DECODE32_ENTRY( NTL_PALL, "|0000000|00011|00000|000|00000|0110011|"),
+    DECODE32_ENTRY(   NTL_S1, "|0000000|00100|00000|000|00000|0110011|"),
+    DECODE32_ENTRY(  NTL_ALL, "|0000000|00101|00000|000|00000|0110011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Zicond Extension decodes
+//
+const static decodeEntry32 decodeZicond[] = {
+
+    //                            | funct7|  rs2|  rs1|fun|   rd| opcode|
+    DECODE32_ENTRY( CZERO_EQZ_R, "|0000111|.....|.....|101|.....|0110011|"),
+    DECODE32_ENTRY( CZERO_NEZ_R, "|0000111|.....|.....|111|.....|0110011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
 // This specifies Zicbom Extension decodes
 //
 const static decodeEntry32 decodeZicbom[] = {
 
-    // Zicbom-extension instructions (RV32 and RV64)
     //                           | funct12    | rs1 |CBO|     | opcode|
     DECODE32_ENTRY ( CBO_CLEAN, "|000000000001|.....|010|00000|0001111|"),
     DECODE32_ENTRY ( CBO_FLUSH, "|000000000010|.....|010|00000|0001111|"),
@@ -3915,7 +3954,6 @@ const static decodeEntry32 decodeZicbom[] = {
 //
 const static decodeEntry32 decodeZicbop[] = {
 
-    // Zicbop-extension instructions (RV32 and RV64)
     //                            | offset| op  | rs1 |ORI|     | opcode|
     DECODE32_ENTRY ( PREFETCH_I, "|.......|00000|.....|110|00000|0010011|"),
     DECODE32_ENTRY ( PREFETCH_R, "|.......|00001|.....|110|00000|0010011|"),
@@ -3930,7 +3968,6 @@ const static decodeEntry32 decodeZicbop[] = {
 //
 const static decodeEntry32 decodeZicboz[] = {
 
-    // Zicboz-extension instructions (RV32 and RV64)
     //                           | funct12    | rs1 |CBO|     | opcode|
     DECODE32_ENTRY ( CBO_ZERO,  "|000000000100|.....|010|00000|0001111|"),
 
@@ -3943,7 +3980,6 @@ const static decodeEntry32 decodeZicboz[] = {
 //
 const static decodeEntry32 decodeSvinval[] = {
 
-    // Svinval-extension instructions (RV32 and RV64)
     //                                | funct7|  rs2|  rs1|fun|   rd| opcode|
     DECODE32_ENTRY(      SINVAL_VMA, "|0001011|.....|.....|000|00000|1110011|"),
     DECODE32_ENTRY(  SFENCE_W_INVAL, "|0001100|00000|00000|000|00000|1110011|"),
@@ -3973,6 +4009,19 @@ const static decodeEntry32 decodeZfa32[] = {
     DECODE32_ENTRY(      FMVPQX_R, "|1011011|.....|.....|000|.....|1010011|"),
     DECODE32_ENTRY(        FLEQ_R, "|10100..|.....|.....|100|.....|1010011|"),
     DECODE32_ENTRY(        FLTQ_R, "|10100..|.....|.....|101|.....|1010011|"),
+
+    // table termination entry
+    {0}
+};
+
+//
+// This specifies Zawrs Extension decodes
+//
+const static decodeEntry32 decodeZawrs[] = {
+
+    //                          |          SY|b10_0|fun|b10_0| opcode|
+    DECODE32_ENTRY( WRS_NTO_I, "|000000001101|00000|000|00000|1110011|"),
+    DECODE32_ENTRY( WRS_STO_I, "|000000011101|00000|000|00000|1110011|"),
 
     // table termination entry
     {0}
@@ -4074,6 +4123,8 @@ const static opAttrs attrsArray32[] = {
     ATTR32_NOP                  (         URET_I,          URET_I, RVANYN,  "uret"   ),
     ATTR32_NOP                  (         DRET_I,          DRET_I, RVANY,   "dret"   ),
     ATTR32_NOP                  (          WFI_I,           WFI_I, RVANY,   "wfi"    ),
+    ATTR32_NOP                  (      WRS_NTO_I,       WRS_NTO_I, RVANY,   "wrs.nto"),
+    ATTR32_NOP                  (      WRS_STO_I,       WRS_STO_I, RVANY,   "wrs.sto"),
 
     // system fence I-type instruction
     ATTR32_FENCE                (        FENCE_I,         FENCE_I, RVANY,   "fence"    ),
@@ -4986,6 +5037,16 @@ const static opAttrs attrsArray32[] = {
     ATTR32_FENCE_VMA            (    HINVAL_VVMA,   HFENCE_VVMA_R, RVANYH,  "hinval.vvma"    ),
     ATTR32_FENCE_VMA            (    HINVAL_GVMA,   HFENCE_GVMA_R, RVANYH,  "hinval.gvma"    ),
 
+    // Zihintntl instructions
+    ATTR32_NOP                  (         NTL_P1,             NOP, RVANY,   "ntl.p1"  ),
+    ATTR32_NOP                  (       NTL_PALL,             NOP, RVANY,   "ntl.pall"),
+    ATTR32_NOP                  (         NTL_S1,             NOP, RVANY,   "ntl.s1"  ),
+    ATTR32_NOP                  (        NTL_ALL,             NOP, RVANY,   "ntl.all" ),
+
+    // Zicond instructions
+    ATTR32_RD_RS1_RS2           (    CZERO_EQZ_R,     CZERO_EQZ_R, RVANY,   "czero.eqz" ),
+    ATTR32_RD_RS1_RS2           (    CZERO_NEZ_R,     CZERO_NEZ_R, RVANY,   "czero.nez" ),
+
     // dummy entry for undecoded instruction
     ATTR32_LAST                 (           LAST,            LAST,          "undef")
 };
@@ -5056,35 +5117,38 @@ static void insertEntries32OpPrefix(
 //
 // Key used to identify decoder configuration
 //
-typedef union decodeKey32U {
+typedef union decodeKey64U {
 
-    Uns32 u32;
+    Uns64 u64;
 
     struct {
-        riscvVectVer     vect_version     : 4;
-        riscvBitManipVer bitmanip_version : 4;
-        riscvCryptoVer   crypto_version   : 4;
-        riscvDSPVer      dsp_version      : 4;
-        riscvCompressVer compress_version : 4;
-        Bool             K                : 1;
-        Bool             P                : 1;
-        Bool             Zfa              : 1;
-        Bool             Zcd              : 1;
-        Bool             Zicbom           : 1;
-        Bool             Zicbop           : 1;
-        Bool             Zicboz           : 1;
-        Bool             Zvfbfmin         : 1;
-        Bool             Svinval          : 1;
-        Bool             noPseudo         : 1;
-        Uns32            _unused          : 2;
+        riscvVectVer     vect_version     :  4;
+        riscvBitManipVer bitmanip_version :  4;
+        riscvCryptoVer   crypto_version   :  4;
+        riscvDSPVer      dsp_version      :  4;
+        riscvCompressVer compress_version :  4;
+        Bool             K                :  1;
+        Bool             P                :  1;
+        Bool             Zfa              :  1;
+        Bool             Zcd              :  1;
+        Bool             Zawrs            :  1;
+        Bool             Zihintntl        :  1;
+        Bool             Zicond           :  1;
+        Bool             Zicbom           :  1;
+        Bool             Zicbop           :  1;
+        Bool             Zicboz           :  1;
+        Bool             Zvfbfmin         :  1;
+        Bool             Svinval          :  1;
+        Bool             noPseudo         :  1;
+        Uns32            _unused          : 31;
     } f;
 
-} decodeKey32;
+} decodeKey64;
 
 //
 // Create the 32-bit instruction decode table
 //
-static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
+static vmidDecodeTableP createDecodeTable32(decodeKey64 key) {
 
     vmidDecodeTableP table    = vmidNewDecodeTable(32, IT32_LAST);
     Bool             noPseudo = key.f.noPseudo;
@@ -5342,6 +5406,33 @@ static vmidDecodeTableP createDecodeTable32(decodeKey32 key) {
         insertEntries32(table, &decodeZfa32[0], noPseudo);
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    // ZIHINTNTL EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle Zihintntl extension instructions
+    if(key.f.Zihintntl) {
+        insertEntries32(table, &decodeZihintntl[0], noPseudo);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // ZICOND EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle Zicond extension instructions
+    if(key.f.Zicond) {
+        insertEntries32(table, &decodeZicond[0], noPseudo);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // ZAWRS EXTENSION ENTRIES
+    ////////////////////////////////////////////////////////////////////////////
+
+    // handle Zawrs extension instructions
+    if(key.f.Zawrs) {
+        insertEntries32(table, &decodeZawrs[0], noPseudo);
+    }
+
     return table;
 }
 
@@ -5382,7 +5473,7 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
     // linked list type of decode tables for key
     typedef struct decodeConfigS {
         struct decodeConfigS *next;
-        decodeKey32           key;
+        decodeKey64           key;
         vmidDecodeTableP      table;
     } decodeConfig, *decodeConfigP;
 
@@ -5390,7 +5481,7 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
     static decodeConfigP list;
 
     // create key
-    decodeKey32 key = {
+    decodeKey64 key = {
         f : {
             vect_version     : RISCV_VECT_VERSION(riscv),
             bitmanip_version : RISCV_BITMANIP_VERSION(riscv),
@@ -5401,6 +5492,9 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
             P                : DSPPresent(riscv),
             Zfa              : Zfa(riscv),
             Zcd              : Zcd(riscv),
+            Zawrs            : riscv->configInfo.Zawrs,
+            Zihintntl        : riscv->configInfo.Zihintntl,
+            Zicond           : riscv->configInfo.Zicond,
             Zicbom           : riscv->configInfo.Zicbom,
             Zicbop           : riscv->configInfo.Zicbop,
             Zicboz           : riscv->configInfo.Zicboz,
@@ -5413,7 +5507,7 @@ static vmidDecodeTableP createDecodeTable32Key(riscvP riscv) {
     decodeConfigP this = list;
 
     // scan for matching table
-    while(this && (this->key.u32 != key.u32)) {
+    while(this && (this->key.u64 != key.u64)) {
         this = this->next;
     }
 

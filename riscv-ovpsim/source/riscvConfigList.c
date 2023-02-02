@@ -40,9 +40,9 @@
     .dbg_version      = RVDBG_DEFAULT,                          \
     .CLIC_version     = RVCLC_DEFAULT,                          \
     .AIA_version      = RVAIA_DEFAULT,                          \
+    .debug_priority   = RVDP_DEFAULT,                           \
     .CLICSELHVEC      = True,                                   \
     .CSIP_present     = True,                                   \
-    .debug_priority   = RVDP_693,                               \
     .Zvlsseg          = 1,                                      \
     .Zvamo            = 1,                                      \
     .Zvediv           = 0,                                      \
@@ -57,7 +57,7 @@
     .VMID_bits        = ((_ARCH)&RV64) ? 14 : 7,                \
     .numHarts         = RV_NUMHARTS_0,                          \
     .trigger_num      = 4,                                      \
-    .tinfo            = 0x7d,   /* types 0, 2-6 */              \
+    .tinfo            = 0x807d, /* types 0, 2-6, 15 */          \
     .trigger_match    = 0x333f, /* types 0-5, 8, 9, 12, 13 */   \
     .mcontext_bits    = ((_ARCH)&RV64) ? 13 : 6,                \
     .scontext_bits    = ((_ARCH)&RV64) ? 34 : 16,               \

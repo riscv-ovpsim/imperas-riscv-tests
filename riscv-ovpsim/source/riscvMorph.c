@@ -1052,19 +1052,6 @@ static Bool checkHaveUModeMT(riscvP riscv) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Macro encapsulating test for trapped instruction from any non-Machine
-// mode when a bit is set or clear in a register
-//
-#define EMIT_TRAP_MASK_FIELD_NOT_M(_RISCV, _R, _BIT, _VALUE) \
-    emitTrapInstructionMaskNotM(            \
-        _RISCV,                             \
-        CSR_REG_MT(_R),                     \
-        WM_##_R##_##_BIT,                   \
-        _VALUE ? vmi_COND_Z : vmi_COND_NZ,  \
-        #_R"."#_BIT"="#_VALUE               \
-    )
-
-//
 // Macro encapsulating test for trapped instruction in VS mode mode when a bit
 // is set or clear in a register
 //
@@ -1162,22 +1149,6 @@ static void emitTrapInstructionMaskInt(
 
         // here if access is legal
         vmimtInsertLabel(ok);
-    }
-}
-
-//
-// Emit test for Illegal Instruction instruction when a bit is set or clear in a
-// register in any non-Machine mode
-//
-static void emitTrapInstructionMaskNotM(
-    riscvP       riscv,
-    vmiReg       r,
-    Uns32        mask,
-    vmiCondition cond,
-    const char  *reason
-) {
-    if(getCurrentMode5(riscv)!=RISCV_MODE_M) {
-        emitTrapInstructionMaskInt(r, mask, cond, reason, trapIllegal);
     }
 }
 
@@ -2912,11 +2883,12 @@ static RISCV_MORPH_FN(emitNOP) {
 //
 static RISCV_MORPH_FN(emitMoveRR) {
 
-    unpackedReg rd   = unpackRX(state, 0);
-    unpackedReg rs   = unpackRX(state, 1);
-    Uns32       bits = rd.bits;
+    unpackedReg rd    = unpackRX(state, 0);
+    unpackedReg rs    = unpackRX(state, 1);
+    Uns32       bitsD = rd.bits;
+    Uns32       bitsS = rs.bits;
 
-    vmimtMoveRR(bits, rd.r, rs.r);
+    vmimtMoveExtendRR(bitsD, rd.r, bitsS, rs.r, !state->info.unsExt);
 
     writeUnpacked(rd);
 }
@@ -3082,6 +3054,23 @@ static RISCV_MORPH_FN(emitCmpopRRC) {
     vmimtCompareRC(bits, state->attrs->cond, rs1.r, c, rd.r);
 
     writeUnpackedSize(rd, 8);
+}
+
+//
+// Implement generic Condop (three registers)
+//
+static RISCV_MORPH_FN(emitCondopRRR) {
+
+    unpackedReg rd   = unpackRX(state, 0);
+    unpackedReg rs1  = unpackRX(state, 1);
+    unpackedReg rs2  = unpackRX(state, 2);
+    vmiReg      tmp  = newTmp(state);
+    Uns32       bits = rd.bits;
+
+    vmimtCompareRC(bits, state->attrs->cond, rs2.r, 0, tmp);
+    vmimtCondMoveRCR(bits, tmp, True, rd.r, 0, rs1.r);
+
+    writeUnpacked(rd);
 }
 
 //
@@ -3957,35 +3946,24 @@ static RISCV_MORPH_FN(emitURET) {
 // Implement WFI instruction
 //
 static RISCV_MORPH_FN(emitWFI) {
+    vmimtArgProcessor();
+    vmimtCall((vmiCallFn)riscvWFI);
+}
 
-    riscvP riscv = state->riscv;
+//
+// Implement WRS.NTO instruction
+//
+static RISCV_MORPH_FN(emitWRSNTO) {
+    vmimtArgProcessor();
+    vmimtCall((vmiCallFn)riscvWRSNTO);
+}
 
-    // instruction is trapped if mstatus.TW=1 in any non-Machine mode
-    EMIT_TRAP_MASK_FIELD_NOT_M(riscv, mstatus, TW, 1);
-
-    // if Supervisor mode is implemented and N extension is not then WFI in User
-    // mode causes an Illegal Instruction exception unless it completes within
-    // a bounded time limit (currently 0)
-    if(getCurrentMode3(riscv)!=RISCV_MODE_U) {
-        // no action
-    } else if(!isFeaturePresentMT(riscv, ISA_S)) {
-        // legal if S extension is absent or inactive
-    } else if(isFeaturePresentMT(riscv, ISA_N)) {
-        // legal if N extension is active
-    } else if(!inVMode(riscv)) {
-        ILLEGAL_INSTRUCTION_MESSAGE(riscv, "TW0", "bounded time limit zero");
-    } else {
-        VIRTUAL_INSTRUCTION_MESSAGE(riscv, "TW0", "bounded time limit zero");
-    }
-
-    // instruction is trapped in VS mode when hstatus.VTW=1
-    EMIT_TRAP_MASK_FIELD_VS(riscv, hstatus, TW, 1);
-
-    // wait for interrupt (unless this is treated as a NOP)
-    if(!riscv->configInfo.wfi_is_nop) {
-        vmimtArgProcessor();
-        vmimtCall((vmiCallFn)riscvWFI);
-    }
+//
+// Implement WRS.STO instruction
+//
+static RISCV_MORPH_FN(emitWRSSTO) {
+    vmimtArgProcessor();
+    vmimtCall((vmiCallFn)riscvWRSSTO);
 }
 
 //
@@ -4172,12 +4150,12 @@ static void emitCSRRCommon(riscvMorphStateP state, vmiReg rs1, Bool write) {
         vmiReg rdTmp = read ? newTmp(state) : VMI_NOREG;
 
         // handle traps if mstatus.TVM=1 (e.g. satp register)
-        if(attrs->trap & 1) {
+        if(attrs->trap & CSRT_TVM) {
             riscvEmitTrapTVM(riscv);
         }
 
         // handle traps if hvictl.VTI=1 (e.g. sip, sie registers)
-        if(attrs->trap & 2) {
+        if(attrs->trap & CSRT_VTI) {
             riscvEmitTrapVTI(riscv);
         }
 
@@ -4546,7 +4524,7 @@ static VMI_FP_IND64_RESULT_FN(handleIndeterminate64) {
 //
 // Common routine for 16-bit FMIN/FMAX result
 //
-static Uns16 doMinMax16_2_2(Uns16 result16, Uns16 arg0, Uns16 arg1) {
+static Uns16 doMinMax2_2_16(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 
     if(isSNaN16(arg0) || isSNaN16(arg1)) {
         result16 = FP16_DEFAULT_QNAN;
@@ -4564,7 +4542,7 @@ static Uns16 doMinMax16_2_2(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 //
 // Common routine for 32-bit FMIN/FMAX result
 //
-static Uns32 doMinMax32_2_2(Uns32 result32, Uns32 arg0, Uns32 arg1) {
+static Uns32 doMinMax2_2_32(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 
     if(isSNaN32(arg0) || isSNaN32(arg1)) {
         result32 = FP32_DEFAULT_QNAN;
@@ -4582,7 +4560,7 @@ static Uns32 doMinMax32_2_2(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 //
 // Common routine for 64-bit FMIN/FMAX result
 //
-static Uns64 doMinMax64_2_2(Uns64 result64, Uns64 arg0, Uns64 arg1) {
+static Uns64 doMinMax2_2_64(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 
     if(isSNaN64(arg0) || isSNaN64(arg1)) {
         result64 = FP64_DEFAULT_QNAN;
@@ -4600,7 +4578,7 @@ static Uns64 doMinMax64_2_2(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 //
 // 16-bit FMIN result handler
 //
-static VMI_FP_16_RESULT_FN(doFMin16_2_2) {
+static VMI_FP_16_RESULT_FN(doFMin2_2_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4608,7 +4586,7 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_2) {
     if(isZero16(arg0) && isZero16(arg1)) {
         result16 = arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_2(result16, arg0, arg1);
+        result16 = doMinMax2_2_16(result16, arg0, arg1);
     }
 
     return result16;
@@ -4617,7 +4595,7 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_2) {
 //
 // 16-bit FMAX result handler
 //
-static VMI_FP_16_RESULT_FN(doFMax16_2_2) {
+static VMI_FP_16_RESULT_FN(doFMax2_2_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4625,7 +4603,7 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_2) {
     if(isZero16(arg0) && isZero16(arg1)) {
         result16 = arg0;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_2(result16, arg0, arg1);
+        result16 = doMinMax2_2_16(result16, arg0, arg1);
     }
 
     return result16;
@@ -4634,7 +4612,7 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_2) {
 //
 // 32-bit FMIN result handler
 //
-static VMI_FP_32_RESULT_FN(doFMin32_2_2) {
+static VMI_FP_32_RESULT_FN(doFMin2_2_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4642,7 +4620,7 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_2) {
     if(isZero32(arg0) && isZero32(arg1)) {
         result32 = arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_2(result32, arg0, arg1);
+        result32 = doMinMax2_2_32(result32, arg0, arg1);
     }
 
     return result32;
@@ -4651,7 +4629,7 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_2) {
 //
 // 32-bit FMAX result handler
 //
-static VMI_FP_32_RESULT_FN(doFMax32_2_2) {
+static VMI_FP_32_RESULT_FN(doFMax2_2_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4659,7 +4637,7 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_2) {
     if(isZero32(arg0) && isZero32(arg1)) {
         result32 = arg0;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_2(result32, arg0, arg1);
+        result32 = doMinMax2_2_32(result32, arg0, arg1);
     }
 
     return result32;
@@ -4668,7 +4646,7 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_2) {
 //
 // 64-bit FMIN result handler
 //
-static VMI_FP_64_RESULT_FN(doFMin64_2_2) {
+static VMI_FP_64_RESULT_FN(doFMin2_2_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -4676,7 +4654,7 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_2) {
     if(isZero64(arg0) && isZero64(arg1)) {
         result64 = arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_2(result64, arg0, arg1);
+        result64 = doMinMax2_2_64(result64, arg0, arg1);
     }
 
     return result64;
@@ -4685,7 +4663,7 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_2) {
 //
 // 64-bit FMAX result handler
 //
-static VMI_FP_64_RESULT_FN(doFMax64_2_2) {
+static VMI_FP_64_RESULT_FN(doFMax2_2_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -4693,7 +4671,7 @@ static VMI_FP_64_RESULT_FN(doFMax64_2_2) {
     if(isZero64(arg0) && isZero64(arg1)) {
         result64 = arg0;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_2(result64, arg0, arg1);
+        result64 = doMinMax2_2_64(result64, arg0, arg1);
     }
 
     return result64;
@@ -4707,7 +4685,7 @@ static VMI_FP_64_RESULT_FN(doFMax64_2_2) {
 //
 // Common routine for 16-bit FMIN/FMAX result
 //
-static Uns16 doMinMax16_2_3(Uns16 result16, Uns16 arg0, Uns16 arg1) {
+static Uns16 doMinMax2_3_16(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 
     if(isNaN16(arg0) && isNaN16(arg1)) {
         result16 = FP16_DEFAULT_QNAN;
@@ -4723,7 +4701,7 @@ static Uns16 doMinMax16_2_3(Uns16 result16, Uns16 arg0, Uns16 arg1) {
 //
 // Common routine for 32-bit FMIN/FMAX result
 //
-static Uns32 doMinMax32_2_3(Uns32 result32, Uns32 arg0, Uns32 arg1) {
+static Uns32 doMinMax2_3_32(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 
     if(isNaN32(arg0) && isNaN32(arg1)) {
         result32 = FP32_DEFAULT_QNAN;
@@ -4739,7 +4717,7 @@ static Uns32 doMinMax32_2_3(Uns32 result32, Uns32 arg0, Uns32 arg1) {
 //
 // Common routine for 64-bit FMIN/FMAX result
 //
-static Uns64 doMinMax64_2_3(Uns64 result64, Uns64 arg0, Uns64 arg1) {
+static Uns64 doMinMax2_3_64(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 
     if(isNaN64(arg0) && isNaN64(arg1)) {
         result64 = FP64_DEFAULT_QNAN;
@@ -4755,7 +4733,7 @@ static Uns64 doMinMax64_2_3(Uns64 result64, Uns64 arg0, Uns64 arg1) {
 //
 // 16-bit FMIN result handler
 //
-static VMI_FP_16_RESULT_FN(doFMin16_2_3) {
+static VMI_FP_16_RESULT_FN(doFMin2_3_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4763,7 +4741,7 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_3) {
     if(isZero16(arg0) && isZero16(arg1)) {
         result16 = arg0 | arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_3(result16, arg0, arg1);
+        result16 = doMinMax2_3_16(result16, arg0, arg1);
     }
 
     return result16;
@@ -4772,7 +4750,7 @@ static VMI_FP_16_RESULT_FN(doFMin16_2_3) {
 //
 // 16-bit FMAX result handler
 //
-static VMI_FP_16_RESULT_FN(doFMax16_2_3) {
+static VMI_FP_16_RESULT_FN(doFMax2_3_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4780,7 +4758,7 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_3) {
     if(isZero16(arg0) && isZero16(arg1)) {
         result16 = arg0 & arg1;
     } else if(isNaNorInf16(result16)) {
-        result16 = doMinMax16_2_3(result16, arg0, arg1);
+        result16 = doMinMax2_3_16(result16, arg0, arg1);
     }
 
     return result16;
@@ -4789,7 +4767,7 @@ static VMI_FP_16_RESULT_FN(doFMax16_2_3) {
 //
 // 32-bit FMIN result handler
 //
-static VMI_FP_32_RESULT_FN(doFMin32_2_3) {
+static VMI_FP_32_RESULT_FN(doFMin2_3_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4797,7 +4775,7 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_3) {
     if(isZero32(arg0) && isZero32(arg1)) {
         result32 = arg0 | arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_3(result32, arg0, arg1);
+        result32 = doMinMax2_3_32(result32, arg0, arg1);
     }
 
     return result32;
@@ -4806,7 +4784,7 @@ static VMI_FP_32_RESULT_FN(doFMin32_2_3) {
 //
 // 32-bit FMAX result handler
 //
-static VMI_FP_32_RESULT_FN(doFMax32_2_3) {
+static VMI_FP_32_RESULT_FN(doFMax2_3_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4814,7 +4792,7 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_3) {
     if(isZero32(arg0) && isZero32(arg1)) {
         result32 = arg0 & arg1;
     } else if(isNaNorInf32(result32)) {
-        result32 = doMinMax32_2_3(result32, arg0, arg1);
+        result32 = doMinMax2_3_32(result32, arg0, arg1);
     }
 
     return result32;
@@ -4823,7 +4801,7 @@ static VMI_FP_32_RESULT_FN(doFMax32_2_3) {
 //
 // 64-bit FMIN result handler
 //
-static VMI_FP_64_RESULT_FN(doFMin64_2_3) {
+static VMI_FP_64_RESULT_FN(doFMin2_3_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -4831,7 +4809,7 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_3) {
     if(isZero64(arg0) && isZero64(arg1)) {
         result64 = arg0 | arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_3(result64, arg0, arg1);
+        result64 = doMinMax2_3_64(result64, arg0, arg1);
     }
 
     return result64;
@@ -4840,7 +4818,7 @@ static VMI_FP_64_RESULT_FN(doFMin64_2_3) {
 //
 // 64-bit FMAX result handler
 //
-static VMI_FP_64_RESULT_FN(doFMax64_2_3) {
+static VMI_FP_64_RESULT_FN(doFMax2_3_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -4848,7 +4826,7 @@ static VMI_FP_64_RESULT_FN(doFMax64_2_3) {
     if(isZero64(arg0) && isZero64(arg1)) {
         result64 = arg0 & arg1;
     } else if(isNaNorInf64(result64)) {
-        result64 = doMinMax64_2_3(result64, arg0, arg1);
+        result64 = doMinMax2_3_64(result64, arg0, arg1);
     }
 
     return result64;
@@ -4862,7 +4840,7 @@ static VMI_FP_64_RESULT_FN(doFMax64_2_3) {
 //
 // 16-bit FMINM result handler
 //
-static VMI_FP_16_RESULT_FN(doFMinm16) {
+static VMI_FP_16_RESULT_FN(doFMinm_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4879,7 +4857,7 @@ static VMI_FP_16_RESULT_FN(doFMinm16) {
 //
 // 16-bit FMAXM result handler
 //
-static VMI_FP_16_RESULT_FN(doFMaxm16) {
+static VMI_FP_16_RESULT_FN(doFMaxm_16) {
 
     Uns16 arg0 = args[0].u16;
     Uns16 arg1 = args[1].u16;
@@ -4896,7 +4874,7 @@ static VMI_FP_16_RESULT_FN(doFMaxm16) {
 //
 // 32-bit FMINM result handler
 //
-static VMI_FP_32_RESULT_FN(doFMinm32) {
+static VMI_FP_32_RESULT_FN(doFMinm_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4913,7 +4891,7 @@ static VMI_FP_32_RESULT_FN(doFMinm32) {
 //
 // 32-bit FMAXM result handler
 //
-static VMI_FP_32_RESULT_FN(doFMaxm32) {
+static VMI_FP_32_RESULT_FN(doFMaxm_32) {
 
     Uns32 arg0 = args[0].u32;
     Uns32 arg1 = args[1].u32;
@@ -4930,7 +4908,7 @@ static VMI_FP_32_RESULT_FN(doFMaxm32) {
 //
 // 64-bit FMINM result handler
 //
-static VMI_FP_64_RESULT_FN(doFMinm64) {
+static VMI_FP_64_RESULT_FN(doFMinm_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -4947,7 +4925,7 @@ static VMI_FP_64_RESULT_FN(doFMinm64) {
 //
 // 64-bit FMAXM result handler
 //
-static VMI_FP_64_RESULT_FN(doFMaxm64) {
+static VMI_FP_64_RESULT_FN(doFMaxm_64) {
 
     Uns64 arg0 = args[0].u64;
     Uns64 arg1 = args[1].u64;
@@ -5551,23 +5529,36 @@ static VMI_FP_IND32_RESULT_FN(doFcvtmod) {
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Define standard floating point configuration
+// Define standard floating point configuration, optionally suppressing
+// inexact exception
 //
-#define FPU_CONFIG(_P, _QH16, _QH32, _QH64, _R16, _R32, _R64) { \
+#define FPU_CONFIG(_P) { \
     .QNaN16                  = FP16_DEFAULT_QNAN,       \
     .QNaN32                  = FP32_DEFAULT_QNAN,       \
     .QNaN64                  = FP64_DEFAULT_QNAN,       \
-    .QNaN16ResultCB          = _QH16,                   \
-    .QNaN32ResultCB          = _QH32,                   \
-    .QNaN64ResultCB          = _QH64,                   \
+    .QNaN16ResultCB          = handleQNaN16,            \
+    .QNaN32ResultCB          = handleQNaN32,            \
+    .QNaN64ResultCB          = handleQNaN64,            \
     .indeterminate8ResultCB  = handleIndeterminate8,    \
     .indeterminate16ResultCB = handleIndeterminate16,   \
     .indeterminate32ResultCB = handleIndeterminate32,   \
     .indeterminate64ResultCB = handleIndeterminate64,   \
-    .fp16ResultCB            = _R16,                    \
-    .fp32ResultCB            = _R32,                    \
-    .fp64ResultCB            = _R64,                    \
     .suppressFlags           = {f:{D:1,P:_P}},          \
+    .stickyFlags             = True                     \
+}
+
+//
+// Define floating point configuration for custom instruction defined by
+// floating point result handlers
+//
+#define FRESULT_CONFIG(_R) { \
+    .QNaN16                  = FP16_DEFAULT_QNAN,       \
+    .QNaN32                  = FP32_DEFAULT_QNAN,       \
+    .QNaN64                  = FP64_DEFAULT_QNAN,       \
+    .fp16ResultCB            = _R##_16,                 \
+    .fp32ResultCB            = _R##_32,                 \
+    .fp64ResultCB            = _R##_64,                 \
+    .suppressFlags           = {f:{D:1}},               \
     .stickyFlags             = True                     \
 }
 
@@ -5577,20 +5568,20 @@ static VMI_FP_IND32_RESULT_FN(doFcvtmod) {
 const static vmiFPConfig fpConfigs[RVFP_LAST] = {
 
     // normal native operation configuration
-    [RVFP_NORMAL]   = FPU_CONFIG(0, handleQNaN16, handleQNaN32, handleQNaN64, 0, 0, 0),
-    [RVFP_FROUND]   = FPU_CONFIG(1, handleQNaN16, handleQNaN32, handleQNaN64, 0, 0, 0),
+    [RVFP_NORMAL]   = FPU_CONFIG(0),
+    [RVFP_FROUND]   = FPU_CONFIG(1),
 
     // FMIN/FMAX configurations
-    [RVFP_FMIN]     = FPU_CONFIG(0, 0, 0, 0, doFMin16_2_2,  doFMin32_2_2,  doFMin64_2_2),
-    [RVFP_FMAX]     = FPU_CONFIG(0, 0, 0, 0, doFMax16_2_2,  doFMax32_2_2,  doFMax64_2_2),
-    [RVFP_FMIN_2_3] = FPU_CONFIG(0, 0, 0, 0, doFMin16_2_3,  doFMin32_2_3,  doFMin64_2_3),
-    [RVFP_FMAX_2_3] = FPU_CONFIG(0, 0, 0, 0, doFMax16_2_3,  doFMax32_2_3,  doFMax64_2_3),
-    [RVFP_FMINM]    = FPU_CONFIG(0, 0, 0, 0, doFMinm16,     doFMinm32,     doFMinm64   ),
-    [RVFP_FMAXM]    = FPU_CONFIG(0, 0, 0, 0, doFMaxm16,     doFMaxm32,     doFMaxm64   ),
+    [RVFP_FMIN]     = FRESULT_CONFIG(doFMin2_2),
+    [RVFP_FMAX]     = FRESULT_CONFIG(doFMax2_2),
+    [RVFP_FMIN_2_3] = FRESULT_CONFIG(doFMin2_3),
+    [RVFP_FMAX_2_3] = FRESULT_CONFIG(doFMax2_3),
+    [RVFP_FMINM]    = FRESULT_CONFIG(doFMinm),
+    [RVFP_FMAXM]    = FRESULT_CONFIG(doFMaxm),
 
     // estimation configurations
-    [RVFP_FRECE7]   = FPU_CONFIG(0, 0, 0, 0, doFRecE7_16,   doFRecE7_32,   doFRecE7_64  ),
-    [RVFP_FRSRE7]   = FPU_CONFIG(0, 0, 0, 0, doFRsqrtE7_16, doFRsqrtE7_32, doFRsqrtE7_64),
+    [RVFP_FRECE7]   = FRESULT_CONFIG(doFRecE7),
+    [RVFP_FRSRE7]   = FRESULT_CONFIG(doFRsqrtE7),
 
     // modular convert-to-integer configuration (JavaScript)
     [RVFP_FCVTMD]   = FCVTMD_CONFIG,
@@ -6224,21 +6215,6 @@ static Bool validateMExtSubset(riscvP riscv, Bool noZmmul) {
 //
 static RISCV_OPCB_FN(getBOpCB) {
     return riscvGetBOpCB(state->riscv, state->attrs->bExtOp.B, bits);
-}
-
-//
-// Move value with extension (two registers)
-//
-static RISCV_MORPH_FN(emitMoveExtendRR) {
-
-    unpackedReg rd    = unpackRX(state, 0);
-    unpackedReg rs    = unpackRX(state, 1);
-    Uns32       bitsS = rs.bits;
-    Uns32       bitsD = rd.bits;
-
-    vmimtMoveExtendRR(bitsD, rd.r, bitsS, rs.r, !state->info.unsExt);
-
-    writeUnpacked(rd);
 }
 
 //
@@ -14476,7 +14452,7 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_SRL_R]            = {morph:emitBinopRRR,  binop:vmi_SHR,    iClass:OCL_IC_INTEGER},
     [RV_IT_SUB_R]            = {morph:emitBinopRRR,  binop:vmi_SUB,    iClass:OCL_IC_INTEGER},
     [RV_IT_XOR_R]            = {morph:emitBinopRRR,  binop:vmi_XOR,    iClass:OCL_IC_INTEGER},
-    [RV_IT_EXT_R]            = {morph:emitMoveExtendRR,                iClass:OCL_IC_INTEGER},
+    [RV_IT_EXT_R]            = {morph:emitMoveRR,                      iClass:OCL_IC_INTEGER},
 
     // M-extension R-type instructions
     [RV_IT_DIV_R]            = {morph:emitBinopRRR,  binop:vmi_IDIV,   iClass:OCL_IC_INTEGER},
@@ -14520,6 +14496,8 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_URET_I]           = {morph:emitURET,   iClass:OCL_IC_SYSTEM  },
     [RV_IT_DRET_I]           = {morph:emitDRET,   iClass:OCL_IC_SYSTEM  },
     [RV_IT_WFI_I]            = {morph:emitWFI,    iClass:OCL_IC_SYSTEM  },
+    [RV_IT_WRS_NTO_I]        = {morph:emitWRSNTO, iClass:OCL_IC_SYSTEM  },
+    [RV_IT_WRS_STO_I]        = {morph:emitWRSSTO, iClass:OCL_IC_SYSTEM  },
 
     // system fence I-type instruction
     [RV_IT_FENCE_I]          = {morph:emitNOP,    iClass:OCL_IC_DBARRIER},
@@ -14610,7 +14588,7 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_CLZ_R]            = {morph:emitUnopRR,    unop:vmi_CLZ,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
     [RV_IT_CTZ_R]            = {morph:emitUnopRR,    unop:vmi_CTZ,   iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
     [RV_IT_PCNT_R]           = {morph:emitUnopRR,    unop:vmi_CNTO,  iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
-    [RV_IT_SEXT_R]           = {morph:emitMoveExtendRR,              iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
+    [RV_IT_SEXT_R]           = {morph:emitMoveRR,                    iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbb                    }},
     [RV_IT_CRC32_R]          = {morph:emitCRC32,                     iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_CRC32                  }},
     [RV_IT_CRC32C_R]         = {morph:emitCRC32C,                    iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_CRC32                  }},
     [RV_IT_CLMUL_R]          = {morph:emitBinopRRR,  binop:vmi_PMUL, iClass:OCL_IC_INTEGER, bExtOp:{B:RVBOP_Zbc,     K:RVBOP_Zbkc  }},
@@ -15154,7 +15132,7 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_SMDRS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS_____2, binop2:vmi_SUB,                  acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
     [RV_IT_SMXDS_Sx]         = {morph:emitKMAXDAS,       binop:vmi_IMUL,    pAttrs:RVPS___X_2, binop2:vmi_RSUB,                 acc:vmi_BINOP_LAST, iClass:OCL_IC_INTEGER},
 
-    // code size reduction instructions
+    // Zc instructions
     [RV_IT_NOT_R]            = {morph:emitUnopRR,   unop :vmi_NOT,  iClass:OCL_IC_INTEGER},
     [RV_IT_NEG_R]            = {morph:emitUnopRR,   unop :vmi_NEG,  iClass:OCL_IC_INTEGER},
     [RV_IT_MVP_R]            = {morph:emitMVP,                      iClass:OCL_IC_INTEGER},
@@ -15168,14 +15146,18 @@ const static riscvMorphAttr dispatchTable[] = {
     [RV_IT_POP]              = {morph:emitPOP},
     [RV_IT_DECBNEZ]          = {morph:emitDECBNEZ},
 
-    // Zicbom-extension instructions (RV32 and RV64)
+    // Zicbom instructions
     [RV_IT_CBO_CLEAN]        = {morph:emitCBOCLEAN, iClass:OCL_IC_DCACHE},
     [RV_IT_CBO_FLUSH]        = {morph:emitCBOFLUSH, iClass:OCL_IC_DCACHE},
     [RV_IT_CBO_INVAL]        = {morph:emitCBOINVAL, iClass:OCL_IC_DCACHE},
     [RV_IT_CBO_ZERO]         = {morph:emitCBOZERO,  iClass:OCL_IC_DCACHE},
 
-    // Svinval-extension instructions (RV32 and RV64)
+    // Svinval instructions
     [RV_IT_SFENCE_INVAL]     = {morph:emitSFENCE_INVAL, iClass:OCL_IC_SYSTEM|OCL_IC_MMU},
+
+    // Zicond instructions
+    [RV_IT_CZERO_EQZ_R]      = {morph:emitCondopRRR, cond:vmi_COND_EQ},
+    [RV_IT_CZERO_NEZ_R]      = {morph:emitCondopRRR, cond:vmi_COND_NE},
 
     // KEEP LAST
     [RV_IT_LAST]             = {0}

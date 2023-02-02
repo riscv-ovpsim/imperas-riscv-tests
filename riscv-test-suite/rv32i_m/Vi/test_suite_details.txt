@@ -64,8 +64,8 @@ Instruction category: OPV_IA integer arithmetic
   vxor.vv : 336
   vxor.vx : 336
   vzext.vf2 : 160
-  vzext.vf4 : 48
   vsext.vf2 : 160
+  vzext.vf4 : 48
   vsext.vf4 : 48
 Instruction category: OPV_ID integer divide
   vdiv.vv : 336
@@ -151,8 +151,8 @@ Instruction category: OPV_IAW widening integer arithmetic
   vwsub.vv : 160
   vwsub.vx : 160
   vwsub.wv : 160
-  vwsub.wx : 160
   vwsubu.vv : 160
+  vwsub.wx : 160
   vwsubu.vx : 160
   vwsubu.wv : 160
   vwsubu.wx : 160
@@ -162,13 +162,13 @@ Instruction category: OPV_IWMA widening integer multiply-add
   vwmaccsu.vv : 160
   vwmaccsu.vx : 160
   vwmaccu.vv : 160
-  vwmaccus.vx : 160
   vwmaccu.vx : 160
+  vwmaccus.vx : 160
 Instruction category: OPV_IWMU widening integer multiply
   vwmul.vv : 160
   vwmul.vx : 160
-  vwmulsu.vx : 160
   vwmulsu.vv : 160
+  vwmulsu.vx : 160
   vwmulu.vv : 160
   vwmulu.vx : 160
 
@@ -181,14 +181,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 4,206
   mret : 1,402
   vsetvli : 189,768
-  vle8.v : 31,640
+  vle16.v : 40,320
   add : 155,776
-  vse8.v : 18,176
+  vse16.v : 10,576
   fence : 1,402
   ecall : 1,402
   beq : 4,206
-  vle16.v : 40,320
-  vse16.v : 10,576
+  vle8.v : 31,640
+  vse8.v : 18,176
   vle32.v : 40,560
   vse32.v : 10,192
 

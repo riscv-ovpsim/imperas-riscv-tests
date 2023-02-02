@@ -26,11 +26,11 @@ Instruction category: arithmetic
   mul : 172
   mulhsu : 172
   mulhu : 172
-  mulh : 172
-  divu : 172
-  remu : 172
   div : 172
+  remu : 172
+  mulh : 172
   rem : 172
+  divu : 172
 
 Other instructions (those not the focus of this suite)
   jal : 8

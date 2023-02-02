@@ -611,11 +611,16 @@ static void doTriggerAction(riscvP riscv, triggerAction action) {
 }
 
 //
-// Schedule action for a trigger after the current instruction
+// Schedule action for a trigger after the current instruction if required
 //
-inline static void scheduleTriggerAfter(riscvP riscv) {
-    riscv->netValue.triggerAfter = True;
-    vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+static void scheduleTriggerAfter(riscvP riscv, triggerAction action) {
+
+    action &= TA_AFTER;
+
+    if(action) {
+        riscv->netValue.triggerAfter |= action;
+        vmirtDoSynchronousInterrupt((vmiProcessorP)riscv);
+    }
 }
 
 //
@@ -628,10 +633,10 @@ static Bool doTriggerBefore(riscvP riscv) {
 
     if(!action) {
         // no action
-    } else if(!(action & TA_BEFORE)) {
-        scheduleTriggerAfter(riscv);
-    } else {
+    } else if(action & TA_BEFORE) {
         doTriggerAction(riscv, action);
+    } else {
+        scheduleTriggerAfter(riscv, action);
     }
 
     // indicate if some exception is taken
@@ -641,16 +646,21 @@ static Bool doTriggerBefore(riscvP riscv) {
 //
 // Handle any trigger activated *after* the previous instruction completes
 //
-static Bool doTriggerAfter(riscvP riscv, Bool complete) {
+static Bool doTriggerAfter(riscvP riscv, Bool complete, triggerAction type) {
 
-    triggerAction action = getActiveAction(riscv, complete, complete) & TA_AFTER;
+    triggerAction action = TA_NONE;
 
-    if(!action) {
-        // state change disabling previously-scheduled trigger
-        riscv->netValue.triggerAfter = False;
-    } else if(complete) {
-        riscv->netValue.triggerAfter = False;
-        doTriggerAction(riscv, action);
+    if(riscv->netValue.triggerAfter & type) {
+
+        action = getActiveAction(riscv, complete, complete) & type;
+
+        if(!action) {
+            // state change disabling previously-scheduled trigger
+            riscv->netValue.triggerAfter &= ~type;
+        } else if(complete) {
+            riscv->netValue.triggerAfter &= ~type;
+            doTriggerAction(riscv, action);
+        }
     }
 
     // indicate if some exception is taken
@@ -731,6 +741,8 @@ static Bool doTriggerADMATCH(
             // not applicable to this access privilege
         } else if(!matchTriggerADMATCHSize(trigger, bytes)) {
             // size constraint does not match
+        } else if(!bytes && (priv==MEM_PRIV_X) && !trigger->tdata1UP.dmode) {
+            // skip breakpoint triggers in "original" debug priority mode
         } else if(!trigger->tdata1UP.select) {
             match = matchTriggerADMATCHValue(riscv, trigger, VA, 64);
         } else if(valueValid) {
@@ -791,8 +803,8 @@ static void triggerTrap(
     }
 
     // if some trigger has matched, schedule action before the next instruction
-    if(someMatch && (getActiveAction(riscv, 0, True) & TA_AFTER)) {
-        scheduleTriggerAfter(riscv);
+    if(someMatch) {
+        scheduleTriggerAfter(riscv, getActiveAction(riscv, 0, True));
     }
 }
 
@@ -801,24 +813,38 @@ static void triggerTrap(
 //
 static void triggerNMI(riscvP riscv) {
 
-    Bool  someMatch = False;
-    Uns32 i;
+    riscvMode   modeY     = getCurrentMode5(riscv);
+    Uns32       modeMask  = 1<<modeY;
+    Bool        itrigger  = (RISCV_DBG_VERSION(riscv)>=RVDBG_1_0);
+    triggerType matchType = itrigger ? TT_INTERRUPT : TT_EXCEPTION;
+    Bool        someMatch = False;
+    Uns32       i;
 
     for(i=0; i<numTriggers(riscv); i++) {
 
-        // identify any ADMATCH triggers that have been activated
         riscvTriggerP trigger = &riscv->triggers[i];
+        Bool          match   = False;
+
+        if(!trigger->tdata1UP.nmi) {
+            // not a possible NMI trigger
+        } else if(itrigger && !(trigger->tdata1UP.modes & modeMask)) {
+            // not applicable to this mode (itrigger only)
+        } else if(!selectTrigger(riscv, trigger, matchType, modeY)) {
+            // trigger not selected
+        } else {
+            match = True;
+        }
 
         // indicate the trigger has matched if required
-        if((getTriggerType(trigger) == TT_EXCEPTION) && trigger->tdata1UP.nmi) {
+        if(match) {
             markTriggerMatched(riscv, trigger);
             someMatch = True;
         }
     }
 
     // if some trigger has matched, schedule action before the next instruction
-    if(someMatch && (getActiveAction(riscv, 0, True) & TA_AFTER)) {
-        scheduleTriggerAfter(riscv);
+    if(someMatch) {
+        scheduleTriggerAfter(riscv, getActiveAction(riscv, 0, True));
     }
 }
 
@@ -874,8 +900,8 @@ void riscvTriggerS(riscvP riscv, Uns64 value, Uns32 bytes) {
 //
 // Handle any trigger activated after the previous instruction completes
 //
-Bool riscvTriggerAfter(riscvP riscv, Bool complete) {
-    return doTriggerAfter(riscv, complete);
+Bool riscvTriggerAfter(riscvP riscv, Bool complete, Bool debug) {
+    return doTriggerAfter(riscv, complete, debug ? TA_DEBUG_AFTER : TA_BKPT_AFTER);
 }
 
 //

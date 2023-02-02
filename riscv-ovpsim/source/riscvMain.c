@@ -866,6 +866,7 @@ static void applyParamsSMP(
     cfg->no_edeleg            = params->no_edeleg;
     cfg->lr_sc_grain          = powerOfTwo(lr_sc_grain, "lr_sc_grain");
     cfg->lr_sc_match_size     = params->lr_sc_match_size;
+    cfg->ignore_non_leaf_DAU  = params->ignore_non_leaf_DAU;
     cfg->debug_mode           = params->debug_mode;
     cfg->debug_address        = params->debug_address;
     cfg->dexc_address         = params->dexc_address;
@@ -875,9 +876,12 @@ static void applyParamsSMP(
     cfg->updatePTED           = params->updatePTED;
     cfg->unaligned_low_pri    = params->unaligned_low_pri;
     cfg->unaligned            = params->unaligned;
-    cfg->unalignedAMO         = params->unalignedAMO;
+    cfg->unalignedAMO         = params->Zam;
     cfg->unalignedV           = params->unalignedV;
     cfg->wfi_is_nop           = params->wfi_is_nop;
+    cfg->wfi_resume_not_trap  = params->wfi_resume_not_trap;
+    cfg->TW_time_limit        = params->TW_time_limit;
+    cfg->STO_time_limit       = params->STO_time_limit;
     cfg->mtvec_is_ro          = params->mtvec_is_ro;
     cfg->counteren_mask       = params->counteren_mask;
     cfg->scounteren_zero_mask = params->scounteren_zero_mask;
@@ -919,6 +923,7 @@ static void applyParamsSMP(
     cfg->VLEN = cfg->SLEN     = powerOfTwo(params->VLEN,      "VLEN");
     cfg->EEW_index            = powerOfTwo(params->EEW_index, "EEW_index");
     cfg->SEW_min              = powerOfTwo(params->SEW_min,   "SEW_min");
+    cfg->Zawrs                = params->Zawrs;
     cfg->Zmmul                = params->Zmmul;
     cfg->Zfa                  = params->Zfa;
     cfg->Zfhmin               = params->Zfhmin && !params->Zfh;
@@ -931,6 +936,8 @@ static void applyParamsSMP(
     cfg->xtinst_basic         = params->xtinst_basic;
     cfg->noZicsr              = !params->Zicsr;
     cfg->noZifencei           = !params->Zifencei;
+    cfg->Zihintntl            = params->Zihintntl;
+    cfg->Zicond               = params->Zicond;
     cfg->Zicbom               = params->Zicbom;
     cfg->Zicbop               = params->Zicbop;
     cfg->Zicboz               = params->Zicboz;
@@ -938,6 +945,7 @@ static void applyParamsSMP(
     cfg->miprio_mask          = params->miprio_mask & ~WM64_meip;
     cfg->siprio_mask          = params->siprio_mask & ~WM64_seip;
     cfg->hviprio_mask         = params->hviprio_mask;
+    cfg->hvictl_IID_bits      = params->hvictl_IID_bits;
     cfg->IPRIOLEN             = params->IPRIOLEN;
     cfg->HIPRIOLEN            = params->HIPRIOLEN;
     cfg->amo_constraint       = params->amo_constraint;

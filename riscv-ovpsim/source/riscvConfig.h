@@ -148,6 +148,8 @@ typedef struct riscvConfigS {
     Uns32 EEW_index;                    // maximum index EEW (vector extension)
     Uns32 SEW_min;                      // minimum SEW (vector extension)
     Uns32 ASID_cache_size;              // ASID cache size
+    Uns32 TW_time_limit;                // mstatus.TW time limit
+    Uns32 STO_time_limit;               // WRS.STO time limit
     Uns16 tinfo;                        // tinfo default value (all triggers)
     Uns16 trigger_match;                // bitmask of legal trigger match values
     Uns16 cmomp_bytes;                  // cache block bytes (management/prefetch)
@@ -167,6 +169,7 @@ typedef struct riscvConfigS {
     Uns8  mtvt_sext;                    // mtvec sign-extended bit count
     Uns8  stvt_sext;                    // stvec sign-extended bit count
     Uns8  utvt_sext;                    // utvec sign-extended bit count
+    Uns8  hvictl_IID_bits;              // hvictl.IID implemented bits
     Uns8  IPRIOLEN             : 4;     // AIA IPRIOLEN value
     Uns8  HIPRIOLEN            : 4;     // AIA HIPRIOLEN value
     Bool  isPSE                : 1;     // whether a PSE (internal use only)
@@ -187,6 +190,7 @@ typedef struct riscvConfigS {
     Bool  Svinval              : 1;     // Svinval implemented?
     Bool  Smaia                : 1;     // Smaia implemented?
     Bool  IMSIC_present        : 1;     // IMSIC present?
+    Bool  Zawrs                : 1;     // Zawrs implemented?
     Bool  Zmmul                : 1;     // Zmmul implemented?
     Bool  Zfa                  : 1;     // Zfa implemented?
     Bool  Zfhmin               : 1;     // Zfhmin implemented?
@@ -199,6 +203,8 @@ typedef struct riscvConfigS {
     Bool  Zvfbfmin             : 1;     // Zvfbfmin implemented?
     Bool  unitStrideOnly       : 1;     // only unit-stride operations supported
     Bool  noFaultOnlyFirst     : 1;     // fault-only-first instructions absent?
+    Bool  Zihintntl            : 1;     // whether Zihintntl is present
+    Bool  Zicond               : 1;     // whether Zicond is present
     Bool  Zicbom               : 1;     // whether Zicbom is present
     Bool  Zicbop               : 1;     // whether Zicbop is present
     Bool  Zicboz               : 1;     // whether Zicboz is present
@@ -211,6 +217,7 @@ typedef struct riscvConfigS {
     Bool  unalignedAMO         : 1;     // whether AMO supports unaligned
     Bool  unalignedV           : 1;     // whether vector supports unaligned
     Bool  wfi_is_nop           : 1;     // whether WFI is treated as NOP
+    Bool  wfi_resume_not_trap  : 1;     // whether pending wakeup stops WFI trap
     Bool  nmi_is_latched       : 1;     // whether NMI is posedge-latched
     Bool  mtvec_is_ro          : 1;     // whether mtvec is read-only
     Bool  cycle_undefined      : 1;     // whether cycle CSR undefined
@@ -231,6 +238,7 @@ typedef struct riscvConfigS {
     Bool  amo_trigger          : 1;     // whether triggers used with AMO
     Bool  amo_aborts_lr_sc     : 1;     // whether AMO aborts active LR/SC
     Bool  lr_sc_match_size     : 1;     // whether LR/SC size must match
+    Bool  ignore_non_leaf_DAU  : 1;     // whether ignore non-leaf PTE D, A, U
     Bool  no_hit               : 1;     // whether tdata1.hit is unimplemented
     Bool  no_sselect_2         : 1;     // whether textra.sselect=2 is illegal
     Bool  d_requires_f         : 1;     // whether misa D requires F to be set

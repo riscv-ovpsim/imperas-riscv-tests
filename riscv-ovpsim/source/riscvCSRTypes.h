@@ -96,6 +96,15 @@ typedef enum riscvCSRTraceE {
 } riscvCSRTrace;
 
 //
+// CSR trap constraints
+//
+typedef enum riscvCSRTrapE {
+    CSRT_NA,            // CSR not trapped
+    CSRT_TVM = 1<<0,    // trapped by mstatus.TVM=1 (e.g. satp register)
+    CSRT_VTI = 1<<1,    // trapped by hvictl.VTI=1 (e.g. sip, sie registers)
+} riscvCSRTrap;
+
+//
 // Stateen standard feature bits
 //
 typedef enum riscvCSRStateenBitE {
@@ -131,30 +140,33 @@ typedef enum riscvCSRStateenBitStateenMaskE {
 // This structure records information about each CSR
 //
 typedef struct riscvCSRAttrsS {
+
     const char        *name;            // register name
     const char        *desc;            // register description
-    void              *object;          // client-specific object
+    vmiosObjectP       object;          // custom extension
     Uns32              csrNum;          // CSR number (includes privilege and r/w access)
     riscvArchitecture  arch;            // required architecture (presence)
     riscvArchitecture  access;          // required architecture (access)
     riscvPrivVer       version;         // minimum specification version
-    riscvCSRTrace      noTraceChange:2; // trace mode
-    Bool               wEndBlock    :1; // whether write terminates this block
-    Bool               wEndRM       :1; // whether write invalidates RM assumption
-    Bool               noSaveRestore:1; // whether to exclude from save/restore
-    Uns32              trap         :2; // whether trapped
-    Bool               writeRd      :1; // whether write updates Rd
-    Bool               aliasV       :1; // whether CSR has virtual alias
-    Bool               undefined    :1; // whether CSR is undefined
-    riscvCSRStateenBit Smstateen    :8; // whether xstateen-controlled access
     riscvCSRPresentFn  presentCB;       // CSR present callback
     riscvCSRReadFn     readCB;          // read callback
     riscvCSRReadFn     readWriteCB;     // read callback (in r/w context)
     riscvCSRWriteFn    writeCB;         // write callback
     riscvCSRWStateFn   wstateCB;        // adjust JIT code generator state
     vmiReg             reg;             // register
-    vmiReg             writeMaskV;      // variable write mask
+    vmiReg             writeMaskV;      // configuration-dependent write mask
     Uns32              writeMaskC32;    // constant 32-bit write mask
     Uns64              writeMaskC64;    // constant 64-bit write mask
+
+    riscvCSRStateenBit Smstateen    :8; // whether xstateen-controlled access
+    riscvCSRTrap       trap         :2; // whether trapped
+    riscvCSRTrace      noTraceChange:2; // trace mode
+    Bool               wEndBlock    :1; // whether write terminates this block
+    Bool               wEndRM       :1; // whether write invalidates RM assumption
+    Bool               noSaveRestore:1; // whether to exclude from save/restore
+    Bool               writeRd      :1; // whether write updates Rd
+    Bool               aliasV       :1; // whether CSR has virtual alias
+    Bool               undefined    :1; // whether CSR is undefined
+
 } riscvCSRAttrs;
 

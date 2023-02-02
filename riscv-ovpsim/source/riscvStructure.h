@@ -73,11 +73,11 @@ typedef struct riscvNetValueS {
     Bool reset         : 1; // level of reset signal
     Bool haltreq       : 1; // haltreq (Debug mode)
     Bool stepreq       : 1; // stepreq (Debug mode)
-    Bool triggerAfter  : 1; // pending trigger after (Trigger module)
     Bool resethaltreq  : 1; // resethaltreq (Debug mode)
     Bool resethaltreqS : 1; // resethaltreq (Debug mode, sampled at reset)
     Bool deferint      : 1; // defer taking interrupts (artifact)
     Bool enableCLIC    : 1; // is CLIC enabled?
+    Uns8 triggerAfter  : 4; // pending trigger after (Trigger module)
 } riscvNetValue;
 
 //
@@ -356,6 +356,7 @@ typedef struct riscvS {
     Uns32              stepICount;      // Instructions when single-step set
     vmiModelTimerP     stepTimer;       // Debug mode single-step timer
     vmiModelTimerP     ackTimer;        // Interrupt acknowledge timer
+    vmiModelTimerP     twTimer;         // TW timer
 
     // CSR support
     vmiRangeTableP     csrTable;        // per-CSR lookup table

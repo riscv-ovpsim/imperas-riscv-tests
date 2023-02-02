@@ -29,16 +29,16 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 172
   xnor : 172
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 172
   clmul : 172
+  clmulh : 172
 Instruction category: OPB_PACK Packing
-  packh : 172
   pack : 172
+  packh : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  ror : 172
-  rol : 172
   rori : 170
+  rol : 172
+  ror : 172
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
   sm3p0 : 170
   sm3p1 : 170
@@ -60,6 +60,6 @@ Other instructions (those not the focus of this suite)
   ecall : 19
   beq : 57
   grevi : 170
-  unshfli : 170
   shfli : 170
+  unshfli : 170
 

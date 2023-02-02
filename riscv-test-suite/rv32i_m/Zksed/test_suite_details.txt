@@ -25,8 +25,8 @@ Architectural Test Suite Data for RV32ZKSED K Crypto/Scalar:
     5,024 total instructions
 
 Instruction category: OPK_Zkse 
-  sm4ed : 428
   sm4ks : 428
+  sm4ed : 428
 
 Other instructions (those not the focus of this suite)
   jal : 4

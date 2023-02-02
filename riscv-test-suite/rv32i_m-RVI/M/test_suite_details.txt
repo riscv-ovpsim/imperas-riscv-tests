@@ -31,16 +31,16 @@ Other instructions (those not the focus of this suite)
   auipc : 66
   csrrw : 16
   mret : 8
-  rem : 587
+  div : 590
   sw : 5,169
   fence : 8
   ecall : 8
   beq : 24
   mulhsu : 648
-  mulhu : 724
-  divu : 725
   remu : 724
   mul : 586
-  div : 590
+  rem : 587
   mulh : 585
+  divu : 725
+  mulhu : 724
 

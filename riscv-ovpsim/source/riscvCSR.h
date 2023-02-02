@@ -1980,7 +1980,7 @@ typedef union {
     struct {
         Uns32       action  :  6;
         Uns32       modes   :  4;
-        Uns32       _u1     :  1;
+        Uns32       nmi     :  1;   // in version 1.0-STABLE
         Uns32       vu      :  1;
         Uns32       vs      :  1;
         Uns32       _u2     : 13;
@@ -1993,7 +1993,7 @@ typedef union {
     struct {
         Uns32       action  :  6;
         Uns32       modes   :  4;
-        Uns32       nmi     :  1;
+        Uns32       nmi     :  1;   // legacy position
         Uns32       vu      :  1;
         Uns32       vs      :  1;
         Uns32       _u1     : 13;
@@ -2067,7 +2067,7 @@ typedef union {
     struct {
         Uns64       action  :  6;
         Uns64       modes   :  4;
-        Uns64       _u1     :  1;
+        Uns32       nmi     :  1;   // in version 1.0-STABLE
         Uns64       vu      :  1;
         Uns64       vs      :  1;
         Uns64       _u2     : 45;
@@ -2080,7 +2080,7 @@ typedef union {
     struct {
         Uns64       action  :  6;
         Uns64       modes   :  4;
-        Uns64       nmi     :  1;
+        Uns32       nmi     :  1;   // legacy position
         Uns64       vu      :  1;
         Uns64       vs      :  1;
         Uns64       _u1     : 45;
@@ -2300,8 +2300,8 @@ typedef struct {
 CSR_REG_STRUCT_DECL_32(hvictl);
 
 // define write masks
-#define WM32_hvictl 0x4fff03ff
-#define WM64_hvictl 0x4fff03ff
+#define WM32_hvictl 0x400003ff
+#define WM64_hvictl 0x400003ff
 
 // define bit masks
 #define WM_hvictl_VTI (1<<30)
@@ -2548,6 +2548,7 @@ typedef struct riscvCSRMasksS {
     CSR_REG_DECL  (hideleg);        // 0x603
     CSR_REG_DECL  (hcounteren);     // 0x606
     CSR_REG_DECL  (hvien);          // 0x608
+    CSR_REG_DECL  (hvictl);         // 0x609
     CSR_REG_DECL  (henvcfg);        // 0x60A
     CSR_REG_DECLx4(hstateen);       // 0x60C-0x60F
     CSR_REG_DECL  (hip);            // 0x644

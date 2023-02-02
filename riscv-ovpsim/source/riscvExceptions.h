@@ -208,6 +208,16 @@ void riscvSetStepBreakpoint(riscvP riscv);
 void riscvWFI(riscvP riscv);
 
 //
+// Stall the processor in WFI state while reservation set is valid if required
+//
+void riscvWRSNTO(riscvP riscv);
+
+//
+// Stall the processor in WFI state while reservation set is valid if required
+//
+void riscvWRSSTO(riscvP riscv);
+
+//
 // Does the processor implement the stndard exception or interrupt?
 //
 Bool riscvHasStandardException(riscvP riscv, riscvException code);

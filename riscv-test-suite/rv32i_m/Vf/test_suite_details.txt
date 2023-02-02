@@ -17,17 +17,17 @@
 
 
 Architectural Test Suite Data for RV32VF RISC-V "V" Vector Extension:
-    563 test source files
+    698 test source files
     17 different instruction categories
     109 different instructions
-    459,890 total instructions
+    575,164 total instructions
 
 Instruction category: OPV_SFAS single-width floating-point add/subtract
-  vfadd.vf : 224
+  vfadd.vf : 336
   vfadd.vv : 224
-  vfrsub.vf : 224
+  vfrsub.vf : 336
+  vfsub.vf : 336
   vfsub.vv : 224
-  vfsub.vf : 224
 Instruction category: OPV_FPC floating-point classify
   vfclass.v : 224
 Instruction category: OPV_SFITC single-width floating-point/integer type-convert
@@ -38,44 +38,44 @@ Instruction category: OPV_SFITC single-width floating-point/integer type-convert
   vfcvt.xu.f.v : 224
   vfcvt.rtz.xu.f.v : 224
 Instruction category: OPV_SMDFAS single-width floating-point multiply/divide widening floating-point add/subtract
-  vfdiv.vf : 224
+  vfdiv.vf : 336
   vfdiv.vv : 224
-  vfmul.vf : 224
+  vfmul.vf : 336
   vfmul.vv : 224
-  vfrdiv.vf : 224
+  vfrdiv.vf : 336
 Instruction category: OPV_SFFMA single-width floating-point fused multiply-add
-  vfmacc.vf : 224
+  vfmacc.vf : 336
   vfmacc.vv : 224
-  vfmadd.vf : 224
+  vfmadd.vf : 336
   vfmadd.vv : 224
-  vfmsac.vf : 224
+  vfmsac.vf : 336
   vfmsac.vv : 224
-  vfmsub.vf : 224
+  vfmsub.vf : 336
   vfmsub.vv : 224
-  vfnmacc.vf : 224
+  vfnmacc.vf : 336
   vfnmacc.vv : 224
-  vfnmadd.vf : 224
+  vfnmadd.vf : 336
   vfnmadd.vv : 224
-  vfnmsac.vf : 224
+  vfnmsac.vf : 336
   vfnmsac.vv : 224
-  vfnmsub.vf : 224
+  vfnmsub.vf : 336
   vfnmsub.vv : 224
 Instruction category: OPV_FMM floating-point min/max
-  vfmax.vf : 224
+  vfmax.vf : 336
   vfmax.vv : 224
-  vfmin.vf : 224
+  vfmin.vf : 336
   vfmin.vv : 224
 Instruction category: OPV_FPME floating-point merge
-  vfmerge.vfm : 224
+  vfmerge.vfm : 336
 Instruction category: OPV_FPMO floating-point move
-  vfmv.v.f : 224
+  vfmv.v.f : 336
 Instruction category: OPV_NFITC narrowing floating-point/integer type-convert
   vfncvt.f.f.w : 80
   vfncvt.rod.f.f.w : 80
   vfncvt.f.x.w : 80
   vfncvt.f.xu.w : 80
-  vfncvt.rtz.x.f.w : 80
   vfncvt.x.f.w : 80
+  vfncvt.rtz.x.f.w : 80
   vfncvt.xu.f.w : 80
   vfncvt.rtz.xu.f.w : 80
 Instruction category: OPV_RECE floating-point reciprocal estimate
@@ -84,20 +84,20 @@ Instruction category: OPV_SQRT floating-point square-root
   vfsqrt.v : 224
   vfrsqrt7.v : 224
 Instruction category: OPV_FSI floating-point sign-injection
-  vfsgnj.vf : 224
+  vfsgnj.vf : 336
   vfsgnj.vv : 224
-  vfsgnjn.vf : 224
+  vfsgnjn.vf : 336
   vfsgnjn.vv : 224
-  vfsgnjx.vf : 224
+  vfsgnjx.vf : 336
   vfsgnjx.vv : 224
 Instruction category: OPV_WFAS widening floating-point add/subtract
-  vfwadd.vf : 80
+  vfwadd.vf : 160
   vfwadd.vv : 80
-  vfwadd.wf : 80
+  vfwadd.wf : 160
   vfwadd.wv : 80
-  vfwsub.vf : 80
+  vfwsub.vf : 160
   vfwsub.vv : 80
-  vfwsub.wf : 80
+  vfwsub.wf : 160
   vfwsub.wv : 80
 Instruction category: OPV_WFITC widening floating-point/integer type-convert
   vfwcvt.f.f.v : 80
@@ -108,46 +108,46 @@ Instruction category: OPV_WFITC widening floating-point/integer type-convert
   vfwcvt.xu.f.v : 80
   vfwcvt.rtz.xu.f.v : 80
 Instruction category: OPV_WFFMA widening floating-point fused multiply-add
-  vfwmacc.vf : 80
-  vfwmsac.vf : 80
+  vfwmacc.vf : 160
   vfwmacc.vv : 80
+  vfwmsac.vf : 160
   vfwmsac.vv : 80
+  vfwnmacc.vf : 160
   vfwnmacc.vv : 80
-  vfwnmacc.vf : 80
-  vfwnmsac.vf : 80
+  vfwnmsac.vf : 160
   vfwnmsac.vv : 80
 Instruction category: OPV_WFM widening floating-point multiply
-  vfwmul.vf : 80
+  vfwmul.vf : 160
   vfwmul.vv : 80
 Instruction category: OPV_FC floating-point compare
-  vmfeq.vf : 224
+  vmfeq.vf : 336
   vmfeq.vv : 224
-  vmfge.vf : 224
-  vmfgt.vf : 224
-  vmfle.vf : 224
+  vmfge.vf : 336
+  vmfgt.vf : 336
+  vmfle.vf : 336
   vmfle.vv : 224
-  vmflt.vf : 224
+  vmflt.vf : 336
   vmflt.vv : 224
-  vmfne.vf : 224
+  vmfne.vf : 336
   vmfne.vv : 224
 
 Other instructions (those not the focus of this suite)
-  jal : 563
-  lui : 23,375
-  addi : 172,142
-  csrrs : 2,252
-  auipc : 30,171
-  csrrw : 1,689
-  mret : 563
-  vsetvli : 81,480
-  vle16.v : 18,480
-  fmv.s.x : 6,768
-  add : 62,528
-  vse16.v : 6,016
-  fence : 563
-  ecall : 563
-  beq : 1,689
-  vle32.v : 25,800
-  vse32.v : 7,376
-  vse8.v : 2,240
+  jal : 698
+  lui : 30,836
+  addi : 215,398
+  csrrs : 2,792
+  auipc : 37,398
+  csrrw : 2,094
+  mret : 698
+  vsetvli : 101,464
+  vle16.v : 25,928
+  fmv.s.x : 10,512
+  add : 77,504
+  vse16.v : 8,368
+  fence : 698
+  ecall : 698
+  beq : 2,094
+  vle32.v : 27,600
+  vse32.v : 8,096
+  vse8.v : 2,912
 
