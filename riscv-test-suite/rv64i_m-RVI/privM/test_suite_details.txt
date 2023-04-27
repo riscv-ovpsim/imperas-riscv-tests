@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -36,9 +36,10 @@ Other instructions (those not the focus of this suite)
   sd : 484
   beq : 77
   slli : 1,655
-  blt : 73
+  bgeu : 1
   ld : 297
   sub : 158
+  blt : 73
   andi : 39
   sll : 63
   bne : 21
@@ -47,12 +48,11 @@ Other instructions (those not the focus of this suite)
   ebreak : 1
   sw : 7
   bge : 54
-  bltu : 1
   sh : 1
-  bgeu : 1
-  lwu : 3
-  xori : 3
-  lw : 3
   lh : 1
   lhu : 1
+  lw : 3
+  xori : 3
+  bltu : 1
+  lwu : 3
 

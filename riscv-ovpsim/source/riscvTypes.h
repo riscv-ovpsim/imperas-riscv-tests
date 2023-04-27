@@ -45,21 +45,36 @@ typedef enum riscvTLBIdE {
 } riscvTLBId;
 
 //
-// Processor disable reasons (bitmask)
+// Active CMO operation
+//
+typedef enum riscvCMOTypeS {
+    RISCV_CMO_NA,       // no active CMO
+    RISCV_CMO_CLEAN,    // cbo.clean active
+    RISCV_CMO_FLUSH,    // cbo.flush active
+    RISCV_CMO_INVAL,    // cbo.inval active
+    RISCV_CMO_ZERO,     // cbo.zero active
+} riscvCMOType;
+
+//
+// Processor hart reasons (bitmask)
 //
 typedef enum riscvDisableReasonE {
 
-    RVD_ACTIVE  = 0x00, // processor running
-    RVD_WFI     = 0x01, // processor waiting in WFI
-    RVD_RESET   = 0x02, // processor waiting in reset
-    RVD_DEBUG   = 0x04, // processor waiting for debug
-    RVD_WRS     = 0x08, // processor waiting for reservation set (wrs.*)
-    RVD_STO     = 0x10, // processor waiting for reservation set (wrs.sto)
-    RVD_CUSTOMI = 0x20, // processor waiting for interruptible custom reason
+    RVD_ACTIVE     = 0x00,  // running
+    RVD_WFI        = 0x01,  // waiting in WFI
+    RVD_RESET      = 0x02,  // waiting in reset
+    RVD_DEBUG      = 0x04,  // waiting for debug
+    RVD_WRS        = 0x08,  // waiting for reservation set (wrs.*)
+    RVD_STO        = 0x10,  // waiting for reservation set (wrs.sto)
+    RVD_CUSTOM_WFI = 0x20,  // waiting for custom reason with WFI semantics
+    RVD_CUSTOM_NMI = 0x40,  // waiting for custom reason with NMI semantics
+
+    // legacy disable reasons
+    RVD_CUSTOMI = RVD_CUSTOM_WFI,
 
     // states from which to restart
-    RVD_RESTART_WFI   = RVD_WFI|RVD_WRS|RVD_STO|RVD_CUSTOMI,
-    RVD_RESTART_NMI   = RVD_RESTART_WFI,
+    RVD_RESTART_WFI   = RVD_WFI|RVD_WRS|RVD_STO|RVD_CUSTOM_WFI,
+    RVD_RESTART_NMI   = RVD_RESTART_WFI|RVD_CUSTOM_NMI,
     RVD_RESTART_RESET = RVD_RESTART_WFI|RVD_RESET
 
 } riscvDisableReason;
@@ -100,6 +115,18 @@ typedef enum riscvRMDescE {
     RV_RM_BAD6,     // illegal rounding mode 6
 
 } riscvRMDesc;
+
+//
+// This is used to categorize CSR update semantics
+//
+typedef enum riscvCSRUDescE {
+
+    RV_CSR_NA,      // no update semantics
+    RV_CSR_RW,      // read/write
+    RV_CSR_RS,      // read/set
+    RV_CSR_RC,      // read/clear
+
+} riscvCSRUDesc;
 
 //
 // This describes format of  riscvVType values

@@ -54,6 +54,11 @@ riscvICMode riscvGetIntModeVS(riscvP riscv);
 void riscvHalt(riscvP riscv, riscvDisableReason reason);
 
 //
+// Block the passed processor for the given reason
+//
+void riscvBlock(riscvP riscv, riscvDisableReason reason);
+
+//
 // Restart the passed processor for the given reason
 //
 void riscvRestart(riscvP riscv, riscvDisableReason reason);
@@ -267,6 +272,11 @@ Bool riscvPendingAndEnabled(riscvP riscv);
 // Check for pending interrupts
 //
 void riscvTestInterrupt(riscvP riscv);
+
+//
+// Is resume from WFI required?
+//
+Bool riscvResumeFromWFI(riscvP riscv);
 
 //
 // Return the computed value of mtopi

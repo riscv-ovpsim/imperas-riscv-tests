@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -34,20 +34,20 @@ Other instructions (those not the focus of this suite)
   jalr : 38
   sw : 278
   beq : 65
-  bge : 20
+  ecall : 17
   lw : 168
   sub : 83
   blt : 39
   andi : 22
   sll : 29
+  bge : 20
   bne : 18
   fence : 16
-  ecall : 17
-  xori : 3
-  ebreak : 1
-  bltu : 1
   bgeu : 1
-  lhu : 1
-  lh : 1
+  xori : 3
+  bltu : 1
+  ebreak : 1
   sh : 1
+  lh : 1
+  lhu : 1
 

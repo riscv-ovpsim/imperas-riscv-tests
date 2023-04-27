@@ -698,26 +698,23 @@ inline static v128 brev8_128(v128 v) {
 }
 
 //
-// Do VGHMAC
+// Do VGMUL
 //
-static void doVGHMAC(
+static void doVGMUL(
     riscvP riscv,
     Uns64  vdl,
     Uns64  vdh,
     Uns64  vs2l,
-    Uns64  vs2h,
-    Uns64  vs1l,
-    Uns64  vs1h
+    Uns64  vs2h
 ) {
+    v128  H = {u64 : {vs2l, vs2h}};
     v128  Y = {u64 : {vdl,  vdh}};
-    v128  H = {u64 : {vs1l, vs1h}};
-    v128  X = {u64 : {vs2l, vs2h}};
     v128  Z = {{0}};
     Uns32 bit;
 
     // operands are input with bits reversed in each byte
-    Y = brev8_128(Y);
     H = brev8_128(H);
+    Y = brev8_128(Y);
 
     for(bit=0; bit<128; bit++) {
 
@@ -741,12 +738,25 @@ static void doVGHMAC(
     }
 
     // bit reverse bytes of product to get back to GCM standard ordering
-    v128 sum = brev8_128(Z);
-    sum.u64[0] ^= X.u64[0];
-    sum.u64[1] ^= X.u64[1];
+    v128 result = brev8_128(Z);
 
     // return result
-    setResult128(riscv, sum);
+    setResult128(riscv, result);
+}
+
+//
+// Do VGHSH
+//
+static void doVGHSH(
+    riscvP riscv,
+    Uns64  vdl,
+    Uns64  vdh,
+    Uns64  vs2l,
+    Uns64  vs2h,
+    Uns64  vs1l,
+    Uns64  vs1h
+) {
+    doVGMUL(riscv, vdl^vs1l, vdh^vs1h, vs2l, vs2h);
 }
 
 
@@ -1562,7 +1572,7 @@ Uns32 riscvPollEntropy(riscvP riscv) {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// K-EXTENSION PUBLIC INTERFACE
+// K-EXTENSION OPERATION DESCRIPTORS
 ////////////////////////////////////////////////////////////////////////////////
 
 DEFINE_CS(opDesc);
@@ -1575,6 +1585,7 @@ typedef struct opDescS {
     vmiCallFn      cb64;        // 64-bit implementation
     riscvCryptoSet subset;      // feature subset per version
 } opDesc;
+
 
 //
 // Entry with subset only
@@ -1609,149 +1620,9 @@ typedef struct opDescS {
 }
 
 //
-// Entries with subset only, version-invariant
-//
-#define OPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2]     = OPENTRY_S(_S),               \
-    [RVKV_0_8_1]     = OPENTRY_S(_S),               \
-    [RVKV_0_9_0]     = OPENTRY_S(_S),               \
-    [RVKV_0_9_2]     = OPENTRY_S(_S),               \
-    [RVKV_1_0_0_RC1] = OPENTRY_S(_S),               \
-    [RVKV_1_0_0_RC5] = OPENTRY_S(_S),               \
-}
-
-//
-// Entries with subset and 32/64 bit callbacks, version-invariant
-//
-#define OPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2]     = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_8_1]     = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_9_0]     = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_0_9_2]     = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_1_0_0_RC1] = OPENTRY_S_CB(_S, _CB),       \
-    [RVKV_1_0_0_RC5] = OPENTRY_S_CB(_S, _CB),       \
-}
-
-//
-// Entries with subset and 32 bit callback only, version-invariant
-//
-#define OPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2]     = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_8_1]     = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_9_0]     = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_0_9_2]     = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_1_0_0_RC1] = OPENTRY_S_CB32(_S, _CB32),   \
-    [RVKV_1_0_0_RC5] = OPENTRY_S_CB32(_S, _CB32),   \
-}
-
-//
-// Entries with subset and 64 bit callback only, version-invariant
-//
-#define OPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
-    [RVKV_0_7_2]     = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_8_1]     = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_9_0]     = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_0_9_2]     = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_1_0_0_RC1] = OPENTRY_S_CB64(_S, _CB64),   \
-    [RVKV_1_0_0_RC5] = OPENTRY_S_CB64(_S, _CB64),   \
-}
-
-//
-// Details of operation per version
-//
-static const opDesc opInfo[RVKOP_LAST][RVKV_LAST] = {
-
-    OPENTRYxV_S      (Zkr,           Zkr                   ),
-    OPENTRYxV_S      (Zknd,          Zknd                  ),
-    OPENTRYxV_S      (Zkne,          Zkne                  ),
-    OPENTRYxV_S      (Zknh,          Zknh                  ),
-    OPENTRYxV_S      (Zksed,         Zksed                 ),
-    OPENTRYxV_S      (Zksh,          Zksh                  ),
-
-    OPENTRYxV_S      (Zvkb,          Zvkb                  ),
-    OPENTRYxV_S      (Zvkg,          Zvkg                  ),
-    OPENTRYxV_S      (Zvknha,        Zvknha                ),
-    OPENTRYxV_S      (Zvknhb,        Zvknhb                ),
-    OPENTRYxV_S      (Zvkns,         Zvkns                 ),
-    OPENTRYxV_S      (Zvksed,        Zvksed                ),
-    OPENTRYxV_S      (Zvksh,         Zvksh                 ),
-
-    OPENTRYxV_S_CB   (LUT4LO,        Zkb,    LUT4LO        ),
-    OPENTRYxV_S_CB   (LUT4HI,        Zkb,    LUT4HI        ),
-    OPENTRYxV_S_CB64 (LUT4,          Zkb,    LUT4          ),
-
-    OPENTRYxV_S_CB32 (SAES32_ENCS,   Zkne,   SAES32_ENCS   ),
-    OPENTRYxV_S_CB32 (SAES32_ENCSM,  Zkne,   SAES32_ENCSM  ),
-    OPENTRYxV_S_CB32 (SAES32_DECS,   Zknd,   SAES32_DECS   ),
-    OPENTRYxV_S_CB32 (SAES32_DECSM,  Zknd,   SAES32_DECSM  ),
-
-    OPENTRYxV_S_CB64 (SAES64_KS1,    Zkne,   SAES64_KS1    ),
-    OPENTRYxV_S_CB64 (SAES64_KS2,    Zkne,   SAES64_KS2    ),
-    OPENTRYxV_S_CB64 (SAES64_IMIX,   Zknd,   SAES64_IMIX   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCS,   Zkne,   SAES64_ENCS   ),
-    OPENTRYxV_S_CB64 (SAES64_ENCSM,  Zkne,   SAES64_ENCSM  ),
-    OPENTRYxV_S_CB64 (SAES64_DECS,   Zknd,   SAES64_DECS   ),
-    OPENTRYxV_S_CB64 (SAES64_DECSM,  Zknd,   SAES64_DECSM  ),
-
-    OPENTRYxV_S_CB   (SSM3_P0,       Zksh,   SSM3_P0       ),
-    OPENTRYxV_S_CB   (SSM3_P1,       Zksh,   SSM3_P1       ),
-    OPENTRYxV_S_CB   (SSM4_ED,       Zksed,  SSM4_ED       ),
-    OPENTRYxV_S_CB   (SSM4_KS,       Zksed,  SSM4_KS       ),
-
-    OPENTRYxV_S_CB   (SSHA256_SIG0,  Zknh,   SSHA256_SIG0  ),
-    OPENTRYxV_S_CB   (SSHA256_SIG1,  Zknh,   SSHA256_SIG1  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM0,  Zknh,   SSHA256_SUM0  ),
-    OPENTRYxV_S_CB   (SSHA256_SUM1,  Zknh,   SSHA256_SUM1  ),
-
-    OPENTRYxV_S_CB32 (SSHA512_SIG0L, Zknh,   SSHA512_SIG0L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG0H, Zknh,   SSHA512_SIG0H ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1L, Zknh,   SSHA512_SIG1L ),
-    OPENTRYxV_S_CB32 (SSHA512_SIG1H, Zknh,   SSHA512_SIG1H ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM0R, Zknh,   SSHA512_SUM0R ),
-    OPENTRYxV_S_CB32 (SSHA512_SUM1R, Zknh,   SSHA512_SUM1R ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG0,  Zknh,   SSHA512_SIG0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SIG1,  Zknh,   SSHA512_SIG1  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM0,  Zknh,   SSHA512_SUM0  ),
-    OPENTRYxV_S_CB64 (SSHA512_SUM1,  Zknh,   SSHA512_SUM1  ),
-
-    // vector operations implemented as callbacks
-    OPENTRYxV_S_CB32 (VAESKF1,       Zvkns,  VAESKF1       ),
-    OPENTRYxV_S_CB32 (VAESKF2,       Zvkns,  VAESKF2       ),
-    OPENTRYxV_S_CB32 (VGHMAC,        Zvkg,   VGHMAC        ),
-    OPENTRYxV_S_CB32 (VSM3ME,        Zvksh,  VSM3ME        ),
-    OPENTRYxV_S_CB32 (VSM3C,         Zvksh,  VSM3C         ),
-    OPENTRYxV_S_CB32 (VSM4K,         Zvksed, VSM4K         ),
-    OPENTRYxV_S_CB32 (VSM4R,         Zvksed, VSM4R         ),
-    OPENTRYxV_S_CB   (VSHA2MS,       Zvknha, VSHA2MS       ),
-    OPENTRYxV_S_CB   (VSHA2CL,       Zvknha, VSHA2C        ),
-    OPENTRYxV_S_CB   (VSHA2CH,       Zvknha, VSHA2C        ),
-};
-
-//
-// Get operation description for this operation
-//
-inline static opDescCP getOpDesc(riscvP riscv, riscvKExtOp op) {
-    return &opInfo[op][riscv->configInfo.crypto_version];
-}
-
-//
-// Return implementation callback for K-extension operation and bits
-//
-vmiCallFn riscvGetKOpCB(riscvP riscv, riscvKExtOp op, Uns32 bits) {
-
-    opDescCP  desc   = getOpDesc(riscv, op);
-    vmiCallFn result = (bits==32) ? desc->cb32 : desc->cb64;
-
-    // sanity check a callback was found
-    VMI_ASSERT(result, "missing K-extension callback (op=%u, bits=%u)", op, bits);
-
-    return result;
-}
-
-//
 // Get description for missing instruction subset
 //
-static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
+static const char* getSubsetDesc(riscvCryptoSet requiredSet) {
 
     // get feature description
     const char *description = 0;
@@ -1759,6 +1630,9 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
     // get missing subset description (NOTE: RVKS_Zkr controls presence of CSRs
     // and has no effect here)
     switch(requiredSet) {
+
+        // ALWAYS ABSENT
+        case RVKS_Zk_    : description = "always";      break;
 
         // LEGACY B EXTENSION INSTRUCTIONS
         case RVKS_Zbkb   : description = "Zbkb";        break;
@@ -1770,11 +1644,12 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
         case RVKS_Zknh   : description = "Zknh";        break;
         case RVKS_Zksed  : description = "Zksed";       break;
         case RVKS_Zksh   : description = "Zksh";        break;
-        case RVKS_Zvkb   : description = "Zvkb";        break;
+        case RVKS_Zvbb   : description = "Zvbb";        break;
+        case RVKS_Zvbc   : description = "Zvbc";        break;
         case RVKS_Zvkg   : description = "Zvkg";        break;
         case RVKS_Zvknha : description = "Zvknha";      break;
         case RVKS_Zvknhb : description = "Zvknhb";      break;
-        case RVKS_Zvkns  : description = "Zvkns";       break;
+        case RVKS_Zvkned : description = "Zvkned";      break;
         case RVKS_Zvksed : description = "Zvksed";      break;
         case RVKS_Zvksh  : description = "Zvksh";       break;
         default          :                              break; // LCOV_EXCL_LINE
@@ -1786,15 +1661,252 @@ static const char *getSubsetDesc(riscvCryptoSet requiredSet) {
     return description;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// K-EXTENSION PUBLIC INTERFACE
+////////////////////////////////////////////////////////////////////////////////
+
 //
-// Validate that the instruction subset is supported and enabled and take an
+// Entries with subset only, version-invariant
+//
+#define KOPENTRYxV_S(_NAME, _S) [RVKOP_##_NAME] = { \
+    [RVKV_0_7_2]     = OPENTRY_S(_S),              \
+    [RVKV_0_8_1]     = OPENTRY_S(_S),              \
+    [RVKV_0_9_0]     = OPENTRY_S(_S),              \
+    [RVKV_0_9_2]     = OPENTRY_S(_S),              \
+    [RVKV_1_0_0_RC1] = OPENTRY_S(_S),              \
+    [RVKV_1_0_0_RC5] = OPENTRY_S(_S),              \
+}
+
+//
+// Entries with subset and 32/64 bit callbacks, version-invariant
+//
+#define KOPENTRYxV_S_CB(_NAME, _S, _CB) [RVKOP_##_NAME] = { \
+    [RVKV_0_7_2]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKV_0_8_1]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKV_0_9_0]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKV_0_9_2]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB(_S, _CB),      \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB(_S, _CB),      \
+}
+
+//
+// Entries with subset and 32 bit callback only, version-invariant
+//
+#define KOPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVKOP_##_NAME] = { \
+    [RVKV_0_7_2]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKV_0_8_1]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKV_0_9_0]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKV_0_9_2]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB32(_S, _CB32),  \
+}
+
+//
+// Entries with subset and 64 bit callback only, version-invariant
+//
+#define KOPENTRYxV_S_CB64(_NAME, _S, _CB64) [RVKOP_##_NAME] = { \
+    [RVKV_0_7_2]     = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVKV_0_8_1]     = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVKV_0_9_0]     = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVKV_0_9_2]     = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVKV_1_0_0_RC1] = OPENTRY_S_CB64(_S, _CB64),  \
+    [RVKV_1_0_0_RC5] = OPENTRY_S_CB64(_S, _CB64),  \
+}
+
+//
+// Details of operation per version
+//
+static const opDesc kopInfo[RVKOP_LAST][RVKV_LAST] = {
+
+    KOPENTRYxV_S      (Zkr,           Zkr                  ),
+    KOPENTRYxV_S      (Zknd,          Zknd                 ),
+    KOPENTRYxV_S      (Zkne,          Zkne                 ),
+    KOPENTRYxV_S      (Zknh,          Zknh                 ),
+    KOPENTRYxV_S      (Zksed,         Zksed                ),
+    KOPENTRYxV_S      (Zksh,          Zksh                 ),
+
+    KOPENTRYxV_S_CB   (LUT4LO,        Zkb,   LUT4LO        ),
+    KOPENTRYxV_S_CB   (LUT4HI,        Zkb,   LUT4HI        ),
+    KOPENTRYxV_S_CB64 (LUT4,          Zkb,   LUT4          ),
+
+    KOPENTRYxV_S_CB32 (SAES32_ENCS,   Zkne,  SAES32_ENCS   ),
+    KOPENTRYxV_S_CB32 (SAES32_ENCSM,  Zkne,  SAES32_ENCSM  ),
+    KOPENTRYxV_S_CB32 (SAES32_DECS,   Zknd,  SAES32_DECS   ),
+    KOPENTRYxV_S_CB32 (SAES32_DECSM,  Zknd,  SAES32_DECSM  ),
+
+    KOPENTRYxV_S_CB64 (SAES64_KS1,    Zkne,  SAES64_KS1    ),
+    KOPENTRYxV_S_CB64 (SAES64_KS2,    Zkne,  SAES64_KS2    ),
+    KOPENTRYxV_S_CB64 (SAES64_IMIX,   Zknd,  SAES64_IMIX   ),
+    KOPENTRYxV_S_CB64 (SAES64_ENCS,   Zkne,  SAES64_ENCS   ),
+    KOPENTRYxV_S_CB64 (SAES64_ENCSM,  Zkne,  SAES64_ENCSM  ),
+    KOPENTRYxV_S_CB64 (SAES64_DECS,   Zknd,  SAES64_DECS   ),
+    KOPENTRYxV_S_CB64 (SAES64_DECSM,  Zknd,  SAES64_DECSM  ),
+
+    KOPENTRYxV_S_CB   (SSM3_P0,       Zksh,  SSM3_P0       ),
+    KOPENTRYxV_S_CB   (SSM3_P1,       Zksh,  SSM3_P1       ),
+    KOPENTRYxV_S_CB   (SSM4_ED,       Zksed, SSM4_ED       ),
+    KOPENTRYxV_S_CB   (SSM4_KS,       Zksed, SSM4_KS       ),
+
+    KOPENTRYxV_S_CB   (SSHA256_SIG0,  Zknh,  SSHA256_SIG0  ),
+    KOPENTRYxV_S_CB   (SSHA256_SIG1,  Zknh,  SSHA256_SIG1  ),
+    KOPENTRYxV_S_CB   (SSHA256_SUM0,  Zknh,  SSHA256_SUM0  ),
+    KOPENTRYxV_S_CB   (SSHA256_SUM1,  Zknh,  SSHA256_SUM1  ),
+
+    KOPENTRYxV_S_CB32 (SSHA512_SIG0L, Zknh,  SSHA512_SIG0L ),
+    KOPENTRYxV_S_CB32 (SSHA512_SIG0H, Zknh,  SSHA512_SIG0H ),
+    KOPENTRYxV_S_CB32 (SSHA512_SIG1L, Zknh,  SSHA512_SIG1L ),
+    KOPENTRYxV_S_CB32 (SSHA512_SIG1H, Zknh,  SSHA512_SIG1H ),
+    KOPENTRYxV_S_CB32 (SSHA512_SUM0R, Zknh,  SSHA512_SUM0R ),
+    KOPENTRYxV_S_CB32 (SSHA512_SUM1R, Zknh,  SSHA512_SUM1R ),
+    KOPENTRYxV_S_CB64 (SSHA512_SIG0,  Zknh,  SSHA512_SIG0  ),
+    KOPENTRYxV_S_CB64 (SSHA512_SIG1,  Zknh,  SSHA512_SIG1  ),
+    KOPENTRYxV_S_CB64 (SSHA512_SUM0,  Zknh,  SSHA512_SUM0  ),
+    KOPENTRYxV_S_CB64 (SSHA512_SUM1,  Zknh,  SSHA512_SUM1  ),
+};
+
+//
+// Get operation description for this operation
+//
+inline static opDescCP getKOpDesc(riscvP riscv, riscvKExtOp op) {
+    return &kopInfo[op][riscv->configInfo.crypto_version];
+}
+
+//
+// Return implementation callback for K-extension operation and bits
+//
+vmiCallFn riscvGetKOpCB(riscvP riscv, riscvKExtOp op, Uns32 bits) {
+
+    opDescCP  desc   = getKOpDesc(riscv, op);
+    vmiCallFn result = (bits==32) ? desc->cb32 : desc->cb64;
+
+    // sanity check a callback was found
+    VMI_ASSERT(result, "missing K-extension callback (op=%u, bits=%u)", op, bits);
+
+    return result;
+}
+
+//
+// Validate that the K-extension subset is supported and enabled and take an
 // Illegal Instruction exception if not
 //
 Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op) {
 
     if(op) {
 
-        opDescCP       desc        = getOpDesc(riscv, op);
+        opDescCP       desc        = getKOpDesc(riscv, op);
+        riscvCryptoSet requiredSet = desc->subset;
+
+        // detect absent subset
+        if(!(requiredSet&~riscv->configInfo.crypto_absent)) {
+            riscvEmitIllegalInstructionAbsentSubset(getSubsetDesc(requiredSet));
+            return False;
+        }
+    }
+
+    return True;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// VK-EXTENSION PUBLIC INTERFACE
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Entries with subset only, version-invariant
+//
+#define VKOPENTRYxV_S(_NAME, _S) [RVVKOP_##_NAME] = { \
+    [RVKVV_0_3_0]  = OPENTRY_S(_S),             \
+    [RVKVV_0_5_2]  = OPENTRY_S(_S),             \
+    [RVKVV_MASTER] = OPENTRY_S(_S),             \
+}
+
+//
+// Entries with subset only, version-dependent
+//
+#define VKOPENTRYxV_SxV(_NAME, _0_3_0, _0_5_2, _MASTER) [RVVKOP_##_NAME] = { \
+    [RVKVV_0_3_0]  = OPENTRY_S(_0_3_0),         \
+    [RVKVV_0_5_2]  = OPENTRY_S(_0_5_2),         \
+    [RVKVV_MASTER] = OPENTRY_S(_MASTER),        \
+}
+
+//
+// Entries with subset and 32/64 bit callbacks, version-invariant
+//
+#define VKOPENTRYxV_S_CB(_NAME, _S, _CB) [RVVKOP_##_NAME] = { \
+    [RVKVV_0_3_0]  = OPENTRY_S_CB(_S, _CB),     \
+    [RVKVV_0_5_2]  = OPENTRY_S_CB(_S, _CB),     \
+    [RVKVV_MASTER] = OPENTRY_S_CB(_S, _CB),     \
+}
+
+//
+// Entries with subset and 32 bit callback only, version-invariant
+//s
+#define VKOPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVVKOP_##_NAME] = { \
+    [RVKVV_0_3_0]  = OPENTRY_S_CB32(_S, _CB32), \
+    [RVKVV_0_5_2]  = OPENTRY_S_CB32(_S, _CB32), \
+    [RVKVV_MASTER] = OPENTRY_S_CB32(_S, _CB32), \
+}
+
+//
+// Details of operation per version
+//
+static const opDesc vkopInfo[RVVKOP_LAST][RVKVV_LAST] = {
+
+    VKOPENTRYxV_SxV    (Zvbb,       Zvkb, Zvbb, Zvbb),
+    VKOPENTRYxV_SxV    (Zvbb_0_4_5, Zk_,  Zvbb, Zvbb),
+    VKOPENTRYxV_SxV    (Zvbc,       Zvkb, Zvbc, Zvbc),
+    VKOPENTRYxV_SxV    (Zvkg,       Zvkg, Zvkg, Zvkg),
+    VKOPENTRYxV_S      (Zvknha,     Zvknha          ),
+    VKOPENTRYxV_S      (Zvknhb,     Zvknhb          ),
+    VKOPENTRYxV_S      (Zvkned,     Zvkned          ),
+    VKOPENTRYxV_S      (Zvksed,     Zvksed          ),
+    VKOPENTRYxV_S      (Zvksh,      Zvksh           ),
+
+    // vector operations implemented as callbacks
+    VKOPENTRYxV_S_CB32 (VAESKF1,    Zvkned, VAESKF1 ),
+    VKOPENTRYxV_S_CB32 (VAESKF2,    Zvkned, VAESKF2 ),
+    VKOPENTRYxV_S_CB32 (VGMUL,      Zvkg,   VGMUL   ),
+    VKOPENTRYxV_S_CB32 (VGHSH,      Zvkg,   VGHSH   ),
+    VKOPENTRYxV_S_CB32 (VSM3ME,     Zvksh,  VSM3ME  ),
+    VKOPENTRYxV_S_CB32 (VSM3C,      Zvksh,  VSM3C   ),
+    VKOPENTRYxV_S_CB32 (VSM4K,      Zvksed, VSM4K   ),
+    VKOPENTRYxV_S_CB32 (VSM4R,      Zvksed, VSM4R   ),
+    VKOPENTRYxV_S_CB   (VSHA2MS,    Zvknha, VSHA2MS ),
+    VKOPENTRYxV_S_CB   (VSHA2CL,    Zvknha, VSHA2C  ),
+    VKOPENTRYxV_S_CB   (VSHA2CH,    Zvknha, VSHA2C  ),
+};
+
+//
+// Get operation description for this operation
+//
+inline static opDescCP getVKOpDesc(riscvP riscv, riscvVKExtOp op) {
+    return &vkopInfo[op][riscv->configInfo.vcrypto_version];
+}
+
+//
+// Return implementation callback for VK-extension operation and bits
+//
+vmiCallFn riscvGetVKOpCB(riscvP riscv, riscvVKExtOp op, Uns32 bits) {
+
+    opDescCP  desc   = getVKOpDesc(riscv, op);
+    vmiCallFn result = (bits==32) ? desc->cb32 : desc->cb64;
+
+    // sanity check a callback was found
+    VMI_ASSERT(result, "missing VK-extension callback (op=%u, bits=%u)", op, bits);
+
+    return result;
+}
+
+//
+// Validate that the VK-extension subset is supported and enabled and take an
+// Illegal Instruction exception if not
+//
+Bool riscvValidateVKExtSubset(riscvP riscv, riscvVKExtOp op) {
+
+    if(op) {
+
+        opDescCP       desc        = getVKOpDesc(riscv, op);
         riscvCryptoSet requiredSet = desc->subset;
 
         // select RVKS_Zvknha or RVKS_Zvknhb based on current SEW

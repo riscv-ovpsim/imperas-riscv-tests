@@ -1,7 +1,7 @@
 // RISC-V Architectural Validation Test JAL-01
 //
 //
-// Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+// Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
 //
 // The contents of this file are provided under the Software License
 // Agreement that you accepted before downloading this file.
@@ -45,17 +45,67 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_1_0)
     
-     # Testcase 0:  result rd:x4(0xcccc)
-    li x4, 0xcccc
+     # Testcase 0:  result rd:x3(0xcccc)
+    li x3, 0xcccc
     jal x19, 1f
+    li x3, 0x123ab
+1: 
+    sw x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+     # Testcase 1:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x28, 2f
+    li x3, 0x123ab
+2: 
+    sw x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+     jal x0, 3f
+2:
+    jal x0, 4f
+3:
+    # Testcase 2:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x30, 2b
+    li x3, 0x123ab
+4:
+    sw x3, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+     # Testcase 3:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x20, 4f
+    li x3, 0x123ab
+4: 
+    sw x3, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+     # Testcase 4:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x10, 5f
+    li x3, 0x123ab
+5: 
+    sw x3, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+
+
+    
+
+    RVTEST_SIGBASE(x1,signature_2_0)
+    
+     # Testcase 5:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x0, 1f
     li x4, 0x123ab
 1: 
     sw x4, 0(x1)
     RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 1:  result rd:x4(0xcccc)
+     # Testcase 6:  result rd:x4(0xcccc)
     li x4, 0xcccc
-    jal x30, 2f
+    jal x3, 2f
     li x4, 0x123ab
 2: 
     sw x4, 4(x1)
@@ -65,25 +115,25 @@ RVTEST_CODE_BEGIN
 2:
     jal x0, 4f
 3:
-    # Testcase 2:  result rd:x4(0xcccc)
+    # Testcase 7:  result rd:x4(0xcccc)
     li x4, 0xcccc
-    jal x10, 2b
+    jal x31, 2b
     li x4, 0x123ab
 4:
     sw x4, 8(x1)
     RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 3:  result rd:x4(0xcccc)
+     # Testcase 8:  result rd:x4(0xcccc)
     li x4, 0xcccc
-    jal x3, 4f
+    jal x29, 4f
     li x4, 0x123ab
 4: 
     sw x4, 12(x1)
     RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 4:  result rd:x4(0xcccc)
+     # Testcase 9:  result rd:x4(0xcccc)
     li x4, 0xcccc
-    jal x29, 5f
+    jal x5, 5f
     li x4, 0x123ab
 5: 
     sw x4, 16(x1)
@@ -93,61 +143,11 @@ RVTEST_CODE_BEGIN
 
     
 
-    RVTEST_SIGBASE(x1,signature_2_0)
-    
-     # Testcase 5:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x0, 1f
-    li x5, 0x123ab
-1: 
-    sw x5, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x5, 0xcccc)
-
-     # Testcase 6:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x4, 2f
-    li x5, 0x123ab
-2: 
-    sw x5, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x5, 0xcccc)
-
-     jal x0, 3f
-2:
-    jal x0, 4f
-3:
-    # Testcase 7:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x25, 2b
-    li x5, 0x123ab
-4:
-    sw x5, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x5, 0xcccc)
-
-     # Testcase 8:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x18, 4f
-    li x5, 0x123ab
-4: 
-    sw x5, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x5, 0xcccc)
-
-     # Testcase 9:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x9, 5f
-    li x5, 0x123ab
-5: 
-    sw x5, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x5, 0xcccc)
-
-
-
-    
-
     RVTEST_SIGBASE(x1,signature_3_0)
     
      # Testcase 10:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x17, 1f
+    jal x0, 1f
     li x3, 0x123ab
 1: 
     sw x3, 0(x1)
@@ -155,7 +155,7 @@ RVTEST_CODE_BEGIN
 
      # Testcase 11:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x31, 2f
+    jal x13, 2f
     li x3, 0x123ab
 2: 
     sw x3, 4(x1)
@@ -167,7 +167,7 @@ RVTEST_CODE_BEGIN
 3:
     # Testcase 12:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x0, 2b
+    jal x4, 2b
     li x3, 0x123ab
 4:
     sw x3, 8(x1)
@@ -175,7 +175,7 @@ RVTEST_CODE_BEGIN
 
      # Testcase 13:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x0, 4f
+    jal x11, 4f
     li x3, 0x123ab
 4: 
     sw x3, 12(x1)
@@ -183,7 +183,7 @@ RVTEST_CODE_BEGIN
 
      # Testcase 14:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x31, 5f
+    jal x25, 5f
     li x3, 0x123ab
 5: 
     sw x3, 16(x1)
@@ -195,49 +195,49 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_4_0)
     
-     # Testcase 15:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x11, 1f
-    li x5, 0x123ab
+     # Testcase 15:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x2, 1f
+    li x4, 0x123ab
 1: 
-    sw x5, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 16:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x9, 2f
-    li x5, 0x123ab
+     # Testcase 16:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x18, 2f
+    li x4, 0x123ab
 2: 
-    sw x5, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 17:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x7, 2b
-    li x5, 0x123ab
+    # Testcase 17:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x18, 2b
+    li x4, 0x123ab
 4:
-    sw x5, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 18:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 18:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x7, 4f
-    li x5, 0x123ab
+    li x4, 0x123ab
 4: 
-    sw x5, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 19:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x13, 5f
-    li x5, 0x123ab
+     # Testcase 19:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x9, 5f
+    li x4, 0x123ab
 5: 
-    sw x5, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
 
 
@@ -245,99 +245,99 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_5_0)
     
-     # Testcase 20:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x12, 1f
-    li x5, 0x123ab
+     # Testcase 20:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x31, 1f
+    li x3, 0x123ab
 1: 
-    sw x5, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xcccc)
+    sw x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 21:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 21:  result rd:x3(0xcccc)
+    li x3, 0xcccc
     jal x17, 2f
-    li x5, 0x123ab
+    li x3, 0x123ab
 2: 
-    sw x5, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xcccc)
+    sw x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 22:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x31, 2b
-    li x5, 0x123ab
+    # Testcase 22:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x23, 2b
+    li x3, 0x123ab
 4:
-    sw x5, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xcccc)
+    sw x3, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 23:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x18, 4f
-    li x5, 0x123ab
+     # Testcase 23:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x31, 4f
+    li x3, 0x123ab
 4: 
-    sw x5, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xcccc)
+    sw x3, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 24:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x29, 5f
-    li x5, 0x123ab
+     # Testcase 24:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x21, 5f
+    li x3, 0x123ab
 5: 
-    sw x5, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x5, 0xcccc)
+    sw x3, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
 
 
     
 
-    RVTEST_SIGBASE(x2,signature_6_0)
+    RVTEST_SIGBASE(x1,signature_6_0)
     
-     # Testcase 25:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x17, 1f
-    li x5, 0x123ab
+     # Testcase 25:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x0, 1f
+    li x3, 0x123ab
 1: 
-    sw x5, 0(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 26:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x22, 2f
-    li x5, 0x123ab
+     # Testcase 26:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x30, 2f
+    li x3, 0x123ab
 2: 
-    sw x5, 4(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 27:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x3, 2b
-    li x5, 0x123ab
+    # Testcase 27:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x0, 2b
+    li x3, 0x123ab
 4:
-    sw x5, 8(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x3, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 28:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x15, 4f
-    li x5, 0x123ab
+     # Testcase 28:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x17, 4f
+    li x3, 0x123ab
 4: 
-    sw x5, 12(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x3, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 29:  result rd:x5(0xcccc)
-    li x5, 0xcccc
-    jal x28, 5f
-    li x5, 0x123ab
+     # Testcase 29:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x31, 5f
+    li x3, 0x123ab
 5: 
-    sw x5, 16(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x3, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
 
 
@@ -345,49 +345,49 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_7_0)
     
-     # Testcase 30:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x14, 1f
-    li x3, 0x123ab
+     # Testcase 30:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x6, 1f
+    li x4, 0x123ab
 1: 
-    sw x3, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 31:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x9, 2f
-    li x3, 0x123ab
+     # Testcase 31:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x11, 2f
+    li x4, 0x123ab
 2: 
-    sw x3, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 32:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x10, 2b
-    li x3, 0x123ab
+    # Testcase 32:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x22, 2b
+    li x4, 0x123ab
 4:
-    sw x3, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 33:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x6, 4f
-    li x3, 0x123ab
+     # Testcase 33:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x9, 4f
+    li x4, 0x123ab
 4: 
-    sw x3, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 34:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x0, 5f
-    li x3, 0x123ab
+     # Testcase 34:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x2, 5f
+    li x4, 0x123ab
 5: 
-    sw x3, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
 
 
@@ -395,99 +395,99 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_8_0)
     
-     # Testcase 35:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x28, 1f
-    li x3, 0x123ab
+     # Testcase 35:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x7, 1f
+    li x4, 0x123ab
 1: 
-    sw x3, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 36:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x31, 2f
-    li x3, 0x123ab
+     # Testcase 36:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x13, 2f
+    li x4, 0x123ab
 2: 
-    sw x3, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 37:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x27, 2b
-    li x3, 0x123ab
+    # Testcase 37:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x7, 2b
+    li x4, 0x123ab
 4:
-    sw x3, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+    sw x4, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 38:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x23, 4f
-    li x3, 0x123ab
-4: 
-    sw x3, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
-
-     # Testcase 39:  result rd:x3(0xcccc)
-    li x3, 0xcccc
-    jal x24, 5f
-    li x3, 0x123ab
-5: 
-    sw x3, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
-
-
-
-    
-
-    RVTEST_SIGBASE(x6,signature_9_0)
-    
-     # Testcase 40:  result rd:x8(0xcccc)
-    li x8, 0xcccc
-    jal x1, 1f
-    li x8, 0x123ab
-1: 
-    sw x8, 0(x6)
-    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
-
-     # Testcase 41:  result rd:x8(0xcccc)
-    li x8, 0xcccc
-    jal x1, 2f
-    li x8, 0x123ab
-2: 
-    sw x8, 4(x6)
-    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
-
-     jal x0, 3f
-2:
-    jal x0, 4f
-3:
-    # Testcase 42:  result rd:x8(0xcccc)
-    li x8, 0xcccc
-    jal x2, 2b
-    li x8, 0x123ab
-4:
-    sw x8, 8(x6)
-    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
-
-     # Testcase 43:  result rd:x8(0xcccc)
-    li x8, 0xcccc
+     # Testcase 38:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x3, 4f
-    li x8, 0x123ab
+    li x4, 0x123ab
 4: 
-    sw x8, 12(x6)
-    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
+    sw x4, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
 
-     # Testcase 44:  result rd:x8(0xcccc)
-    li x8, 0xcccc
-    jal x4, 5f
-    li x8, 0x123ab
+     # Testcase 39:  result rd:x4(0xcccc)
+    li x4, 0xcccc
+    jal x13, 5f
+    li x4, 0x123ab
 5: 
-    sw x8, 16(x6)
-    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
+    sw x4, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x4, 0xcccc)
+
+
+
+    
+
+    RVTEST_SIGBASE(x5,signature_9_0)
+    
+     # Testcase 40:  result rd:x7(0xcccc)
+    li x7, 0xcccc
+    jal x1, 1f
+    li x7, 0x123ab
+1: 
+    sw x7, 0(x5)
+    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+
+     # Testcase 41:  result rd:x7(0xcccc)
+    li x7, 0xcccc
+    jal x1, 2f
+    li x7, 0x123ab
+2: 
+    sw x7, 4(x5)
+    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+
+     jal x0, 3f
+2:
+    jal x0, 4f
+3:
+    # Testcase 42:  result rd:x7(0xcccc)
+    li x7, 0xcccc
+    jal x2, 2b
+    li x7, 0x123ab
+4:
+    sw x7, 8(x5)
+    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+
+     # Testcase 43:  result rd:x7(0xcccc)
+    li x7, 0xcccc
+    jal x3, 4f
+    li x7, 0x123ab
+4: 
+    sw x7, 12(x5)
+    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+
+     # Testcase 44:  result rd:x7(0xcccc)
+    li x7, 0xcccc
+    jal x4, 5f
+    li x7, 0x123ab
+5: 
+    sw x7, 16(x5)
+    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
 
 
 
@@ -743,51 +743,51 @@ RVTEST_CODE_BEGIN
 
     
 
-    RVTEST_SIGBASE(x4,signature_15_0)
+    RVTEST_SIGBASE(x3,signature_15_0)
     
-     # Testcase 70:  result rd:x6(0xcccc)
-    li x6, 0xcccc
+     # Testcase 70:  result rd:x5(0xcccc)
+    li x5, 0xcccc
     jal x30, 1f
-    li x6, 0x123ab
+    li x5, 0x123ab
 1: 
-    sw x6, 0(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
+    sw x5, 0(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
 
-     # Testcase 71:  result rd:x6(0xcccc)
-    li x6, 0xcccc
+     # Testcase 71:  result rd:x5(0xcccc)
+    li x5, 0xcccc
     jal x31, 2f
-    li x6, 0x123ab
+    li x5, 0x123ab
 2: 
-    sw x6, 4(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
+    sw x5, 4(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 72:  result rd:x6(0xcccc)
-    li x6, 0xcccc
+    # Testcase 72:  result rd:x5(0xcccc)
+    li x5, 0xcccc
     jal x1, 2b
-    li x6, 0x123ab
+    li x5, 0x123ab
 4:
-    sw x6, 8(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
+    sw x5, 8(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
 
-     # Testcase 73:  result rd:x6(0xcccc)
-    li x6, 0xcccc
+     # Testcase 73:  result rd:x5(0xcccc)
+    li x5, 0xcccc
     jal x1, 4f
-    li x6, 0x123ab
+    li x5, 0x123ab
 4: 
-    sw x6, 12(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
+    sw x5, 12(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
 
-     # Testcase 74:  result rd:x6(0xcccc)
-    li x6, 0xcccc
+     # Testcase 74:  result rd:x5(0xcccc)
+    li x5, 0xcccc
     jal x2, 5f
-    li x6, 0x123ab
+    li x5, 0x123ab
 5: 
-    sw x6, 16(x4)
-    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
+    sw x5, 16(x3)
+    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
 
 
 
@@ -795,49 +795,49 @@ RVTEST_CODE_BEGIN
 
     RVTEST_SIGBASE(x1,signature_16_0)
     
-     # Testcase 75:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 75:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x3, 1f
-    li x9, 0x123ab
+    li x8, 0x123ab
 1: 
-    sw x9, 0(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xcccc)
+    sw x8, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xcccc)
 
-     # Testcase 76:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 76:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x4, 2f
-    li x9, 0x123ab
+    li x8, 0x123ab
 2: 
-    sw x9, 4(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xcccc)
+    sw x8, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 77:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+    # Testcase 77:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x5, 2b
-    li x9, 0x123ab
+    li x8, 0x123ab
 4:
-    sw x9, 8(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xcccc)
+    sw x8, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xcccc)
 
-     # Testcase 78:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 78:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x6, 4f
-    li x9, 0x123ab
+    li x8, 0x123ab
 4: 
-    sw x9, 12(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xcccc)
+    sw x8, 12(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xcccc)
 
-     # Testcase 79:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 79:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x7, 5f
-    li x9, 0x123ab
+    li x8, 0x123ab
 5: 
-    sw x9, 16(x1)
-    RVMODEL_IO_ASSERT_GPR_EQ(x2, x9, 0xcccc)
+    sw x8, 16(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x8, 0xcccc)
 
 
 
@@ -1043,101 +1043,101 @@ RVTEST_CODE_BEGIN
 
     
 
-    RVTEST_SIGBASE(x3,signature_21_0)
+    RVTEST_SIGBASE(x2,signature_21_0)
     
-     # Testcase 100:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 100:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x28, 1f
-    li x5, 0x123ab
+    li x4, 0x123ab
 1: 
-    sw x5, 0(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 0(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 101:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 101:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x29, 2f
-    li x5, 0x123ab
+    li x4, 0x123ab
 2: 
-    sw x5, 4(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 4(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 102:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+    # Testcase 102:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x30, 2b
-    li x5, 0x123ab
+    li x4, 0x123ab
 4:
-    sw x5, 8(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 8(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 103:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 103:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x31, 4f
-    li x5, 0x123ab
+    li x4, 0x123ab
 4: 
-    sw x5, 12(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 12(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
-     # Testcase 104:  result rd:x5(0xcccc)
-    li x5, 0xcccc
+     # Testcase 104:  result rd:x4(0xcccc)
+    li x4, 0xcccc
     jal x1, 5f
-    li x5, 0x123ab
+    li x4, 0x123ab
 5: 
-    sw x5, 16(x3)
-    RVMODEL_IO_ASSERT_GPR_EQ(x4, x5, 0xcccc)
+    sw x4, 16(x2)
+    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
 
 
 
     
 
-    RVTEST_SIGBASE(x7,signature_22_0)
+    RVTEST_SIGBASE(x6,signature_22_0)
     
-     # Testcase 105:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 105:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x1, 1f
-    li x9, 0x123ab
+    li x8, 0x123ab
 1: 
-    sw x9, 0(x7)
-    RVMODEL_IO_ASSERT_GPR_EQ(x8, x9, 0xcccc)
+    sw x8, 0(x6)
+    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
 
-     # Testcase 106:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 106:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x2, 2f
-    li x9, 0x123ab
+    li x8, 0x123ab
 2: 
-    sw x9, 4(x7)
-    RVMODEL_IO_ASSERT_GPR_EQ(x8, x9, 0xcccc)
+    sw x8, 4(x6)
+    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 107:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+    # Testcase 107:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x3, 2b
-    li x9, 0x123ab
+    li x8, 0x123ab
 4:
-    sw x9, 8(x7)
-    RVMODEL_IO_ASSERT_GPR_EQ(x8, x9, 0xcccc)
+    sw x8, 8(x6)
+    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
 
-     # Testcase 108:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 108:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x4, 4f
-    li x9, 0x123ab
+    li x8, 0x123ab
 4: 
-    sw x9, 12(x7)
-    RVMODEL_IO_ASSERT_GPR_EQ(x8, x9, 0xcccc)
+    sw x8, 12(x6)
+    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
 
-     # Testcase 109:  result rd:x9(0xcccc)
-    li x9, 0xcccc
+     # Testcase 109:  result rd:x8(0xcccc)
+    li x8, 0xcccc
     jal x5, 5f
-    li x9, 0x123ab
+    li x8, 0x123ab
 5: 
-    sw x9, 16(x7)
-    RVMODEL_IO_ASSERT_GPR_EQ(x8, x9, 0xcccc)
+    sw x8, 16(x6)
+    RVMODEL_IO_ASSERT_GPR_EQ(x7, x8, 0xcccc)
 
 
 
@@ -1393,51 +1393,51 @@ RVTEST_CODE_BEGIN
 
     
 
-    RVTEST_SIGBASE(x5,signature_28_0)
+    RVTEST_SIGBASE(x4,signature_28_0)
     
-     # Testcase 135:  result rd:x7(0xcccc)
-    li x7, 0xcccc
+     # Testcase 135:  result rd:x6(0xcccc)
+    li x6, 0xcccc
     jal x31, 1f
-    li x7, 0x123ab
+    li x6, 0x123ab
 1: 
-    sw x7, 0(x5)
-    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+    sw x6, 0(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
 
-     # Testcase 136:  result rd:x7(0xcccc)
-    li x7, 0xcccc
+     # Testcase 136:  result rd:x6(0xcccc)
+    li x6, 0xcccc
     jal x1, 2f
-    li x7, 0x123ab
+    li x6, 0x123ab
 2: 
-    sw x7, 4(x5)
-    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+    sw x6, 4(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 137:  result rd:x7(0xcccc)
-    li x7, 0xcccc
+    # Testcase 137:  result rd:x6(0xcccc)
+    li x6, 0xcccc
     jal x1, 2b
-    li x7, 0x123ab
+    li x6, 0x123ab
 4:
-    sw x7, 8(x5)
-    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+    sw x6, 8(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
 
-     # Testcase 138:  result rd:x7(0xcccc)
-    li x7, 0xcccc
+     # Testcase 138:  result rd:x6(0xcccc)
+    li x6, 0xcccc
     jal x2, 4f
-    li x7, 0x123ab
+    li x6, 0x123ab
 4: 
-    sw x7, 12(x5)
-    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+    sw x6, 12(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
 
-     # Testcase 139:  result rd:x7(0xcccc)
-    li x7, 0xcccc
+     # Testcase 139:  result rd:x6(0xcccc)
+    li x6, 0xcccc
     jal x3, 5f
-    li x7, 0x123ab
+    li x6, 0x123ab
 5: 
-    sw x7, 16(x5)
-    RVMODEL_IO_ASSERT_GPR_EQ(x6, x7, 0xcccc)
+    sw x6, 16(x4)
+    RVMODEL_IO_ASSERT_GPR_EQ(x5, x6, 0xcccc)
 
 
 
@@ -1693,64 +1693,42 @@ RVTEST_CODE_BEGIN
 
     
 
-    RVTEST_SIGBASE(x2,signature_34_0)
+    RVTEST_SIGBASE(x1,signature_34_0)
     
-     # Testcase 165:  result rd:x4(0xcccc)
-    li x4, 0xcccc
+     # Testcase 165:  result rd:x3(0xcccc)
+    li x3, 0xcccc
     jal x29, 1f
-    li x4, 0x123ab
+    li x3, 0x123ab
 1: 
-    sw x4, 0(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
+    sw x3, 0(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
-     # Testcase 166:  result rd:x4(0xcccc)
-    li x4, 0xcccc
+     # Testcase 166:  result rd:x3(0xcccc)
+    li x3, 0xcccc
     jal x30, 2f
-    li x4, 0x123ab
+    li x3, 0x123ab
 2: 
-    sw x4, 4(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
+    sw x3, 4(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
      jal x0, 3f
 2:
     jal x0, 4f
 3:
-    # Testcase 167:  result rd:x4(0xcccc)
-    li x4, 0xcccc
-    jal x31, 2b
-    li x4, 0x123ab
-4:
-    sw x4, 8(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
-
-     # Testcase 168:  result rd:x4(0xcccc)
-    li x4, 0xcccc
-    jal x22, 4f
-    li x4, 0x123ab
-4: 
-    sw x4, 12(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
-
-     # Testcase 169:  result rd:x4(0xcccc)
-    li x4, 0xcccc
-    jal x0, 5f
-    li x4, 0x123ab
-5: 
-    sw x4, 16(x2)
-    RVMODEL_IO_ASSERT_GPR_EQ(x3, x4, 0xcccc)
-
-
-
-    
-
-    RVTEST_SIGBASE(x1,signature_35_0)
-    
-     # Testcase 170:  result rd:x3(0xcccc)
+    # Testcase 167:  result rd:x3(0xcccc)
     li x3, 0xcccc
-    jal x7, 1f
+    jal x31, 2b
     li x3, 0x123ab
-1: 
-    sw x3, 0(x1)
+4:
+    sw x3, 8(x1)
+    RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
+
+     # Testcase 168:  result rd:x3(0xcccc)
+    li x3, 0xcccc
+    jal x0, 4f
+    li x3, 0x123ab
+4: 
+    sw x3, 12(x1)
     RVMODEL_IO_ASSERT_GPR_EQ(x2, x3, 0xcccc)
 
 	
@@ -1842,8 +1820,6 @@ signature_32_0:
 signature_33_0:
 	.fill 5, 4, 0xdeadbeef
 signature_34_0:
-	.fill 5, 4, 0xdeadbeef
-signature_35_0:
 	.fill 5, 4, 0xdeadbeef
 
 

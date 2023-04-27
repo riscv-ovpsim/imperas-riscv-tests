@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -33,48 +33,48 @@ Other instructions (those not the focus of this suite)
   csrrw : 100
   mret : 50
   slli : 42,263
-  addw : 678
-  sd : 17,434
-  fence : 51
-  ecall : 50
-  beq : 831
-  and : 677
   jalr : 97
   xori : 689
   andi : 684
   sub : 1,330
-  sext.w : 27
-  bge : 674
-  bne : 678
-  blt : 674
-  bltu : 814
+  sd : 17,434
+  fence : 51
+  ecall : 50
+  beq : 831
+  add : 679
   sw : 136
   lw : 34
-  add : 679
+  bne : 678
+  blt : 674
+  addw : 678
+  sext.w : 27
+  bge : 674
+  and : 677
   bgeu : 821
-  lbu : 33
+  bltu : 814
   lb : 32
+  lbu : 33
   ld : 32
   lh : 32
-  lwu : 32
   lhu : 32
   or : 678
+  lwu : 32
   ori : 622
   sb : 135
   sh : 133
   sll : 153
-  sltiu : 759
   slliw : 150
   sllw : 153
-  slti : 617
-  sltu : 819
-  srai : 152
-  sraiw : 152
   slt : 676
+  slti : 617
+  sltiu : 759
+  srai : 152
   sra : 154
   srl : 153
-  srli : 153
+  sltu : 819
+  sraiw : 152
   sraw : 154
+  srli : 153
   srliw : 152
   srlw : 154
   subw : 678

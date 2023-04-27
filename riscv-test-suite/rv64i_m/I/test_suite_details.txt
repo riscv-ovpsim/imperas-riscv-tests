@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,13 +20,13 @@ Architectural Test Suite Data for RV64I RV64I Base Integer Instruction Set:
     60 test source files
     10 different instruction categories
     57 different instructions
-    120,892 total instructions
+    120,880 total instructions
 
 Instruction category: arithmetic 
-  lui : 11,143
-  addiw : 15,982
+  lui : 11,141
+  addiw : 15,980
   auipc : 7,477
-  addi : 33,926
+  addi : 33,924
   sub : 896
   add : 3,611
   addw : 300
@@ -36,14 +36,14 @@ Instruction category: logical
   andi : 322
   xori : 299
   xor : 301
-  and : 301
   or : 301
+  and : 301
 Instruction category: branch 
   beq : 482
   bne : 302
-  bltu : 302
-  bge : 302
   blt : 333
+  bge : 302
+  bltu : 302
   bgeu : 302
 Instruction category: OPI_IMN 
   ecall : 61
@@ -51,38 +51,38 @@ Instruction category: OPI_IMN
 Instruction category: synch 
   fence : 60
 Instruction category: jump 
-  jal : 1,224
+  jal : 1,220
   jalr : 306
 Instruction category: load 
-  lw : 303
   lb : 298
+  lw : 303
   lh : 302
   lbu : 303
   lhu : 303
   ld : 1,494
   lwu : 297
 Instruction category: store 
-  sd : 14,998
+  sd : 14,996
   sb : 297
-  sh : 301
   sw : 485
+  sh : 301
 Instruction category: shift 
   slli : 17,385
-  srli : 299
   sll : 301
+  srli : 299
   srai : 299
-  srl : 301
   sra : 301
-  sraiw : 298
-  srliw : 298
   slliw : 298
+  srliw : 298
+  sraw : 300
   sllw : 300
   srlw : 300
-  sraw : 300
+  sraiw : 298
+  srl : 301
 Instruction category: compare 
   slti : 299
-  sltiu : 299
   sltu : 301
+  sltiu : 299
   slt : 301
 
 Other instructions (those not the focus of this suite)

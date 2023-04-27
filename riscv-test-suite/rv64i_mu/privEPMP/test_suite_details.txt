@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd. All Rights Reserved.
+    # Copyright (c) 2005-2023 Imperas Software Ltd. All Rights Reserved.
     #
     # THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS
     # OF IMPERAS SOFTWARE LTD. USE, DISCLOSURE, OR REPRODUCTION IS PROHIBITED
@@ -30,10 +30,10 @@ Other instructions (those not the focus of this suite)
   or : 3,752
   beq : 168
   jalr : 466
+  FETCH : 514
+  bne : 6,204
   sw : 3,584
   lw : 896
-  bne : 6,204
-  FETCH : 514
   fence : 28
   ecall : 56
   csrrc : 28

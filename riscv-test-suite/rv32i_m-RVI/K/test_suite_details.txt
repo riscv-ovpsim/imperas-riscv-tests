@@ -33,24 +33,24 @@ Other instructions (those not the focus of this suite)
   auipc : 423
   csrrw : 124
   mret : 62
-  aes32dsi : 385
+  aes32dsmi : 385
   sw : 9,756
   fence : 62
   ecall : 62
   beq : 186
-  aes32dsmi : 385
+  aes32dsi : 385
   aes32esi : 383
   aes32esmi : 384
-  clmulh : 269
-  pack : 269
-  andn : 269
-  clmul : 269
-  packh : 269
-  grevi : 264
   orn : 269
-  rori : 158
-  ror : 269
+  packh : 269
+  andn : 269
+  grevi : 264
+  pack : 269
+  clmulh : 269
+  clmul : 269
   rol : 269
+  ror : 269
+  rori : 158
   sha256sig0 : 195
   xor : 648
   xori : 648
@@ -60,8 +60,8 @@ Other instructions (those not the focus of this suite)
   sha256sum0 : 195
   sha256sum1 : 195
   sha512sig0h : 227
-  sha512sig1h : 228
   sha512sig0l : 229
+  sha512sig1h : 228
   sha512sig1l : 229
   sha512sum0r : 229
   sha512sum1r : 228
@@ -69,7 +69,7 @@ Other instructions (those not the focus of this suite)
   sm3p1 : 195
   sm4ed : 383
   sm4ks : 383
+  unshfli : 132
   xnor : 269
   shfli : 132
-  unshfli : 132
 

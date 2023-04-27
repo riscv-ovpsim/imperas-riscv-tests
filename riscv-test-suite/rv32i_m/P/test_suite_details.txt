@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -23,253 +23,253 @@ Architectural Test Suite Data for RV32P P DSP:
     263,531 total instructions
 
 Instruction category: OPP_SIMD SIMD Instructions (P-DSP)
-  add8 : 172
-  bitrev : 172
-  clrs8 : 170
   ave : 172
-  add16 : 172
+  bitrev : 172
   bpick : 75
-  add64 : 299
-  clrs16 : 170
-  clo16 : 170
-  clo8 : 170
   clrs32 : 170
-  clo32 : 170
-  clz8 : 170
-  clz16 : 170
+  clrs8 : 170
+  add64 : 299
+  add8 : 172
+  add16 : 172
+  clo16 : 170
   clz32 : 170
+  clz16 : 170
+  clo32 : 170
   cmpeq8 : 172
-  cmpeq16 : 172
+  clo8 : 170
+  clrs16 : 170
+  clz8 : 170
   cras16 : 172
+  cmpeq16 : 172
   crsa16 : 172
   insb : 170
-  kabs16 : 170
-  kabs8 : 170
   kabsw : 170
-  kadd8 : 172
-  kadd16 : 172
   kadd64 : 299
-  kaddw : 172
-  kaddh : 172
+  kadd8 : 172
   kcras16 : 172
+  kaddh : 172
+  kabs8 : 170
   kcrsa16 : 172
-  kdmbb : 172
   kdmbt : 172
+  kdmbb : 172
+  kadd16 : 172
+  kabs16 : 170
+  kaddw : 172
   kdmtt : 172
   kdmabb : 172
   kdmabt : 172
   kdmatt : 172
   khm8 : 172
-  khmx8 : 172
   khm16 : 172
   khmx16 : 172
+  khmx8 : 172
   khmbb : 172
   khmbt : 172
   khmtt : 172
-  kmabb : 172
   kmabt : 172
+  kmabb : 172
   kmatt : 172
-  kmada : 172
   kmaxda : 172
-  kmads : 172
   kmadrs : 172
   kmaxds : 172
   kmar64 : 300
-  kmmawb.u : 172
   kmda : 172
-  kmxda : 172
-  kmmawb : 172
+  kmads : 172
+  kmada : 172
   kmmac : 172
-  kmmac.u : 172
-  kmmawb2.u : 172
-  kmmawb2 : 172
+  kmxda : 172
   kmmawt : 172
   kmmawt.u : 172
   kmmawt2 : 172
-  kmmawt2.u : 172
+  kmmawb : 172
+  kmmawb2.u : 172
+  kmmac.u : 172
+  kmmawb.u : 172
+  kmmawb2 : 172
+  kmmsb : 172
+  kmmwb2 : 172
+  kmmsb.u : 172
   kmmwb2.u : 172
   kmmwt2 : 172
-  kmmwb2 : 172
-  kmmsb : 172
-  kmmwt2.u : 172
-  kmmsb.u : 172
-  kmsr64 : 300
-  kmsxda : 172
+  kmmawt2.u : 172
   kmsda : 172
-  kslliw : 170
+  kmmwt2.u : 172
+  kmsr64 : 300
   ksllw : 172
   ksll8 : 172
   ksll16 : 172
+  kmsxda : 172
+  kslliw : 170
+  kslra8 : 172
+  kslra8.u : 172
   kslli8 : 170
   kslli16 : 170
-  kslra16 : 172
-  kslra8.u : 172
-  kslra8 : 172
   kslra16.u : 172
   kslraw : 172
   kstas16 : 172
+  kslra16 : 172
   kstsa16 : 172
-  ksubh : 172
   kslraw.u : 172
-  ksub8 : 172
-  kwmmul : 172
-  ksub64 : 299
-  kwmmul.u : 172
-  ksubw : 172
   ksub16 : 172
+  ksub8 : 172
+  ksub64 : 299
+  ksubw : 172
+  ksubh : 172
+  kwmmul : 172
+  kwmmul.u : 172
   minw : 172
-  maddr32 : 172
   maxw : 172
+  maddr32 : 172
+  pbsad : 172
   mulr64 : 300
   mulsr64 : 300
-  pbsad : 172
   msubr32 : 172
+  pbsada : 172
   pkbb16 : 172
   pkbt16 : 172
-  pktb16 : 172
-  radd8 : 172
   pktt16 : 172
-  pbsada : 172
+  pktb16 : 172
   raddw : 172
-  radd16 : 172
+  radd8 : 172
   radd64 : 299
-  rstas16 : 172
+  radd16 : 172
   rstsa16 : 172
-  rcrsa16 : 172
-  rcras16 : 172
-  rsub8 : 172
-  rsubw : 172
   rsub16 : 172
-  sclip8 : 170
+  rsub8 : 172
+  rcras16 : 172
+  rcrsa16 : 172
   rsub64 : 299
+  rstas16 : 172
+  sclip8 : 170
+  rsubw : 172
+  sclip32 : 170
   sclip16 : 170
+  scmple16 : 172
+  sll8 : 172
   scmplt16 : 172
   scmplt8 : 172
   scmple8 : 172
-  sclip32 : 170
-  scmple16 : 172
   slli8 : 170
-  sll8 : 172
-  smalbb : 300
   smal : 299
-  smaltt : 300
-  sll16 : 172
+  smalbb : 300
   slli16 : 170
-  smalbt : 300
+  sll16 : 172
   smalda : 300
-  smalds : 300
-  smar64 : 300
-  smalxda : 300
+  smalbt : 300
+  smaltt : 300
   smaldrs : 300
-  smalxds : 300
+  smax8 : 172
+  smalxda : 300
   smaqa : 172
+  smar64 : 300
+  smalds : 300
+  smalxds : 300
   smax16 : 172
   smaqa.su : 172
-  smbb16 : 172
-  smax8 : 172
-  smbt16 : 172
   smtt16 : 172
+  smbt16 : 172
   smds : 172
-  smxds : 172
   smdrs : 172
-  smmul.u : 172
+  smbb16 : 172
   smin8 : 172
-  smmul : 172
-  smmwb.u : 172
-  smmwb : 172
-  smmwt.u : 172
+  smxds : 172
   smin16 : 172
-  smslda : 300
-  smsr64 : 300
-  smulx8 : 300
+  smmul : 172
+  smmul.u : 172
   smmwt : 172
+  smmwb : 172
+  smslda : 300
+  smmwb.u : 172
+  smmwt.u : 172
+  smulx8 : 300
+  smul16 : 300
   smul8 : 300
   smslxda : 300
-  smulx16 : 300
-  smul16 : 300
+  smsr64 : 300
   sra.u : 172
+  smulx16 : 300
   srai.u : 170
-  sra8 : 172
   sra8.u : 172
-  srai8 : 170
-  srai8.u : 170
   sra16 : 172
+  srai8.u : 170
+  sra8 : 172
+  srai8 : 170
   sra16.u : 172
-  srai16 : 170
-  srli8.u : 170
-  srl8 : 172
-  srli8 : 170
-  srl16 : 172
   srl8.u : 172
+  srl8 : 172
   srai16.u : 170
-  srl16.u : 172
+  srai16 : 170
+  srl16 : 172
+  srli8.u : 170
+  srli8 : 170
+  stsa16 : 172
   srli16 : 170
+  sub16 : 172
+  srl16.u : 172
   srli16.u : 170
   stas16 : 172
-  sub16 : 172
   sub8 : 172
-  sunpkd810 : 170
-  stsa16 : 172
   sub64 : 299
-  swap8 : 170
-  uclip8 : 170
-  uclip16 : 170
-  sunpkd832 : 170
+  sunpkd810 : 170
   sunpkd820 : 170
   sunpkd830 : 170
+  sunpkd832 : 170
+  uclip8 : 170
   sunpkd831 : 170
-  ucmple8 : 172
   swap16 : 170
+  swap8 : 170
   uclip32 : 170
+  ucmple8 : 172
+  uclip16 : 170
   ucmplt8 : 172
   ucmple16 : 172
-  ucmplt16 : 172
-  ukadd16 : 172
-  ukadd8 : 172
-  ukcrsa16 : 172
-  ukmar64 : 300
-  ukmsr64 : 300
-  ukcras16 : 172
-  ukaddw : 172
   ukadd64 : 299
+  ukadd8 : 172
   ukaddh : 172
-  ukstsa16 : 172
+  ukaddw : 172
+  ucmplt16 : 172
+  ukcras16 : 172
+  ukadd16 : 172
+  ukcrsa16 : 172
   ukstas16 : 172
-  uksub8 : 172
-  uksubh : 172
-  uksub64 : 299
   uksub16 : 172
+  ukmsr64 : 300
+  ukmar64 : 300
+  ukstsa16 : 172
+  uksub8 : 172
+  uksub64 : 299
   uksubw : 172
-  umaqa : 172
-  umax8 : 172
+  uksubh : 172
+  umax16 : 172
   umar64 : 300
   umin8 : 172
+  umaqa : 172
   umsr64 : 300
-  umax16 : 172
   umin16 : 172
-  umul8 : 300
-  umulx16 : 300
-  umulx8 : 300
+  umax8 : 172
   umul16 : 300
+  umulx8 : 300
+  umul8 : 300
+  uradd16 : 172
+  umulx16 : 300
+  uradd64 : 299
   uradd8 : 172
   uraddw : 172
+  urcrsa16 : 172
   urcras16 : 172
-  uradd64 : 299
-  uradd16 : 172
   urstas16 : 172
   urstsa16 : 172
-  ursub16 : 172
   ursub8 : 172
-  urcrsa16 : 172
   ursubw : 172
   ursub64 : 299
   wexti : 298
+  ursub16 : 172
   wext : 299
   zunpkd810 : 170
-  zunpkd831 : 170
   zunpkd820 : 170
-  zunpkd830 : 170
   zunpkd832 : 170
+  zunpkd830 : 170
+  zunpkd831 : 170
 
 Other instructions (those not the focus of this suite)
   jal : 247

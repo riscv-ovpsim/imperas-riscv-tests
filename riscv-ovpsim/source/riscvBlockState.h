@@ -101,6 +101,8 @@ typedef struct riscvBlockStateS {
     Bool             updateFFlags :  1; // whether to update fflags from fflags_i
     Bool             doLSTrig     :  1; // whether load/store triggers enabled
     Bool             ZfhminOK     :  1; // whether allowed by Zfhmin
+    Bool             ZfbfminOK    :  1; // whether allowed by Zfbfmin
+    Bool             ZvfbfwmaOK   :  1; // whether allowed by Zvfbfwma
     Bool             FSDirty      :  1; // is status.FS known to be dirty?
     Bool             VSDirty      :  1; // is status.VS known to be dirty?
 

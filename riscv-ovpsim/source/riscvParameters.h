@@ -289,6 +289,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zve64f);
     VMI_BOOL_PARAM(Zve64d);
     VMI_BOOL_PARAM(Zvfbfmin);
+    VMI_BOOL_PARAM(Zvfbfwma);
     VMI_BOOL_PARAM(Zba);
     VMI_BOOL_PARAM(Zbb);
     VMI_BOOL_PARAM(Zbc);
@@ -315,11 +316,13 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zknh);
     VMI_BOOL_PARAM(Zksed);
     VMI_BOOL_PARAM(Zksh);
+    VMI_BOOL_PARAM(Zvbb);
+    VMI_BOOL_PARAM(Zvbc);
     VMI_BOOL_PARAM(Zvkb);
     VMI_BOOL_PARAM(Zvkg);
     VMI_BOOL_PARAM(Zvknha);
     VMI_BOOL_PARAM(Zvknhb);
-    VMI_BOOL_PARAM(Zvkns);
+    VMI_BOOL_PARAM(Zvkned);
     VMI_BOOL_PARAM(Zvksed);
     VMI_BOOL_PARAM(Zvksh);
     VMI_BOOL_PARAM(Zkb);
@@ -327,6 +330,7 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(Zfa);
     VMI_BOOL_PARAM(Zfh);
     VMI_BOOL_PARAM(Zfhmin);
+    VMI_BOOL_PARAM(Zfbfmin);
     VMI_BOOL_PARAM(Zvfh);
     VMI_BOOL_PARAM(Zvfhmin);
     VMI_BOOL_PARAM(Zpsfoperand);
@@ -344,6 +348,8 @@ typedef struct riscvParamValuesS {
 
     // CLIC configuration
     VMI_UNS64_PARAM(mclicbase);
+    VMI_UNS64_PARAM(sclicbase);
+    VMI_UNS64_PARAM(uclicbase);
     VMI_UNS32_PARAM(CLICLEVELS);
     VMI_BOOL_PARAM(CLICANDBASIC);
     VMI_UNS32_PARAM(CLICVERSION);

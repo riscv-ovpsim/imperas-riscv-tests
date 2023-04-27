@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,26 +20,26 @@ Architectural Test Suite Data for RV32I Base Integer Instruction Set:
     48 test source files
     10 different instruction categories
     44 different instructions
-    43,992 total instructions
+    43,980 total instructions
 
 Instruction category: arithmetic 
-  lui : 8,055
-  addi : 16,323
-  auipc : 3,635
+  lui : 8,053
+  addi : 16,318
+  auipc : 3,634
   sub : 512
   add : 1,568
 Instruction category: logical 
   ori : 171
   andi : 194
   xori : 171
-  xor : 173
-  or : 173
   and : 173
+  or : 173
+  xor : 173
 Instruction category: branch 
   beq : 318
   bgeu : 174
-  bltu : 174
   bge : 174
+  bltu : 174
   blt : 205
   bne : 174
 Instruction category: OPI_IMN 
@@ -48,7 +48,7 @@ Instruction category: OPI_IMN
 Instruction category: synch 
   fence : 48
 Instruction category: jump 
-  jal : 712
+  jal : 710
   jalr : 178
 Instruction category: load 
   lw : 691
@@ -57,16 +57,16 @@ Instruction category: load
   lhu : 175
   lbu : 175
 Instruction category: store 
-  sw : 6,739
-  sh : 173
+  sw : 6,737
   sb : 169
+  sh : 173
 Instruction category: shift 
   slli : 202
-  srli : 171
   srai : 171
+  srli : 171
   sll : 173
-  srl : 173
   sra : 173
+  srl : 173
 Instruction category: compare 
   slti : 171
   sltiu : 171

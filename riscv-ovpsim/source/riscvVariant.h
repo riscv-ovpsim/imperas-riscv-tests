@@ -49,7 +49,8 @@
 #define TM_S_CHAR               ('Z'+19)
 #define TM_X_CHAR               ('Z'+20)
 #define BF16_CHAR               ('Z'+21)
-#define RISCV_FAND_CHAR         ('Z'+22)
+#define UX_CHAR                 ('Z'+22)
+#define RISCV_FAND_CHAR         ('Z'+23)
 #define RISCV_FEATURE_INDEX(_C) ((_C)-'A')
 #define RISCV_FEATURE_BIT(_C)   (1ULL<<RISCV_FEATURE_INDEX(_C))
 #define XLEN_SHIFT              RISCV_FEATURE_INDEX(XLEN32_CHAR)
@@ -96,6 +97,9 @@ typedef enum riscvArchitectureE {
 
     // DYNAMIC BF16 FORMAT
     ISA_BF16   = RISCV_FEATURE_BIT(BF16_CHAR),
+
+    // UNALIGNED EXCEPTIONS
+    ISA_UX     = RISCV_FEATURE_BIT(UX_CHAR),
 
     // FEATURES A AND B
     ISA_and    = RISCV_FEATURE_BIT(RISCV_FAND_CHAR), // (CSR artifact)
@@ -213,6 +217,7 @@ typedef enum riscvArchitectureE {
     RVANYK   = ISA_XLEN_ANY |                                                                                         ISA_K,
     RVANYP   = ISA_XLEN_ANY |                                                                                                 ISA_P,
 
+    RVANYCB  = RVANYC|RVANYB|ISA_and,
     RVANYCD  = RVANYC|RVANYD|ISA_and,
     RVANYCI  = RVANYC|RVANYI|ISA_and,
     RVANYCM  = RVANYC|RVANYM|ISA_and,
@@ -446,16 +451,18 @@ typedef enum riscvCryptoVerE {
 //
 // Date and tag of Vector Cryptographic Architecture master version
 //
-#define RVKVV_MASTER_DATE    "11 January 2023"
-#define RVKVV_MASTER_TAG     "053169b"
+#define RVKVV_MASTER_DATE    "13 April 2023"
+#define RVKVV_MASTER_TAG     "f6b6365"
 
 //
 // Supported Vector Cryptographic Architecture versions
 //
 typedef enum riscvVCryptoVerE {
+    RVKVV_0_3_0,                        // version 0.3.0
+    RVKVV_0_5_2,                        // version 0.5.2
     RVKVV_MASTER,                       // version master
     RVKVV_LAST,                         // for sizing
-    RVKVV_DEFAULT = RVKVV_MASTER,       // default version
+    RVKVV_DEFAULT = RVKVV_0_5_2,        // default version
 } riscvVCryptoVer;
 
 //
@@ -479,13 +486,15 @@ typedef enum riscvCryptoSetE {
     RVKS_Zkg    = RVKS_Zbkc,            // (deprecated alias for Zbkc)
 
                                         // VECTOR SUBSETS
-    RVKS_Zvkb   = (1<<9),               // vector cryptographic bit manipulation
-    RVKS_Zvkg   = (1<<10),              // vector GCM/GMAC
-    RVKS_Zvknha = (1<<11),              // vector SHA-256 secure hash
-    RVKS_Zvknhb = (1<<12),              // vector SHA-512 secure hash
-    RVKS_Zvkns  = (1<<13),              // vector AES block cipher
-    RVKS_Zvksed = (1<<14),              // vector SM4 instructions
-    RVKS_Zvksh  = (1<<15),              // vector SM3 instructions
+    RVKS_Zvbb   = (1<<9),               // vector bit manipulation
+    RVKS_Zvbc   = (1<<10),              // carry-less multiply
+    RVKS_Zvkg   = (1<<11),              // GCM/GMAC
+    RVKS_Zvknha = (1<<12),              // SHA-256 secure hash
+    RVKS_Zvknhb = (1<<13),              // SHA-512 secure hash
+    RVKS_Zvkned = (1<<14),              // AES block cipher
+    RVKS_Zvksed = (1<<15),              // SM4 instructions
+    RVKS_Zvksh  = (1<<16),              // SM3 hash function instructions
+    RVKS_Zvkb   = RVKS_Zvbb,            // (deprecated alias for Zvbb)
 
 } riscvCryptoSet;
 
@@ -530,10 +539,10 @@ typedef enum riscvDebugVerE {
 } riscvDebugVer;
 
 //
-// Date and tag of master version
+// Date and tag of CLIC master version
 //
-#define RVCLC_MASTER_DATE    "8 November 2022"
-#define RVCLC_MASTER_TAG     "e31cc78"
+#define RVCLC_MASTER_DATE    "28 March 2023"
+#define RVCLC_MASTER_TAG     "34e9028"
 
 //
 // Supported CLIC version
@@ -542,23 +551,25 @@ typedef enum riscvCLICVerE {
     RVCLC_20180831,                     // 20180831
     RVCLC_0_9_20191208,                 // 0.9-draft-20191208
     RVCLC_0_9_20220315,                 // 0.9-draft-20220315
+    RVCLC_0_9_20221108,                 // 0.9-draft-20221108
     RVCLC_MASTER,                       // master branch
     RVCLC_DEFAULT = RVCLC_0_9_20220315, // default version
 } riscvCLICVer;
 
 //
-// Date and tag of master version
+// Date and tag of AIA master version
 //
-#define RVAIA_MASTER_DATE    "8 November 2022"
-#define RVAIA_MASTER_TAG     "8604126"
+#define RVAIA_MASTER_DATE    "22 January 2023"
+#define RVAIA_MASTER_TAG     "3cadacb"
 
 //
 // Supported AIA version
 //
 typedef enum riscvAIAVerE {
     RVAIA_1_0_RC1,                      // 1.0-RC1
+    RVAIA_1_0_RC3,                      // 1.0-RC3
     RVAIA_MASTER,                       // master branch
-    RVAIA_DEFAULT = RVAIA_1_0_RC1,      // default version
+    RVAIA_DEFAULT = RVAIA_1_0_RC3,      // default version
 } riscvAIAVer;
 
 //
@@ -568,8 +579,9 @@ typedef enum riscvZfinxVerE {
     RVZFINX_NA,                         // Zfinx not implemented (default)
     RVZFINX_0_4,                        // Zfinx version 0.4
     RVZFINX_0_41,                       // Zfinx version 0.41
+    RVZFINX_1_0,                        // Zfinx version 1.0
     RVZFINX_LAST,                       // for sizing
-    RVZFINX_DEFAULT = RVZFINX_0_41,     // default version
+    RVZFINX_DEFAULT = RVZFINX_1_0,      // default version
 } riscvZfinxVer;
 
 //

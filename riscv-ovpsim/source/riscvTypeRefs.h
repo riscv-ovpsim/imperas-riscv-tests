@@ -47,9 +47,11 @@ DEFINE_CS(riscvMorphAttr);
 DEFINE_S (riscvMorphState);
 DEFINE_S (riscvParamValues);
 DEFINE_S (riscvPendEnab);
+DEFINE_CS(riscvPMARegion);
 DEFINE_S (riscvRegList);
 DEFINE_S (riscvTData1UP);
 DEFINE_S (riscvTData3UP);
 DEFINE_S (riscvTLB);
+DEFINE_S (riscvTLBVCxt);
 DEFINE_S (riscvTrigger);
 

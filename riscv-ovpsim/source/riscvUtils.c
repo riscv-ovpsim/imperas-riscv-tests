@@ -953,7 +953,11 @@ riscvArchitecture riscvParseExtensions(const char *extensions) {
 // If this memory access callback is triggered, abort any active load linked
 //
 static VMI_MEM_WATCH_FN(abortEA) {
-    riscvAbortExclusiveAccess(userData);
+
+    // ignore try-writes
+    if(value) {
+        riscvAbortExclusiveAccess(userData);
+    }
 }
 
 //

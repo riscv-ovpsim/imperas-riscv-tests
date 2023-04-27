@@ -28,6 +28,11 @@
 // model header files
 #include "riscvTypeRefs.h"
 
+
+////////////////////////////////////////////////////////////////////////////////
+// SCALAR CRYPTOGRAPHIC OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
 //
 // This enumerates K-extension operations with special behavior
 //
@@ -42,15 +47,6 @@ typedef enum riscvKExtOpE {
     RVKOP_Zknh,         // NIST SHA2 hash function instructions
     RVKOP_Zksed,        // SM4 instructions
     RVKOP_Zksh,         // SM3 hash function instructions
-
-    // vector operation subsets (if not callbacks)
-    RVKOP_Zvkb,         // vector cryptographic bit-manipulation
-    RVKOP_Zvkg,         // vector cryptographic GCM/GMAC
-    RVKOP_Zvknha,       // vector NIST SHA2-256 hash function
-    RVKOP_Zvknhb,       // vector NIST SHA2-512 hash function
-    RVKOP_Zvkns,        // vector NIST AES block cipher
-    RVKOP_Zvksed,       // vector SM4 encryption and decryption
-    RVKOP_Zvksh,        // vector SM3 hash function
 
     // scalar operations implemented as callbacks or version-specific
     RVKOP_LUT4LO,       // lut4lo
@@ -86,18 +82,6 @@ typedef enum riscvKExtOpE {
     RVKOP_SSHA512_SUM0, // sha512sum0
     RVKOP_SSHA512_SUM1, // sha512sum1
 
-    // vector operations implemented as callbacks
-    RVKOP_VAESKF1,      // vaeskf1.vi
-    RVKOP_VAESKF2,      // vaeskf2.vi
-    RVKOP_VGHMAC,       // vghmac.vv
-    RVKOP_VSM3ME,       // vsm3me.vv
-    RVKOP_VSM3C,        // vsm3c.vi
-    RVKOP_VSM4K,        // vsm4k.vi
-    RVKOP_VSM4R,        // vsm4r.[vv,vs]
-    RVKOP_VSHA2MS,      // vsha2ms.vv
-    RVKOP_VSHA2CL,      // vsha2cl.vv
-    RVKOP_VSHA2CH,      // vsha2ch.vv
-
     RVKOP_LAST,         // KEEP LAST: for sizing
 
 } riscvKExtOp;
@@ -115,10 +99,66 @@ Uns32 riscvPollEntropy(riscvP riscv);
 vmiCallFn riscvGetKOpCB(riscvP riscv, riscvKExtOp op, Uns32 bits);
 
 //
-// Validate that the instruction subset is supported and enabled and take an
+// Validate that the K-extension subset is supported and enabled and take an
 // Illegal Instruction exception if not
 //
 Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// VECTOR CRYPTOGRAPHIC OPERATIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// This enumerates VK-extension operations with special behavior
+//
+typedef enum riscvVKExtOpE {
+
+    RVVKOP_NONE,        // not a VK-extension operation
+
+    // vector operation subsets (if not callbacks)
+    RVVKOP_Zvbb,        // vector cryptographic bit-manipulation
+    RVVKOP_Zvbb_0_4_5,  // vector cryptographic bit-manipulation (0.4.5 on)
+    RVVKOP_Zvbc,        // vector cryptographic carryless multiply
+    RVVKOP_Zvkg,        // vector cryptographic GCM/GMAC
+    RVVKOP_Zvknha,      // vector NIST SHA2-256 hash function
+    RVVKOP_Zvknhb,      // vector NIST SHA2-512 hash function
+    RVVKOP_Zvkned,      // vector NIST AES block cipher
+    RVVKOP_Zvksed,      // vector SM4 encryption and decryption
+    RVVKOP_Zvksh,       // vector SM3 hash function
+
+    // vector operations implemented as callbacks
+    RVVKOP_VAESKF1,     // vaeskf1.vi
+    RVVKOP_VAESKF2,     // vaeskf2.vi
+    RVVKOP_VGMUL,       // vgmul.vv
+    RVVKOP_VGHSH,       // vghsh.vv
+    RVVKOP_VSM3ME,      // vsm3me.vv
+    RVVKOP_VSM3C,       // vsm3c.vi
+    RVVKOP_VSM4K,       // vsm4k.vi
+    RVVKOP_VSM4R,       // vsm4r.[vv,vs]
+    RVVKOP_VSHA2MS,     // vsha2ms.vv
+    RVVKOP_VSHA2CL,     // vsha2cl.vv
+    RVVKOP_VSHA2CH,     // vsha2ch.vv
+
+    RVVKOP_LAST,        // KEEP LAST: for sizing
+
+} riscvVKExtOp;
+
+//
+// Return implementation callback for VK-extension operation and bits
+//
+vmiCallFn riscvGetVKOpCB(riscvP riscv, riscvVKExtOp op, Uns32 bits);
+
+//
+// Validate that the VK-extension subset is supported and enabled and take an
+// Illegal Instruction exception if not
+//
+Bool riscvValidateVKExtSubset(riscvP riscv, riscvVKExtOp op);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// SAVE/RESTORE
+////////////////////////////////////////////////////////////////////////////////
 
 //
 // Save K-extension state not covered by register read/write API

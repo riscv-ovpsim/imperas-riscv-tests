@@ -33,17 +33,8 @@
 #include "riscvMode.h"
 #include "riscvStructure.h"
 #include "riscvTypeRefs.h"
+#include "riscvUtils.h"
 
-
-//
-// Type of CLIC page being accessed
-//
-typedef enum CLICPageTypeE {
-    CPT_C,  // control page
-    CPT_M,  // Machine mode page
-    CPT_S,  // Supervisor mode page
-    CPT_U,  // User mode page
-} CLICPageType;
 
 //
 // This enumerates byte-sized CLIC interrupt control fields
@@ -53,6 +44,7 @@ typedef enum CLICIntFieldTypeE {
     CIT_clicintie   = 1,
     CIT_clicintattr = 2,
     CIT_clicintctl  = 3,
+    CIT_clicconfig  = 4,    // configuration page access
     CIT_LAST
 } CLICIntFieldType;
 
@@ -65,19 +57,15 @@ typedef union riscvCLICIntStateU {
 } riscvCLICIntState;
 
 //
-// Return page type name
+// This describes access to a CLIC field in an abstract form
 //
-static const char *mapCLICPageTypeName(CLICPageType type) {
-
-    static const char *map[] = {
-        [CPT_C] = "Control",
-        [CPT_M] = "Machine",
-        [CPT_S] = "Supervisor",
-        [CPT_U] = "User",
-    };
-
-    return map[type];
-}
+typedef struct CLICIntDescS {
+    Int32            hartIndex;     // selected hart
+    Uns32            rawIndex;      // raw field index (for debug)
+    Uns32            intIndex : 16; // interrupt index
+    riscvMode        mode     :  8; // page mode
+    CLICIntFieldType fType    :  8; // interrupt control field type
+} CLICIntDesc, *CLICIntDescP;
 
 //
 // Return the number of hart contexts in a cluster
@@ -94,13 +82,6 @@ inline static riscvP getCLICRoot(riscvP riscv) {
 }
 
 //
-// Return the base address of the cluster CLIC block
-//
-inline static Uns64 getCLICLow(riscvP root) {
-    return root->configInfo.csr.mclicbase.u64.bits;
-}
-
-//
 // Indicate whether software may set a level-sensitive interrupt pending
 //
 inline static Bool mayPendLevel(riscvP hart) {
@@ -108,106 +89,23 @@ inline static Bool mayPendLevel(riscvP hart) {
 }
 
 //
-// Return the page index of the given offset
+// Return nmbits
 //
-inline static Uns32 getCLICPage(Uns32 offset) {
-    return offset/4096;
+inline static Uns8 nmbitsR(riscvP root) {
+    return root->clic.cliccfg.nmbits;
 }
 
 //
-// Return the word index of the offset within a page
+// Return nlbits for the given mode
 //
-inline static Uns32 getCLICPageWord(Uns32 offset) {
-    return (offset%4096)/4;
-}
-
-//
-// Return the word index of the offset within a page
-//
-inline static Uns32 getCLICIntIndex(Uns32 offset) {
-    return ((offset-4096)/4)%4096;
-}
-
-//
-// Return the byte index of the offset within a word
-//
-inline static Uns32 getCLICWordByte(Uns32 offset) {
-    return offset%4;
-}
-
-//
-// Return type of an interrupt field accessed at the given offset
-//
-inline static CLICIntFieldType getCLICIntFieldType(Uns32 offset) {
-    return getCLICWordByte(offset);
-}
-
-//
-// Convert from 1k CLIC page index to 4k interrupt page index
-//
-inline static Uns32 get4kIntPage(Uns32 page) {
-    return (page-1)/4;
-}
-
-//
-// Return the CLIC page type being accessed at the given offset
-//
-static CLICPageType getCLICPageType(riscvP root, Uns32 offset) {
-
-    Uns32        page = getCLICPage(offset);
-    CLICPageType type = CPT_C;
-
-    if(page) {
-
-        // calculate page type from offset
-        type = CPT_M + get4kIntPage(page)/getNumHarts(root);
-
-        // sanity check result
-        VMI_ASSERT((type>=CPT_M) && (type<=CPT_U), "illegal page type %u", type);
-    }
-
-    return type;
-}
-
-//
-// Return the CLIC page mode being accessed at the given offset
-//
-static riscvMode getCLICPageMode(riscvP root, Uns32 offset) {
-
-    CLICPageType type = getCLICPageType(root, offset);
-
-    VMI_ASSERT(type!=CPT_C, "expected interrupt page");
-
-    static const riscvMode map[] = {
-        [CPT_M] = RISCV_MODE_M,
-        [CPT_S] = RISCV_MODE_S,
-        [CPT_U] = RISCV_MODE_U
-    };
-
-    return map[type];
-}
-
-//
-// Return the CLIC hart index being accessed at the given offset
-//
-static Int32 getCLICHartIndex(riscvP root, Uns32 offset) {
-
-    Uns32 page  = getCLICPage(offset);
-    Int32 index = -1;
-
-    if(page) {
-        index = get4kIntPage(page)%getNumHarts(root);
-    }
-
-    return index;
+inline static Uns8 nlbitsR(riscvP root, riscvMode mode) {
+    return root->clic.cliccfg.nlbits[mode];
 }
 
 //
 // Return the hart being accessed at the given offset
 //
-static riscvP getCLICHart(riscvP root, Uns32 offset) {
-
-    Int32 index = getCLICHartIndex(root, offset);
+static riscvP getCLICHart(riscvP root, Uns32 index) {
 
     VMI_ASSERT(index>=0, "illegal hart index");
 
@@ -218,21 +116,18 @@ static riscvP getCLICHart(riscvP root, Uns32 offset) {
 // Emit debug for CLIC region access
 //
 static void debugCLICAccess(
-    riscvP      root,
-    Uns32       raw,
-    Uns32       offset,
-    const char *access
+    riscvP       root,
+    CLICIntDescP desc,
+    const char  *access
 ) {
-    CLICPageType type = getCLICPageType(root, offset);
-    Int32        hart = getCLICHartIndex(root, offset);
-    const char  *name = mapCLICPageTypeName(type);
+    const char *modeText = riscvGetModeName(desc->mode);
 
-    if(type==CPT_C) {
+    if(desc->fType==CIT_clicconfig) {
 
-        // control page access
+        // configuration page access
         vmiMessage("I", CPU_PREFIX"_CLIC",
-            "%s offset=0x%x %s\n",
-            access, raw, name
+            "%s offset=0x%x %s Control\n",
+            access, desc->rawIndex, modeText
         );
 
     } else {
@@ -240,7 +135,7 @@ static void debugCLICAccess(
         // interrupt page access
         vmiMessage("I", CPU_PREFIX"_CLIC",
             "%s offset=0x%x %s (hart %d)\n",
-            access, raw, name, hart
+            access, desc->rawIndex, modeText, desc->hartIndex
         );
     }
 }
@@ -512,7 +407,7 @@ static void writeCLICInterruptAttr(
         // do not allow mode change to S mode if only M and U supported
         ((CLICCFGMBITS<2) && (intMode==RISCV_MODE_S)) ||
         // do not allow mode change to U mode if N extension is absent
-        ((intMode==RISCV_MODE_U) && !(hart->configInfo.arch&ISA_N))
+        ((intMode==RISCV_MODE_U) && !userIntPresent(hart))
     ) {
         intMode = pageMode;
     }
@@ -546,7 +441,7 @@ static riscvMode getCLICInterruptMode(riscvP hart, Uns32 intIndex) {
     CLIC_REG_DECL(clicintattr) = getCLICInterruptAttr(hart, intIndex);
     riscvP    root             = getCLICRoot(hart);
     Uns8      attr_mode        = clicintattr.fields.mode;
-    Uns32     nmbits           = root->clic.cliccfg.fields.nmbits;
+    Uns32     nmbits           = nmbitsR(root);
     riscvMode intMode          = RISCV_MODE_M;
 
     if(nmbits == 0) {
@@ -579,10 +474,10 @@ static riscvMode getCLICInterruptMode(riscvP hart, Uns32 intIndex) {
 //
 // Is the interrupt accessed at the given offset visible?
 //
-static Bool accessCLICInterrupt(riscvP root, Uns32 offset) {
+static Bool accessCLICInterrupt(riscvP root, CLICIntDescP desc) {
 
-    riscvP         hart     = getCLICHart(root, offset);
-    Uns32          intIndex = getCLICIntIndex(offset);
+    riscvP         hart     = getCLICHart(root, desc->hartIndex);
+    Uns32          intIndex = desc->intIndex;
     riscvException intCode  = intToException(intIndex);
     Bool           ok       = False;
 
@@ -592,7 +487,7 @@ static Bool accessCLICInterrupt(riscvP root, Uns32 offset) {
 
     } else if(intIndex<getIntNum(hart)) {
 
-        riscvMode pageMode = getCLICPageMode(root, offset);
+        riscvMode pageMode = desc->mode;
         riscvMode intMode  = getCLICInterruptMode(hart, intIndex);
 
         ok = (intMode<=pageMode);
@@ -605,16 +500,16 @@ static Bool accessCLICInterrupt(riscvP root, Uns32 offset) {
 // Return the visible state of an interrupt when accessed using the given
 // offset
 //
-static Uns32 readCLICInterrupt(riscvP root, Uns32 offset) {
+static Uns32 readCLICInterrupt(riscvP root, CLICIntDescP desc) {
 
     Uns32 result = 0;
 
-    if(accessCLICInterrupt(root, offset)) {
+    if(accessCLICInterrupt(root, desc)) {
 
-        riscvP hart     = getCLICHart(root, offset);
-        Uns32  intIndex = getCLICIntIndex(offset);
+        riscvP hart     = getCLICHart(root, desc->hartIndex);
+        Uns32  intIndex = desc->intIndex;
 
-        switch(getCLICIntFieldType(offset)) {
+        switch(desc->fType) {
 
             case CIT_clicintip:
                 result = getCLICInterruptPending(hart, intIndex);
@@ -633,14 +528,14 @@ static Uns32 readCLICInterrupt(riscvP root, Uns32 offset) {
 // Update the visible state of an interrupt when accessed using the given
 // offset
 //
-static void writeCLICInterrupt(riscvP root, Uns32 offset, Uns8 newValue) {
+static void writeCLICInterrupt(riscvP root, CLICIntDescP desc, Uns8 newValue) {
 
-    if(accessCLICInterrupt(root, offset)) {
+    if(accessCLICInterrupt(root, desc)) {
 
-        riscvP hart     = getCLICHart(root, offset);
-        Uns32  intIndex = getCLICIntIndex(offset);
+        riscvP hart     = getCLICHart(root, desc->hartIndex);
+        Uns32  intIndex = desc->intIndex;
 
-        switch(getCLICIntFieldType(offset)) {
+        switch(desc->fType) {
 
             case CIT_clicintip: {
                 Bool mayPendAny = mayPendLevel(hart);
@@ -653,8 +548,7 @@ static void writeCLICInterrupt(riscvP root, Uns32 offset, Uns8 newValue) {
                 break;
 
             case CIT_clicintattr: {
-                riscvMode pageMode = getCLICPageMode(root, offset);
-                writeCLICInterruptAttr(hart, intIndex, newValue, pageMode);
+                writeCLICInterruptAttr(hart, intIndex, newValue, desc->mode);
                 break;
             }
 
@@ -674,16 +568,11 @@ static void writeCLICInterrupt(riscvP root, Uns32 offset, Uns8 newValue) {
 //
 void riscvRefreshPendingAndEnabledInternalCLIC(riscvP hart) {
 
-    riscvP root    = getCLICRoot(hart);
-    Uns32  maxRank = 0;
-    Int32  id      = RV_NO_INT;
-    Uns32  wordIndex;
-
-    // reset presented interrupt details
-    hart->clic.sel.priv  = 0;
-    hart->clic.sel.id    = id;
-    hart->clic.sel.level = 0;
-    hart->clic.sel.shv   = False;
+    riscvP    root    = getCLICRoot(hart);
+    Uns32     maxRank = 0;
+    Int32     id      = RV_NO_INT;
+    riscvMode priv    = 0;
+    Uns32     wordIndex;
 
     // scan for pending+enabled interrupts
     for(wordIndex=0; wordIndex<hart->ipDWords; wordIndex++) {
@@ -718,6 +607,7 @@ void riscvRefreshPendingAndEnabledInternalCLIC(riscvP hart) {
                     if(maxRank<=rank) {
                         maxRank = rank;
                         id      = intIndex;
+                        priv    = mode;
                     }
                 }
 
@@ -730,18 +620,23 @@ void riscvRefreshPendingAndEnabledInternalCLIC(riscvP hart) {
     }
 
     // update selected CLIC interrupt state
-    if(id != RV_NO_INT) {
+    if(id == RV_NO_INT) {
+
+        // reset presented interrupt details
+        hart->clic.sel.priv  = 0;
+        hart->clic.sel.id    = id;
+        hart->clic.sel.level = 0;
+        hart->clic.sel.shv   = False;
+
+    } else {
 
         // get control fields for highest-priority pending interrupt
         CLIC_REG_DECL(clicintattr) = getCLICInterruptAttr(hart, id);
         Uns8 clicintctl = getCLICInterruptField(hart, id, CIT_clicintctl);
 
         // get mask of bits in clicintctl representing level
-        Uns32 nlbits     = root->clic.cliccfg.fields.nlbits;
+        Uns32 nlbits     = root->clic.cliccfg.nlbits[priv];
         Uns8  nlbitsMask = ~((1<<(8-nlbits)) - 1);
-
-        // get interrupt target mode
-        riscvMode priv = getCLICInterruptMode(hart, id);
 
         // get interrupt level with least-significant bits set to 1
         Uns8 level = (clicintctl & nlbitsMask) | ~nlbitsMask;
@@ -839,92 +734,344 @@ inline static Bool nlbitsValid(riscvP root, Uns32 nlbits) {
 }
 
 //
-// Update the value of cliccfg
+// Update nlbits for the given mode
+//
+static Bool nlbitsW(riscvP root, riscvMode mode, Uns32 nlbits) {
+
+    Bool refresh = False;
+
+    // clamp nlbits in the new value to legal maximum, or retain old value if
+    // new value is not in nlbits_valid mask
+    if(nlbits>root->configInfo.CLICCFGLBITS) {
+        nlbits = root->configInfo.CLICCFGLBITS;
+    } else if(!nlbitsValid(root, nlbits)) {
+        nlbits = nlbitsR(root, mode);
+    }
+
+    // update nlbits if required
+    if(nlbitsR(root, mode) != nlbits) {
+        root->clic.cliccfg.nlbits[mode] = nlbits;
+        refresh = True;
+    }
+
+    return refresh;
+}
+
+//
+// Update nmbits
+//
+static Bool nmbitsW(riscvP root, Uns32 nmbits) {
+
+    Bool refresh = False;
+
+    // clamp nmbits in the new value to legal maximum
+    if(nmbits>root->configInfo.CLICCFGMBITS) {
+        nmbits = root->configInfo.CLICCFGMBITS;
+    }
+
+    // update nmbits if required
+    if(nmbitsR(root) != nmbits) {
+        root->clic.cliccfg.nmbits = nmbits;
+        refresh = True;
+    }
+
+    return refresh;
+}
+
+//
+// Read cliccfg
+//
+static Uns8 cliccfgR(riscvP root, riscvMode mode) {
+
+    CLIC_REG_DECL(cliccfg) = {bits:0};
+
+    // select nlbits for this page mode
+    cliccfg.fields.nlbits = nlbitsR(root, mode);
+
+    // M-mode page also reports nmbits
+    cliccfg.fields.nmbits = (mode==RISCV_MODE_M) ? nmbitsR(root) : 0;
+
+    // preserve read-only nvbits field
+    cliccfg.fields.nvbits = haveNVbits(root) && root->configInfo.CLICSELHVEC;
+
+    // return composed value
+    return cliccfg.bits;
+}
+
+//
+// Write cliccfg
 //
 static void cliccfgW(riscvP root, Uns8 newValue) {
 
     CLIC_REG_DECL(cliccfg) = {bits:newValue};
 
-    // clear WPRI bits in the new value
-    cliccfg.fields._u1 = 0;
+    Bool refresh = False;
 
-    // clamp nmbits in the new value to legal maximum
-    if(cliccfg.fields.nmbits>root->configInfo.CLICCFGMBITS) {
-        cliccfg.fields.nmbits = root->configInfo.CLICCFGMBITS;
-    }
+    // update nlbits if required
+    refresh = nlbitsW(root, RISCV_MODE_M, cliccfg.fields.nlbits) || refresh;
 
-    // clamp nlbits in the new value to legal maximum, or retain old value if
-    // new value is not in nlbits_valid mask
-    if(cliccfg.fields.nlbits>root->configInfo.CLICCFGLBITS) {
-        cliccfg.fields.nlbits = root->configInfo.CLICCFGLBITS;
-    } else if(!nlbitsValid(root, cliccfg.fields.nlbits)) {
-        cliccfg.fields.nlbits = root->clic.cliccfg.fields.nlbits;
-    }
+    // update nmbits if required
+    refresh = nmbitsW(root, cliccfg.fields.nmbits) || refresh;
 
-    // preserve read-only nvbits field
-    cliccfg.fields.nvbits = haveNVbits(root) && root->configInfo.CLICSELHVEC;
+    // use M-mode nlbits for S and U modes
+    Uns8 nlbits = nlbitsR(root, RISCV_MODE_M);
+    root->clic.cliccfg.nlbits[RISCV_MODE_U] = nlbits;
+    root->clic.cliccfg.nlbits[RISCV_MODE_S] = nlbits;
 
-    // update register and refresh interrupt state if changed
-    if(root->clic.cliccfg.bits!=cliccfg.bits) {
-        root->clic.cliccfg.bits = cliccfg.bits;
+    // refresh interrupt state if changed
+    if(refresh) {
         refreshCCLICInterruptAll(root);
     }
 }
 
 //
+// Read mcliccfg byte (bits 7:0 of mcliccfg)
+//
+static Uns8 mcliccfgR(riscvP root) {
+
+    CLIC_REG_DECL(mcliccfg) = {
+        fields : {
+            nlbits : nlbitsR(root, RISCV_MODE_M),
+            nmbits : nmbitsR(root)
+        }
+    };
+
+    // return composed value
+    return mcliccfg.bits;
+}
+
+//
+// Write mcliccfg byte (bits 7:0 of mcliccfg)
+//
+static void mcliccfgW(riscvP root, Uns8 newValue) {
+
+    CLIC_REG_DECL(mcliccfg) = {bits:newValue};
+
+    Bool refresh = False;
+
+    // update nlbits if required
+    refresh = nlbitsW(root, RISCV_MODE_M, mcliccfg.fields.nlbits) || refresh;
+
+    // update nmbits if required
+    refresh = nmbitsW(root, mcliccfg.fields.nmbits) || refresh;
+
+    // refresh interrupt state if changed
+    if(refresh) {
+        refreshCCLICInterruptAll(root);
+    }
+}
+
+//
+// Read scliccfg byte (bits 23:16 of mcliccfg or scliccfg)
+//
+static Uns8 scliccfgR(riscvP root) {
+
+    CLIC_REG_DECL(scliccfg) = {
+        fields : {
+            nlbits : nlbitsR(root, RISCV_MODE_S)
+        }
+    };
+
+    // return composed value
+    return scliccfg.bits;
+}
+
+//
+// Write scliccfg byte (bits 23:16 of mcliccfg or scliccfg)
+//
+static void scliccfgW(riscvP root, Uns8 newValue) {
+
+    CLIC_REG_DECL(scliccfg) = {bits:newValue};
+
+    Bool refresh = False;
+
+    // update nlbits if required
+    refresh = nlbitsW(root, RISCV_MODE_S, scliccfg.fields.nlbits) || refresh;
+
+    // refresh interrupt state if changed
+    if(refresh) {
+        refreshCCLICInterruptAll(root);
+    }
+}
+
+//
+// Read ucliccfg byte (bits 31:24 of mcliccfg, scliccfg or ucliccfg)
+//
+static Uns8 ucliccfgR(riscvP root) {
+
+    CLIC_REG_DECL(ucliccfg) = {
+        fields : {
+            nlbits : nlbitsR(root, RISCV_MODE_U)
+        }
+    };
+
+    // return composed value
+    return ucliccfg.bits;
+}
+
+//
+// Write ucliccfg byte (bits 31:24 of mcliccfg, scliccfg or ucliccfg)
+//
+static void ucliccfgW(riscvP root, Uns8 newValue) {
+
+    CLIC_REG_DECL(ucliccfg) = {bits:newValue};
+
+    Bool refresh = False;
+
+    // update nlbits if required
+    refresh = nlbitsW(root, RISCV_MODE_U, ucliccfg.fields.nlbits) || refresh;
+
+    // refresh interrupt state if changed
+    if(refresh) {
+        refreshCCLICInterruptAll(root);
+    }
+}
+
+//
+// Is this an access to mcliccfg byte?
+//
+inline static Bool mcliccfgAccess(riscvP root, CLICIntDescP desc) {
+    return (desc->intIndex==0) && (desc->mode>=RISCV_MODE_M);
+}
+
+//
+// Is this an access to scliccfg byte?
+//
+inline static Bool scliccfgAccess(riscvP root, CLICIntDescP desc) {
+    return (desc->intIndex==2) && (desc->mode>=RISCV_MODE_S) && root->ssclic;
+}
+
+//
+// Is this an access to ucliccfg byte?
+//
+inline static Bool ucliccfgAccess(riscvP root, CLICIntDescP desc) {
+    return (desc->intIndex==3) && root->suclic;
+}
+
+//
 // Read one byte from the CLIC
 //
-static Uns8 readCLICInt(riscvP root, Uns32 raw, Uns32 offset) {
+static Uns8 readCLICInt(riscvP root, CLICIntDescP desc) {
 
-    Uns32 result = 0;
-    Uns32 word   = getCLICPageWord(offset);
-    Uns32 byte   = getCLICWordByte(offset);
+    Bool onecliccfg = !xcliccfgPerMode(root);
+    Uns8 result     = 0;
 
     // debug access if required
     if(RISCV_DEBUG_EXCEPT(root)) {
-        debugCLICAccess(root, raw, offset, "READ");
+        debugCLICAccess(root, desc, "READ");
     }
 
     // direct access either to interrupt or control page
-    if(getCLICPage(offset)) {
-        result = readCLICInterrupt(root, offset);
-    } else if(word==0) {
-        result = root->clic.cliccfg.bits;
-    } else if((word==1) && !clicinfoAbsent(root)) {
-        result = root->clic.clicinfo.bits;
+    if(desc->fType!=CIT_clicconfig) {
+        result = readCLICInterrupt(root, desc) >> (desc->fType*8);
+    } else if(((desc->intIndex/4)==1) && !clicinfoAbsent(root)) {
+        result = root->clic.clicinfo.bits >> ((desc->rawIndex&3)*8);
+    } else if(onecliccfg && (desc->intIndex==0)) {
+        result = cliccfgR(root, desc->mode);
+    } else if(onecliccfg) {
+        // no action
+    } else if(mcliccfgAccess(root, desc)) {
+        result = mcliccfgR(root);
+    } else if(scliccfgAccess(root, desc)) {
+        result = scliccfgR(root);
+    } else if(ucliccfgAccess(root, desc)) {
+        result = ucliccfgR(root);
     }
 
-    // extract byte from result
-    return result >> (byte*8);
+    return result;
 }
 
 //
 // Write one byte to the CLIC
 //
-static void writeCLICInt(riscvP root, Uns32 raw, Uns32 offset, Uns8 newValue) {
+static void writeCLICInt(riscvP root, CLICIntDescP desc, Uns8 newValue) {
+
+    Bool onecliccfg = !xcliccfgPerMode(root);
 
     // debug access if required
     if(RISCV_DEBUG_EXCEPT(root)) {
-        debugCLICAccess(root, raw, offset, "WRITE");
+        debugCLICAccess(root, desc, "WRITE");
     }
 
     // direct access either to interrupt or control page
-    if(getCLICPage(offset)) {
-        writeCLICInterrupt(root, offset, newValue);
-    } else if(offset==0) {
+    if(desc->fType!=CIT_clicconfig) {
+        writeCLICInterrupt(root, desc, newValue);
+    } else if(onecliccfg && (desc->intIndex==0)) {
         cliccfgW(root, newValue);
+    } else if(onecliccfg) {
+        // no action
+    } else if(mcliccfgAccess(root, desc)) {
+        mcliccfgW(root, newValue);
+    } else if(scliccfgAccess(root, desc)) {
+        scliccfgW(root, newValue);
+    } else if(ucliccfgAccess(root, desc)) {
+        ucliccfgW(root, newValue);
     }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// COMMON CALLBACK FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Map CLIC region and force aligned access to it
+//
+static void mapCLIC(
+    riscvP        root,
+    Addr          lowAddr,
+    Uns32         size,
+    vmiMemReadFn  readCB,
+    vmiMemWriteFn writeCB
+) {
+    memDomainP domain   = root->CLICDomain;
+    Addr       highAddr = lowAddr + size - 1;
+
+    vmirtMapCallbacks(domain, lowAddr, highAddr, readCB, writeCB, root);
+    vmirtProtectMemory(domain, lowAddr, highAddr, MEM_PRIV_ALIGN, MEM_PRIV_ADD);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // MEMORY-MAPPED CALLBACKS, CLIC LEGACY VERSION BEFORE 0.9
+//
+// This memory map is specific to SiFive legacy CLIC.
+//
+// APERTURE LAYOUT
+// ---------------
+//
+// 0x0280_0000   M-mode aperture for CLIC 0
+// 0x0280_1000   M-mode aperture for CLIC 1
+// ...
+// 0x02A0_0000   HS-mode aperture for CLIC 0
+// 0x02A0_1000   HS-mode aperture for CLIC 1
+// ...
+// 0x02C0_0000   S-mode aperture for CLIC 0
+// 0x02C0_1000   S-mode aperture for CLIC 1
+// ...
+// 0x02E0_0000   U-mode aperture for CLIC 0
+// 0x02E0_1000   U-mode aperture for CLIC 1
+//
+// CLIC REGION LAYOUT (WITHIN APERTURE)
+// -----------------------------------
+// 0x000+i   1B/input    R or RW       clicintip[i]
+// 0x400+i   1B/input    RW            clicintie[i]
+// 0x800+i   1B/input    RW            clicintcfg[i]
+// 0xc00     1B          RW            cliccfg (*** M-mode only ***)
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 #define CLIC_OLD_SIZE       0x800000
 #define CLIC_OLD_MODE_MASK  0x1fffff
 #define CLIC_OLD_AP_SIZE    0x001000
 #define CLIC_OLD_INDEX_MASK 0x0003ff
+
+//
+// Return the base address of the cluster CLIC block
+//
+inline static Uns64 getCLICLow(riscvP root) {
+    return root->configInfo.mclicbase;
+}
 
 //
 // Return offset of CLIC access within memory-mapped block
@@ -948,26 +1095,26 @@ inline static Uns32 getCLICOldIntId(Uns32 offset) {
 }
 
 //
-// Map from address of CLIC access to the presumed aperture mode
+// Return the CLIC page type being accessed at the given offset
 //
-static riscvMode getCLICOldMode(Uns32 offset) {
+static riscvMode getCLICOldPMode(Uns32 offset) {
 
-   switch(offset/(CLIC_OLD_SIZE/4)) {
-       case 0:
-           return RISCV_MODE_M;
-       case 1:
-           return RISCV_MODE_S;
-       case 2:
-           return RISCV_MODE_S;
-       default:
-           return RISCV_MODE_U;
-   }
+    switch(offset/(CLIC_OLD_SIZE/4)) {
+        case 0:
+            return RISCV_MODE_M;
+        case 1:
+            return RISCV_MODE_S;
+        case 2:
+            return RISCV_MODE_S;
+        default:
+            return RISCV_MODE_U;
+    }
 }
 
 //
 // Map from address of CLIC access to the operation type
 //
-static CLICIntFieldType getCLICOldType(Uns32 offset) {
+static CLICIntFieldType getCLICOldFType(Uns32 offset) {
 
     switch((offset & (CLIC_OLD_AP_SIZE-1))/(CLIC_OLD_AP_SIZE/4)) {
         case 0:
@@ -977,72 +1124,52 @@ static CLICIntFieldType getCLICOldType(Uns32 offset) {
         case 2:
             return CIT_clicintctl;
         default:
-            return CIT_clicintattr;
+            return CIT_clicconfig;
     }
 }
 
 //
-// Given an old CLIC address, return the equivalent byte address using 0.9
-// mappings.
+// Given original CLIC offset, fill abstract description of the field access
 //
-static Uns32 mapCLICOldOffset(riscvP root, Uns32 offset) {
+static CLICIntDesc fillCLICDescOld(riscvP root, Uns32 offset) {
 
-    Uns32            numHarts = getNumHarts(root);
-    Uns32            hartId   = getCLICOldHart(offset);
-    riscvMode        mode     = getCLICOldMode(offset);
-    CLICIntFieldType type     = getCLICOldType(offset);
-    Uns32            id       = getCLICOldIntId(offset);
-    Uns32            newIndex = -1;
+    CLICIntDesc result = {
+        rawIndex  : offset,
+        hartIndex : getCLICOldHart(offset),
+        mode      : getCLICOldPMode(offset),
+        fType     : getCLICOldFType(offset),
+        intIndex  : getCLICOldIntId(offset)
+    };
 
-    if(type==CIT_clicintattr) {
+    if(result.fType!=CIT_clicconfig) {
 
-        if(mode!=RISCV_MODE_M) {
-            // only M-mode can access cliccfg region
-        } else if(id) {
-            // only cliccfg is present
-        } else {
-            newIndex = 0;
-        }
+        // no action
 
-    } else {
+    } else if(result.mode!=RISCV_MODE_M) {
 
-        // get number of 4k pages for M/S/U blocks (4x4k pages per hart)
-        Uns32 msuPages = numHarts*4;
+        // only M-mode can access clicconfig region
+        result.fType = CIT_LAST;
 
-        // get hart offset within M/S/U block (4x4k pages per hart, skip initial
-        // 4k configuration page)
-        Uns32 pageOffset = (hartId*4) + 1;
+    } else if(result.intIndex) {
 
-        // add page offset of correct M/S/U block
-        if(mode==RISCV_MODE_S) {
-            pageOffset += msuPages;
-        } else if(mode==RISCV_MODE_U) {
-            pageOffset += msuPages*2;
-        }
-
-        // get offset to indexed interrupt
-        newIndex = (pageOffset*4096) + (id*4);
-
-        // include clicintip/clicintie/clicintctl offset
-        newIndex += type;
+        // only cliccfg is present
+        result.fType = CIT_LAST;
     }
 
-    return newIndex;
+    return result;
 }
 
 //
 // Mask clicintctl by region type
 //
-static Uns8 maskCLICOldIntCfg(riscvP root, Uns32 offset, Uns8 clicintctl) {
+static Uns8 maskCLICOldIntCfg(riscvP root, CLICIntDescP desc, Uns8 clicintctl) {
 
-    riscvMode mode = getCLICOldMode(offset);
+    if(desc->mode!=RISCV_MODE_M) {
 
-    if(mode!=RISCV_MODE_M) {
-
-        Uns32  hartId = getCLICOldHart(offset);
+        Uns32  hartId = desc->hartIndex;
         riscvP riscv  = root->clic.harts[hartId];
 
-        if((mode==RISCV_MODE_S) || !supervisorPresent(riscv)) {
+        if((desc->mode==RISCV_MODE_S) || !supervisorPresent(riscv)) {
             clicintctl &= 0x7f;
         } else {
             clicintctl &= 0x3f;
@@ -1056,10 +1183,9 @@ static Uns8 maskCLICOldIntCfg(riscvP root, Uns32 offset, Uns8 clicintctl) {
 // Write inferred value of clicintattr when clicintctl is written
 //
 static void writeCLICOldIntAttr(
-    riscvP root,
-    Uns32  offsetOld,
-    Uns32  offsetNew,
-    Uns8   clicintctl
+    riscvP      root,
+    CLICIntDesc desc,
+    Uns8        clicintctl
 ) {
     Uns32 CLICINTCTLBITS = root->clic.clicinfo.fields.CLICINTCTLBITS;
 
@@ -1072,7 +1198,8 @@ static void writeCLICOldIntAttr(
     clicintattr.fields.mode = clicintctl>>6;
 
     // update implied clicintattr
-    writeCLICInt(root, offsetOld, offsetNew-1, clicintattr.bits);
+    desc.fType = CIT_clicintattr;
+    writeCLICInt(root, &desc, clicintattr.bits);
 }
 
 //
@@ -1087,14 +1214,13 @@ static VMI_MEM_READ_FN(readCLICOld) {
 
     for(i=0; i<bytes; i++) {
 
-        Uns32 offsetOld = getCLICOldOffset(root, address+i);
+        Uns32       offset = getCLICOldOffset(root, address+i);
+        CLICIntDesc desc   = fillCLICDescOld(root, offset);
 
-        if(getCLICOldHart(offsetOld)<numHarts) {
+        if(desc.hartIndex<numHarts) {
 
-            Uns32 offsetNew = mapCLICOldOffset(root, offsetOld);
-
-            if(offsetNew != -1) {
-                value8[i] = readCLICInt(root, offsetOld, offsetNew);
+            if(desc.fType!=CIT_LAST) {
+                value8[i] = readCLICInt(root, &desc);
             } else {
                 value8[i] = 0;
             }
@@ -1114,26 +1240,25 @@ static VMI_MEM_WRITE_FN(writeCLICOld) {
 
     for(i=0; i<bytes; i++) {
 
-        Uns32 offsetOld = getCLICOldOffset(root, address+i);
+        Uns32       offset = getCLICOldOffset(root, address+i);
+        CLICIntDesc desc   = fillCLICDescOld(root, offset);
 
-        if(getCLICOldHart(offsetOld)<numHarts) {
+        if(desc.hartIndex<numHarts) {
 
-            Uns32 offsetNew = mapCLICOldOffset(root, offsetOld);
-
-            if(offsetNew != -1) {
+            if(desc.fType!=CIT_LAST) {
 
                 Uns8 value = value8[i];
 
-                if(getCLICOldType(offsetOld)==CIT_clicintctl) {
+                if(desc.fType==CIT_clicintctl) {
 
                     // pre-0.9 clicintctl is masked by region type
-                    value = maskCLICOldIntCfg(root, offsetOld, value);
+                    value = maskCLICOldIntCfg(root, &desc, value);
 
                     // pre-0.9 clicintattr must be inferred from clicintctl
-                    writeCLICOldIntAttr(root, offsetOld, offsetNew, value);
+                    writeCLICOldIntAttr(root, desc, value);
                 }
 
-                writeCLICInt(root, offsetOld, offsetNew, value);
+                writeCLICInt(root, &desc, value);
             }
         }
     }
@@ -1142,79 +1267,386 @@ static VMI_MEM_WRITE_FN(writeCLICOld) {
 //
 // Create CLIC memory-mapped block and data structures (pre-0.9)
 //
-static void mapCLICDomainOld(riscvP root, memDomainP CLICDomain) {
-
-    Uns64 lowAddr  = getCLICLow(root);
-    Uns64 highAddr = lowAddr+CLIC_OLD_SIZE-1;
-
-    // install callbacks to implement the CLIC
-    vmirtMapCallbacks(
-        CLICDomain, lowAddr, highAddr, readCLICOld, writeCLICOld, root
-    );
-
-    // force aligned access
-    vmirtProtectMemory(
-        CLICDomain, lowAddr, highAddr, MEM_PRIV_ALIGN, MEM_PRIV_ADD
-    );
+static void mapCLICDomainOld(riscvP root) {
+    mapCLIC(root, getCLICLow(root), CLIC_OLD_SIZE, readCLICOld, writeCLICOld);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MEMORY-MAPPED CALLBACKS, CLIC VERSION 0.9 OR LATER
+//
+// M-MODE CLIC REGION (at mclicbase)
+// -----------------------------------------------------------------------------
+//
+// 0x0000       1B          RW        mcliccfg
+//
+// 0x0040       4B          RW        clicinttrig[0]  (optional, unimplemented)
+// 0x0044       4B          RW        clicinttrig[1]  (optional, unimplemented)
+// 0x0048       4B          RW        clicinttrig[2]  (optional, unimplemented)
+// ...
+// 0x00B4       4B          RW        clicinttrig[29] (optional, unimplemented)
+// 0x00B8       4B          RW        clicinttrig[30] (optional, unimplemented)
+// 0x00BC       4B          RW        clicinttrig[31] (optional, unimplemented)
+//
+// 0x1000+4*i   1B/input    R or RW   clicintip[i]
+// 0x1001+4*i   1B/input    RW        clicintie[i]
+// 0x1002+4*i   1B/input    RW        clicintattr[i]
+// 0x1003+4*i   1B/input    RW        clicintctl[i]
+// ...
+// 0x4FFC       1B/input    R or RW   clicintip[4095]
+// 0x4FFD       1B/input    RW        clicintie[4095]
+// 0x4FFE       1B/input    RW        clicintattr[4095]
+// 0x4FFF       1B/input    RW        clicintctl[4095]
+//
+// S-MODE CLIC REGION (at sclicbase)
+// -----------------------------------------------------------------------------
+//
+// *BEFORE* RVCLC_0_9_20221108:
+// 0x000+4*i    1B/input    R or RW   clicintip[i]
+// 0x001+4*i    1B/input    RW        clicintie[i]
+// 0x002+4*i    1B/input    RW        clicintattr[i]
+// 0x003+4*i    1B/input    RW        clicintctl[i]
+//
+// *FROM* RVCLC_0_9_20221108:
+// 0x0000       1B          RW        scliccfg
+// 0x1000+4*i   1B/input    R or RW   clicintip[i]
+// 0x1001+4*i   1B/input    RW        clicintie[i]
+// 0x1002+4*i   1B/input    RW        clicintattr[i]
+// 0x1003+4*i   1B/input    RW        clicintctl[i]
+//
+// U-MODE CLIC REGION (at uclicbase)
+// -----------------------------------------------------------------------------
+//
+// *BEFORE* RVCLC_0_9_20221108:
+// 0x000+4*i    1B/input    R or RW   clicintip[i]
+// 0x001+4*i    1B/input    RW        clicintie[i]
+// 0x002+4*i    1B/input    RW        clicintattr[i]
+// 0x003+4*i    1B/input    RW        clicintctl[i]
+//
+// *FROM* RVCLC_0_9_20221108:
+// 0x0000       1B          RW        ucliccfg
+// 0x1000+4*i   1B/input    R or RW   clicintip[i]
+// 0x1001+4*i   1B/input    RW        clicintie[i]
+// 0x1002+4*i   1B/input    RW        clicintattr[i]
+// 0x1003+4*i   1B/input    RW        clicintctl[i]
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 //
-// Read CLIC register (version 0.9 or later)
+// Return the base address of the cluster M-mode CLIC block
 //
-static VMI_MEM_READ_FN(readCLIC_0_9) {
+inline static Uns64 getBaseM(riscvP root) {
+    return root->configInfo.mclicbase;
+}
 
-    riscvP root    = userData;
-    Uns8  *value8  = value;
-    Uns64  lowAddr = getCLICLow(root);
-    Uns32  i;
+//
+// Return the base address of the cluster S-mode CLIC block
+//
+inline static Uns64 getBaseS(riscvP root) {
+    return root->configInfo.sclicbase;
+}
 
-    for(i=0; i<bytes; i++) {
-        Uns32 offset = address+i-lowAddr;
-        value8[i] = readCLICInt(root, offset, offset);
+//
+// Return the base address of the cluster U-mode CLIC block
+//
+inline static Uns64 getBaseU(riscvP root) {
+    return root->configInfo.uclicbase;
+}
+
+//
+// Convert from pages to bytes
+//
+inline static Uns32 pagesToBytes4k(Uns32 pages) {
+    return pages*4096;
+}
+
+//
+// Return the page index of the given offset
+//
+inline static Uns32 get4kPage(Uns32 offset) {
+    return offset/4096;
+}
+
+//
+// Return the byte index of the offset within a word
+//
+inline static Uns32 getCLICWordByte(Uns32 offset) {
+    return offset%4;
+}
+
+//
+// Return number of configuration pages required for S and U mode
+//
+inline static Uns32 configPagesSU(riscvP root) {
+    return xcliccfgPerMode(root) ? 1 : 0;
+}
+
+//
+// Return size of M-mode CLIC block
+//
+static Uns64 getSizeM(riscvP root) {
+    return pagesToBytes4k(1 + getNumHarts(root)*4);
+}
+
+//
+// Return size of S-mode CLIC block
+//
+static Uns64 getSizeS(riscvP root) {
+    return pagesToBytes4k(configPagesSU(root) + getNumHarts(root)*4);
+}
+
+//
+// Return size of U-mode CLIC block
+//
+static Uns64 getSizeU(riscvP root) {
+    return pagesToBytes4k(configPagesSU(root) + getNumHarts(root)*4);
+}
+
+//
+// Is the given feature present on any CLIC hart?
+//
+static Bool featurePresent(riscvP root, riscvArchitecture feature) {
+
+    Uns32 numHarts = getNumHarts(root);
+    Bool  present  = False;
+    Uns32 i;
+
+    for(i=0; !present && (i<numHarts); i++) {
+        present = getCLICHart(root, i)->configInfo.arch & feature;
+    }
+
+    return present;
+}
+
+//
+// Is ssclic implemented?
+//
+inline static Bool ssclic(riscvP root) {
+    return featurePresent(root, ISA_S);
+}
+
+//
+// Is suclic implemented?
+//
+inline static Bool suclic(riscvP root) {
+    return featurePresent(root, ISA_N);
+}
+
+//
+// Fill abstract description of control page access
+//
+static CLICIntDesc fillCLICDescCtrl(
+    riscvMode mode,
+    Uns32     rawOffset,
+    Uns32     intOffset
+) {
+    CLICIntDesc result = {
+        rawIndex  : rawOffset,
+        hartIndex : -1,
+        intIndex  : intOffset,
+        mode      : mode,
+        fType     : CIT_clicconfig
+    };
+
+    return result;
+}
+
+//
+// Fill abstract description of interrupt page access
+//
+static CLICIntDesc fillCLICDescInt(
+    riscvMode mode,
+    Uns32     rawOffset,
+    Uns32     intOffset
+) {
+    Uns32 intPage4k = get4kPage(intOffset);
+
+    CLICIntDesc result = {
+        rawIndex  : rawOffset,
+        hartIndex : intPage4k/4,
+        intIndex  : (intOffset/4)%4096,
+        mode      : mode,
+        fType     : getCLICWordByte(intOffset)
+    };
+
+    return result;
+}
+
+//
+// Fill abstract description of M-mode CLIC field access
+//
+static CLICIntDesc getCLICDescM(riscvP root, Uns64 address) {
+
+    Uns32 offset = address-getBaseM(root);
+
+    if(offset<4096) {
+        return fillCLICDescCtrl(RISCV_MODE_M, offset, offset);
+    } else {
+        return fillCLICDescInt(RISCV_MODE_M, offset, offset-4096);
     }
 }
 
 //
-// Write CLIC register (version 0.9 or later)
+// Fill abstract description of S-mode or U-mode CLIC field access
 //
-static VMI_MEM_WRITE_FN(writeCLIC_0_9) {
+static CLICIntDesc CLICIntDescSU(
+    riscvP    root,
+    riscvMode mode,
+    Uns32     rawOffset,
+    Uns32     intOffset
+) {
+    if(!xcliccfgPerMode(root)) {
+        return fillCLICDescInt(mode, rawOffset, intOffset);
+    } else if(intOffset<4096) {
+        return fillCLICDescCtrl(mode, rawOffset, intOffset);
+    } else {
+        return fillCLICDescInt(mode, rawOffset, intOffset-4096);
+    }
+}
 
-    riscvP      root    = userData;
-    const Uns8 *value8  = value;
-    Uns64       lowAddr = getCLICLow(root);
-    Uns32       i;
+//
+// Fill abstract description of S-mode CLIC field access
+//
+static CLICIntDesc getCLICDescS(riscvP root, Uns64 address) {
+
+    Uns32 intOffset = address-getBaseS(root);
+    Uns32 rawOffset = root->impSCB ? address-getBaseM(root) : intOffset;
+
+    return CLICIntDescSU(root, RISCV_MODE_S, rawOffset, intOffset);
+}
+
+//
+// Fill abstract description of U-mode CLIC field access
+//
+static CLICIntDesc getCLICDescU(riscvP root, Uns64 address) {
+
+    Uns32 intOffset = address-getBaseU(root);
+    Uns32 rawOffset = root->impUCB ? address-getBaseM(root) : intOffset;
+
+    return CLICIntDescSU(root, RISCV_MODE_U, rawOffset, intOffset);
+}
+
+//
+// Function type returning abstract description of interrupt page access
+//
+#define CLIC_INT_DESC_FN(_NAME) CLICIntDesc _NAME(riscvP root, Uns64 address)
+typedef CLIC_INT_DESC_FN((*clicIntDescFn));
+
+//
+// Read CLIC register
+//
+static void readCLIC(
+    riscvP        root,
+    Uns8         *value8,
+    Addr          address,
+    Uns32         bytes,
+    clicIntDescFn intDescCB
+) {
+    Uns32 i;
 
     for(i=0; i<bytes; i++) {
-        Uns32 offset = address+i-lowAddr;
-        writeCLICInt(root, offset, offset, value8[i]);
+        CLICIntDesc desc = intDescCB(root, address+i);
+        value8[i] = readCLICInt(root, &desc);
     }
+}
+
+//
+// Write CLIC register
+//
+static void writeCLIC(
+    riscvP        root,
+    const Uns8   *value8,
+    Addr          address,
+    Uns32         bytes,
+    clicIntDescFn intDescCB
+) {
+    Uns32 i;
+
+    for(i=0; i<bytes; i++) {
+        CLICIntDesc desc = intDescCB(root, address+i);
+        writeCLICInt(root, &desc, value8[i]);
+    }
+}
+
+//
+// Read CLIC M-mode register
+//
+static VMI_MEM_READ_FN(readCLICM) {
+    readCLIC(userData, value, address, bytes, getCLICDescM);
+}
+
+//
+// Write CLIC M-mode register
+//
+static VMI_MEM_WRITE_FN(writeCLICM) {
+    writeCLIC(userData, value, address, bytes, getCLICDescM);
+}
+
+//
+// Read CLIC S-mode register
+//
+static VMI_MEM_READ_FN(readCLICS) {
+    readCLIC(userData, value, address, bytes, getCLICDescS);
+}
+
+//
+// Write CLIC S-mode register
+//
+static VMI_MEM_WRITE_FN(writeCLICS) {
+    writeCLIC(userData, value, address, bytes, getCLICDescS);
+}
+
+//
+// Read CLIC U-mode register
+//
+static VMI_MEM_READ_FN(readCLICU) {
+    readCLIC(userData, value, address, bytes, getCLICDescU);
+}
+
+//
+// Write CLIC U-mode register
+//
+static VMI_MEM_WRITE_FN(writeCLICU) {
+    writeCLIC(userData, value, address, bytes, getCLICDescU);
 }
 
 //
 // Create CLIC memory-mapped block and data structures (version 0.9 or later)
 //
-static void mapCLICDomain_0_9(riscvP root, memDomainP CLICDomain) {
+static void mapCLICDomain_0_9(riscvP root) {
 
-    Uns32 numHarts = getNumHarts(root);
-    Uns32 numPages = 1 + (numHarts*3)*4;
-    Uns32 numBytes = numPages*4096;
-    Uns64 lowAddr  = getCLICLow(root);
-    Uns64 highAddr = lowAddr+numBytes-1;
+    // get M, S and U region sizes
+    Uns64 baseM = getBaseM(root);
+    Uns64 baseS = getBaseS(root);
+    Uns64 baseU = getBaseU(root);
+    Uns32 sizeM = getSizeM(root);
+    Uns32 sizeS = getSizeS(root);
+    Uns32 sizeU = getSizeU(root);
 
-    // install callbacks to implement the CLIC
-    vmirtMapCallbacks(
-        CLICDomain, lowAddr, highAddr, readCLIC_0_9, writeCLIC_0_9, root
-    );
+    // derive sclicbase if it is unset
+    if(!baseS) {
+        root->impSCB = True;
+        baseS = root->configInfo.sclicbase = baseM + sizeM;
+    }
 
-    // force aligned access
-    vmirtProtectMemory(
-        CLICDomain, lowAddr, highAddr, MEM_PRIV_ALIGN, MEM_PRIV_ADD
-    );
+    // derive uclicbase if it is unset
+    if(!baseU) {
+        root->impUCB = True;
+        baseU = root->configInfo.uclicbase = baseS + sizeS;
+    }
+
+    // map M-mode region
+    mapCLIC(root, baseM, sizeM, readCLICM, writeCLICM);
+
+    // map S-mode region if required
+    if(root->ssclic) {
+        mapCLIC(root, baseS, sizeS, readCLICS, writeCLICS);
+    }
+
+    // map U-mode region if required
+    if(root->suclic) {
+        mapCLIC(root, baseU, sizeU, readCLICU, writeCLICU);
+    }
 }
 
 
@@ -1225,14 +1657,18 @@ static void mapCLICDomain_0_9(riscvP root, memDomainP CLICDomain) {
 //
 // Create CLIC memory-mapped block and data structures
 //
-void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain) {
+void riscvMapCLICDomain(riscvP riscv) {
 
     riscvP root = getCLICRoot(riscv);
 
+    // record whether CLIC implements S and U modes
+    root->ssclic = ssclic(root);
+    root->suclic = suclic(root);
+
     if(riscv->configInfo.CLIC_version>=RVCLC_0_9_20191208) {
-        mapCLICDomain_0_9(root, CLICDomain);
+        mapCLICDomain_0_9(root);
     } else {
-        mapCLICDomainOld(root, CLICDomain);
+        mapCLICDomainOld(root);
     }
 }
 
@@ -1281,17 +1717,19 @@ void riscvNewCLIC(riscvP root) {
 
         Uns32 numHarts = getNumHarts(root);
         Uns32 intNum   = riscvGetIntNum(root);
-
-        // initialise read-only nvbits in cliccfg using configuration option
-        if(haveNVbits(root)) {
-            root->clic.cliccfg.fields.nvbits = root->configInfo.CLICSELHVEC;
-        }
+        Uns32 nlbits   = 0;
 
         // initialise nlbits in cliccfg to smallest legal value using
         // configuration option
-        while(!nlbitsValid(root, root->clic.cliccfg.fields.nlbits)) {
-            root->clic.cliccfg.fields.nlbits++;
+        while(!nlbitsValid(root, nlbits)) {
+            nlbits++;
         }
+
+        // use smallest legal value in all modes
+        root->clic.cliccfg.nlbits[0] = nlbits;
+        root->clic.cliccfg.nlbits[1] = nlbits;
+        root->clic.cliccfg.nlbits[2] = nlbits;
+        root->clic.cliccfg.nlbits[3] = nlbits;
 
         // initialise read-only fields in clicinfo using configuration options
         root->clic.clicinfo.fields.num_interrupt  = intNum;
@@ -1399,7 +1837,13 @@ void riscvResetCLIC(riscvP riscv) {
     if(riscv->clic.intState) {
 
         // force all interrupts to M-mode at level 255
-        cliccfgW(riscv, 0);
+        if(!xcliccfgPerMode(riscv)) {
+            cliccfgW(riscv, 0);
+        } else {
+            mcliccfgW(riscv, 0);
+            scliccfgW(riscv, 0);
+            ucliccfgW(riscv, 0);
+        }
 
         // indicate exception handler is inactive
         WR_CSRC(riscv, mintstatus, 0);

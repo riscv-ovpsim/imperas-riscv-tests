@@ -20,6 +20,7 @@
 #pragma once
 
 // model header files
+#include "riscvTypes.h"
 #include "riscvTypeRefs.h"
 
 //
@@ -27,6 +28,21 @@
 //
 #define RISCV_DERIVED_MORPH_FN(_NAME) void _NAME(riscvP riscv, void *clientData)
 typedef RISCV_DERIVED_MORPH_FN((*riscvDerivedMorphFn));
+
+//
+// Emit code to perform custom check for CSR access instructions
+//
+#define RISCV_EMIT_CSR_CHECK_FN(_NAME) void _NAME( \
+    riscvP        riscv,        \
+    void         *clientData,   \
+    Uns32         csr,          \
+    riscvCSRUDesc csrUpdate,    \
+    Bool          isRead,       \
+    Bool          isWrite,      \
+    Bool          useRS1,       \
+    Uns32         c             \
+)
+typedef RISCV_EMIT_CSR_CHECK_FN((*riscvEmitCSRCheckFn));
 
 //
 // Emit code to perform custom check for otherwise-legal vector unit-stride
@@ -40,4 +56,24 @@ typedef RISCV_DERIVED_MORPH_FN((*riscvDerivedMorphFn));
     Bool   isLoad       \
 )
 typedef RISCV_UNIT_STRIDE_CHECK_FN((*riscvUnitStrideCheckFn));
+
+//
+// Emit code to perform custom implementation of vector floating point reduction
+// instructions. 'vdAcc' is the result accumulator, already seeded with vs1[0].
+// 'vs2' is a pointer to the second vector source. 'vm' is NULL for an unmasked
+// operation, and otherwise a pointer to the mask register. 'SEW' is the
+// current SEW.
+//
+#define RISCV_VFREDSUM_MORPH_FN(_NAME) void _NAME( \
+    riscvP riscv,       \
+    void  *clientData,  \
+    vmiReg vdAcc,       \
+    void  *vs2,         \
+    void  *vm,          \
+    Uns32  SEW          \
+)
+typedef RISCV_VFREDSUM_MORPH_FN((*riscvVFREDSUMMorphFn));
+
+
+
 

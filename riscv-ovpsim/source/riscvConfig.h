@@ -52,9 +52,34 @@ typedef RV_DOC_FN((*riscvDocFn));
 // extensions
 //
 typedef struct riscvExtConfigS {
-    Uns32        id;                    // unique extension ID
-    const void  *userData;              // extension-specific constant data
+    Uns32       id;                         // unique extension ID
+    const void *userData;                   // extension-specific constant data
 } riscvExtConfig;
+
+//
+// This is used to specify static PMA region attributes for the given address
+// range. The attribute string can contain any of the following characters:
+//  r: read access allowed
+//  w: write access allowed
+//  x: execute access allowed
+//  a: unaligned accesses disallowed
+//  A: atomic instruction access disallowed   (if amo_constraint specified)
+//  L: lr/sc instruction access disallowed    (if lr_sc_constraint)
+//  P: push/pop instruction access disallowed (if push_pop_constraint specified)
+//  V: vector instruction access disallowed   (if vector_constraint specified)
+//  M: Zicbom instruction access disallowed
+//  Z: Zicboz instruction access disallowed
+//  1: 1-byte accesses permitted
+//  2: 2-byte accesses permitted
+//  4: 4-byte accesses permitted
+//  8: 8-byte accesses permitted
+//  -, space: ignored, use for formatting if desired
+//
+typedef struct riscvPMARegionS {
+    Uns64       lo;                         // low region bound
+    Uns64       hi;                         // high region bound
+    const char *attrs;                      // region attributes
+} riscvPMARegion;
 
 //
 // This is used to define a processor configuration option
@@ -73,14 +98,14 @@ typedef struct riscvConfigS {
     riscvVectVer      vect_version    : 8;  // vector architecture version
     riscvVectorSet    vect_profile    : 8;  // vector architecture profile
     riscvBitManipVer  bitmanip_version: 8;  // bitmanip architecture version
-    riscvBitManipSet  bitmanip_absent;      // bitmanip absent extensions
+    riscvBitManipSet  bitmanip_absent :16;  // bitmanip absent extensions
     riscvCryptoVer    crypto_version  : 8;  // cryptographic architecture version
     riscvVCryptoVer   vcrypto_version : 8;  // vector cryptographic version
-    riscvCryptoSet    crypto_absent;        // cryptographic absent extensions
+    riscvCryptoSet    crypto_absent   :32;  // cryptographic absent extensions
     riscvDSPVer       dsp_version     : 8;  // DSP architecture version
     riscvDSPSet       dsp_absent      : 8;  // DSP absent extensions
     riscvCompressVer  compress_version: 8;  // compressed architecture version
-    riscvCompressSet  compress_present;     // compressed present extensions
+    riscvCompressSet  compress_present:16;  // compressed present extensions
     riscvHypVer       hyp_version     : 8;  // hypervisor architecture version
     riscvDebugVer     dbg_version     : 8;  // debugger architecture version
     riscvRNMIVer      rnmi_version    : 8;  // rnmi version
@@ -102,7 +127,8 @@ typedef struct riscvConfigS {
     riscvMConstraint amo_constraint      : 2;   // AMO memory constraint
     riscvMConstraint lr_sc_constraint    : 2;   // LR/SC memory constraint
     riscvMConstraint push_pop_constraint : 2;   // PUSH/POP memory constraint
-    riscvMConstraint vector_constraint   : 2;   // vector memory constraint
+    riscvMConstraint vector_constraint   : 2;   // vector load/store constraint
+    riscvPMARegionCP pmaStatic;                 // static PMA regions
 
     // configuration not visible in CSR state
     Uns64 reset_address;                // reset vector address
@@ -150,7 +176,7 @@ typedef struct riscvConfigS {
     Uns32 ASID_cache_size;              // ASID cache size
     Uns32 TW_time_limit;                // mstatus.TW time limit
     Uns32 STO_time_limit;               // WRS.STO time limit
-    Uns16 tinfo;                        // tinfo default value (all triggers)
+    Uns32 tinfo;                        // tinfo default value (all triggers)
     Uns16 trigger_match;                // bitmask of legal trigger match values
     Uns16 cmomp_bytes;                  // cache block bytes (management/prefetch)
     Uns16 cmoz_bytes;                   // cache block bytes (zero)
@@ -194,6 +220,7 @@ typedef struct riscvConfigS {
     Bool  Zmmul                : 1;     // Zmmul implemented?
     Bool  Zfa                  : 1;     // Zfa implemented?
     Bool  Zfhmin               : 1;     // Zfhmin implemented?
+    Bool  Zfbfmin              : 1;     // Zfbfmin implemented?
     Bool  Zvlsseg              : 1;     // Zvlsseg implemented?
     Bool  Zvamo                : 1;     // Zvamo implemented?
     Bool  Zvediv               : 1;     // Zvediv implemented?
@@ -201,6 +228,7 @@ typedef struct riscvConfigS {
     Bool  Zvfh                 : 1;     // Zvfh implemented?
     Bool  Zvfhmin              : 1;     // Zvfhmin implemented?
     Bool  Zvfbfmin             : 1;     // Zvfbfmin implemented?
+    Bool  Zvfbfwma             : 1;     // Zvfbfwma implemented?
     Bool  unitStrideOnly       : 1;     // only unit-stride operations supported
     Bool  noFaultOnlyFirst     : 1;     // fault-only-first instructions absent?
     Bool  Zihintntl            : 1;     // whether Zihintntl is present
@@ -239,7 +267,7 @@ typedef struct riscvConfigS {
     Bool  amo_aborts_lr_sc     : 1;     // whether AMO aborts active LR/SC
     Bool  lr_sc_match_size     : 1;     // whether LR/SC size must match
     Bool  ignore_non_leaf_DAU  : 1;     // whether ignore non-leaf PTE D, A, U
-    Bool  no_hit               : 1;     // whether tdata1.hit is unimplemented
+    Bool  no_hit               : 1;     // whether tdata1.hit* unimplemented
     Bool  no_sselect_2         : 1;     // whether textra.sselect=2 is illegal
     Bool  d_requires_f         : 1;     // whether misa D requires F to be set
     Bool  enable_fflags_i      : 1;     // whether fflags_i register present
@@ -271,6 +299,9 @@ typedef struct riscvConfigS {
                                         // instruction when interrupt on return
                                         // from debug mode (hardware bug)
     // CLIC configuration
+    Uns64 mclicbase;                    // base of M-mode CLIC region
+    Uns64 sclicbase;                    // base of S-mode CLIC region
+    Uns64 uclicbase;                    // base of U-mode CLIC region (N extension)
     Bool  CLICANDBASIC         : 1;     // whether implements basic mode also
     Bool  CLICSELHVEC          : 1;     // selective hardware vectoring?
     Bool  CLICXNXTI            : 1;     // *nxti CSRs implemented?
@@ -305,7 +336,6 @@ typedef struct riscvConfigS {
         CSR_REG_DECL (mconfigptr);      // mconfigptr value
         CSR_REG_DECL (mtvec);           // mtvec value
         CSR_REG_DECL (mstatus);         // mstatus reset value
-        CSR_REG_DECL (mclicbase);       // mclicbase value
         CSR_REG_DECL (mseccfg);         // mseccfg value
         CSR_REG_DECL_0_15(pmpcfg);      // pmpcfg values
         CSR_REG_DECL_0_63(pmpaddr);     // pmpaddr values

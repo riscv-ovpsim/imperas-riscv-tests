@@ -12,6 +12,65 @@ NOTE: X-commit messages below refer to git commits in the following
   V-commit: https://github.com/riscv/riscv-v-spec
   C-commit: https://github.com/riscv/riscv-fast-interrupt
 
+- Vector Cryptographic Extension master version has been modified to reflect
+  changes up to April 13th 2023. This specification is currently unstable;
+  the "master" version is subject to change.
+- Vector Cryptographic Extension version 0.3.0 has been created, implementing
+  state as specified on February 6th 2023.
+- Vector Cryptographic Extension version 0.5.2 has been created, implementing
+  state as specified on April 13th 2023.
+- The address reported in xtval CSRs for traps from cache management operation
+  instructions has been changed to the initiating virtual address instead of
+  the cache block base address.
+- New output net port core_wfi_mode indicates whether the hart is currently in
+  WFI state.
+- An issue has been corrected which caused LR instructions to establish a
+  reservation set even if the LR instruction traps.
+- Zfbfmin extension has been implemented (enabled by Zfbfmin parameter).
+- Zvfbfwma extension has been implemented (enabled by Zvfbfwma parameter).
+- An error has been corrected with conversion of floating point values to Uns8
+  results in the case when the result is too large to fit in an Uns8.
+- Zcb extension instructions have been corrected:
+  - instructions c.sext.b, c.zext.h and c.sext.h now require extension Zbb to
+    be also implemented.
+  - instruction c.zext.w now requires extension Zba to be also implemented.
+- When the trigger module is implemented, the value of tdata2 is now masked to
+  implemented interrupts (when tdata1 indicates itrigger type) or implemented
+  exceptions (when tdata1 indicates etrigger type).
+- Zicbom extension behavior has been corrected to allow access to regions to
+  which load access is permitted - previously, only access to regions with store
+  access was permitted.
+- Advanced Interrupt Architecture extension version 1.0-RC3 has been
+  implemented.
+- Debug Mode has been enhanced:
+  - mcontrol6.hit has been replaced with mcontrol6.hit0 and mcontrol6.hit1.
+  - Parameter no_hit1 indicates whether new mcontrol6.hit1 field is absent.
+- CLIC region base addresses for M, S and U modes may now be separately
+  specified using parameters mclicbase, sclicbase and uclicbase, respectively.
+- CLIC version 0.9-draft-20221108 has been created, matching the specification
+  as of 8th November 2022 (C-commit fdcd068).
+- The CLIC version master branch now has these differences compared to the
+  previous 0.9-draft-20221108 version:
+  - C-commit 6728eda: change addresses of mintstatus, sintstatus, uintstatus to
+    0xFB1, 0xDB1, and 0xCB1, respectively;
+  - C-commit ccc3e22: introduce separate cliccfg per privilege mode.
+  - C-commit f369971: xintthresh cleared by return to lower-privilege mode
+  - C-commit 9d07841: new encoding of xcliccfg registers
+- Writability of dpc has been modified to follow the same rules as mepc as
+  defined in the Privileged Specification.
+- Vector Cryptographic Extension master version has been modified to reflect
+  changes up to February 6th 2023. This specification is currently unstable;
+  the "master" version is subject to change.
+- An issue has been corrected where the value recorded in mepc was always zero
+  for CLIC table fetch exceptions when the model is configured with
+  tval_zero=True.
+- An issue has been corrected where reset of mstatus.MPRV was not being
+  performed correctly.
+
+Date 2023-February-02
+Release 20230201.0
+===
+
 - Behavior of instructions shared by Bit Manipulation and Scalar Cryptographic
   extensions has changed. Previously, when both extensions were present, only
   Bit Manipulation subset information was used to determine instruction
@@ -25,7 +84,7 @@ NOTE: X-commit messages below refer to git commits in the following
   not cause a page fault trap).
 
 Date 2023-January-31
-Release 20231030.0
+Release 20230130.0
 ===
 
 - When the Advanced Interrupt Architecture (AIA) extension is implemented, new

@@ -21,6 +21,7 @@
 
 // VMI header files
 #include "vmi/vmiTypes.h"
+#include "vmi/vmiTyperefs.h"
 #include "vmi/vmiPorts.h"
 
 // common header files
@@ -45,6 +46,7 @@
 #define RISCV_DISASSEMBLE_MASK      0x00000001
 #define RISCV_DEBUG_MMU_MASK        0x00000002
 #define RISCV_DEBUG_EXCEPT_MASK     0x00000004
+#define RISCV_VALIDATE_TLB_MASK     0x00000008
 
 //
 // Processor flag selection macros
@@ -52,6 +54,7 @@
 #define RISCV_DISASSEMBLE(_P)   ((_P)->flags & RISCV_DISASSEMBLE_MASK)
 #define RISCV_DEBUG_MMU(_P)     ((_P)->flags & RISCV_DEBUG_MMU_MASK)
 #define RISCV_DEBUG_EXCEPT(_P)  ((_P)->flags & RISCV_DEBUG_EXCEPT_MASK)
+#define RISCV_VALIDATE_TLB(_P)  ((_P)->flags & RISCV_VALIDATE_TLB_MASK)
 
 //
 // Debug flags that should be disabled during save/restore
@@ -77,6 +80,7 @@ typedef struct riscvNetValueS {
     Bool resethaltreqS : 1; // resethaltreq (Debug mode, sampled at reset)
     Bool deferint      : 1; // defer taking interrupts (artifact)
     Bool enableCLIC    : 1; // is CLIC enabled?
+    Bool illegalInst   : 1; // whether Illegal Instruction raised
     Uns8 triggerAfter  : 4; // pending trigger after (Trigger module)
 } riscvNetValue;
 
@@ -152,21 +156,24 @@ typedef riscvDomainSetVM *riscvDomainSetVMP;
 // types in uniform way)
 //
 typedef struct riscvTData1UPS {
-    triggerType type    :  4;
-    Uns32       modes   :  6;
-    Uns32       match   :  4;
-    Uns32       action  :  4;
-    Uns32       size    :  4;
-    Uns32       priv    :  3;
-    Bool        chain   :  1;
-    Bool        timing  :  1;
-    Bool        select  :  1;
-    Bool        hit     :  1;
-    Bool        dmode   :  1;
-    Bool        nmi     :  1;
-    Bool        pending :  1;
-    Bool        icmatch :  1;
-    Uns32       count   : 14;
+    triggerType type        :  4;
+    Uns32       modes       :  6;
+    Uns32       match       :  4;
+    Uns32       action      :  4;
+    Uns32       size        :  4;
+    Uns32       priv        :  3;
+    Bool        chain       :  1;
+    Bool        timing      :  1;
+    Bool        select      :  1;
+    Bool        hit0        :  1;
+    Bool        hit1        :  1;
+    Bool        dmode       :  1;
+    Bool        nmi         :  1;
+    Bool        pending     :  1;
+    Bool        icmatch     :  1;
+    Bool        uncertain   :  1;
+    Bool        uncertainen :  1;
+    Uns32       count       : 14;
 } riscvTData1UP;
 
 //
@@ -259,7 +266,10 @@ typedef struct riscvS {
     Bool               usingFP       :1;// whether floating point in use
     Bool               usingBF16     :1;// whether BF16 format in use
     Bool               dynamicBF16   :1;// whether dynamic BF16 format
+    Bool               warnNoPMPUS   :1;// whether warn of U/S switch without PMP
     riscvVTypeFmt      vtypeFormat   :1;// vtype format (vector extension)
+    Uns16              CMOOffset;       // CMO block offset
+    Uns16              CMOBytes;        // CMO block bytes
     Uns16              pmKey;           // polymorphic key
     Uns8               xlenMask;        // XLEN mask (per mode5)
     Uns8               xlenMaskSR;      // XLEN mask (during save/restore)
@@ -270,6 +280,7 @@ typedef struct riscvS {
     Uns8               SFCSR;           // SF set by CSR write
     Uns8               SF;              // operation saturation flag
     Uns8               atomic;          // atomic operation code
+    Uns8               CMO;             // active CMO instruction
     Bool               HLVHSV;          // whether HLV, HLVX or HSV active
     Bool               DM;              // whether in Debug mode
     Bool               DMStall;         // whether stalled in Debug mode
@@ -295,7 +306,7 @@ typedef struct riscvS {
     Uns32              extInt[RISCV_MODE_LAST]; // external interrupt override
     riscvAIAP          aia;             // AIA state
     riscvPP            clint;           // CLINT state
-    riscvCLIC          clic;            // source interrupt indicated from CLIC
+    riscvCLIC          clic;            // CLIC state
     riscvException     exception;       // last activated exception
     riscvExceptionDtl  exceptionDetail; // exception detail
     Uns32              threshOnes: 8;   // all-ones bits in xintthresh
@@ -307,6 +318,11 @@ typedef struct riscvS {
     Bool               stimecmp  : 1;   // is stimecmp interrupt pending?
     Bool               vstimecmp : 1;   // is vstimecmp interrupt pending?
     Bool               isFetch   : 1;   // is instruction fetch active?
+    Bool               inWFI     : 1;   // is processor in WFI state?
+    Bool               impSCB    : 1;   // is sclicbase implicit?
+    Bool               impUCB    : 1;   // is uclicbase implicit?
+    Bool               ssclic    : 1;   // does CLIC support S-mode?
+    Bool               suclic    : 1;   // does CLIC support U-mode?
 
     // LR/SC support
     Uns64              exclusiveTag;    // tag for active exclusive access
@@ -351,6 +367,9 @@ typedef struct riscvS {
     Uns32              irq_ack_Handle;  // interrupt acknowledge
     Uns32              irq_id_Handle;   // interrupt id
     Uns32              sec_lvl_Handle;  // security level
+    Uns32              coverHandle;     // coverage port
+    Uns32              wfiHandle;       // WFI active port
+    Uns32              readCSR;         // CSR read notification port
 
     // Timers
     Uns32              stepICount;      // Instructions when single-step set
@@ -382,6 +401,7 @@ typedef struct riscvS {
     Uns64             *mpuaddr;         // mpuaddr registers
 #endif
     riscvTLBP          tlb[RISCV_TLB_LAST];// TLB caches
+    riscvTLBVCxtP      tlbVCxt;         // TLB address validation context
     memPriv            origPriv   : 8;  // original access privilege (table walk)
     Uns8               extBits    : 8;  // bit size of external domains
     Uns8               s2Offset   : 2;  // stage 2 additional page offset
@@ -391,6 +411,7 @@ typedef struct riscvS {
     Bool               PTWBadAddr : 1;  // page table walk address was bad
     Bool               hlvxActive : 1;  // HLVX access active
     Bool               GVA        : 1;  // is guest virtual address?
+    Bool               pmpStraddle: 1;  // are PMP region straddles possible?
     Uns64              GPA;             // faulting guest physical address
     Uns64              tinst;           // pending trap instruction
     Uns64              originalVA;      // VA initiating memory fault
@@ -564,10 +585,24 @@ inline static Bool mtvecDeterminesCLICMode(riscvP riscv) {
 }
 
 //
-// Are xintstatus CSRs in read-only location?
+// Are xintstatus CSRs in read/write location?
 //
-inline static Bool xintstatusRO(riscvP riscv) {
-    return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+inline static Bool xintstatusRW(riscvP riscv) {
+    return riscv->configInfo.CLIC_version<RVCLC_0_9_20221108;
+}
+
+//
+// Are xintstatus CSRs in first read-only location?
+//
+inline static Bool xintstatusRO1(riscvP riscv) {
+    return riscv->configInfo.CLIC_version==RVCLC_0_9_20221108;
+}
+
+//
+// Are xintstatus CSRs in second read-only location?
+//
+inline static Bool xintstatusRO2(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20221108;
 }
 
 //
@@ -575,6 +610,13 @@ inline static Bool xintstatusRO(riscvP riscv) {
 //
 inline static Bool mclicbaseAbsent(riscvP riscv) {
     return riscv->configInfo.CLIC_version>RVCLC_0_9_20220315;
+}
+
+//
+// Is xintthresh cleared by xret to a less-privileged mode?
+//
+inline static Bool xretClearsIntThresh(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20221108;
 }
 
 //
@@ -589,6 +631,13 @@ inline static Bool clicinfoAbsent(riscvP riscv) {
 //
 inline static Bool haveNVbits(riscvP riscv) {
     return riscv->configInfo.CLIC_version<=RVCLC_0_9_20220315;
+}
+
+//
+// Are there separate xcliccfg registers per mode?
+//
+inline static Bool xcliccfgPerMode(riscvP riscv) {
+    return riscv->configInfo.CLIC_version>RVCLC_0_9_20221108;
 }
 
 //
@@ -705,6 +754,13 @@ inline static Bool userPresent(riscvP riscv) {
 }
 
 //
+// Is User mode interrupt extension present?
+//
+inline static Bool userIntPresent(riscvP riscv) {
+    return riscv->configInfo.arch & ISA_N;
+}
+
+//
 // Is Supervisor mode present?
 //
 inline static Bool supervisorPresent(riscvP riscv) {
@@ -791,21 +847,21 @@ inline static riscvZfinxVer Zfinx(riscvP riscv) {
 //
 // Is Zfa configured?
 //
-inline static riscvZceeVer Zfa(riscvP riscv) {
+inline static Bool Zfa(riscvP riscv) {
     return riscv->configInfo.Zfa;
 }
 
 //
 // Is notional Zcd configured?
 //
-inline static riscvZceeVer Zcd(riscvP riscv) {
+inline static Bool Zcd(riscvP riscv) {
     return riscv->configInfo.compress_present & RVCS_Zcd;
 }
 
 //
 // Is Zcmt configured?
 //
-inline static riscvZceeVer Zcmt(riscvP riscv) {
+inline static Bool Zcmt(riscvP riscv) {
     return riscv->configInfo.compress_present & RVCS_Zcmt;
 }
 
@@ -833,14 +889,14 @@ inline static riscvZceeVer Zcee(riscvP riscv) {
 //
 // Is Smaia configured?
 //
-inline static riscvZceeVer Smaia(riscvP riscv) {
+inline static Bool Smaia(riscvP riscv) {
     return riscv->configInfo.Smaia;
 }
 
 //
 // Is Sstc configured?
 //
-inline static riscvZceeVer Sstc(riscvP riscv) {
+inline static Bool Sstc(riscvP riscv) {
     return riscv->configInfo.Sstc;
 }
 

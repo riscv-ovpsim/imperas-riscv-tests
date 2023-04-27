@@ -29,26 +29,26 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 300
   xnor : 300
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 300
   clmulh : 300
+  clmul : 300
 Instruction category: OPB_PACK Packing
-  pack : 300
   packh : 300
+  pack : 300
   packw : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 300
-  rori : 298
   ror : 300
+  rori : 298
+  rol : 300
+  rorw : 300
   rolw : 300
   roriw : 298
-  rorw : 300
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
-  sm3p1 : 298
   sm3p0 : 298
+  sm3p1 : 298
 Instruction category: OPK_Zkse 
-  sm4ks : 556
   sm4ed : 556
+  sm4ks : 556
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)

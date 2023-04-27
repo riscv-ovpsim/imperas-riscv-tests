@@ -1,7 +1,7 @@
 # Imperas RISC-V Architecture Tests for RV32E_M-RVI/M
 
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,14 +20,14 @@
 
 | Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
 | ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
-| div-01                             |     6,916 |      12,720  |         2,336  |               3,166  |
-| mul-01                             |     6,916 |      12,776  |         2,352  |               3,178  |
-| divu-01                            |     7,428 |      15,720  |         2,928  |               3,906  |
-| mulh-01                            |     6,916 |      12,972  |         2,368  |               3,222  |
 | mulhu-01                           |     7,428 |      15,592  |         2,896  |               3,886  |
-| mulhsu-01                          |     7,172 |      14,196  |         2,624  |               3,534  |
-| rem-01                             |     6,916 |      12,844  |         2,352  |               3,194  |
+| mulh-01                            |     6,916 |      12,972  |         2,368  |               3,222  |
+| divu-01                            |     7,428 |      15,720  |         2,928  |               3,906  |
+| mul-01                             |     6,916 |      12,776  |         2,352  |               3,178  |
+| div-01                             |     6,916 |      12,720  |         2,336  |               3,166  |
 | remu-01                            |     7,428 |      15,664  |         2,912  |               3,890  |
+| rem-01                             |     6,916 |      12,844  |         2,352  |               3,194  |
+| mulhsu-01                          |     7,172 |      14,196  |         2,624  |               3,534  |
 | ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
 
 

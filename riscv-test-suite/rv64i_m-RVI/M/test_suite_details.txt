@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -33,21 +33,21 @@ Other instructions (those not the focus of this suite)
   csrrw : 26
   mret : 13
   slli : 28,106
-  remuw : 818
+  divuw : 821
   sd : 9,562
   fence : 13
   ecall : 13
   beq : 39
-  divuw : 821
-  remu : 822
-  remw : 676
-  mulhsu : 741
   divw : 671
-  mulh : 677
-  mulw : 672
   mul : 682
-  div : 678
-  divu : 824
   mulhu : 814
   rem : 666
+  div : 678
+  mulhsu : 741
+  mulw : 672
+  remw : 676
+  remu : 822
+  mulh : 677
+  remuw : 818
+  divu : 824
 

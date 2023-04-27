@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -36,33 +36,33 @@ Other instructions (those not the focus of this suite)
   fence : 37
   ecall : 37
   beq : 716
-  bge : 586
-  bgeu : 728
-  sub : 907
-  bne : 585
   andi : 597
+  bltu : 727
+  sub : 907
   and : 588
+  lb : 18
   blt : 586
   jalr : 59
   xori : 602
-  bltu : 727
-  lh : 16
+  bge : 586
+  bgeu : 728
+  bne : 585
   lbu : 17
-  lb : 18
+  lh : 16
   lhu : 16
   lw : 16
+  or : 589
   ori : 557
   sb : 78
-  or : 589
-  slli : 89
-  sltiu : 697
   sh : 71
+  sll : 88
   slti : 561
   slt : 581
+  slli : 89
+  sltiu : 697
   sltu : 722
-  sra : 90
-  sll : 88
   srl : 89
+  sra : 90
   srai : 87
   srli : 88
   xor : 583

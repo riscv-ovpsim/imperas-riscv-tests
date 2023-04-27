@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -25,15 +25,15 @@ Architectural Test Suite Data for RV32C C Compressed Integer Instructions:
 Instruction category: arithmetic 
   c-lui : 1,527
   c-li : 3,071
-  c-addi : 902
-  c-sub : 169
   c-mv : 242
+  c-addi : 902
   c-add : 841
+  c-sub : 169
 Instruction category: logical 
-  c-or : 168
-  c-xor : 168
   c-and : 168
+  c-xor : 168
   c-andi : 168
+  c-or : 168
 Instruction category: branch 
   c-bnez : 168
   c-beqz : 168
@@ -61,9 +61,9 @@ Other instructions (those not the focus of this suite)
   mret : 28
   lui : 1,582
   sw : 3,956
-  jal : 551
   fence : 27
   ecall : 27
   beq : 81
+  jal : 551
   lw : 505
 

@@ -778,7 +778,7 @@ static void postStatusW(riscvP riscv, Uns64 oldValue, Uns64 newValue) {
     Uns64 newXL = newValue & WM_mstatus_XL;
 
     // refresh XLEN mask and current mode when required
-    if(oldXL!=newXL) {
+    if(!riscv->xlenMask || (oldXL!=newXL)) {
         riscvRefreshXLEN(riscv);
     }
 
@@ -1093,6 +1093,13 @@ static RISCV_CSR_READFN(mnepcR) {
     return epcR(riscv, RD_CSR_M(riscv, mnepc));
 }
 
+//
+// Read dpc
+//
+static RISCV_CSR_READFN(dpcR) {
+    return epcR(riscv, RD_CSR_M(riscv, dpc));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // RESUMABLE NMI CONTROL REGISTERS
@@ -1230,14 +1237,23 @@ inline static RISCV_CSR_PRESENTFN(ucodeP) {
 // Are CLIC xintstatus registers present in read/write locations?
 //
 inline static RISCV_CSR_PRESENTFN(clicRWP) {
-    return CLICPresent(riscv) && !xintstatusRO(riscv);
+    return CLICPresent(riscv) && xintstatusRW(riscv);
 }
 
 //
-// Are CLIC xintstatus registers present in read-only locations?
+// Are CLIC xintstatus registers present in read-only locations, in first
+// position?
 //
-inline static RISCV_CSR_PRESENTFN(clicRP) {
-    return CLICPresent(riscv) && xintstatusRO(riscv);
+inline static RISCV_CSR_PRESENTFN(clicR1P) {
+    return CLICPresent(riscv) && xintstatusRO1(riscv);
+}
+
+//
+// Are CLIC xintstatus registers present in read-only locations, in second
+// position?
+//
+inline static RISCV_CSR_PRESENTFN(clicR2P) {
+    return CLICPresent(riscv) && xintstatusRO2(riscv);
 }
 
 //
@@ -1374,7 +1390,7 @@ inline static Uns64 getUIRMask(riscvP riscv) {
 // location)
 //
 static Uns64 getVSIPWMask(riscvP riscv) {
-    Uns64 wMask = RD_CSR_MASK64(riscv, mip) & (WM64_mvien|(WM32_vsip<<1));
+    Uns64 wMask = RD_CSR_MASK64(riscv, mip) & (WM64_mvip|(WM32_vsip<<1));
     return hidelegRInt(riscv) & wMask;
 }
 
@@ -1440,7 +1456,7 @@ static Uns64 xvipexW(
 
         // handle any interrupts that are now pending and enabled
         if(oldValue!=newValue) {
-            riscvTestInterrupt(riscv);
+            riscvUpdatePending(riscv);
         }
     }
 
@@ -1449,14 +1465,43 @@ static Uns64 xvipexW(
 }
 
 //
+// Return mask of active bits in svip (not disabled by mvien)
+//
+inline static Uns64 activeSwipMask(riscvP riscv) {
+    return ~(WM64_mip_mvip & RD_CSR64(riscv, mvien));
+}
+
+//
+// Return mask of bits in mvip that are aliased to software-writable bits
+//
+inline static Uns64 mvipSwipMask(riscvP riscv) {
+    return WM64_mip_mvip & ~RD_CSR64(riscv, mvien);
+}
+
+//
 // Common routine to read mvip using mvip or mviph alias
 //
 static Uns64 mvipIntR(riscvP riscv) {
 
-    Uns64 result = 0;
+    Uns64 result = RD_CSR64(riscv, mvip);
 
-    if(riscv->inSaveRestore || !useCLICM(riscv)) {
-        result = RD_CSR64(riscv, mvip) | (riscv->swip & WM64_mip_mvip);
+    if(riscv->inSaveRestore) {
+
+        // return raw value
+
+    } else if(useCLICM(riscv)) {
+
+        // RAZ/WI in CLIC mode
+        result = 0;
+
+    } else {
+
+        // get mask of bits mastered in swip
+        Uns64 swipMask = mvipSwipMask(riscv);
+
+        // return raw value merged with bits mastered in swip
+        result &= ~swipMask;
+        result |= (riscv->swip & swipMask);
     }
 
     return result;
@@ -1465,24 +1510,45 @@ static Uns64 mvipIntR(riscvP riscv) {
 //
 // Common routine to write mvip using mvip or mviph alias
 //
-static Uns64 mvipIntW(riscvP riscv, Uns64 newValue, Uns64 mask) {
+static Uns64 mvipIntW(riscvP riscv, Uns64 newValue, Uns64 halfMask) {
 
-    Bool  useCLIC  = useCLICM(riscv);
-    Uns64 oldValue = mvipIntR(riscv);
+    Uns64 mask = RD_CSR_MASK64(riscv, mvip) & halfMask;
 
-    if(riscv->inSaveRestore || !useCLIC) {
+    if(riscv->inSaveRestore) {
+
+        Uns64 oldValue = RD_CSR64(riscv, mvip);
+
+        // update value using writable bit mask
+        newValue = ((newValue & mask) | (oldValue & ~mask));
+
+        // set raw value
+        WR_CSR64(riscv, mvip, newValue);
+
+    } else if(useCLICM(riscv)) {
+
+        // RAZ/WI in CLIC mode
+        newValue = 0;
+
+    } else {
+
+        Uns64 oldValue = mvipIntR(riscv);
 
         // update value using writable bit mask
         newValue = ((newValue & mask) | (oldValue & ~mask));
 
         if(oldValue!=newValue) {
 
-            // update bits mastered in mvip
-            WR_CSR64(riscv, mvip, newValue & ~WM64_mip_mvip);
+            Uns64 swipMask = mvipSwipMask(riscv);
+            Uns64 mvipMask = mask & ~swipMask;
 
-            // update alias software-interrupt bits mastered in mip
-            riscv->swip &= ~WM64_mip_mvip;
-            riscv->swip |= newValue & WM64_mip_mvip;
+            // update bits mastered in mvip
+            Uns64 mvip = ((newValue & mvipMask) | (oldValue & ~mvipMask));
+            WR_CSR64(riscv, mvip, mvip);
+
+            // update bits mastered in swip (NOTE: only writable bits in mip
+            // may be updated)
+            swipMask &= RD_CSR_MASK64(riscv, mip);
+            riscv->swip = ((newValue & swipMask) | (oldValue & ~swipMask));
 
             // handle any interrupts that are now pending and enabled
             riscvUpdatePending(riscv);
@@ -1490,7 +1556,7 @@ static Uns64 mvipIntW(riscvP riscv, Uns64 newValue, Uns64 mask) {
     }
 
     // return readable bits
-    return useCLIC ? 0 : newValue;
+    return newValue;
 }
 
 //
@@ -1511,7 +1577,7 @@ static RISCV_CSR_READFN(mviphR) {
 // Write mvip
 //
 static RISCV_CSR_WRITEFN(mvipW) {
-    Uns64 wMask = RD_CSR_MASK_M(riscv, mvip);
+    Uns64 wMask = maskMXLEN(riscv);
     return mvipIntW(riscv, newValue, wMask);
 }
 
@@ -1519,7 +1585,7 @@ static RISCV_CSR_WRITEFN(mvipW) {
 // Write mviph
 //
 static RISCV_CSR_WRITEFN(mviphW) {
-    Uns64 wMask = RD_CSR_MASK64(riscv, mvip) & TOP32_MASK;
+    Uns64 wMask = TOP32_MASK;
     return mvipIntW(riscv, newValue<<32, wMask) >> 32;
 }
 
@@ -1680,6 +1746,23 @@ static Bool checkAIAAccess(riscvP riscv, riscvCSRStateenBit bit) {
 }
 
 //
+// Is access to the HS-mode interrupt file legal?
+//
+inline static const char *accessHSModeInterruptFile(riscvP riscv) {
+    return (
+        (getCurrentMode3(riscv)==RISCV_MODE_M) ||
+        !RD_CSR_FIELDC(riscv, mvien, SEIP)
+    ) ? 0 : "mvien.SEIP=1";
+}
+
+//
+// Is access to the VS-mode interrupt file legal?
+//
+inline static const char *accessVSModeInterruptFile(riscvP riscv) {
+    return RD_CSR_FIELDC(riscv, hstatus, VGEIN) ? 0 : "hstatus.VGEIN=0";
+}
+
+//
 // Is xiselect value valid?
 //
 static Bool xiselectValid(
@@ -1710,9 +1793,10 @@ static Bool xiselectValid(
         if(!riscv->configInfo.IMSIC_present) {
             // invalid if IMSIC absent
             badReason = "IMSIC is absent";
-        } else if(V && !RD_CSR_FIELDC(riscv, hstatus, VGEIN)) {
+        } else if(V && (badReason=accessVSModeInterruptFile(riscv))) {
             // invalid if virtual and hstatus.VGEIN=0
-            badReason = "illegal hstatus.VGEIN=0";
+        } else if(!V && (badReason=accessHSModeInterruptFile(riscv))) {
+            // invalid if not virtual and mvien.SEIP=1
         } else {
             // validate Smstateen access constraints
             valid     = checkAIAAccess(riscv, bit_stateen_IMSIC);
@@ -2123,7 +2207,17 @@ static RISCV_CSR_READFN(mtopeiR) {
 // Read stopei
 //
 static RISCV_CSR_READFN(stopeiR) {
-    return xtopeiR(riscv->aia->seiprio);
+
+    Uns32       result = 0;
+    const char *error;
+
+    if(riscv->artifactAccess || !(error=accessHSModeInterruptFile(riscv))) {
+        result = xtopeiR(riscv->aia->seiprio);
+    } else {
+        riscvIllegalInstructionMessage(riscv, error);
+    }
+
+    return result;
 }
 
 //
@@ -2131,12 +2225,13 @@ static RISCV_CSR_READFN(stopeiR) {
 //
 static RISCV_CSR_READFN(vstopeiR) {
 
-    Uns32 result = 0;
+    Uns32       result = 0;
+    const char *error;
 
-    if(riscv->artifactAccess || RD_CSR_FIELDC(riscv, hstatus, VGEIN)) {
+    if(riscv->artifactAccess || !(error=accessVSModeInterruptFile(riscv))) {
         result = xtopeiR(riscv->aia->vseiprio);
     } else {
-        virtualOrIllegalMessage(riscv, "hstatus.VGEIN=0");
+        virtualOrIllegalMessage(riscv, error);
     }
 
     return result;
@@ -2337,6 +2432,9 @@ static Uns64 ipRW(riscvP riscv, Uns64 rMask, Uns64 wMask, Bool useCLIC) {
 
     if(!useCLIC) {
 
+        // take account of mvien effect on writable bits
+        wMask &= activeSwipMask(riscv);
+
         // if a read/write, return software-writable bits only in writable
         // positions (otherwise external inputs get propagated to sticky
         // software-writable bits by csrrs instructions)
@@ -2358,6 +2456,9 @@ static Uns64 ipW(riscvP riscv, Uns64 newValue, Uns64 rMask, Bool useCLIC) {
 
         Uns64 oldValue = riscv->swip;
         Uns64 wMask    = RD_CSR_MASK64(riscv, mie) & rMask;
+
+        // take account of mvien effect on writable bits
+        wMask &= activeSwipMask(riscv);
 
         // update value using writable bit mask
         newValue = ((newValue & wMask) | (oldValue & ~wMask));
@@ -2729,17 +2830,18 @@ static Uns64 sipIntRW(riscvP riscv) {
 //
 // Common routine to write sip using sip or siph alias
 //
-static Uns64 sipIntW(riscvP riscv, Uns64 newValue, Uns64 sipMask) {
+static Uns64 sipIntW(riscvP riscv, Uns64 newValue, Uns64 halfMask) {
 
     // get mask of sources that should use mvip
-    Uns64 mvien = getEffectiveMvien(riscv);
+    Uns64 sipMask = RD_CSR_MASK64(riscv, sip) & halfMask;
+    Uns64 mvien   = getEffectiveMvien(riscv);
 
     // handle standard interrupt sources
     Uns64 wMask = getSIRMask(riscv) & sipMask & ~mvien;
     Uns64 ip    = ipW(riscv, newValue, wMask, useCLICS(riscv));
 
     // handle mvip sources
-    ip |= (mvipIntW(riscv, newValue, sipMask & mvien) & mvien);
+    ip |= (mvipIntW(riscv, newValue, halfMask & mvien) & mvien);
 
     return ip;
 }
@@ -2776,7 +2878,7 @@ static RISCV_CSR_READFN(siphRW) {
 // Write sip
 //
 static RISCV_CSR_WRITEFN(sipW) {
-    Uns64 wMask = RD_CSR_MASK_S(riscv, sip);
+    Uns64 wMask = maskSXLEN(riscv);
     return sipIntW(riscv, newValue, wMask);
 }
 
@@ -2784,7 +2886,7 @@ static RISCV_CSR_WRITEFN(sipW) {
 // Write siph
 //
 static RISCV_CSR_WRITEFN(siphW) {
-    Uns64 wMask = RD_CSR_MASK64(riscv, sip) & TOP32_MASK;
+    Uns64 wMask = TOP32_MASK;
     return sipIntW(riscv, newValue<<32, wMask) >> 32;
 }
 
@@ -3769,6 +3871,13 @@ static RISCV_CSR_WRITEFN(uintthreshW) {
 }
 
 //
+// Read mclicbase
+//
+static RISCV_CSR_READFN(mclicbaseR) {
+    return riscv->configInfo.mclicbase;
+}
+
+//
 // Write mclicbase
 //
 // NOTE: the specification states that this register is read-only, but it is
@@ -3776,9 +3885,7 @@ static RISCV_CSR_WRITEFN(uintthreshW) {
 // location, this code can be removed.
 //
 static RISCV_CSR_WRITEFN(mclicbaseW) {
-
-    // return current value
-    return RD_CSR_M(riscv, mclicbase);
+    return riscv->configInfo.mclicbase;
 }
 
 
@@ -3944,7 +4051,7 @@ static RISCV_CSR_READFN(stvecR) {
 static RISCV_CSR_WRITEFN(stvecW) {
 
     Uns64 oldValue = RD_CSR_S(riscv, stvec);
-    Uns64 mask     = RD_CSR_MASK_VS(riscv, stvec);
+    Uns64 mask     = RD_CSR_MASK_S(riscv, stvec);
     Uns8  sext     = riscv->configInfo.stvec_sext;
 
     newValue = tvecW(riscv, newValue, oldValue, mask, sext);
@@ -4017,7 +4124,7 @@ static RISCV_CSR_WRITEFN(mtvtW) {
 static RISCV_CSR_WRITEFN(stvtW) {
 
     Uns64 oldValue = RD_CSR_S(riscv, stvt);
-    Uns64 mask     = RD_CSR_MASK_VS(riscv, stvt);
+    Uns64 mask     = RD_CSR_MASK_S(riscv, stvt);
     Uns8  sext     = riscv->configInfo.stvt_sext;
 
     newValue = tvtW(newValue, oldValue, mask, sext);
@@ -4900,6 +5007,10 @@ static Uns64 atpW(
 // Write satp
 //
 static RISCV_CSR_WRITEFN(satpW) {
+
+    // do actions on base update
+    riscvVMUpdateTableBase(riscv, RISCV_TLB_HS);
+
     return atpW(attrs, riscv, newValue, &riscv->csr.satp, RISCV_MODE_S, False);
 }
 
@@ -4907,7 +5018,12 @@ static RISCV_CSR_WRITEFN(satpW) {
 // Write vsatp
 //
 static RISCV_CSR_WRITEFN(vsatpW) {
+
     Bool isWARL = !inVMode(riscv);
+
+    // do actions on base update
+    riscvVMUpdateTableBase(riscv, RISCV_TLB_VS1);
+
     return atpW(attrs, riscv, newValue, &riscv->csr.vsatp, RISCV_MODE_VS, isWARL);
 }
 
@@ -4964,6 +5080,10 @@ static RISCV_CSR_WRITEFN(hgatpW) {
         // change in hgatp.VMID affects effective VMID
         riscvVMSetASID(riscv);
     }
+
+    // do actions on base update
+    riscvVMUpdateTableBase(riscv, RISCV_TLB_VS1);
+    riscvVMUpdateTableBase(riscv, RISCV_TLB_VS2);
 
     return RD_CSR_S(riscv, hgatp);
 }
@@ -5572,6 +5692,9 @@ static riscvTData1UP unpackTData1(
 ) {
     CSR_REG_DECL(tdata1) = {newValue};
 
+    // some behavior is tinfo-version-dependent
+    Uns32 tinfo_version = RD_REG_FIELD_TRIGGER(trigger, tinfo, version);
+
     // information required to compose mode
     Uns32 modes = 0;
     Bool  vu    = False;
@@ -5613,7 +5736,7 @@ static riscvTData1UP unpackTData1(
             tdata1UP.chain  = RD_RAW_FIELDC(tdata1, mcontrol.chain);
             tdata1UP.timing = RD_RAW_FIELDC(tdata1, mcontrol.timing);
             tdata1UP.select = RD_RAW_FIELDC(tdata1, mcontrol.select);
-            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, mcontrol.hit);
+            tdata1UP.hit0   = RD_RAW_FIELDC(tdata1, mcontrol.hit);
 
             // include 64-bit size component
             if(!TRIGGER_IS_32M(riscv)) {
@@ -5632,7 +5755,7 @@ static riscvTData1UP unpackTData1(
             // compose other fields
             tdata1UP.action = RD_RAW_FIELDC(tdata1, icount.action);
             tdata1UP.timing = 1;
-            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, icount.hit);
+            tdata1UP.hit0   = RD_RAW_FIELDC(tdata1, icount.hit);
 
             // from version 0.14.0, pending field indicates whether ICOUNT
             // breakpoint has fired
@@ -5662,7 +5785,7 @@ static riscvTData1UP unpackTData1(
             }
 
             // hit field is at XLEN-specific location
-            tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit);
+            tdata1UP.hit0 = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit);
 
             break;
 
@@ -5683,7 +5806,7 @@ static riscvTData1UP unpackTData1(
             }
 
             // hit field is at XLEN-specific location
-            tdata1UP.hit = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit);
+            tdata1UP.hit0 = RD_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit);
 
             break;
 
@@ -5701,9 +5824,23 @@ static riscvTData1UP unpackTData1(
             tdata1UP.size   = RD_RAW_FIELDC(tdata1, mcontrol6.size);
             tdata1UP.priv   = RD_RAW_FIELDC(tdata1, mcontrol6.priv);
             tdata1UP.chain  = RD_RAW_FIELDC(tdata1, mcontrol6.chain);
-            tdata1UP.timing = RD_RAW_FIELDC(tdata1, mcontrol6.timing);
             tdata1UP.select = RD_RAW_FIELDC(tdata1, mcontrol6.select);
-            tdata1UP.hit    = RD_RAW_FIELDC(tdata1, mcontrol6.hit);
+            tdata1UP.hit0   = RD_RAW_FIELDC(tdata1, mcontrol6.hit0);
+
+            if(tinfo_version) {
+
+                // from tinfo version 1, hit1, uncertain and uncertainen fields
+                // are present and size is restricted
+                tdata1UP.hit1        = RD_RAW_FIELDC(tdata1, mcontrol6.hit1);
+                tdata1UP.uncertain   = RD_RAW_FIELDC(tdata1, mcontrol6.uncertain);
+                tdata1UP.uncertainen = (modes&(1<<RISCV_MODE_H)) && True;
+                tdata1UP.size       &= 7;
+
+            } else {
+
+                // before tinfo version 1, timing field is present
+                tdata1UP.timing = RD_RAW_FIELDC(tdata1, mcontrol6.timing);
+            }
 
             break;
 
@@ -5716,9 +5853,10 @@ static riscvTData1UP unpackTData1(
     // mask effective modes
     tdata1UP.modes = composeModes(riscv, modes, vu, vs);
 
-    // mask out hit field if required
+    // mask out hit fields if required
     if(riscv->configInfo.no_hit) {
-        tdata1UP.hit = 0;
+        tdata1UP.hit0 = 0;
+        tdata1UP.hit1 = 0;
     }
 
     // dmode=0 requires action=0, and action must not exceed 1
@@ -5732,9 +5870,15 @@ static riscvTData1UP unpackTData1(
 //
 // Pack tdata1 value from common format
 //
-static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
-
+static Uns64 packTData1(
+    riscvP        riscv,
+    riscvTriggerP trigger,
+    riscvTData1UP tdata1UP
+) {
     CSR_REG_DECL(tdata1) = {0};
+
+    // some behavior is tinfo-version-dependent
+    Uns32 tinfo_version = RD_REG_FIELD_TRIGGER(trigger, tinfo, version);
 
     // extract vu and vs from mode mask
     Uns32 modes = tdata1UP.modes;
@@ -5758,7 +5902,7 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
             WR_RAW_FIELDC(tdata1, mcontrol.chain,  tdata1UP.chain);
             WR_RAW_FIELDC(tdata1, mcontrol.timing, tdata1UP.timing);
             WR_RAW_FIELDC(tdata1, mcontrol.select, tdata1UP.select);
-            WR_RAW_FIELDC(tdata1, mcontrol.hit,    tdata1UP.hit);
+            WR_RAW_FIELDC(tdata1, mcontrol.hit,    tdata1UP.hit0);
 
             // include 64-bit size component
             if(!TRIGGER_IS_32M(riscv)) {
@@ -5781,7 +5925,7 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
 
             WR_RAW_FIELDC(tdata1, icount.modes,  modes);
             WR_RAW_FIELDC(tdata1, icount.action, tdata1UP.action);
-            WR_RAW_FIELDC(tdata1, icount.hit,    tdata1UP.hit);
+            WR_RAW_FIELDC(tdata1, icount.hit,    tdata1UP.hit0);
             WR_RAW_FIELDC(tdata1, icount.vu,     vu);
             WR_RAW_FIELDC(tdata1, icount.vs,     vs);
             WR_RAW_FIELDC(tdata1, icount.count,  tdata1UP.count);
@@ -5801,7 +5945,7 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
             }
 
             // hit field is at XLEN-specific location
-            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit, tdata1UP.hit);
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, itrigger.hit, tdata1UP.hit0);
 
             break;
 
@@ -5818,23 +5962,34 @@ static Uns64 packTData1(riscvP riscv, riscvTData1UP tdata1UP) {
             }
 
             // hit field is at XLEN-specific location
-            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit, tdata1UP.hit);
+            WR_RAW_FIELD_TRIGGER_MODE(riscv, tdata1, etrigger.hit, tdata1UP.hit0);
 
             break;
 
         case TT_MCONTROL6:
 
-            WR_RAW_FIELDC(tdata1, mcontrol6.modes,  modes);
-            WR_RAW_FIELDC(tdata1, mcontrol6.match,  tdata1UP.match);
-            WR_RAW_FIELDC(tdata1, mcontrol6.action, tdata1UP.action);
-            WR_RAW_FIELDC(tdata1, mcontrol6.size,   tdata1UP.size);
-            WR_RAW_FIELDC(tdata1, mcontrol6.priv,   tdata1UP.priv);
-            WR_RAW_FIELDC(tdata1, mcontrol6.chain,  tdata1UP.chain);
-            WR_RAW_FIELDC(tdata1, mcontrol6.timing, tdata1UP.timing);
-            WR_RAW_FIELDC(tdata1, mcontrol6.select, tdata1UP.select);
-            WR_RAW_FIELDC(tdata1, mcontrol6.hit,    tdata1UP.hit);
-            WR_RAW_FIELDC(tdata1, mcontrol6.vu,     vu);
-            WR_RAW_FIELDC(tdata1, mcontrol6.vs,     vs);
+            // from tinfo version 1, uncertainen field is also present
+            if(tinfo_version && tdata1UP.uncertainen) {
+                modes |= (1<<RISCV_MODE_H);
+            }
+
+            // from tinfo version 1, timing field is absent
+            if(!tinfo_version) {
+                WR_RAW_FIELDC(tdata1, mcontrol6.timing, tdata1UP.timing);
+            }
+
+            WR_RAW_FIELDC(tdata1, mcontrol6.modes,     modes);
+            WR_RAW_FIELDC(tdata1, mcontrol6.match,     tdata1UP.match);
+            WR_RAW_FIELDC(tdata1, mcontrol6.action,    tdata1UP.action);
+            WR_RAW_FIELDC(tdata1, mcontrol6.size,      tdata1UP.size);
+            WR_RAW_FIELDC(tdata1, mcontrol6.priv,      tdata1UP.priv);
+            WR_RAW_FIELDC(tdata1, mcontrol6.chain,     tdata1UP.chain);
+            WR_RAW_FIELDC(tdata1, mcontrol6.select,    tdata1UP.select);
+            WR_RAW_FIELDC(tdata1, mcontrol6.hit0,      tdata1UP.hit0);
+            WR_RAW_FIELDC(tdata1, mcontrol6.hit1,      tdata1UP.hit1);
+            WR_RAW_FIELDC(tdata1, mcontrol6.uncertain, tdata1UP.uncertain);
+            WR_RAW_FIELDC(tdata1, mcontrol6.vu,        vu);
+            WR_RAW_FIELDC(tdata1, mcontrol6.vs,        vs);
 
             break;
 
@@ -6042,7 +6197,7 @@ static RISCV_CSR_READFN(tdata1R) {
     riscvTriggerP trigger = getCurrentTrigger(riscv);
 
     // return composed value
-    return packTData1(riscv, trigger->tdata1UP);
+    return packTData1(riscv, trigger, trigger->tdata1UP);
 }
 
 //
@@ -6051,7 +6206,7 @@ static RISCV_CSR_READFN(tdata1R) {
 static RISCV_CSR_WRITEFN(tdata1W) {
 
     riscvTriggerP trigger  = getCurrentTrigger(riscv);
-    Uns64         oldValue = packTData1(riscv, trigger->tdata1UP);
+    Uns64         oldValue = packTData1(riscv, trigger, trigger->tdata1UP);
 
     if(!mayWriteTrigger(riscv, trigger)) {
 
@@ -6074,7 +6229,7 @@ static RISCV_CSR_WRITEFN(tdata1W) {
             if(mayWriteChain(riscv, tdata1UP.dmode, getPreviousTrigger(riscv))) {
 
                 // pack unpacked value
-                newValue = packTData1(riscv, tdata1UP);
+                newValue = packTData1(riscv, trigger, tdata1UP);
 
                 // handle value change
                 if(newValue != oldValue) {
@@ -6095,8 +6250,24 @@ static RISCV_CSR_WRITEFN(tdata1W) {
 static RISCV_CSR_READFN(tdata2R) {
 
     riscvTriggerP trigger = getCurrentTrigger(riscv);
+    Uns64         result  = RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
 
-    return RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
+    if(riscv->artifactAccess) {
+
+        // return unmodified value
+
+    } else if(trigger->tdata1UP.type==TT_INTERRUPT) {
+
+        // bits that do not correspond to implemented interrupts are RAZ/WI
+        result &= riscv->interruptMask;
+
+    } else if(trigger->tdata1UP.type==TT_EXCEPTION) {
+
+        // bits that do not correspond to implemented exceptions are RAZ/WI
+        result &= riscv->exceptionMask;
+    }
+
+    return result;
 }
 
 //
@@ -6108,17 +6279,34 @@ static RISCV_CSR_WRITEFN(tdata2W) {
 
     if(mayWriteTrigger(riscv, trigger)) {
 
-        // non-artifact write of mcontrol6 trigger behaves specially
-        if(!riscv->artifactAccess && (trigger->tdata1UP.type==TT_MCONTROL6)) {
+        Uns64 allOnes  = TRIGGER_IS_32M(riscv) ? (Uns32)-1 : (Uns64)-1;
+        Uns64 oldValue = RD_REG_TRIGGER_MODE(riscv, trigger, tdata2);
+        Uns64 mask     = allOnes;
 
-            Uns64 allOnes = TRIGGER_IS_32M(riscv) ? (Uns32)-1 : (Uns64)-1;
+        if(riscv->artifactAccess) {
 
+            // update value unmasked
+
+        } else if(trigger->tdata1UP.type==TT_MCONTROL6) {
+
+            // limit value to mcontrol_maskmax
             if(newValue==allOnes) {
                 newValue = -1ULL << riscv->configInfo.mcontrol_maskmax;
             }
+
+        } else if(trigger->tdata1UP.type==TT_INTERRUPT) {
+
+            // bits that do not correspond to implemented interrupts are RAZ/WI
+            mask &= riscv->interruptMask;
+
+        } else if(trigger->tdata1UP.type==TT_EXCEPTION) {
+
+            // bits that do not correspond to implemented exceptions are RAZ/WI
+            mask &= riscv->exceptionMask;
         }
 
-        WR_RAW64(trigger->tdata2, newValue);
+        // get new value using writable bit mask
+        WR_RAW64(trigger->tdata2, ((newValue & mask) | (oldValue & ~mask)));
     }
 
     // return written value
@@ -6256,7 +6444,7 @@ static RISCV_CSR_WRITEFN(scontextW) {
 //
 static triggerType getTriggerResetType(riscvP riscv, riscvTriggerP trigger) {
 
-    Uns32       types = RD_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info);
+    Uns32       types = RD_REG_FIELD_TRIGGER(trigger, tinfo, info);
     triggerType type  = 0;
 
     // determine type for trigger at reset
@@ -6273,15 +6461,17 @@ static triggerType getTriggerResetType(riscvP riscv, riscvTriggerP trigger) {
 //
 static void configureTriggers(riscvP riscv) {
 
-    Uns32 tinfo = riscv->configInfo.tinfo;
+    CSR_REG_DECL(tinfo) = {riscv->configInfo.tinfo};
+
     Uns32 i;
 
     for(i=0; i<riscv->configInfo.trigger_num; i++) {
 
         riscvTriggerP trigger = &riscv->triggers[i];
 
-        // initialize tinfo
-        WR_REG_FIELD_TRIGGER_MODE(riscv, trigger, tinfo, info, tinfo);
+        // initialize tinfo and version
+        WR_REG_FIELD_TRIGGER(trigger, tinfo, info,    tinfo.u32.fields.info);
+        WR_REG_FIELD_TRIGGER(trigger, tinfo, version, tinfo.u32.fields.version);
 
         // initialize tdata1 (depends on tinfo)
         trigger->tdata1UP.type = getTriggerResetType(riscv, trigger);
@@ -7861,7 +8051,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (uip,          0x044, ISA_N,       0,          1_10,   1,0,0,0,1,0, 0,                    "User Interrupt Pending",                                0,           0,           uipR,          uipRW,    uipW          ),
     CSR_ATTR_P__     (unxti,        0x045, ISA_N,       0,          1_10,   0,0,0,1,1,0, 0,                    "User Interrupt Handler Address/Enable",                 clicNXTP,    0,           unxtiR,        ustatusR, unxtiW        ),
     CSR_ATTR_PS_     (uintstatus,RW,0x046, ISA_N,       0,          1_10,   0,0,0,0,0,0, 0,                    "User Interrupt Status",                                 clicRWP,     0,           uintstatusR,   0,        0             ),
-    CSR_ATTR_PS_     (uintstatus,R, 0xC46, ISA_N,       0,          1_10,   0,0,0,0,0,0, 0,                    "User Interrupt Status",                                 clicRP,      0,           uintstatusR,   0,        0             ),
+    CSR_ATTR_PS_     (uintstatus,R1,0xC46, ISA_N,       0,          1_10,   0,0,0,0,0,0, 0,                    "User Interrupt Status",                                 clicR1P,     0,           uintstatusR,   0,        0             ),
+    CSR_ATTR_PS_     (uintstatus,R2,0xCB1, ISA_N,       0,          1_10,   0,0,0,0,0,0, 0,                    "User Interrupt Status",                                 clicR2P,     0,           uintstatusR,   0,        0             ),
     CSR_ATTR_T__     (uintthresh,   0x047, ISA_N,       0,          1_10,   0,0,0,0,0,0, 0,                    "User Interrupt Level Threshold",                        clicITP,     0,           0,             0,        uintthreshW   ),
     CSR_ATTR_P__     (uscratchcswl, 0x049, ISA_N,       0,          1_10,   0,0,0,1,1,0, 0,                    "User Conditional Scratch Swap, Level",                  clicSWP,     0,           uscratchcswlR, 0,        uscratchcswlW ),
     CSR_ATTR_TC_     (tbljalvec,    0x800, ISA_C,       0,          1_10,   0,0,0,0,0,0, 0,                    "Table Jump Base",                                       ZceaP,       0,           0,             0,        0             ),
@@ -7896,7 +8087,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_P__     (sip,          0x144, ISA_S,       0,          1_10,   1,0,0,0,1,1, 0,                    "Supervisor Interrupt Pending",                          0,           0,           sipR,          sipRW,    sipW          ),
     CSR_ATTR_P__     (snxti,        0x145, ISA_S,       0,          1_10,   0,0,0,1,1,0, 0,                    "Supervisor Interrupt Handler Address/Enable",           clicNXTP,    0,           snxtiR,        sstatusR, snxtiW        ),
     CSR_ATTR_PS_     (sintstatus,RW,0x146, ISA_S,       0,          1_10,   0,0,0,0,0,0, 0,                    "Supervisor Interrupt Status",                           clicRWP,     0,           sintstatusR,   0,        0             ),
-    CSR_ATTR_PS_     (sintstatus,R, 0xD46, ISA_S,       0,          1_10,   0,0,0,0,0,0, 0,                    "Supervisor Interrupt Status",                           clicRP,      0,           sintstatusR,   0,        0             ),
+    CSR_ATTR_PS_     (sintstatus,R1,0xD46, ISA_S,       0,          1_10,   0,0,0,0,0,0, 0,                    "Supervisor Interrupt Status",                           clicR1P,     0,           sintstatusR,   0,        0             ),
+    CSR_ATTR_PS_     (sintstatus,R2,0xDB1, ISA_S,       0,          1_10,   0,0,0,0,0,0, 0,                    "Supervisor Interrupt Status",                           clicR2P,     0,           sintstatusR,   0,        0             ),
     CSR_ATTR_T__     (sintthresh,   0x147, ISA_S,       0,          1_10,   0,0,0,0,0,0, 0,                    "Supervisor Interrupt Level Threshold",                  clicITP,     0,           0,             0,        sintthreshW   ),
     CSR_ATTR_P__     (sscratchcsw,  0x148, ISA_S,       0,          1_10,   0,0,0,1,1,1, 0,                    "Supervisor Conditional Scratch Swap, Priv",             clicSWP,     0,           sscratchcswR,  0,        sscratchcswW  ),
     CSR_ATTR_P__     (sscratchcswl, 0x149, ISA_S,       0,          1_10,   0,0,0,1,1,1, 0,                    "Supervisor Conditional Scratch Swap, Level",            clicSWP,     0,           sscratchcswlR, 0,        sscratchcswlW ),
@@ -8000,12 +8192,13 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     CSR_ATTR_T__     (mip,          0x344, 0,           0,          1_10,   1,0,0,0,0,0, 0,                    "Machine Interrupt Pending",                             0,           0,           mipR,          mipRW,    mipW          ),
     CSR_ATTR_P__     (mnxti,        0x345, 0,           0,          1_10,   0,0,0,1,1,0, 0,                    "Machine Interrupt Handler Address/Enable",              clicNXTP,    0,           mnxtiR,        mstatusR, mnxtiW        ),
     CSR_ATTR_TCS     (mintstatus,RW,0x346, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Interrupt Status",                              clicRWP,     0,           0,             0,        0             ),
-    CSR_ATTR_TCS     (mintstatus,R ,0xF46, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Interrupt Status",                              clicRP,      0,           0,             0,        0             ),
+    CSR_ATTR_TCS     (mintstatus,R1,0xF46, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Interrupt Status",                              clicR1P,     0,           0,             0,        0             ),
+    CSR_ATTR_TCS     (mintstatus,R2,0xFB1, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Interrupt Status",                              clicR2P,     0,           0,             0,        0             ),
     CSR_ATTR_T__     (mintthresh,   0x347, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Interrupt Level Threshold",                     clicITP,     0,           0,             0,        mintthreshW   ),
     CSR_ATTR_P__     (mscratchcsw,  0x348, ISA_U,       0,          1_10,   0,0,0,1,1,0, 0,                    "Machine Conditional Scratch Swap, Priv",                clicSWP,     0,           mscratchcswR,  0,        mscratchcswW  ),
     CSR_ATTR_P__     (mscratchcswl, 0x349, 0,           0,          1_10,   0,0,0,1,1,0, 0,                    "Machine Conditional Scratch Swap, Level",               clicSWP,     0,           mscratchcswlR, 0,        mscratchcswlW ),
     CSR_ATTR_TV_     (mtinst,       0x34A, ISA_H,       0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Trap Instruction",                              0,           0,           0,             0,        0             ),
-    CSR_ATTR_T__     (mclicbase,    0x34B, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine CLIC Base Address",                             clicMCBP,    0,           0,             0,        mclicbaseW    ),
+    CSR_ATTR_P__     (mclicbase,    0x34B, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine CLIC Base Address",                             clicMCBP,    0,           mclicbaseR,    0,        mclicbaseW    ),
     CSR_ATTR_T__     (mtval2,       0x34B, ISA_H,       0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Second Trap Value",                             0,           0,           0,             0,        0             ),
     CSR_ATTR_T__     (miselect,     0x350, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine Indirect Register Select",                      SmaiaP,      0,           0,             0,        miselectW     ),
     CSR_ATTR_TS_     (mnscratch,21, 0x350, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Machine RNMI Scratch",                                  rnmi021P,    0,           0,             0,        0             ),
@@ -8053,7 +8246,7 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
 
     //                name          num    arch         access      version     attrs    Smstateen             description                                              present      wState       rCB            rwCB      wCB
     CSR_ATTR_TV_     (dcsr,         0x7B0, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Control and Status",                              debugP,      0,           0,             0,        dcsrW         ),
-    CSR_ATTR_T__     (dpc,          0x7B1, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug PC",                                              debugP,      0,           0,             0,        0             ),
+    CSR_ATTR_TV_     (dpc,          0x7B1, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug PC",                                              debugP,      0,           dpcR,          0,        0             ),
     CSR_ATTR_T__     (dscratch0,    0x7B2, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 0",                                       debugP,      0,           0,             0,        0             ),
     CSR_ATTR_T__     (dscratch1,    0x7B3, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 1",                                       debugP,      0,           0,             0,        0             ),
 };
@@ -8747,26 +8940,35 @@ static void resetMisaMStatus(riscvP riscv) {
 
     riscvConfigP cfg = &riscv->configInfo;
     Uns8         MXL = getDefaultMXL(riscv);
+    Uns64        mstatusMask;
+
+    // force evaluation of xlenMask (because of XL changes below)
+    riscv->xlenMask = 0;
 
     // reset misa extensions
     WR_CSR_FIELDC(riscv, misa, Extensions, cfg->arch);
 
-    // reset misa MXL, allowing for the fact that this field might move
     if(MXL==2) {
+
+        // update 64-bit mstatus
+        mstatusMask = WM64_mstatus_reset;
+
+        // reset misa MXL, allowing for the fact that this field might move
         WR_CSR_FIELD32(riscv, misa, MXL, 0);
         WR_CSR_FIELD64(riscv, misa, MXL, MXL);
+
     } else {
+
+        // update 32-bit mstatus
+        mstatusMask = WM32_mstatus_reset;
+
+        // reset misa MXL, allowing for the fact that this field might move
         WR_CSR_FIELD32(riscv, misa, MXL, MXL);
         WR_CSR_FIELD64(riscv, misa, MXL, 0);
     }
 
     // reset mstatus
-    WR_CSR_M(riscv, mstatus, cfg->csr.mstatus.u64.bits);
-
-    // reset hstatus.VSXL and vsstatus.UXL to initial state consistent with
-    // equivalent fields in mstatus
-    WR_CSR_FIELD64(riscv, vsstatus, UXL, RD_CSR_FIELD64(riscv, mstatus, UXL));
-    WR_CSR_FIELD64(riscv, hstatus, VSXL, RD_CSR_FIELD64(riscv, mstatus, SXL));
+    statusW(riscv, cfg->csr.mstatus.u64.bits, mstatusMask);
 }
 
 //
@@ -8796,20 +8998,14 @@ void riscvCSRReset(riscvP riscv) {
         sstateenWInt(riscv, 0, -1, i);
     }
 
-    // do fundamental reset of misa and mstatus
-    resetMisaMStatus(riscv);
-
     // reset mcause register
     WR_CSR64(riscv, mcause, 0);
 
     // reset vector state
     resetVLVType(riscv);
 
-    // refresh current XLEN
-    riscvRefreshXLEN(riscv);
-
-    // update current architecture on change to misa or mstatus
-    riscvSetCurrentArch(riscv);
+    // do fundamental reset of misa and mstatus
+    resetMisaMStatus(riscv);
 
     // perform trigger reset
     resetTriggers(riscv);
@@ -8857,12 +9053,17 @@ static void riscvCSRInitialReset(riscvP riscv) {
         WR_RAW_FIELDC(cfg->csr.mstatus, SPP, minMode);
     }
 
-    // reset value of mstatus.UXL and mstatus.SXL mirror misa.MXL
+    // reset value of mstatus.UXL, mstatus.SXL, hstatus.VSXL and vsstatus.UXL
+    // mirror misa.MXL
     if(arch&ISA_U) {
         WR_RAW_FIELD64(cfg->csr.mstatus, UXL, MXL);
     }
     if(arch&ISA_S) {
         WR_RAW_FIELD64(cfg->csr.mstatus, SXL, MXL);
+    }
+    if(arch&ISA_H) {
+        WR_CSR_FIELD64(riscv, vsstatus, UXL, MXL);
+        WR_CSR_FIELD64(riscv, hstatus, VSXL, MXL);
     }
 
     // do fundamental reset of misa and mstatus
@@ -8924,7 +9125,7 @@ void riscvCSRInit(riscvP riscv) {
     riscvCSRInitialReset(riscv);
 
     //--------------------------------------------------------------------------
-    // mvendorid, marchid, mimpid, mhartid, mconfigptr, mclicbase values
+    // mvendorid, marchid, mimpid, mhartid, mconfigptr values
     //--------------------------------------------------------------------------
 
     WR_CSR_M(riscv, mvendorid,  cfg->csr.mvendorid.u64.bits);
@@ -8932,7 +9133,6 @@ void riscvCSRInit(riscvP riscv) {
     WR_CSR_M(riscv, mimpid,     cfg->csr.mimpid.u64.bits);
     WR_CSR_M(riscv, mhartid,    cfg->csr.mhartid.u64.bits);
     WR_CSR_M(riscv, mconfigptr, cfg->csr.mconfigptr.u64.bits);
-    WR_CSR_M(riscv, mclicbase,  cfg->csr.mclicbase.u64.bits & ~0xfffULL);
 
     //--------------------------------------------------------------------------
     // misa mask
@@ -9109,17 +9309,18 @@ void riscvCSRInit(riscvP riscv) {
     WR_CSR_MASK_M(riscv, mtinst, xtinstMask);
 
     //--------------------------------------------------------------------------
-    // uepc, sepc, mepc masks
+    // uepc, sepc, vsepc, mepc, mnepc, dpc masks
     //--------------------------------------------------------------------------
 
-    // initialize uepc, sepc and mepc write masks (dependent on whether
-    // compressed instructions are present)
+    // initialize uepc, sepc, vsepc, mepc, mnepc and dpc write masks (dependent
+    // on whether compressed instructions are present)
     Uns64 maskEPC = (arch&ISA_C) ? -2 : -4;
     WR_CSR_MASK_U (riscv, uepc,  maskEPC);
     WR_CSR_MASK_S (riscv, sepc,  maskEPC);
     WR_CSR_MASK_VS(riscv, vsepc, maskEPC);
     WR_CSR_MASK_M (riscv, mepc,  maskEPC);
     WR_CSR_MASK_M (riscv, mnepc, maskEPC);
+    WR_CSR_MASK_M (riscv, dpc,   maskEPC);
 
     //--------------------------------------------------------------------------
     // exception masks
@@ -9575,8 +9776,16 @@ void riscvCSRInit(riscvP riscv) {
     // mask)
     //--------------------------------------------------------------------------
 
-    Uns64 mvien = cfg->csrMask.mvien.u64.bits & WM64_mvien;
-    Uns64 mvip  = cfg->csrMask.mvip.u64.bits  & WM64_mvien;
+    // get original mvien mask
+    Uns64 mvienMask = WM64_mvien;
+
+    // SEIP and SSIP are also writable from version RC3
+    if((arch&ISA_S) && (RISCV_AIA_VERSION(riscv)>=RVAIA_1_0_RC3)) {
+        mvienMask |= (WM64_seip|WM64_ssip);
+    }
+
+    Uns64 mvien = cfg->csrMask.mvien.u64.bits & mvienMask;
+    Uns64 mvip  = cfg->csrMask.mvip.u64.bits  & WM64_mvip;
 
     // bits writeable in mvien must also be writeable in mvip
     mvip |= mvien;

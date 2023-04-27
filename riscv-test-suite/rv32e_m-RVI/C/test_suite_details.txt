@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -32,32 +32,32 @@ Other instructions (those not the focus of this suite)
   csrrw : 52
   mret : 26
   lui : 5,513
-  c-add : 580
+  c-addi : 878
   sw : 4,365
   fence : 26
   ecall : 26
   c-li : 95
   beq : 78
+  c-beqz : 84
   jal : 160
-  c-addi : 878
+  c-andi : 385
+  c-add : 580
   c-jalr : 15
   xori : 48
-  c-andi : 385
   sub : 187
   andi : 37
   c-swsp : 173
+  c-bnez : 84
+  c-and : 586
   lw : 13
   c-jal : 18
-  c-bnez : 84
-  c-beqz : 84
-  c-lwsp : 15
   c-jr : 15
-  c-and : 586
+  c-lwsp : 15
   c-mv : 85
-  c-srai : 85
-  c-slli : 86
   c-or : 582
-  c-srli : 87
+  c-slli : 86
+  c-srai : 85
   c-xor : 580
   c-sub : 581
+  c-srli : 87
 

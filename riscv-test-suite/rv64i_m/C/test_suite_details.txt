@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -25,18 +25,18 @@ Architectural Test Suite Data for RV64C C Compressed Integer Instructions:
 Instruction category: arithmetic 
   c-lui : 2,335
   c-li : 7,107
-  c-addiw : 661
   c-addi : 1,765
+  c-addiw : 661
   c-addw : 296
   c-add : 2,666
   c-mv : 552
-  c-sub : 297
   c-subw : 296
+  c-sub : 297
 Instruction category: logical 
-  c-and : 296
   c-or : 296
-  c-andi : 296
+  c-and : 296
   c-xor : 296
+  c-andi : 296
 Instruction category: branch 
   c-beqz : 296
   c-bnez : 296
@@ -47,8 +47,8 @@ Instruction category: jump
   c-jr : 296
   c-jalr : 296
 Instruction category: load 
-  c-lwsp : 296
   c-ldsp : 296
+  c-lwsp : 296
 Instruction category: store 
   c-sdsp : 757
   c-swsp : 297

@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -64,8 +64,8 @@ Instruction category: OPV_IA integer arithmetic
   vxor.vv : 336
   vxor.vx : 336
   vzext.vf2 : 160
-  vsext.vf2 : 160
   vzext.vf4 : 48
+  vsext.vf2 : 160
   vsext.vf4 : 48
 Instruction category: OPV_ID integer divide
   vdiv.vv : 336
@@ -150,9 +150,9 @@ Instruction category: OPV_IAW widening integer arithmetic
   vwaddu.wx : 160
   vwsub.vv : 160
   vwsub.vx : 160
+  vwsub.wx : 160
   vwsub.wv : 160
   vwsubu.vv : 160
-  vwsub.wx : 160
   vwsubu.vx : 160
   vwsubu.wv : 160
   vwsubu.wx : 160

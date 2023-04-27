@@ -178,10 +178,12 @@ static void initLeafModelCBs(riscvP riscv) {
 
     // from riscvExceptions.h
     riscv->cb.halt               = riscvHalt;
+    riscv->cb.block              = riscvBlock;
     riscv->cb.restart            = riscvRestart;
     riscv->cb.updateInterrupt    = riscvUpdateInterrupt;
     riscv->cb.updateDisable      = riscvUpdateInterruptDisable;
     riscv->cb.testInterrupt      = riscvUpdatePending;
+    riscv->cb.resumeFromWFI      = riscvResumeFromWFI;
     riscv->cb.illegalInstruction = riscvIllegalInstruction;
     riscv->cb.illegalVerbose     = riscvIllegalInstructionMessage;
     riscv->cb.virtualInstruction = riscvVirtualInstruction;
@@ -573,8 +575,10 @@ static void applyParamsRoot(riscvP riscv, riscvParamValuesP params) {
     cfg->mtime_Hz            = params->mtime_Hz;
     cfg->AIA_version         = params->AIA_version;
 
-    // get uninterpreted CSR configuration parameters
-    cfg->csr.mclicbase.u64.bits = params->mclicbase;
+    // get uninterpreted CLIC configuration parameters
+    cfg->mclicbase = params->mclicbase & ~0xfffULL;
+    cfg->sclicbase = params->sclicbase & ~0xfffULL;
+    cfg->uclicbase = params->uclicbase & ~0xfffULL;
 
     // get uninterpreted CSR mask configuration parameters
     cfg->csrMask.mtvt.u64.bits = params->mtvt_mask;
@@ -632,8 +636,10 @@ static void copyParentConfig(riscvP riscv) {
     dst->mtime_Hz            = src->mtime_Hz;
     dst->AIA_version         = src->AIA_version;
 
-    // get uninterpreted CSR configuration parameters
-    dst->csr.mclicbase.u64.bits = src->csr.mclicbase.u64.bits;
+    // get uninterpreted CLIC configuration parameters
+    dst->mclicbase = src->mclicbase;
+    dst->sclicbase = src->sclicbase;
+    dst->uclicbase = src->uclicbase;
 
     // get uninterpreted CSR mask configuration parameters
     dst->csrMask.mtvt.u64.bits = src->csrMask.mtvt.u64.bits;
@@ -927,6 +933,7 @@ static void applyParamsSMP(
     cfg->Zmmul                = params->Zmmul;
     cfg->Zfa                  = params->Zfa;
     cfg->Zfhmin               = params->Zfhmin && !params->Zfh;
+    cfg->Zfbfmin              = params->Zfbfmin;
     cfg->Zvfh                 = params->Zvfh;
     cfg->Zvfhmin              = params->Zvfhmin && !params->Zvfh;
     cfg->Zvlsseg              = params->Zvlsseg;
@@ -1085,10 +1092,8 @@ static void applyParamsSMP(
     // enable_fflags_i can only be set if floating point is present
     cfg->enable_fflags_i = cfg->enable_fflags_i && (cfg->arch&ISA_DF);
 
-    // initialize ISA_XLEN in currentArch and matching xlenMask (required so
-    // WR_CSR_FIELD etc work correctly)
+    // initialize ISA_XLEN in currentArch
     riscv->currentArch = misa_MXL<<XLEN_SHIFT;
-    riscv->xlenMask    = (misa_MXL==2) ? -1 : 0;
 
     // set tag mask
     riscv->exclusiveTagMask = -lr_sc_grain;
@@ -1117,6 +1122,7 @@ static void applyParamsSMP(
     REQUIRE_COMMERCIAL(riscv, params, Zvfh);
     REQUIRE_COMMERCIAL(riscv, params, Zvfhmin);
     REQUIRE_COMMERCIAL(riscv, params, Zvfbfmin);
+    REQUIRE_COMMERCIAL(riscv, params, Zvfbfwma);
 
     // trigger module parameters require a commercial product
     REQUIRE_COMMERCIAL(riscv, params, tinfo_undefined);
@@ -1170,6 +1176,9 @@ static void applyParamsSMP(
 
     // Zvfbfmin extension is only available from version RVVV_1_0
     cfg->Zvfbfmin = params->Zvfbfmin && (params->vector_version>=RVVV_1_0);
+
+    // Zvfbfwma extension is only available from version RVVV_1_0
+    cfg->Zvfbfwma = params->Zvfbfwma && (params->vector_version>=RVVV_1_0);
 
     // force VLEN >= ELEN unless explicitly supported
     if((cfg->VLEN<cfg->ELEN) && !riscvVFSupport(riscv, RVVF_ELEN_GT_VLEN)) {
@@ -1257,11 +1266,12 @@ static void applyParamsSMP(
     ADD_K_SET(riscv, cfg, params, Zknh);
     ADD_K_SET(riscv, cfg, params, Zksed);
     ADD_K_SET(riscv, cfg, params, Zksh);
-    ADD_K_SET(riscv, cfg, params, Zvkb);
+    ADD_K_SET2(riscv, cfg, params, Zvbb, Zvkb);
+    ADD_K_SET(riscv, cfg, params, Zvbc);
     ADD_K_SET(riscv, cfg, params, Zvkg);
     ADD_K_SET(riscv, cfg, params, Zvknha);
     ADD_K_SET(riscv, cfg, params, Zvknhb);
-    ADD_K_SET(riscv, cfg, params, Zvkns);
+    ADD_K_SET(riscv, cfg, params, Zvkned);
     ADD_K_SET(riscv, cfg, params, Zvksed);
     ADD_K_SET(riscv, cfg, params, Zvksh);
 
@@ -1383,6 +1393,23 @@ static void applyParamsSMP(
         );
         cfg->HIPRIOLEN = cfg->IPRIOLEN;
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // PMP CONFIGURATION
+    ////////////////////////////////////////////////////////////////////////////
+
+    riscv->pmpStraddle = (
+        // unaligned accesses could straddle any boundary
+        cfg->unaligned ||
+        // 64-bit F registers could straddle any 32-bit boundary
+        (riscvGetFlenArch(riscv) > 32) ||
+        // 64-bit X registers could straddle any 32-bit boundary
+        (riscvGetXlenArch(riscv) > 32) ||
+        // CMO extension generates accesses wider than 32 bits
+        cfg->Zicbom ||
+        cfg->Zicbop ||
+        cfg->Zicboz
+    );
 }
 
 //

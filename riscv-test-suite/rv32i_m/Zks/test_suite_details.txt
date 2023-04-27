@@ -26,19 +26,19 @@ Architectural Test Suite Data for RV32ZKS K Crypto/Scalar:
 
 Instruction category: OPB_LWNE Logic With Negate
   andn : 172
-  orn : 172
   xnor : 172
+  orn : 172
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 172
   clmulh : 172
+  clmul : 172
 Instruction category: OPB_PACK Packing
-  pack : 172
   packh : 172
+  pack : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
   rori : 170
-  rol : 172
   ror : 172
+  rol : 172
 Instruction category: OPK_Zksh ShangMi Suite SM3 Hash function instructions
   sm3p0 : 170
   sm3p1 : 170

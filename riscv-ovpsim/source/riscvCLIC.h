@@ -47,7 +47,7 @@ void riscvAcknowledgeCLICInt(riscvP hart, Uns32 intIndex);
 //
 // Create CLIC memory-mapped block and data structures
 //
-void riscvMapCLICDomain(riscvP riscv, memDomainP CLICDomain);
+void riscvMapCLICDomain(riscvP riscv);
 
 //
 // Allocate CLIC data structures if implemented internally

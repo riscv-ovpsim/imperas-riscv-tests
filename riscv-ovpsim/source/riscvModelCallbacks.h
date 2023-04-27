@@ -182,6 +182,12 @@ typedef RISCV_UPDATE_DISABLE_FN((*riscvUpdateDisableFn));
 typedef RISCV_TEST_INTERRUPT_FN((*riscvTestInterruptFn));
 
 //
+// Check whether resume from WFI state is required
+//
+#define RISCV_RESUME_FROM_WFI_FN(_NAME) Bool _NAME(riscvP riscv)
+typedef RISCV_RESUME_FROM_WFI_FN((*riscvResumeFromWFIFn));
+
+//
 // Take Illegal Instruction exception
 //
 #define RISCV_ILLEGAL_INSTRUCTION_FN(_NAME) void _NAME(riscvP riscv)
@@ -791,10 +797,12 @@ typedef struct riscvModelCBS {
 
     // from riscvExceptions.h
     riscvHaltRestartFn        halt;
+    riscvHaltRestartFn        block;
     riscvHaltRestartFn        restart;
     riscvUpdateInterruptFn    updateInterrupt;
     riscvUpdateDisableFn      updateDisable;
     riscvTestInterruptFn      testInterrupt;
+    riscvResumeFromWFIFn      resumeFromWFI;
     riscvIllegalInstructionFn illegalInstruction;
     riscvIllegalVerboseFn     illegalVerbose;
     riscvIllegalInstructionFn virtualInstruction;
@@ -882,7 +890,10 @@ typedef struct riscvExtCBS {
     riscvDerivedMorphFn       postMorph;
     riscvDerivedMorphFn       AMOCheck;
     riscvDerivedMorphFn       AMOMorph;
+    riscvEmitCSRCheckFn       emitCSRCheck;
     riscvUnitStrideCheckFn    unitStrideCheck;
+    riscvVFREDSUMMorphFn      emitVFREDUSUM;
+    riscvVFREDSUMMorphFn      emitVFWREDUSUM;
 
     // transaction support actions
     riscvIASSwitchFn          switchCB;

@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -31,16 +31,16 @@ Instruction category: OPV1_LDST load / store
   vse32.v : 2,480
   vl1re16.v : 32
   vl1re32.v : 32
-  vl1re8.v : 32
   vl2re16.v : 32
+  vl1re8.v : 32
   vl2re8.v : 32
-  vl2re32.v : 32
-  vl4re32.v : 32
   vl4re16.v : 32
-  vl4re8.v : 32
-  vl8re16.v : 32
+  vl2re32.v : 32
   vl8re32.v : 32
+  vl4re8.v : 32
   vl8re8.v : 32
+  vl4re32.v : 32
+  vl8re16.v : 32
   vle16ff.v : 224
   vle32ff.v : 112
   vle8ff.v : 336
@@ -54,10 +54,10 @@ Instruction category: OPV1_LDST load / store
   vloxei8.v : 336
   vloxei16.v : 304
   vloxei32.v : 240
-  vs2r.v : 32
-  vs1r.v : 32
   vs4r.v : 32
+  vs1r.v : 32
   vs8r.v : 32
+  vs2r.v : 32
   vsm.v : 336
   vsse16.v : 224
   vsse32.v : 112

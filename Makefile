@@ -62,7 +62,9 @@ export RISCV_PREFIX       ?= riscv64-unknown-elf-
 
 # Check Toolchain on PATH
 ifeq (,$(shell which $(RISCV_PREFIX)gcc))
-$(error No $(RISCV_PREFIX)gcc on PATH, consider correcting RISCV_PREFIX and/or adding bin directory to PATH)
+  ifeq (,$(shell which $(RISCV_PREFIX)as))
+$(error No $(RISCV_PREFIX)gcc or $(RISCV_PREFIX)as on PATH, consider correcting RISCV_PREFIX and/or adding bin directory to PATH)
+  endif
 endif
 
 

@@ -190,8 +190,8 @@ typedef enum riscvITypeE {
     RV_IT_CLZ_R,
     RV_IT_CTZ_R,
     RV_IT_PCNT_R,
-    RV_IT_EXT_R,
-    RV_IT_SEXT_R,
+    RV_IT_MVA_R,
+    RV_IT_MVB_R,
     RV_IT_CRC32_R,
     RV_IT_CRC32C_R,
     RV_IT_CLMUL_R,
@@ -386,6 +386,7 @@ typedef enum riscvITypeE {
     RV_IT_VANDN_VR,
     RV_IT_VROR_VR,
     RV_IT_VROL_VR,
+    RV_IT_VWSLL_VR,
 
     // V-extension MVV/MVX-type common instructions
     RV_IT_VDIVU_VR,
@@ -467,7 +468,7 @@ typedef enum riscvITypeE {
     RV_IT_VFGT_VR,
 
     // V-extension FVV-type instructions
-    RV_IT_VFREDSUM_VS,
+    RV_IT_VFREDUSUM_VS,
     RV_IT_VFREDOSUM_VS,
     RV_IT_VFREDMIN_VS,
     RV_IT_VFREDMAX_VS,
@@ -490,7 +491,7 @@ typedef enum riscvITypeE {
     RV_IT_VFRSQRTE7_V,
     RV_IT_VFRECE7_V,
     RV_IT_VFCLASS_V,
-    RV_IT_VFWREDSUM_VS,
+    RV_IT_VFWREDUSUM_VS,
     RV_IT_VFWREDOSUM_VS,
     RV_IT_VFDOT_VV,
 
@@ -522,6 +523,10 @@ typedef enum riscvITypeE {
     RV_IT_VMXNOR_MM,
     RV_IT_VBREV8_V,
     RV_IT_VREV8_V,
+    RV_IT_VBREV_V,
+    RV_IT_VCLZ_V,
+    RV_IT_VCTZ_V,
+    RV_IT_VCPOP_V,
 
     // V-extension IVI-type instructions
     RV_IT_VADD_VI,
@@ -554,8 +559,8 @@ typedef enum riscvITypeE {
     RV_IT_VNSRA_VI,
     RV_IT_VNCLIPU_VI,
     RV_IT_VNCLIP_VI,
-    RV_IT_VANDN_VI,
     RV_IT_VROR_VI,
+    RV_IT_VWSLL_VI,
 
     // V-extension FVF-type instructions
     RV_IT_VFMV_S_F,
@@ -581,7 +586,8 @@ typedef enum riscvITypeE {
     RV_IT_VAESZ_VS,
     RV_IT_VAESKF1_VI,
     RV_IT_VAESKF2_VI,
-    RV_IT_VGHMAC_VV,
+    RV_IT_VGMUL_VV,
+    RV_IT_VGHSH_VV,
     RV_IT_VSM3ME_VV,
     RV_IT_VSM3C_VI,
     RV_IT_VSM4K_VI,
@@ -793,18 +799,6 @@ typedef enum riscvFenceDescE {
     RV_FENCE_IOWR = RV_FENCE_I|RV_FENCE_O|RV_FENCE_R|RV_FENCE_W
 
 } riscvFenceDesc;
-
-//
-// This is used to categorize CSR update semantics
-//
-typedef enum riscvCSRUDescE {
-
-    RV_CSR_NA,      // no update semantics
-    RV_CSR_RW,      // read/write
-    RV_CSR_RS,      // read/set
-    RV_CSR_RC,      // read/clear
-
-} riscvCSRUDesc;
 
 //
 // This is used to categorize vector instructions

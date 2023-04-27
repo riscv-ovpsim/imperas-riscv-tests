@@ -1,7 +1,7 @@
 # Imperas RISC-V Architecture Tests
 
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -17,9 +17,9 @@
     #
     
 
-Free Public Test Suites : 83
+Free Public Test Suites : 82
 Test Files              : 6,175
-Total Instructions      : 9,261,124
+Total Instructions      : 9,261,088
 
 | Test Suites           |   Test Files   | Ins. Types | Unique Ins. | Total Ins. | Basic Coverage | Extended Coverage |
 | --------------------- | -------------- | ---------- | ----------- | ---------- | -------------- | ----------------- |
@@ -27,7 +27,7 @@ Total Instructions      : 9,261,124
 | rv32e_m-RVI/E         |             37 |          0 |          38 |     78,170 |         99.57% |             80.18 |
 | rv32e_m-RVI/M         |              8 |          0 |           8 |     27,976 |        100.00% |             83.40 |
 | rv32e_m/C             |             25 |          8 |          23 |     23,134 |         94.32% |                   |
-| rv32e_m/E             |             37 |         10 |          38 |     40,778 |         99.57% |                   |
+| rv32e_m/E             |             37 |         10 |          38 |     40,766 |         99.57% |                   |
 | rv32e_m/M             |              8 |          1 |           8 |      7,952 |        100.00% |                   |
 | rv32i_m-RVI/C         |             27 |          0 |          24 |     25,632 |         93.41% |             59.55 |
 | rv32i_m-RVI/F         |            146 |          0 |          26 |  2,147,792 |         93.53% |                   |
@@ -38,7 +38,7 @@ Total Instructions      : 9,261,124
 | rv32i_m-RVI/privM     |             16 |          0 |           3 |      3,011 |        100.00% |            100.00 |
 | rv32i_m/C             |             27 |          8 |          24 |     24,213 |         95.24% |             51.46 |
 | rv32i_m/F             |            143 |          5 |          26 |     57,830 |         92.63% |                   |
-| rv32i_m/I             |             48 |         10 |          38 |     43,992 |         99.72% |             90.36 |
+| rv32i_m/I             |             48 |         10 |          38 |     43,980 |         99.72% |             90.36 |
 | rv32i_m/M             |              8 |          1 |           8 |      8,208 |        100.00% |             84.19 |
 | rv32i_m/P             |            247 |          1 |         247 |    263,531 |         94.01% |                   |
 | rv32i_m/Vb            |            324 |          2 |          48 |    412,064 |         89.79% |                   |
@@ -80,7 +80,7 @@ Total Instructions      : 9,261,124
 | rv64i_m/C             |             33 |          8 |          30 |     61,754 |         88.87% |             45.29 |
 | rv64i_m/D             |            176 |          5 |          32 |    135,108 |         92.52% |                   |
 | rv64i_m/F             |            183 |          5 |          30 |    123,430 |         92.01% |                   |
-| rv64i_m/I             |             60 |         10 |          50 |    120,892 |         99.77% |             86.69 |
+| rv64i_m/I             |             60 |         10 |          50 |    120,880 |         99.77% |             86.69 |
 | rv64i_m/M             |             13 |          1 |          13 |     31,918 |        100.00% |             80.11 |
 | rv64i_m/P             |            318 |          1 |         318 |    727,374 |         96.37% |                   |
 | rv64i_m/Zba           |              8 |          2 |           8 |     18,572 |         99.86% |             84.79 |

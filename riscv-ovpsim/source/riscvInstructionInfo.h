@@ -1147,6 +1147,36 @@
 }
 
 //
+// instructions like FCVT.BF16.S
+//
+#define ATTR32_FCVT_BF16_S(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7_BF16,      \
+    r2       : RS_F2_19_15,         \
+    wX       : WX_21_U_20,          \
+    wF       : WF_26_25,            \
+    rm       : RM_14_12,            \
+}
+
+//
+// instructions like FCVT.S.BF16
+//
+#define ATTR32_FCVT_S_BF16(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2,           \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_F_11_7,           \
+    r2       : RS_F_19_15_BF16,     \
+    wX       : WX_21_U_20,          \
+    wF       : WF_26_25,            \
+    rm       : RM_14_12,            \
+}
+
+//
 // Fd, SIMM(Rs1) (FL)
 //
 #define ATTR32_FD_MEM_RS1(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -1710,6 +1740,22 @@
 }
 
 //
+// Vd, Vs2, Vs1, Vm (VV, cur)
+//
+#define ATTR32_VD_VS2_VS1_M_BVV_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_V_19_15_BF16,     \
+    r3       : RS_V_24_20_BF16,     \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VV,           \
+    rm       : RM_CUR,              \
+}
+
+//
 // Vd, Vs1, Vs2 (VVM)
 //
 #define ATTR32_VD_VS1_VS2_VVM(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
@@ -2213,6 +2259,22 @@
     r1       : RS_V_11_7,           \
     r2       : RS_F_19_15,          \
     r3       : RS_V_24_20,          \
+    mask     : RS_V_M_25,           \
+    VIType   : RV_VIT_VF,           \
+    rm       : RM_CUR,              \
+}
+
+//
+// Vd, Fs2, Vs1, Vm (VF, cur)
+//
+#define ATTR32_VD_FS2_VS1_M_VFB_CUR(_NAME, _GENERIC, _ARCH, _OPCODE) [IT32_##_NAME] = { \
+    opcode   : _OPCODE,             \
+    format   : FMT_R1_R2_R3_RM,     \
+    type     : RV_IT_##_GENERIC,    \
+    arch     : _ARCH,               \
+    r1       : RS_V_11_7,           \
+    r2       : RS_F_19_15_BF16,     \
+    r3       : RS_V_24_20_BF16,     \
     mask     : RS_V_M_25,           \
     VIType   : RV_VIT_VF,           \
     rm       : RM_CUR,              \

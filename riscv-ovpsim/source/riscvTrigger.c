@@ -115,68 +115,74 @@ static Bool activeTriggerADMATCH(riscvTriggerP trigger, Uns32 modeMask) {
 //
 riscvArchitecture riscvGetCurrentTriggers(riscvP riscv) {
 
-    riscvMode         mode     = getCurrentMode5(riscv);
-    Uns32             modeMask = 1<<mode;
-    riscvArchitecture arch     = 0;
-    Uns32             i;
+    riscvArchitecture arch = 0;
 
-    // process all triggers
-    for(i=0; i<numTriggers(riscv); i++) {
+    // no action if triggers are not yet configured
+    if(riscv->triggers) {
 
-        riscvTriggerP trigger = &riscv->triggers[i];
+        riscvMode mode     = getCurrentMode5(riscv);
+        Uns32     modeMask = 1<<mode;
+        Uns32     i;
 
-        if(activeTriggerICOUNT(trigger, modeMask)) {
+        for(i=0; i<numTriggers(riscv); i++) {
 
-            // handle ICOUNT trigger as always-active ADMATCH
-            arch |= ISA_TM_X;
+            // process all triggers
+            riscvTriggerP trigger = &riscv->triggers[i];
 
-            // pending triggers should match immediately
-            if(trigger->tdata1UP.pending) {
-                markTriggerMatched(riscv, trigger);
-            }
+            if(activeTriggerICOUNT(trigger, modeMask)) {
 
-        } else if(activeTriggerADMATCH(trigger, modeMask)) {
-
-            memPriv priv = trigger->tdata1UP.priv;
-
-            if(priv&MEM_PRIV_W) {
-                arch |= ISA_TM_S;
-            }
-            if(priv&MEM_PRIV_X) {
+                // handle ICOUNT trigger as always-active ADMATCH
                 arch |= ISA_TM_X;
+
+                // pending triggers should match immediately
+                if(trigger->tdata1UP.pending) {
+                    markTriggerMatched(riscv, trigger);
+                }
+
+            } else if(activeTriggerADMATCH(trigger, modeMask)) {
+
+                memPriv priv = trigger->tdata1UP.priv;
+
+                if(priv&MEM_PRIV_W) {
+                    arch |= ISA_TM_S;
+                }
+                if(priv&MEM_PRIV_X) {
+                    arch |= ISA_TM_X;
+                }
+                if(!(priv&MEM_PRIV_R)) {
+                    // no action
+                } else if(trigger->tdata1UP.select) {
+                    arch |= ISA_TM_LV;
+                } else {
+                    arch |= ISA_TM_LA;
+                }
             }
-            if(!(priv&MEM_PRIV_R)) {
-                // no action
-            } else if(trigger->tdata1UP.select) {
-                arch |= ISA_TM_LV;
-            } else {
-                arch |= ISA_TM_LA;
+        }
+
+        // update state if trigger module is activated
+        if(arch) {
+
+            Bool doFlush = False;
+
+            // determine whether state changes require dictionaries to be
+            // flushed
+            if((arch & ISA_TM_LA) && !riscv->checkTriggerLA) {
+                doFlush = riscv->checkTriggerLA = True;
             }
-        }
-    }
+            if((arch & ISA_TM_LV) && !riscv->checkTriggerLV) {
+                doFlush = riscv->checkTriggerLV = True;
+            }
+            if((arch & ISA_TM_S) && !riscv->checkTriggerS) {
+                doFlush = riscv->checkTriggerS = True;
+            }
+            if((arch & ISA_TM_X) && !riscv->checkTriggerX) {
+                doFlush = riscv->checkTriggerX = True;
+            }
 
-    // update state if trigger module is activated
-    if(arch) {
-
-        Bool doFlush = False;
-
-        // determine whether state changes require dictionaries to be flushed
-        if((arch & ISA_TM_LA) && !riscv->checkTriggerLA) {
-            doFlush = riscv->checkTriggerLA = True;
-        }
-        if((arch & ISA_TM_LV) && !riscv->checkTriggerLV) {
-            doFlush = riscv->checkTriggerLV = True;
-        }
-        if((arch & ISA_TM_S) && !riscv->checkTriggerS) {
-            doFlush = riscv->checkTriggerS = True;
-        }
-        if((arch & ISA_TM_X) && !riscv->checkTriggerX) {
-            doFlush = riscv->checkTriggerX = True;
-        }
-
-        // flush dictionaries if required
-        if(doFlush) {
-            vmirtFlushAllDicts((vmiProcessorP)riscv);
+            // flush dictionaries if required
+            if(doFlush) {
+                vmirtFlushAllDicts((vmiProcessorP)riscv);
+            }
         }
     }
 
@@ -210,10 +216,27 @@ inline static Uns32 getTriggerAction(riscvTriggerP trigger) {
 //
 static void setTriggerHit(riscvP riscv, riscvTriggerP trigger) {
 
+    // mark trigger as hit
     trigger->triggered = True;
 
+    // all trigger hits occur precisely on the instruction as specified and are
+    // therefore not uncertain
+    trigger->tdata1UP.uncertain = False;
+
+    // update 'hit' bits if they are implemented
     if(!riscv->configInfo.no_hit) {
-        trigger->tdata1UP.hit = 1;
+
+        // always set hit0
+        trigger->tdata1UP.hit0 = 1;
+
+        // always set hit1 if the trigger timing is after instruction execution
+        // (only if tinfo.version>=1)
+        if(RD_REG_FIELD_TRIGGER(trigger, tinfo, version)) {
+            trigger->tdata1UP.hit1 = (
+                (trigger->tdata1UP.type==TT_MCONTROL6) &&
+                trigger->tdata1UP.timing
+            );
+        }
     }
 }
 

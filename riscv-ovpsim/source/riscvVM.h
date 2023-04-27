@@ -50,6 +50,11 @@ Bool riscvVMMiss(
 //
 void riscvVMRefreshMPRVDomain(riscvP riscv);
 
+//
+// Perform actions when the indicated TLB base register is updated
+//
+void riscvVMUpdateTableBase(riscvP riscv, riscvTLBId id);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // TLB MANAGEMENT

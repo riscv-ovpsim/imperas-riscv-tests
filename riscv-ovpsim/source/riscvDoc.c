@@ -518,7 +518,7 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
 
         vmidocAddText(
             CLIC,
-            "The model can configured either to use an internal CLIC model "
+            "The model can be configured either to use an internal CLIC model "
             "(if parameter \"externalCLIC\" is False) or to present a net "
             "interface to allow the CLIC to be implemented externally in a "
             "platform component (if parameter \"externalCLIC\" is True). "
@@ -580,11 +580,38 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             snprintf(
                 SNPRINTF_TGT(string),
                 "\"mclicbase\": this parameter specifies the CLIC base address "
-                "in physical memory. The default value in this variant is 0x"
+                "for M-mode interrupts in physical memory. The default value "
+                "in this variant is 0x"
                 FMT_Ax".",
-                cfg->csr.mclicbase.u64.bits
+                cfg->mclicbase
             );
             vmidocAddText(Parameters, string);
+
+            // document sclicbase
+            if((cfg->arch&ISA_S) && (cfg->CLIC_version>=RVCLC_0_9_20191208)) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"sclicbase\": this parameter specifies the CLIC base "
+                    "address for S-mode interrupts in physical memory. The "
+                    "default value in this variant is 0x"
+                    FMT_Ax".",
+                    cfg->sclicbase
+                );
+                vmidocAddText(Parameters, string);
+            }
+
+            // document uclicbase
+            if((cfg->arch&ISA_N) && (cfg->CLIC_version>=RVCLC_0_9_20191208)) {
+                snprintf(
+                    SNPRINTF_TGT(string),
+                    "\"uclicbase\": this parameter specifies the CLIC base "
+                    "address for U-mode interrupts in physical memory. The "
+                    "default value in this variant is 0x"
+                    FMT_Ax".",
+                    cfg->uclicbase
+                );
+                vmidocAddText(Parameters, string);
+            }
 
             // document tvt_undefined
             snprintf(
@@ -928,19 +955,18 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
         }
 
         ////////////////////////////////////////////////////////////////////////
-        // CLIC VERSION master
+        // CLIC VERSION 0.9-draft-20221108
         ////////////////////////////////////////////////////////////////////////
 
         {
             vmiDocNodeP Version = vmidocAddSection(
-                CLIC, "Version master"
+                CLIC, "Version 0.9-draft-20221108"
             );
 
             vmidocAddText(
                 Version,
-                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
-                RVCLC_MASTER_TAG"), with these changes compared to version "
-                "0.9-draft-20220315:"
+                "Stable 0.9 version of November 8 2022, with these changes "
+                "compared to version 0.9-draft-20191208:"
             );
             vmidocAddText(
                 Version,
@@ -971,7 +997,7 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "- xintstatus registers have been relocated at read-only CSR "
-                "addresses."
+                "addresses (e.g. 0xF46 for mintstatus)."
             );
             vmidocAddText(
                 Version,
@@ -980,6 +1006,40 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "- clicinfo memory-mapped register has been removed."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // CLIC VERSION master
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                CLIC, "Version master"
+            );
+
+            vmidocAddText(
+                Version,
+                "Unstable master version as of "RVCLC_MASTER_DATE" (commit "
+                RVCLC_MASTER_TAG"), with these changes compared to version "
+                "0.9-draft-20221108:"
+            );
+            vmidocAddText(
+                Version,
+                "- xintstatus registers have been relocated at different "
+                "read-only CSR addresses (e.g. 0xFB1 for mintstatus);"
+            );
+            vmidocAddText(
+                Version,
+                "- 32-bit xcliccfg registers are present on a configuration "
+                "page preceding interrupt status pages, containing separate "
+                "unlbits, snlbits and mnlbits fields for each mode;"
+            );
+            vmidocAddText(
+                Version,
+                "- if the hart is currently running at privilege mode x, an "
+                "MRET, SRET, DRET or MNRET instruction that changes privilege "
+                "mode sets xintthresh=0."
             );
         }
     }
@@ -1346,6 +1406,27 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // AIA VERSION 1.0-RC3
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                AIA, "Version 1.0-RC3"
+            );
+
+            vmidocAddText(
+                Version,
+                "1.0-RC3 version of January 22 2023, with these changes "
+                "compared to version 1.0-RC1:"
+            );
+            vmidocAddText(
+                Version,
+                "- \"mvien\" and \"mvip\" now allow virtual SIP interrupt (bit "
+                "1 of mip) and virtual SEI interrupt (bit 9 of mip)."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // AIA VERSION master
         ////////////////////////////////////////////////////////////////////////
 
@@ -1357,7 +1438,7 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVAIA_MASTER_DATE" (commit "
-                RVAIA_MASTER_TAG"), currently identical to 1.0-RC1."
+                RVAIA_MASTER_TAG"), currently identical to 1.0-RC3."
             );
         }
     }
@@ -1483,6 +1564,20 @@ static void docUndefinedCSRsParam(
 //
 inline static Bool cfgHas64S(riscvConfigCP cfg) {
     return (cfg->arch&ISA_S) && (cfg->arch&ISA_XLEN_64);
+}
+
+//
+// Does the processor implement the setPMA command?
+//
+static Bool hasSetPMACommand(riscvP riscv) {
+
+    Bool addCommand = True;
+
+    // don't add static region commands if model already implements custom PMA
+    // extension
+    ITER_EXT_CB(riscv, extCB, PMACheck, addCommand=False)
+
+    return addCommand;
 }
 
 //
@@ -1858,6 +1953,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                     cfg->TW_time_limit
                 );
                 vmidocAddText(sub, string);
+
+                vmidocAddText(
+                    sub,
+                    "Output signal \"core_wfi_mode\" indicates whether the "
+                    "core is currently in WFI state."
+                );
             }
 
             if(cfg->wfi_is_nop || !cfg->TW_time_limit) {
@@ -4127,17 +4228,30 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 extK, "Vector Cryptographic Extension Parameters"
             );
 
-            // add subset control parameter description
-            addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkb, "Zvkb",
-                "vector cryptographic bit-manipulation"
-            );
+            // add version-dependent subset control parameter description
+            if(cfg->vcrypto_version==RVKVV_0_3_0) {
+                addKFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkb, "Zvkb",
+                    "vector cryptographic bit-manipulation"
+                );
+            } else {
+                addKFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvbb, "Zvbb",
+                    "vector cryptographic bit-manipulation"
+                );
+                addKFeature(
+                    cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvbc, "Zvbc",
+                    "vector cryptographic carry-less multiplication"
+                );
+            }
+
+            // add common subset control parameter description
             addKFeature(
                 cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkg, "Zvkg",
                 "vector cryptographic GCM/GMAC"
             );
             addKFeature(
-                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkns, "Zvkns",
+                cfg, Parameters, SNPRINTF_TGT(string), RVKS_Zvkned, "Zvkned",
                 "vector NIST AES block cipher"
             );
             addKFeature(
@@ -4175,6 +4289,45 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION VERSION 0.3.0
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                extK, "Version 0.3.0"
+            );
+
+            vmidocAddText(
+                Version,
+                "Version 0.3.0 as of 06 February 2023"
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION VERSION 0.5.2
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                extK, "Version 0.5.2"
+            );
+
+            vmidocAddText(
+                Version,
+                "Version 0.5.2 as of 13 April 2023, with these changes "
+                "compared to version 0.3.0:"
+            );
+            vmidocAddText(
+                Version,
+                "- instructions vclz, vcpop, vctz, vbrev and vwsll added;"
+            );
+            vmidocAddText(
+                Version,
+                "- subsets Zvbb and Zvbc added."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // VECTOR CRYPTOGRAPHIC EXTENSION VERSION master
         ////////////////////////////////////////////////////////////////////////
 
@@ -4186,7 +4339,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVKVV_MASTER_DATE" (commit "
-                RVKVV_MASTER_TAG")"
+                RVKVV_MASTER_TAG"), currently identical to 0.5.2"
             );
         }
     }
@@ -4807,16 +4960,26 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(
                 StateEntry,
-                "3. By writing a 1 to net \"resethaltreq\" (using "
-                "opNetWrite) while the \"reset\" signal undergoes a negedge "
-                "transition, followed by simulation of at least one cycle "
-                "(e.g. using opProcessorSimulate);"
+                "3. By writing a 1 to net \"resethaltreq\" (using opNetWrite) "
+                "while the \"reset\" signal undergoes a negedge transition, "
+                "followed by simulation of at least one cycle (e.g. using "
+                "opProcessorSimulate);"
             );
             vmidocAddText(
                 StateEntry,
                 "4. By executing an \"ebreak\" instruction when Debug mode "
                 "entry for the current processor mode is enabled by "
-                "dcsr.ebreakm, dcsr.ebreaks or dcsr.ebreaku."
+                "dcsr.ebreakm, dcsr.ebreaks or dcsr.ebreaku;"
+            );
+            vmidocAddText(
+                StateEntry,
+                "5. By executing single instruction when Debug mode entry for "
+                "the current processor mode is enabled by dcsr.step;"
+            );
+            vmidocAddText(
+                StateEntry,
+                "6. By a Trigger Module trigger, when that trigger is "
+                "configured to enter Debug mode."
             );
             vmidocAddText(
                 StateEntry,
@@ -5152,7 +5315,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 SNPRINTF_TGT(string),
                 "Parameter \"tinfo\" is used to specify the value of the "
                 "read-only \"tinfo\" register, which indicates the trigger "
-                "types supported. In this variant, \"tinfo\" is 0x%02x.",
+                "types supported and also version information which controls "
+                "the behavior of \"mcontrol6\". In this variant, \"tinfo\" "
+                "is 0x%02x.",
                 riscv->configInfo.tinfo
             );
             vmidocAddText(Parameters, string);
@@ -5254,7 +5419,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             snprintf(
                 SNPRINTF_TGT(string),
                 "Parameter \"no_hit\" is used to specify whether the \"hit\" "
-                "bit in tdata1 is unimplemented. In this variant, \"no_hit\" "
+                "bits in tdata1 are unimplemented. In this variant, \"no_hit\" "
                 "is %u.",
                 riscv->configInfo.no_hit
             );
@@ -5357,10 +5522,22 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         // document exception debug
         snprintf(
             SNPRINTF_TGT(string),
-            "Value 0x%03x: enable debugging of interrupt state.",
+            "Value 0x%03x: enable debugging of interrupt state;",
             RISCV_DEBUG_EXCEPT_MASK
         );
         vmidocAddText(debugMask, string);
+
+        // document TLB consistency checks
+        if(cfg->arch&ISA_S) {
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Value 0x%03x: enable TLB consistency checking (automatically "
+                "detect inconsistencies between cached TLB entries and the "
+                "page table in memory, if these would affect model behavior).",
+                RISCV_VALIDATE_TLB_MASK
+            );
+            vmidocAddText(debugMask, string);
+        }
 
         vmidocAddText(
             debugMask,
@@ -5379,38 +5556,143 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         vmidocAddText(
             integration,
             "This model implements a number of non-architectural pseudo-"
-            "registers and other features to facilitate integration."
+            "registers, commands, and other features to facilitate integration."
         );
 
-        vmiDocNodeP leafSection = vmidocAddSection(
-            integration, "CSR Register External Implementation"
-        );
+        if(hasSetPMACommand(riscv)){
 
-        vmidocAddText(
-            leafSection,
-            "If parameter \"enable_CSR_bus\" is True, an artifact 16-bit bus "
-            "\"CSR\" is enabled. Slave callbacks installed on this bus can "
-            "be used to implement modified CSR behavior (use opBusSlaveNew or "
-            "icmMapExternalMemory, depending on the client API). A CSR with "
-            "index 0xABC is mapped on the bus at address 0xABC0; as a concrete "
-            "example, implementing CSR \"time\" (number 0xC01) externally "
-            "requires installation of a read callback at address 0xC010 on the "
-            "CSR bus."
-        );
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration,
+                "Command \"setPMA -attributes <attrs> -lo <addr> -hi <addr>\""
+            );
 
-        vmidocAddText(
-            leafSection,
-            "If both read and write callbacks are installed, or if a read "
-            "callback is installed and the CSR is in the read-only address "
-            "space, then the read callback will be used to provide the value "
-            "for both true accesses and for trace and API register read (using "
-            "opRegRead, etc). However, if only a read callback is installed "
-            "and the CSR is in the CSR read/write address space then the "
-            "callback will be used for true register reads *only*; in this "
-            "case, the *model* CSR implementation will be used for trace and "
-            "API register read. This idiom allows values to be injected "
-            "for volatile CSRs without changing fundamental model behavior."
-        );
+            vmidocAddText(
+                leafSection,
+                "This command allows PMA attributes to be set for the address "
+                "range lo:hi. The required attributes are described by the "
+                "\"attrs\" string, which can contain any combination of these "
+                "characters:"
+            );
+
+            vmidocAddText(leafSection, "  \"r\": allow read access");
+            vmidocAddText(leafSection, "  \"w\": allow write access");
+            vmidocAddText(leafSection, "  \"x\": allow execute access");
+            vmidocAddText(leafSection, "  \"a\": disallow unaligned accesses");
+
+            vmidocAddText(
+                leafSection,
+                "  \"A\": disallow RVMC_USER1 accesses (often AMO and LR/SC)"
+            );
+            vmidocAddText(
+                leafSection,
+                "  \"P\": disallow RVMC_USER2 accesses (often push/pop)"
+            );
+
+            vmidocAddText(leafSection, "  \"1\": allow 1-byte accesses");
+            vmidocAddText(leafSection, "  \"2\": allow 2-byte accesses");
+            vmidocAddText(leafSection, "  \"4\": allow 4-byte accesses");
+            vmidocAddText(leafSection, "  \"8\": allow 8-byte accesses");
+
+            vmidocAddText(
+                leafSection, "  <space>, \"-\": ignored, use for formatting"
+            );
+
+            vmidocAddText(
+                leafSection,
+                "The command may be used multiple times, in which case "
+                "PMA attributes for later commands override those specified "
+                "for earlier ones where ranges overlap. A common idiom is to "
+                "deny all access to the entire memory range in the first "
+                "command before adding back permissions for subregions with "
+                "subsequent commands."
+            );
+        }
+
+        {
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "Command \"getCSRIndex -name <name>\""
+            );
+
+            vmidocAddText(
+                leafSection,
+                "This command returns the index number of a named CSR, or -1 "
+                "if that CSR does not exist."
+            );
+        }
+
+        {
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "Command \"listCSRs\""
+            );
+
+            vmidocAddText(
+                leafSection,
+                "This command lists all implemented CSRs in index order."
+            );
+        }
+
+        {
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "CSR Register External Implementation"
+            );
+
+            vmidocAddText(
+                leafSection,
+                "If parameter \"enable_CSR_bus\" is True, an artifact 16-bit "
+                "bus \"CSR\" is enabled. Slave callbacks installed on this bus "
+                "can be used to implement modified CSR behavior (use "
+                "opBusSlaveNew or icmMapExternalMemory, depending on the "
+                "client API). A CSR with index 0xABC is mapped on the bus at "
+                "address 0xABC0; as a concrete example, implementing CSR "
+                "\"time\" (number 0xC01) externally requires installation of a "
+                "read callback at address 0xC010 on the CSR bus."
+            );
+
+            vmidocAddText(
+                leafSection,
+                "If both read and write callbacks are installed, or if a read "
+                "callback is installed and the CSR is in the read-only address "
+                "space, then the read callback will be used to provide the "
+                "value for both true accesses and for trace and API register "
+                "read (using opRegRead, etc). However, if only a read callback "
+                "is installed and the CSR is in the CSR read/write address "
+                "space then the callback will be used for true register reads "
+                "*only*; in this case, the *model* CSR implementation will be "
+                "used for trace and API register read. This idiom allows "
+                "values to be injected for volatile CSRs without changing "
+                "fundamental model behavior."
+            );
+
+            vmidocAddText(
+                leafSection,
+                "An artifact net, \"readcsr\", can also be used to override "
+                "the value apparently read from a CSR without resorting to the "
+                "CSR bus. When a CSR is read into a GPR that is not \"x0\", "
+                "this net is written with a value encoding the CSR number (in "
+                "bits 11:0) and destination GPR number (in bits 20:16). To use "
+                "this net:"
+            );
+            vmidocAddText(
+                leafSection,
+                "1. Install a net monitor callback on \"readcsr\" using "
+                "opNetWriteMonitorAdd;"
+            );
+            vmidocAddText(
+                leafSection,
+                "2. When the callback is activated, extract the encoded CSR "
+                "and GPR numbers;"
+            );
+            vmidocAddText(
+                leafSection,
+                "3. If the CSR number corresponds to a CSR of interest, find "
+                "the OP register corresponding to the GPR using "
+                "opProcessorRegByIndex;"
+            );
+            vmidocAddText(
+                leafSection,
+                "4. Use opProcessorRegWrite to modify the GPR value."
+            );
+        }
 
         if(cfg->arch&ISA_A) {
 
@@ -5479,6 +5761,30 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "shows the floating point flags set by the current "
                 "instruction (unlike the standard \"fflags\" CSR, in which the "
                 "flag bits are sticky)."
+            );
+        }
+
+        {
+            vmiDocNodeP leafSection = vmidocAddSection(
+                integration, "External Stimulation of Illegal Instruction Trap"
+            );
+
+            vmidocAddText(
+                leafSection,
+                "Artifact input net port \"illegalinstr\" allows Illegal "
+                "Instruction traps to be raised externally. On a rising edge "
+                "of the signal connected to this port, the hart will "
+                "immediately take an Illegal Instruction trap with \"xepc\" "
+                "set to the current program counter."
+            );
+
+            vmidocAddText(
+                leafSection,
+                "As a special case, if the hart is currently stalled by a WFI "
+                "instruction (\"wfi_is_nop\" is False), it will be restarted "
+                "and take either an Illegal Instruction or Virtual Instruction "
+                "trap, based on the current processor mode and the governing "
+                "TW bit."
             );
         }
     }

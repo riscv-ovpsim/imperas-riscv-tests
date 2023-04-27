@@ -49,7 +49,7 @@ Other instructions (those not the focus of this suite)
   fence : 11
   ecall : 11
   beq : 33
-  shfli : 170
   grevi : 170
   unshfli : 170
+  shfli : 170
 

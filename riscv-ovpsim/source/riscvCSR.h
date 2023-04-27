@@ -143,7 +143,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (uip),          // 0x044
     CSR_ID      (unxti),        // 0x045
     CSR_ID      (uintstatusRW), // 0x046
-    CSR_ID      (uintstatusR),  // 0xC46
+    CSR_ID      (uintstatusR1), // 0xC46
+    CSR_ID      (uintstatusR2), // 0xCB1
     CSR_ID      (uintthresh),   // 0x047
     CSR_ID      (uscratchcswl), // 0x049
 
@@ -178,7 +179,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (sip),          // 0x144
     CSR_ID      (snxti),        // 0x145
     CSR_ID      (sintstatusRW), // 0x146
-    CSR_ID      (sintstatusR),  // 0xD46
+    CSR_ID      (sintstatusR1), // 0xD46
+    CSR_ID      (sintstatusR2), // 0xDB1
     CSR_ID      (sintthresh),   // 0x147
     CSR_ID      (sscratchcsw),  // 0x148
     CSR_ID      (sscratchcswl), // 0x149
@@ -278,7 +280,8 @@ typedef enum riscvCSRIdE {
     CSR_ID      (mip),          // 0x344
     CSR_ID      (mnxti),        // 0x345
     CSR_ID      (mintstatusRW), // 0x346
-    CSR_ID      (mintstatusR),  // 0xF46
+    CSR_ID      (mintstatusR1), // 0xF46
+    CSR_ID      (mintstatusR2), // 0xFB1
     CSR_ID      (mintthresh),   // 0x347
     CSR_ID      (mscratchcsw),  // 0x348
     CSR_ID      (mscratchcswl), // 0x349
@@ -856,6 +859,11 @@ typedef CSR_REG_TYPE(status) CSR_REG_TYPE(vsstatus);
 #define WM_mstatus_GVA  (1ULL<<38)
 #define WM_mstatus_MPV  (1ULL<<39)
 
+// define write masks for reset (note RV32 includes mstatush.{MBE,SBE}
+#define WM32_mstatus_reset (0xffffffff | WM_mstatus_MBE | WM_mstatus_SBE)
+#define WM64_mstatus_reset 0xffffffffffffffffULL
+
+
 // -----------------------------------------------------------------------------
 // mnstatus     (id 0x744)
 // -----------------------------------------------------------------------------
@@ -1339,6 +1347,7 @@ typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mip);
 #define WM32_vsip     0x00000002
 #define WM32_hip      0x00000004
 #define WM32_mip      0x00000337
+#define WM64_ssip     0x00000002ULL
 #define WM64_hvip     0x00000444ULL
 #define WM64_mip_mvip 0x00000222ULL
 #define WM64_seip     0x00000200ULL
@@ -1453,17 +1462,6 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(uscratchcswl);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(sscratchcswl);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(vsscratchcswl);
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mscratchcswl);
-
-// -----------------------------------------------------------------------------
-// mclicbase    (id 0x34B)
-// -----------------------------------------------------------------------------
-
-// define alias types
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mclicbase);
-
-// define write masks
-#define WM32_mclicbase 0x00000000
-#define WM64_mclicbase 0x00000000
 
 // -----------------------------------------------------------------------------
 // pmpcfg       (id 0x3A0-0x3AF)
@@ -1786,10 +1784,6 @@ CSR_REG_STRUCT_DECL_32(dcsr);
 // define alias types
 typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(dpc);
 
-// define write masks
-#define WM32_dpc -2
-#define WM64_dpc -2
-
 // -----------------------------------------------------------------------------
 // dscratch0    (id 0x7B2)
 // -----------------------------------------------------------------------------
@@ -1943,81 +1937,82 @@ typedef union {
 
     // common view
     struct {
-        Uns32       _u1     : 27;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       _u1       : 27;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     };
 
     // mcontrol view (Type=2)
     struct {
-        Uns32       priv    :  3;
-        Uns32       modes   :  4;
-        Uns32       match   :  4;
-        Uns32       chain   :  1;
-        Uns32       action  :  4;
-        Uns32       sizelo  :  2;
-        Uns32       timing  :  1;
-        Uns32       select  :  1;
-        Uns32       hit     :  1;
-        Uns32       maskmax :  6;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       priv      :  3;
+        Uns32       modes     :  4;
+        Uns32       match     :  4;
+        Uns32       chain     :  1;
+        Uns32       action    :  4;
+        Uns32       sizelo    :  2;
+        Uns32       timing    :  1;
+        Uns32       select    :  1;
+        Uns32       hit       :  1;
+        Uns32       maskmax   :  6;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     } mcontrol;
 
     // icount view (Type=3)
     struct {
-        Uns32       action  :  6;
-        Uns32       modes   :  4;
-        Uns32       count   : 14;
-        Uns32       hit     :  1;
-        Uns32       vu      :  1;
-        Uns32       vs      :  1;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       action    :  6;
+        Uns32       modes     :  4;
+        Uns32       count     : 14;
+        Uns32       hit       :  1;
+        Uns32       vu        :  1;
+        Uns32       vs        :  1;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     } icount;
 
     // itrigger view (Type=4)
     struct {
-        Uns32       action  :  6;
-        Uns32       modes   :  4;
-        Uns32       nmi     :  1;   // in version 1.0-STABLE
-        Uns32       vu      :  1;
-        Uns32       vs      :  1;
-        Uns32       _u2     : 13;
-        Uns32       hit     :  1;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       action    :  6;
+        Uns32       modes     :  4;
+        Uns32       nmi       :  1;   // in version 1.0-STABLE
+        Uns32       vu        :  1;
+        Uns32       vs        :  1;
+        Uns32       _u2       : 13;
+        Uns32       hit       :  1;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     } itrigger;
 
     // etrigger view (Type=5)
     struct {
-        Uns32       action  :  6;
-        Uns32       modes   :  4;
-        Uns32       nmi     :  1;   // legacy position
-        Uns32       vu      :  1;
-        Uns32       vs      :  1;
-        Uns32       _u1     : 13;
-        Uns32       hit     :  1;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       action    :  6;
+        Uns32       modes     :  4;
+        Uns32       nmi       :  1;   // legacy position
+        Uns32       vu        :  1;
+        Uns32       vs        :  1;
+        Uns32       _u1       : 13;
+        Uns32       hit       :  1;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     } etrigger;
 
     // mcontrol6 view (Type=6)
     struct {
-        Uns32       priv    :  3;
-        Uns32       modes   :  4;
-        Uns32       match   :  4;
-        Uns32       chain   :  1;
-        Uns32       action  :  4;
-        Uns32       size    :  4;
-        Uns32       timing  :  1;
-        Uns32       select  :  1;
-        Uns32       hit     :  1;
-        Uns32       vu      :  1;
-        Uns32       vs      :  1;
-        Uns32       _u1     :  2;
-        Uns32       dmode   :  1;
-        triggerType type    :  4;
+        Uns32       priv      :  3;
+        Uns32       modes     :  4;
+        Uns32       match     :  4;
+        Uns32       chain     :  1;
+        Uns32       action    :  4;
+        Uns32       size      :  4;
+        Uns32       timing    :  1;
+        Uns32       select    :  1;
+        Uns32       hit0      :  1;
+        Uns32       vu        :  1;
+        Uns32       vs        :  1;
+        Uns32       hit1      :  1;
+        Uns32       uncertain :  1;
+        Uns32       dmode     :  1;
+        triggerType type      :  4;
     } mcontrol6;
 
 } CSR_REG_TYPE_32(tdata1);
@@ -2027,84 +2022,86 @@ typedef union {
 
     // common view
     struct {
-        Uns64       _u1     : 59;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       _u1       : 59;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     };
 
     // mcontrol view
     struct {
-        Uns64       priv    :  3;
-        Uns64       modes   :  4;
-        Uns64       match   :  4;
-        Uns64       chain   :  1;
-        Uns64       action  :  4;
-        Uns64       sizelo  :  2;
-        Uns64       timing  :  1;
-        Uns64       select  :  1;
-        Uns64       hit     :  1;
-        Uns64       sizehi  :  2;
-        Uns64       _u1     : 30;
-        Uns64       maskmax :  6;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       priv      :  3;
+        Uns64       modes     :  4;
+        Uns64       match     :  4;
+        Uns64       chain     :  1;
+        Uns64       action    :  4;
+        Uns64       sizelo    :  2;
+        Uns64       timing    :  1;
+        Uns64       select    :  1;
+        Uns64       hit       :  1;
+        Uns64       sizehi    :  2;
+        Uns64       _u1       : 30;
+        Uns64       maskmax   :  6;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     } mcontrol;
 
     // icount view
     struct {
-        Uns64       action  :  6;
-        Uns64       modes   :  4;
-        Uns64       count   : 14;
-        Uns64       hit     :  1;
-        Uns64       vu      :  1;
-        Uns64       vs      :  1;
-        Uns64       _u1     : 32;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       action    :  6;
+        Uns64       modes     :  4;
+        Uns64       count     : 14;
+        Uns64       hit       :  1;
+        Uns64       vu        :  1;
+        Uns64       vs        :  1;
+        Uns64       _u1       : 32;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     } icount;
 
     // itrigger view
     struct {
-        Uns64       action  :  6;
-        Uns64       modes   :  4;
-        Uns32       nmi     :  1;   // in version 1.0-STABLE
-        Uns64       vu      :  1;
-        Uns64       vs      :  1;
-        Uns64       _u2     : 45;
-        Uns64       hit     :  1;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       action    :  6;
+        Uns64       modes     :  4;
+        Uns32       nmi       :  1;   // in version 1.0-STABLE
+        Uns64       vu        :  1;
+        Uns64       vs        :  1;
+        Uns64       _u2       : 45;
+        Uns64       hit       :  1;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     } itrigger;
 
     // etrigger view
     struct {
-        Uns64       action  :  6;
-        Uns64       modes   :  4;
-        Uns32       nmi     :  1;   // legacy position
-        Uns64       vu      :  1;
-        Uns64       vs      :  1;
-        Uns64       _u1     : 45;
-        Uns64       hit     :  1;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       action    :  6;
+        Uns64       modes     :  4;
+        Uns32       nmi       :  1;   // legacy position
+        Uns64       vu        :  1;
+        Uns64       vs        :  1;
+        Uns64       _u1       : 45;
+        Uns64       hit       :  1;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     } etrigger;
 
     // mcontrol6 view
     struct {
-        Uns64       priv    :  3;
-        Uns64       modes   :  4;
-        Uns64       match   :  4;
-        Uns64       chain   :  1;
-        Uns64       action  :  4;
-        Uns64       size    :  4;
-        Uns64       timing  :  1;
-        Uns64       select  :  1;
-        Uns64       hit     :  1;
-        Uns64       vu      :  1;
-        Uns64       vs      :  1;
-        Uns64       _u1     : 34;
-        Uns64       dmode   :  1;
-        triggerType type    :  4;
+        Uns64       priv      :  3;
+        Uns64       modes     :  4;
+        Uns64       match     :  4;
+        Uns64       chain     :  1;
+        Uns64       action    :  4;
+        Uns64       size      :  4;
+        Uns64       timing    :  1;
+        Uns64       select    :  1;
+        Uns64       hit0      :  1;
+        Uns64       vu        :  1;
+        Uns64       vs        :  1;
+        Uns64       hit1      :  1;
+        Uns64       uncertain :  1;
+        Uns64       _u1       : 32;
+        Uns64       dmode     :  1;
+        triggerType type      :  4;
     } mcontrol6;
 
 } CSR_REG_TYPE_64(tdata1);
@@ -2163,8 +2160,9 @@ CSR_REG_STRUCT_DECL_32_64(tdata3);
 
 // 32-bit view
 typedef struct {
-    Uns32 info : 16;
-    Uns32 _u1  : 16;
+    Uns32 info    : 16;
+    Uns32 _u1     :  8;
+    Uns32 version :  8;
 } CSR_REG_TYPE_32(tinfo);
 
 // define 32 bit type
@@ -2226,12 +2224,13 @@ typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mnscratch);
 // -----------------------------------------------------------------------------
 
 // define alias types
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvien);
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(mvip);
-typedef CSR_REG_TYPE(genericXLEN) CSR_REG_TYPE(hvien);
+typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mvien);
+typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(mvip);
+typedef CSR_REG_TYPE(ip) CSR_REG_TYPE(hvien);
 
 // define write masks
 #define WM64_mvien  (-1ULL << 13)
+#define WM64_mvip   (-1ULL << 13)
 #define WM64_hvien  (-1ULL << 13)
 
 // -----------------------------------------------------------------------------
@@ -2484,7 +2483,6 @@ typedef struct riscvCSRsS {
     CSR_REG_DECL  (mintstatus);     // 0x346
     CSR_REG_DECL  (mintthresh);     // 0x347
     CSR_REG_DECL  (mtinst);         // 0x34A
-    CSR_REG_DECL  (mclicbase);      // 0x34B
     CSR_REG_DECL  (mtval2);         // 0x34B
     CSR_REG_DECL  (miselect);       // 0x350
     CSR_REG_DECL  (mnscratch);      // 0x740
@@ -2586,6 +2584,7 @@ typedef struct riscvCSRMasksS {
 
     // DEBUG MODE CSRS
     CSR_REG_DECL  (dcsr);           // 0x7B0
+    CSR_REG_DECL  (dpc);            // 0x7B1
 
 } riscvCSRMasks;
 

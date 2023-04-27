@@ -73,21 +73,21 @@ static const riscvExceptionDesc exceptions[] = {
     // EXCEPTIONS
     ////////////////////////////////////////////////////////////////////
 
-    RISCV_EXCEPTION (InstructionAddressMisaligned, 0, 0,     "Fetch from unaligned address"),
+    RISCV_EXCEPTION (InstructionAddressMisaligned, 0, ISA_UX,"Fetch from unaligned address"),
     RISCV_EXCEPTION (InstructionAccessFault,       0, 0,     "No access permission for fetch"),
     RISCV_EXCEPTION (IllegalInstruction,           0, 0,     "Undecoded, unimplemented or disabled instruction"),
     RISCV_EXCEPTION (Breakpoint,                   0, 0,     "EBREAK instruction executed"),
-    RISCV_EXCEPTION (LoadAddressMisaligned,        0, 0,     "Load from unaligned address"),
+    RISCV_EXCEPTION (LoadAddressMisaligned,        0, ISA_UX,"Load from unaligned address"),
     RISCV_EXCEPTION (LoadAccessFault,              0, 0,     "No access permission for load"),
-    RISCV_EXCEPTION (StoreAMOAddressMisaligned,    0, 0,     "Store/atomic memory operation at unaligned address"),
+    RISCV_EXCEPTION (StoreAMOAddressMisaligned,    0, ISA_UX,"Store/atomic memory operation at unaligned address"),
     RISCV_EXCEPTION (StoreAMOAccessFault,          0, 0,     "No access permission for store/atomic memory operation"),
     RISCV_EXCEPTION (EnvironmentCallFromUMode,     0, ISA_U, "ECALL instruction executed in User mode"),
     RISCV_EXCEPTION (EnvironmentCallFromSMode,     0, ISA_S, "ECALL instruction executed in Supervisor mode"),
     RISCV_EXCEPTION (EnvironmentCallFromVSMode,    0, ISA_H, "ECALL instruction executed in Virtual Supervisor mode"),
     RISCV_EXCEPTION (EnvironmentCallFromMMode,     0, 0,     "ECALL instruction executed in Machine mode"),
-    RISCV_EXCEPTION (InstructionPageFault,         0, 0,     "Page fault at fetch address"),
-    RISCV_EXCEPTION (LoadPageFault,                0, 0,     "Page fault at load address"),
-    RISCV_EXCEPTION (StoreAMOPageFault,            0, 0,     "Page fault at store/atomic memory operation address"),
+    RISCV_EXCEPTION (InstructionPageFault,         0, ISA_S, "Page fault at fetch address"),
+    RISCV_EXCEPTION (LoadPageFault,                0, ISA_S, "Page fault at load address"),
+    RISCV_EXCEPTION (StoreAMOPageFault,            0, ISA_S, "Page fault at store/atomic memory operation address"),
     RISCV_EXCEPTION (InstructionGuestPageFault,    0, ISA_H, "Guest page fault at fetch address"),
     RISCV_EXCEPTION (LoadGuestPageFault,           0, ISA_H, "Guest page fault at load address"),
     RISCV_EXCEPTION (VirtualInstruction,           0, ISA_H, "Virtual instruction fault"),
@@ -405,9 +405,26 @@ static Bool handleFF(riscvP riscv) {
 }
 
 //
-// Notify a derived model of halt/restart if required
+// Refresh artifact net indicating that the hart is in WFI state
+//
+static void refreshInWFI(riscvP riscv) {
+
+    Bool inWFI = (riscv->disable&RVD_WFI) && True;
+
+    if(riscv->inWFI != inWFI) {
+        riscv->inWFI = inWFI;
+        writeNet(riscv, riscv->wfiHandle, inWFI);
+    }
+}
+
+//
+// Update active WFI indication and notify a derived model of halt/restart if
+// required
 //
 static void notifyHaltRestart(riscvP riscv) {
+
+    refreshInWFI(riscv);
+
     ITER_EXT_CB(
         riscv, extCB, haltRestartNotifier,
         extCB->haltRestartNotifier(riscv, extCB->clientData);
@@ -425,6 +442,21 @@ void riscvHalt(riscvP riscv, riscvDisableReason reason) {
 
     if(!disabled) {
         vmirtHalt((vmiProcessorP)riscv);
+        notifyHaltRestart(riscv);
+    }
+}
+
+//
+// Block the passed processor for the given reason
+//
+void riscvBlock(riscvP riscv, riscvDisableReason reason) {
+
+    Bool disabled = riscv->disable;
+
+    riscv->disable |= reason;
+
+    if(!disabled) {
+        vmirtBlock((vmiProcessorP)riscv);
         notifyHaltRestart(riscv);
     }
 }
@@ -1103,16 +1135,11 @@ void riscvTakeException(
         Uns32 ecode = getExceptionCode(exception);
         Bool  inhv  = riscv->inhv;
 
-        // force trap value to zero if required
-        if(riscv->configInfo.tval_zero) {
-            tval = 0;
-        }
-
         // set trap context information
         trapCxt cxt = {
             handlerPC : 0,
             EPC       : inhvAffectsEPC(riscv, inhv) ? tval : getEPC(riscv),
-            tval      : tval,
+            tval      : riscv->configInfo.tval_zero ? 0 : tval,
             ecodeMod  : ecode,
             level     : -1,
             modeY     : getCurrentMode5(riscv),
@@ -1257,8 +1284,8 @@ void riscvTakeAsynchonousException(
     riscvException exception,
     Uns64          tval
 ) {
-    // restart from WFI state if required
-    riscvRestart(riscv, RVD_RESTART_WFI);
+    // restart from stalled state if required
+    riscvRestart(riscv, RVD_RESTART_NMI);
 
     // this function is intended for use with exceptions, but if used to
     // signal an *interrupt* in a custom manner, assume that the interrupt must
@@ -1558,6 +1585,33 @@ void riscvTakeMemoryExceptionGVA(
     // force vstart to zero if required
     MASK_CSR(riscv, vstart);
 
+    // adjust exception from load to equivalent store if a cache-block
+    // management instruction is active (for these, only read access is required
+    // but exceptions get reported as if stores)
+    if(riscv->CMO) {
+        exception |= 2;
+        riscv->CMO = RISCV_CMO_NA;
+    }
+
+    // adjust reported address if a cache-block management instruction is active
+    // (for these, an address based on the original VA must be reported even
+    // though the fault is probably generated by access at the cache-aligned
+    // address)
+    if(riscv->CMOBytes) {
+
+        Uns64 keepBits = -riscv->CMOBytes;
+
+        // preserve non-offset bits in trap value and original VA
+        tval              &= keepBits;
+        riscv->originalVA &= keepBits;
+
+        // adjust both trap value and original VA to include offset
+        tval              += riscv->CMOOffset;
+        riscv->originalVA += riscv->CMOOffset;
+
+        riscv->CMOBytes = 0;
+    }
+
     // take exception unless fault-only-first mode or a custom extension
     // overrides it
     if(!suppressMemExcept(riscv, exception)) {
@@ -1749,6 +1803,21 @@ static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc, Bool inhv) 
 
     riscvMode oldMode = getCurrentMode5(riscv);
 
+    // switch to User or Supervisor mode on a machine with PMP when no regions
+    // configured will always trap, so unconditionally warn about this
+    if((newMode!=RISCV_MODE_M) && riscv->warnNoPMPUS) {
+
+        riscv->warnNoPMPUS = False;
+
+        vmiMessage("W", CPU_PREFIX "_PMP_US",
+            SRCREF_FMT
+            "Switch to %s mode without first configuring PMP regions "
+            "will always cause Access Fault",
+            SRCREF_ARGS(riscv, getPC(riscv)),
+            riscvGetModeName(newMode)
+        );
+    }
+
     // switch to target mode
     riscvSetMode(riscv, newMode);
 
@@ -1756,6 +1825,17 @@ static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc, Bool inhv) 
     // succeeds
     if(!inhv || getCLICVPC(riscv, epc, &epc)) {
         setPCxRET(riscv, epc);
+    }
+
+    // clear CLIC xintthresh if required
+    if(oldMode==newMode) {
+        // no mode switch
+    } else if(!xretClearsIntThresh(riscv)) {
+        // clearing of xintthresh not implemented
+    } else if(oldMode==RISCV_MODE_M) {
+        WR_CSR32(riscv, mintthresh, riscv->threshOnes);
+    } else {
+        WR_CSR32(riscv, sintthresh, riscv->threshOnes);
     }
 
     // notify derived model of exception return if required
@@ -2138,11 +2218,7 @@ static void enterDM(riscvP riscv, dmCause cause) {
             address = riscv->configInfo.debug_address;
         }
 
-        if(DM && (cause==DMC_EBREAK)) {
-            setPC(riscv, address);
-        } else {
-            setPCException(riscv, address);
-        }
+        setPCException(riscv, address);
 
     } else {
 
@@ -2595,7 +2671,12 @@ VMI_RD_ALIGN_EXCEPT_FN(riscvRdAlignExcept) {
     riscvP         riscv     = (riscvP)processor;
     riscvException exception = riscv_E_LoadAddressMisaligned;
 
-    if(faultMisalignedLoad(riscv, domain, address, bytes)) {
+    if(!(riscv->exceptionMask & (1ULL<<exception))) {
+
+        // raise LoadAccessFault if LoadAddressMisaligned not implemented
+        exception = riscv_E_LoadAccessFault;
+
+    } else if(faultMisalignedLoad(riscv, domain, address, bytes)) {
 
         // raise LoadAccessFault if required
         exception = riscv_E_LoadAccessFault;
@@ -2625,7 +2706,12 @@ VMI_WR_ALIGN_EXCEPT_FN(riscvWrAlignExcept) {
     riscvP         riscv     = (riscvP)processor;
     riscvException exception = riscv_E_StoreAMOAddressMisaligned;
 
-    if(faultMisalignedStore(riscv, domain, address, bytes)) {
+    if(!(riscv->exceptionMask & (1ULL<<exception))) {
+
+        // raise StoreAMOAccessFault if StoreAMOAddressMisaligned not implemented
+        exception = riscv_E_StoreAMOAccessFault;
+
+    } else if(faultMisalignedStore(riscv, domain, address, bytes)) {
 
         // raise StoreAMOAccessFault if required
         exception = riscv_E_StoreAMOAccessFault;
@@ -3812,6 +3898,25 @@ Bool riscvHasStandardException(riscvP riscv, riscvException code) {
 }
 
 //
+// Get effective architecture for determining presence of exceptions
+//
+static riscvArchitecture getExceptionArch(riscvP riscv) {
+
+    riscvArchitecture arch = riscv->configInfo.arch;
+
+    // determine whether misaligned access exceptions are possible
+    if(
+        (!riscv->configInfo.unaligned) ||
+        (!riscv->configInfo.unalignedAMO && (arch&ISA_A)) ||
+        (!riscv->configInfo.unalignedV   && (arch&ISA_V))
+    ) {
+        arch |= ISA_UX;
+    }
+
+    return arch;
+}
+
+//
 // Does the processor implement the standard exception or interrupt given its
 // architecture?
 //
@@ -3819,7 +3924,7 @@ static Bool hasStandardExceptionArch(riscvP riscv, riscvExceptionDescCP desc) {
 
     return (
         // validate feature requirements
-        ((riscv->configInfo.arch&desc->arch)==desc->arch) &&
+        ((getExceptionArch(riscv)&desc->arch)==desc->arch) &&
         // validate trap code
         riscvHasStandardException(riscv, desc->vmiInfo.code)
     );
@@ -3950,6 +4055,9 @@ static vmiExceptionInfoCP getExceptions(riscvP riscv) {
                     riscv, extCB->clientData
                 );
                 while(list && list->name) {
+                    if(list->code<64) {
+                        riscv->exceptionMask |= (1ULL<<list->code);
+                    }
                     all[numExcept++] = *list++;
                 }
             }
@@ -4052,7 +4160,7 @@ static Uns64 getLocalIntMask(riscvP riscv) {
 //
 void riscvSetExceptionMask(riscvP riscv) {
 
-    riscvArchitecture    arch          = riscv->configInfo.arch;
+    riscvArchitecture    arch          = getExceptionArch(riscv);
     Uns64                exceptionMask = 0;
     Uns64                interruptMask = 0;
     riscvExceptionDescCP thisDesc;
@@ -4133,7 +4241,7 @@ inline static Bool negedge(Uns32 old, Uns32 new) {
 //
 // Is resume from WFI required?
 //
-static Bool resumeFromWFI(riscvP riscv) {
+Bool riscvResumeFromWFI(riscvP riscv) {
 
     riscvBasicIntState intState;
 
@@ -4205,25 +4313,38 @@ static void takeBLimitTrap(riscvP riscv, riscvException trap) {
 }
 
 //
+// Handle trap if waiting in wfi or wrs.nto because of bounded time limit
+//
+static Bool handleBLimitTrap(riscvP riscv) {
+
+    riscvException trap = 0;
+
+    if((riscv->disable&RVD_WFI) && (trap=getWFITrap(riscv, False))) {
+        setPC(riscv, riscv->jumpBase);
+        riscvRestart(riscv, RVD_RESTART_WFI);
+        takeBLimitTrap(riscv, trap);
+    }
+
+    return trap;
+}
+
+//
 // Function called on expiry of bounded time limit controlled by mstatus.TW or
 // hstatus.VTW
 //
 static VMI_ICOUNT_FN(expiredTW) {
 
-    riscvP         riscv = (riscvP)processor;
-    riscvException trap;
+    riscvP riscv = (riscvP)processor;
 
     if(riscv->disable&RVD_STO) {
 
         // waiting in wrs.sto
         riscvRestart(riscv, RVD_RESTART_WFI);
 
-    } else if((riscv->disable&RVD_WFI) && (trap=getWFITrap(riscv, False))) {
+    } else {
 
-        // waiting in wfi or wrs.nto
-        setPC(riscv, riscv->jumpBase);
-        riscvRestart(riscv, RVD_RESTART_WFI);
-        takeBLimitTrap(riscv, trap);
+        // possibly waiting in wfi or wrs.nto
+        handleBLimitTrap(riscv);
     }
 }
 
@@ -4274,11 +4395,11 @@ void riscvWFI(riscvP riscv) {
         getWFILimit(riscv, False)
     );
 
-    if(wfi_resume_not_trap && resumeFromWFI(riscv)) {
+    if(wfi_resume_not_trap && riscvResumeFromWFI(riscv)) {
         // resume high priority: no action if pending locally enabled interrupts
     } else if(scheduleWFITrap(riscv, False)) {
         // no action if a WFI trap is immediately taken
-    } else if(!wfi_resume_not_trap && resumeFromWFI(riscv)) {
+    } else if(!wfi_resume_not_trap && riscvResumeFromWFI(riscv)) {
         // resume low priority: no action if pending locally enabled interrupts
     } else if(!riscv->configInfo.wfi_is_nop) {
         riscvHalt(riscv, RVD_WFI);
@@ -4292,7 +4413,7 @@ void riscvWRSNTO(riscvP riscv) {
 
     if(riscv->exclusiveTag==RISCV_NO_TAG) {
         // reservation set not valid
-    } else if(resumeFromWFI(riscv)) {
+    } else if(riscvResumeFromWFI(riscv)) {
         // do not stall if there are pending locally enabled interrupts
     } else if(scheduleWFITrap(riscv, True)) {
         // no action if a WFI trap is immediately taken
@@ -4308,7 +4429,7 @@ void riscvWRSSTO(riscvP riscv) {
 
     if(riscv->exclusiveTag==RISCV_NO_TAG) {
         // reservation set not valid
-    } else if(resumeFromWFI(riscv)) {
+    } else if(riscvResumeFromWFI(riscv)) {
         // do not stall if there are pending locally enabled interrupts
     } else {
         riscvHalt(riscv, RVD_WFI|RVD_WRS|RVD_STO);
@@ -4331,11 +4452,16 @@ Bool riscvPendingAndEnabled(riscvP riscv) {
 //
 // Handle any pending and enabled interrupts
 //
-static void handlePendingAndEnabled(riscvP riscv) {
+static Bool handlePendingAndEnabled(riscvP riscv) {
 
-    if(riscvPendingAndEnabled(riscv)) {
+    Bool interruptNow = riscvPendingAndEnabled(riscv);
+
+    if(interruptNow) {
+        riscvRestart(riscv, RVD_RESTART_NMI);
         doSynchronousInterrupt(riscv);
     }
+
+    return interruptNow;
 }
 
 //
@@ -4346,15 +4472,20 @@ void riscvTestInterrupt(riscvP riscv) {
     // refresh pending and pending-and-enabled interrupt state
     riscvRefreshPendingAndEnabled(riscv);
 
-    // restart processor if it is halted in WFI state and interrupts are
-    // locally pending and enabled (even if globally masked or delegated)
-    if(resumeFromWFI(riscv)) {
+    if(handlePendingAndEnabled(riscv)) {
+
+        // interrupts will be serviced now
+
+    } else if(riscv->disable & ~RVD_RESTART_WFI) {
+
+        // stalled for a reason not subject to WFI restart control
+
+    } else if(riscv->disable && riscvResumeFromWFI(riscv)) {
+
+        // restart processor if it is halted in WFI state and interrupts are
+        // locally pending and enabled but globally masked or delegated
         riscvRestart(riscv, RVD_RESTART_WFI);
     }
-
-    // schedule asynchronous interrupt handling if interrupts are pending and
-    // enabled
-    handlePendingAndEnabled(riscv);
 }
 
 //
@@ -4413,6 +4544,13 @@ static void doNMI(riscvP riscv) {
     riscvMode MPP = getCurrentMode3(riscv);
     Bool      MPV = inVMode(riscv);
 
+    // clear mcause or mncause before calling customNMI
+    if(RISCV_RNMI_VERSION(riscv)) {
+        WR_CSR_M(riscv, mncause, 0);
+    } else {
+        WR_CSR_M(riscv, mcause, 0);
+    }
+
     // do custom NMI behavior if required
     ITER_EXT_CB(
         riscv, extCB, customNMI,
@@ -4433,8 +4571,8 @@ static void doNMI(riscvP riscv) {
         // active is indicated by rnmie=0
         WR_CSR_FIELDC(riscv, mnstatus, NMIE, 0);
 
-        // update mcause register
-        WR_CSR_M(riscv, mncause, ecode_nmi);
+        // update mncause register, preserving non-zero bits set by custom NMI
+        WR_CSR_M(riscv, mncause, ecode_nmi | RD_CSR_M(riscv, mncause));
 
         // update mepc to hold next instruction address
         WR_CSR_M(riscv, mnepc, getEPC(riscv));
@@ -4449,8 +4587,8 @@ static void doNMI(riscvP riscv) {
         // must be cleared here
         WR_CSR_FIELDC(riscv, dcsr, nmip, 0);
 
-        // update mcause register
-        WR_CSR_M(riscv, mcause, ecode_nmi);
+        // update mcause register, preserving non-zero bits set by custom NMI
+        WR_CSR_M(riscv, mcause, ecode_nmi | RD_CSR_M(riscv, mcause));
 
         // NMI sets mcause.Interrupt=1
         WR_CSR_FIELD_M(riscv, mcause, Interrupt, 1);
@@ -4498,9 +4636,14 @@ static VMI_NET_CHANGE_FN(irqIDPortCB) {
     riscvInterruptInfoP ii    = userData;
     riscvP              riscv = ii->hart;
 
-    riscv->clic.sel.id = newValue;
+    if(riscv->clic.sel.id != newValue) {
 
-    testCLICInterrupt(riscv);
+        riscv->clic.sel.id = newValue;
+
+        if(riscv->netValue.enableCLIC) {
+            riscvTestInterrupt(riscv);
+        }
+    }
 }
 
 //
@@ -4511,9 +4654,12 @@ static VMI_NET_CHANGE_FN(irqLevelPortCB) {
     riscvInterruptInfoP ii    = userData;
     riscvP              riscv = ii->hart;
 
-    riscv->clic.sel.level = newValue;
+    if(riscv->clic.sel.level != newValue) {
 
-    testCLICInterrupt(riscv);
+        riscv->clic.sel.level = newValue;
+
+        testCLICInterrupt(riscv);
+    }
 }
 
 //
@@ -4523,10 +4669,14 @@ static VMI_NET_CHANGE_FN(irqSecurePortCB) {
 
     riscvInterruptInfoP ii    = userData;
     riscvP              riscv = ii->hart;
+    riscvMode           priv  = newValue & RISCV_MODE_M;
 
-    riscv->clic.sel.priv = newValue & RISCV_MODE_M;
+    if(riscv->clic.sel.priv != priv) {
 
-    testCLICInterrupt(riscv);
+        riscv->clic.sel.priv = priv;
+
+        testCLICInterrupt(riscv);
+    }
 }
 
 //
@@ -4536,10 +4686,14 @@ static VMI_NET_CHANGE_FN(irqSHVPortCB) {
 
     riscvInterruptInfoP ii    = userData;
     riscvP              riscv = ii->hart;
+    Bool                shv   = newValue & 1;
 
-    riscv->clic.sel.shv = newValue & 1;
+    if(riscv->clic.sel.shv != shv) {
 
-    testCLICInterrupt(riscv);
+        riscv->clic.sel.shv = shv;
+
+        testCLICInterrupt(riscv);
+    }
 }
 
 //
@@ -4547,12 +4701,18 @@ static VMI_NET_CHANGE_FN(irqSHVPortCB) {
 //
 static VMI_NET_CHANGE_FN(irqPortCB) {
 
-    riscvInterruptInfoP ii    = userData;
-    riscvP              riscv = ii->hart;
+    riscvInterruptInfoP ii     = userData;
+    riscvP              riscv  = ii->hart;
+    Bool                enable = newValue & 1;
 
-    riscv->netValue.enableCLIC = newValue & 1;
+    if(riscv->netValue.enableCLIC != enable) {
 
-    testCLICInterrupt(riscv);
+        riscv->netValue.enableCLIC = enable;
+
+        if(riscv->clic.sel.id!=RV_NO_INT) {
+            riscvTestInterrupt(riscv);
+        }
+    }
 }
 
 
@@ -4622,7 +4782,9 @@ static Uns32 getGuestEIP(riscvP riscv) {
 //
 void riscvUpdatePending(riscvP riscv) {
 
-    Uns64 swip = riscv->swip;
+    // get active software interrupt bits, excluding bits that are disabled by
+    // mvien
+    Uns64 swip = riscv->swip & ~(WM64_mip_mvip & RD_CSR64(riscv, mvien));
 
     // reassign STIP and VSTIP from stimecmp and vstimecmp if required
     if(stimecmpEnabled(riscv)) {
@@ -4746,7 +4908,7 @@ static VMI_NET_CHANGE_FN(haltreqPortCB) {
 
     // do halt actions when signal goes high unless in Debug mode
     if(!inDebugMode(riscv) && posedge(oldValue, newValue)) {
-        riscvRestart(riscv, RVD_RESTART_WFI);
+        riscvRestart(riscv, RVD_RESTART_NMI);
         doSynchronousInterrupt(riscv);
     }
 
@@ -4907,6 +5069,33 @@ static VMI_NET_CHANGE_FN(deferintPortCB) {
     }
 }
 
+//
+// Raise Illegal Instruction externally to the model.
+//
+static VMI_NET_CHANGE_FN(illegalInstrPortCB) {
+
+    riscvInterruptInfoP ii       = userData;
+    riscvP              riscv    = ii->hart;
+    Bool                oldValue = riscv->netValue.illegalInst;
+
+    if(!posedge(oldValue, newValue)) {
+
+        // no action unless rising edge
+
+    } else if(handleBLimitTrap(riscv)) {
+
+        // special case when waiting in wfi (external timeout)
+
+    } else {
+
+        // restart hart and immediately raise Illegal Instruction
+        riscvRestart(riscv, RVD_RESTART_NMI);
+        riscvIllegalInstructionMessage(riscv, "raised externally");
+    }
+
+    riscv->netValue.illegalInst = newValue;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // NET PORT CREATION
@@ -4991,7 +5180,13 @@ typedef enum riscvPortIdE {
     RVP_AMO_active,
 
     // artifact ports
+    RVP_illegalinstr,
     RVP_deferint,
+    RVP_coverpoint,
+    RVP_readcsr,
+
+    // WFI notification port
+    RVP_core_wfi_mode,
 
 } riscvPortId;
 
@@ -5042,7 +5237,13 @@ static const vmiNetPort netPorts[] = {
     PORT_O(AMO_active,   AMOActiveHandle,     0, "Port written with code indicating active AMO"),
 
     // artifact ports
+    PORT_I(illegalinstr, illegalInstrPortCB,  0, "Artifact signal raising Illegal Instruction on rising edge"),
     PORT_I(deferint,     deferintPortCB,      0, "Artifact signal causing interrupts to be held off when high"),
+    PORT_O(coverpoint,   coverHandle,         0, "Artifact port written with coverage point identifier"),
+    PORT_O(readcsr,      readCSR,             0, "Artifact port written with CSR/GPR information when CSR is read"),
+
+    // WFI notification port
+    PORT_O(core_wfi_mode,wfiHandle,           0, "WFI is active"),
 };
 
 //
@@ -5335,8 +5536,13 @@ void riscvNewNetPorts(riscvP riscv) {
         tail = newNetPortsTemplate(riscv, tail, RVP_LR_address, RVP_AMO_active);
     }
 
-    // allocate deferint port
-    tail = newNetPortTemplate(riscv, tail, RVP_deferint);
+    // allocate artifact ports
+    tail = newNetPortsTemplate(riscv, tail, RVP_illegalinstr, RVP_readcsr);
+
+    // WFI notification port
+    if(!riscv->configInfo.wfi_is_nop) {
+        tail = newNetPortTemplate(riscv, tail, RVP_core_wfi_mode);
+    }
 }
 
 //
@@ -5502,6 +5708,9 @@ void riscvNetSave(
         if(RD_CSR_MASK64(riscv, mvien) || RD_CSR64(riscv, mvien)) {
             VMIRT_SAVE_FIELD(cxt, riscv, svie);
         }
+
+        // restore software interrupt pending state
+        VMIRT_SAVE_FIELD(cxt, riscv, swip);
     }
 }
 
@@ -5545,6 +5754,12 @@ void riscvNetRestore(
         if(RD_CSR_MASK64(riscv, mvien) || RD_CSR64(riscv, mvien)) {
             VMIRT_RESTORE_FIELD(cxt, riscv, svie);
         }
+
+        // restore software interrupt pending state
+        VMIRT_RESTORE_FIELD(cxt, riscv, swip);
+
+        // refresh artifact net indicating that the hart is in WFI state
+        refreshInWFI(riscv);
 
         // check for pending interrupts
         riscvUpdatePending(riscv);

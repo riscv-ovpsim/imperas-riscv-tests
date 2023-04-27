@@ -1,7 +1,7 @@
 # Imperas RISC-V Architecture Tests for RV64I_M/ZBC
 
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -20,8 +20,8 @@
 
 | Test                               | Data Size | Program Size | Signature Size | Instructions Counted |
 | ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
-| CLMULH-01                          |     6,920 |       9,708  |         2,400  |               2,406  |
 | CLMUL-01                           |     6,920 |       9,708  |         2,400  |               2,406  |
+| CLMULH-01                          |     6,920 |       9,708  |         2,400  |               2,406  |
 | CLMULR-01                          |     6,920 |       9,708  |         2,400  |               2,406  |
 | ---------------------------------- | --------- | ------------ | -------------- | -------------------- |
 

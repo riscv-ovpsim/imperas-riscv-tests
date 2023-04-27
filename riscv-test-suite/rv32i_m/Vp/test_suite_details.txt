@@ -1,5 +1,5 @@
     #
-    # Copyright (c) 2005-2022 Imperas Software Ltd., www.imperas.com
+    # Copyright (c) 2005-2023 Imperas Software Ltd., www.imperas.com
     #
     # The contents of this file are provided under the Software License
     # Agreement that you accepted before downloading this file.
@@ -43,10 +43,10 @@ Instruction category: OPV_SLIDE slide
   vslideup.vi : 336
   vslideup.vx : 336
 Instruction category: OPV_VMV whole vector register move
-  vmv2r.v : 32
   vmv1r.v : 32
   vmv4r.v : 32
   vmv8r.v : 16
+  vmv2r.v : 32
 
 Other instructions (those not the focus of this suite)
   jal : 184
@@ -63,10 +63,10 @@ Other instructions (those not the focus of this suite)
   fence : 184
   ecall : 184
   beq : 552
-  vle32.v : 4,240
-  vse32.v : 1,680
   vle16.v : 4,768
   vse16.v : 1,936
+  vle32.v : 4,240
+  vse32.v : 1,680
   fmv.x.s : 224
   sw : 320
   fmv.s.x : 1,008

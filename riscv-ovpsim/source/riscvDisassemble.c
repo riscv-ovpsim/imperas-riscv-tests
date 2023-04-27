@@ -609,6 +609,8 @@ static riscvRegDesc putType(
                 putChar(result, getRBitsChar(bits, "??wl"));
             } else if(isXReg(this)) {
                 putChar(result, getRBitsChar(bits, "bhwd"));
+            } else if(isBF16Reg(this)) {
+                putString(result, "bf16");
             } else if(isFReg(this)) {
                 putChar(result, getRBitsChar(bits/2, "hsdq"));
             } else {

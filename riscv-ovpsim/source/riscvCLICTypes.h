@@ -44,7 +44,7 @@
 //
 // Use this to declare a 32-bit CLIC register
 //
-#define CLIC_REG_STRUCT_DECL(_N) typedef union { \
+#define CLIC_REG_STRUCT_DECL32(_N) typedef union { \
     Uns32           bits;     \
     CLIC_FIELDS(_N) fields;   \
 } CLIC_REG_TYPE(_N)
@@ -61,7 +61,34 @@ typedef struct {
 } CLIC_FIELDS(cliccfg);
 
 // define 32 bit type
-CLIC_REG_STRUCT_DECL(cliccfg);
+CLIC_REG_STRUCT_DECL32(cliccfg);
+
+// -----------------------------------------------------------------------------
+// mcliccfg     (offset 0x0000)
+// scliccfg     (offset 0x0002)
+// ucliccfg     (offset 0x0003)
+// -----------------------------------------------------------------------------
+
+typedef struct {
+    Uns32 nlbits :  4;
+    Uns32 nmbits :  2;
+    Uns32 _u1    : 26;
+} CLIC_FIELDS(mcliccfg);
+
+typedef struct {
+    Uns32 nlbits :  4;
+    Uns32 _u1    : 28;
+} CLIC_FIELDS(scliccfg);
+
+typedef struct {
+    Uns32 nlbits :  4;
+    Uns32 _u1    : 28;
+} CLIC_FIELDS(ucliccfg);
+
+// define 32 bit types
+CLIC_REG_STRUCT_DECL32(mcliccfg);
+CLIC_REG_STRUCT_DECL32(scliccfg);
+CLIC_REG_STRUCT_DECL32(ucliccfg);
 
 // -----------------------------------------------------------------------------
 // clicinfo     (offset 0x0004)
@@ -75,7 +102,7 @@ typedef struct {
 } CLIC_FIELDS(clicinfo);
 
 // define 32 bit type
-CLIC_REG_STRUCT_DECL(clicinfo);
+CLIC_REG_STRUCT_DECL32(clicinfo);
 
 // -----------------------------------------------------------------------------
 // clicintattr  (offset 0x1002+4*i etc)
@@ -89,7 +116,7 @@ typedef struct {
 } CLIC_FIELDS(clicintattr);
 
 // define 32 bit type
-CLIC_REG_STRUCT_DECL(clicintattr);
+CLIC_REG_STRUCT_DECL32(clicintattr);
 
 //
 // Use this to define a CLIC register
@@ -117,12 +144,15 @@ typedef struct riscvCLICOutStateS {
 //
 typedef struct riscvCLICS {
     riscvCLICOutState  sel;         // selected interrupt state
-    CLIC_REG_DECL     (cliccfg);    // cliccfg register value
     CLIC_REG_DECL     (clicinfo);   // clicinfo register value
     riscvPP            harts;       // member harts
     riscvCLICIntStateP intState;    // state for each interrupt
     Uns64             *ipe;         // mask of pending-and-enabled interrupts
     Uns64             *trigFixed;   // mask of interrupts with fixed trig
+    struct {
+        Uns8           nlbits[4];   // xcliccfg.nlbits (per mode)
+        Uns8           nmbits;      // mcliccfg.nmbits
+    } cliccfg;
 } riscvCLIC;
 
 

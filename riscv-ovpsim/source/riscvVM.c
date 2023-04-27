@@ -19,6 +19,7 @@
 
 // Standard header files
 #include <stdio.h>      // for sprintf
+#include <string.h>     // for memcmp
 
 // Imperas header files
 #include "hostapi/impAlloc.h"
@@ -33,6 +34,7 @@
 // Model header files
 #include "riscvCLIC.h"
 #include "riscvCLINT.h"
+#include "riscvCover.h"
 #include "riscvDebug.h"
 #include "riscvExceptions.h"
 #include "riscvFunctions.h"
@@ -169,6 +171,15 @@ static memDomainP getVirtDomainCorD(riscvP riscv, riscvMode mode, Bool isCode) {
 //
 static memDomainP getPMPDomainPriv(riscvP riscv, riscvMode mode, memPriv priv) {
     return getPMPDomainCorD(riscv, mode, isFetch(priv));
+}
+
+//
+// Cover some part of memory functionality
+//
+static void coverMem(riscvP riscv, rvCoverType type) {
+    if(!riscv->artifactAccess) {
+        riscvCover(riscv, type);
+    }
 }
 
 
@@ -336,17 +347,8 @@ static void pmpProtect(
 
     // remove permissions on adjacent region bytes if accesses could possibly
     // straddle region boundaries
-    if(
-        (priv || !updatePriv) &&
-        (
-            // unaligned accesses could straddle any boundary
-            unalignedOK ||
-            // 64-bit F registers could straddle any 32-bit boundary
-            (riscvGetFlenArch(riscv) > 32) ||
-            // 64-bit X registers could straddle any 32-bit boundary
-            (riscvGetXlenArch(riscv) > 32)
-        )
-    ) {
+    if(riscv->pmpStraddle && (priv || !updatePriv)) {
+
         Uns64 loMin = 0;
         Uns64 hiMax = getAddressMask(riscv->extBits);
 
@@ -432,19 +434,21 @@ inline static void setPMPPrivB(
 //
 // Return the bounds of the indexed PMP entry
 //
-static void getPMPEntryBounds(
+static rvCoverType getPMPEntryBounds(
     riscvP riscv,
     Uns32  index,
     Uns64 *lowP,
     Uns64 *highP
 ) {
-    pmpcfgElem e   = getPMPCFGElem(riscv, index);
-    Uns64      low = getEffectivePMPAddr(riscv, index)<<2;
-    Uns64      high;
+    pmpcfgElem  e   = getPMPCFGElem(riscv, index);
+    Uns64       low = getEffectivePMPAddr(riscv, index)<<2;
+    Uns64       high;
+    rvCoverType type;
 
     if(e.mode==PMPM_NA4) {
 
         // 4-byte range
+        type = RVC_PMP_NA4;
         high = low + 3;
 
     } else if(e.mode==PMPM_NAPOT) {
@@ -453,12 +457,14 @@ static void getPMPEntryBounds(
         Uns64 notLow = ~(low+3);
         Uns64 mask   = ((notLow & -notLow) << 1) - 1;
 
+        type = RVC_PMP_NAPOT;
         low  = low & ~mask;
         high = low |  mask;
 
     } else {
 
         // top-of-range
+        type = RVC_PMP_TOR;
         high = low-1;
         low  = index ? riscv->pmpaddr[index-1]<<2 : 0;
 
@@ -469,6 +475,8 @@ static void getPMPEntryBounds(
     // assign results
     *lowP  = low;
     *highP = high;
+
+    return type;
 }
 
 //
@@ -539,13 +547,30 @@ static const memPriv mapMML1SL1[] = {
 //
 static memPriv getPMPEntryPriv(riscvP riscv, riscvMode mode, pmpcfgElem e) {
 
-    Bool    isM = (mode==RISCV_MODE_M);
-    memPriv priv;
+    Bool        isM = (mode==RISCV_MODE_M);
+    rvCoverType type;
+    memPriv     priv;
 
     if(!RD_CSR_FIELDC(riscv, mseccfg, MML)) {
 
-        // restrict privilege using PMP region constraints if required
-        priv = (!isM || e.L) ? e.priv : MEM_PRIV_RWX;
+        if(isM && !e.L) {
+
+            // Machine mode access, pmpcfg.L=0
+            priv = MEM_PRIV_RWX;
+            type = RVC_PMP_M_L0_P0;
+
+        } else if(isM) {
+
+            // Machine mode access, pmpcfg.L=1
+            priv = e.priv;
+            type = RVC_PMP_M_L1_P0;
+
+        } else {
+
+            // User/Supervisor mode access
+            priv = e.priv;
+            type = RVC_PMP_SU_P0;
+        }
 
         // combination R=0 and W=1 is reserved for future use
         if(!(priv&MEM_PRIV_R)) {
@@ -556,22 +581,29 @@ static memPriv getPMPEntryPriv(riscvP riscv, riscvMode mode, pmpcfgElem e) {
 
         // Machine mode access, pmpcfg.L=0
         priv = mapMML1ML0[e.priv];
+        type = RVC_PMP_MML1_M_L0_P0;
 
     } else if(isM) {
 
         // Machine mode access, pmpcfg.L=1
         priv = mapMML1ML1[e.priv];
+        type = RVC_PMP_MML1_M_L1_P0;
 
     } else if(!e.L) {
 
         // User/Supervisor mode access, pmpcfg.L=0
         priv = mapMML1SL0[e.priv];
+        type = RVC_PMP_MML1_SU_L0_P0;
 
     } else {
 
         // User/Supervisor mode access, pmpcfg.L=1
         priv = mapMML1SL1[e.priv];
+        type = RVC_PMP_MML1_SU_L1_P0;
     }
+
+    // cover PMP privilege
+    coverMem(riscv, type+e.priv);
 
     return priv;
 }
@@ -719,8 +751,13 @@ Uns64 riscvVMWritePMPCFG(riscvP riscv, Uns32 index, Uns64 newValue) {
         Uns64 mask          = (numBytes>=8) ? -1 : (1ULL<<(numBytes*8))-1;
         Int32 i;
 
+        // disable warning for switch to U/S modes when PMP not configured
+        if(newValue) {
+            riscv->warnNoPMPUS = False;
+        }
+
         // get byte-accessible source value
-        union {Uns64 u64; Uns8 u8[8];} src    = {u64 : newValue&WM64_pmpcfg&mask};
+        union {Uns64 u64; Uns8 u8[8];} src = {u64 : newValue&WM64_pmpcfg&mask};
 
         // invalidate any modified entries in lowest-to-highest priority order
         // (required so that useLowerPriorityPMPEntryMMode always returns valid
@@ -836,7 +873,7 @@ Uns64 riscvVMWritePMPAddr(riscvP riscv, Uns32 index, Uns64 newValue) {
         // retain existing values for read-only bits
         newValue = (newValue & ~romask) | (oldValue & romask);
 
-        if (riscv->pmpaddr[index]!=newValue) {
+        if(riscv->pmpaddr[index]!=newValue) {
 
             if(pmpLocked(riscv, index)) {
 
@@ -966,8 +1003,10 @@ static void refinePMPRegionRange(
         Uns64 lowPAEntry;
         Uns64 highPAEntry;
 
-        // get bounds of the entry
-        getPMPEntryBounds(riscv, index, &lowPAEntry, &highPAEntry);
+        // get type and bounds of the entry
+        rvCoverType type = getPMPEntryBounds(
+            riscv, index, &lowPAEntry, &highPAEntry
+        );
 
         if(lowPAEntry>highPAEntry) {
 
@@ -978,6 +1017,9 @@ static void refinePMPRegionRange(
             // match in this region
             map->lowPA  = lowPAEntry;
             map->highPA = highPAEntry;
+
+            // cover PMP region type
+            coverMem(riscv, type);
 
             // get standard access privilege
             memPriv priv = getPMPEntryPriv(riscv, mode, e);
@@ -1043,17 +1085,20 @@ static void mapPMP(
 
     if(numRegs) {
 
-        Uns64   thisPA  = lowPA;
-        Uns64   maxPA   = getAddressMask(riscv->extBits);
-        memPriv priv    = getPMPUnmatchedPriv(riscv, mode);
-        Bool    aligned = !(lowPA & (highPA-lowPA));
-        Uns32   mapNum  = 0;
-        Bool    mapDone = False;
-        Bool    mapBad  = False;
-        PMPMap  maps[MAX_PMP_STRADDLE_NUM];
+        Uns64       thisPA  = lowPA;
+        Uns64       maxPA   = getAddressMask(riscv->extBits);
+        memPriv     priv    = getPMPUnmatchedPriv(riscv, mode);
+        Bool        aligned = !(lowPA & (highPA-lowPA));
+        Uns32       mapNum  = 0;
+        Bool        mapDone = False;
+        rvCoverType type    = RVC_PMP_MAPPED;
+        PMPMap      maps[MAX_PMP_STRADDLE_NUM];
+
+        // indicate start of PMP lookup
+        coverMem(riscv, RVC_PMP_START);
 
         // continue while regions remain unprocessed and no PMP fault pending
-        while(!mapDone && !mapBad) {
+        while(!mapDone && (type==RVC_PMP_MAPPED)) {
 
             // get next PMP region
             PMPMapP map = &maps[mapNum++];
@@ -1077,11 +1122,11 @@ static void mapPMP(
             }
 
             // validate region bounds and access privileges
-            mapBad = (
-                (thisPA < map->lowPA) ||
-                (thisPA > map->highPA) ||
-                ((map->priv&requiredPriv) != requiredPriv)
-            );
+            if((thisPA < map->lowPA) || (thisPA > map->highPA)) {
+                type = RVC_PMP_BOUNDS;
+            } else if((map->priv&requiredPriv) != requiredPriv) {
+                type = RVC_PMP_PRIV;
+            }
 
             // prepare for next iteration if required
             mapDone = (map->highPA>=highPA);
@@ -1089,22 +1134,29 @@ static void mapPMP(
         }
 
         // handle accesses that straddle multiple regions
-        if(mapNum==1) {
+        if(type!=RVC_PMP_MAPPED) {
 
-            // no action if a single region matches
+            // failure detected
+
+        } else if(mapNum==1) {
+
+            // no failure if a single region matches
 
         } else if(aligned) {
 
             // aligned accesses may not straddle PMP regions
-            mapBad = True;
+            type = RVC_PMP_STRADDLE;
 
         } else if(!riscv->configInfo.PMP_decompose) {
 
             // unaligned accesses are not decomposed
-            mapBad = True;
+            type = RVC_PMP_UNALIGNED;
         }
 
-        if(mapBad) {
+        // cover PMP region access result
+        coverMem(riscv, type);
+
+        if(type!=RVC_PMP_MAPPED) {
 
             // invalid permissions or access straddling multiple regions
             riscv->exceptionDetail = riscv_ED_PMP;
@@ -1168,7 +1220,10 @@ void riscvVMNewPMP(riscvP riscv) {
     Uns32 numRegs = getNumPMPs(riscv);
 
     if(numRegs) {
+
         Uns32 numUns64Regs = (numRegs+7)/8;
+
+        riscv->warnNoPMPUS       = True;
         riscv->pmpcfg.u64        = STYPE_CALLOC_N(Uns64, numUns64Regs);
         riscv->romask_pmpcfg.u64 = STYPE_CALLOC_N(Uns64, numUns64Regs);
         riscv->pmpaddr           = STYPE_CALLOC_N(Uns64, numRegs);
@@ -2341,6 +2396,290 @@ typedef struct tlbMapInfoS {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// TLB UTILITIES
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Is a virtual TLB active?
+//
+inline static Bool activeTLBIsVirtual(riscvP riscv) {
+    return (riscv->activeTLB!=RISCV_TLB_HS);
+}
+
+//
+// Is the VS stage 1 TLB active?
+//
+inline static Bool activeTLBIsVS1(riscvP riscv) {
+    return (riscv->activeTLB==RISCV_TLB_VS1);
+}
+
+//
+// Is the VS stage 2 TLB active?
+//
+inline static Bool activeTLBIsVS2(riscvP riscv) {
+    return (riscv->activeTLB==RISCV_TLB_VS2);
+}
+
+//
+// Return table entry implied global state
+//
+inline static Bool getG(riscvP riscv, Bool G) {
+    return G || activeTLBIsVS2(riscv) || !getASIDMask(riscv);
+}
+
+//
+// Is hardware update of PTE A bit supported?
+//
+inline static Bool updatePTEA(riscvP riscv) {
+    return riscv->configInfo.updatePTEA;
+}
+
+//
+// Is hardware update of PTE D bit supported?
+//
+inline static Bool updatePTED(riscvP riscv) {
+    return riscv->configInfo.updatePTED;
+}
+
+//
+// Should TLB entry validation be enabled?
+//
+inline static Bool doValidateTLB(riscvP riscv) {
+    return RISCV_VALIDATE_TLB(riscv);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// TLB CONSISTENCY CHECKS
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// This records a single address used by page table walk
+//
+typedef struct riscvPTWValueS {
+    Uns64 PA;               // address of page table entry
+    Uns8  bytes;            // size of page table entry
+} riscvPTWValue, *riscvPTWValueP;
+
+//
+// This records a single address used by page table walk
+//
+typedef struct riscvPTWSetS {
+    memDomainP    domain;   // domain for address lookup
+    riscvPTWValue v[8];     // set of addresses
+    Uns32         index;    // number of addresses
+} riscvPTWSet, *riscvPTWSetP;
+
+//
+// Structure used for TLB entry validation
+//
+typedef struct riscvTLBVCxtS {
+    vmiRangeTableP tlbValidatePA;       // lut for TLB entry by physical address
+    vmiRangeTableP tlbValidateNA;       // lut for TLB entry by native address
+    riscvPTWSet    ptwSet[2];           // address lookup sets
+} riscvTLBVCxt;
+
+//
+// This cross-reference type is used to get processor, tlb and entry when a
+// memory address used to create a TLB entry is modified
+//
+typedef struct riscvTLBEntryXRefS {
+    memDomainP domain;  // domain used to read value
+    riscvTLBP  tlb;     // TLB containing the entry
+    tlbEntryP  entry;   // entry within the TLB
+    Uns64      lowPA;   // low physical address of read value
+    Uns64      highPA;  // high physical address of read value
+} riscvTLBEntryXRef, *riscvTLBEntryXRefP;
+
+//
+// Unmap a TLB entry
+//
+static void unmapTLBEntry(riscvP riscv, tlbEntryP entry);
+
+//
+// Unmap all entries in the given TLB
+//
+static void unmapTLB(riscvP riscv, riscvTLBId id);
+
+//
+// Return riscvTLBEntryXRefP for vmiRangeEntryP
+//
+inline static riscvTLBEntryXRefP getTLBEntryXRef(vmiRangeEntryP this) {
+
+    union {Uns64 u64; riscvTLBEntryXRefP xRef;} u = {
+        vmirtGetRangeEntryUserData(this)
+    };
+
+    return u.xRef;
+}
+
+//
+// This function observes writes to 4-byte entry addresses that could be in the
+// TLB
+//
+static VMI_MEM_WATCH_FN(pageTableWriteMonitorCB) {
+
+    riscvP          riscv     = userData;
+    riscvTLBVCxtP   cxt       = riscv->tlbVCxt;
+    Uns64           low       = address;
+    Uns64           high      = address+bytes-1;
+    vmiRangeTablePP lutHandle = &cxt->tlbValidatePA;
+    Bool            unmapVS1  = False;
+    vmiRangeEntryP  this;
+
+    // iterate across all TLB entries using this physical address unmapping them
+    // (to cause revalidation the next time the entry is used)
+    for(
+        this = vmirtGetFirstRangeEntry(lutHandle, low, high);
+        this;
+        this = vmirtGetNextRangeEntry(lutHandle, low, high)
+    ) {
+        riscvTLBEntryXRefP xRef  = getTLBEntryXRef(this);
+        tlbEntryP          entry = xRef->entry;
+
+        // unmap entry if it is mapped
+        if(entry->mapped) {
+            unmapTLBEntry(riscv, entry);
+        }
+
+        // if this is a VS2 entry, note that all VS1 entries must be unmapped
+        // as well (there is no record of what VS2 page is used during VS1 PTW)
+        if(entry->tlb==RISCV_TLB_VS2) {
+            unmapVS1 = True;
+        }
+    }
+
+    // unmap entire VS1 TLB if required (see above)
+    if(unmapVS1) {
+        unmapTLB(riscv, RISCV_TLB_VS1);
+    }
+}
+
+//
+// Install write monitor on a single page table address so that changes to it
+// can be detected if required to validate the given TLB entry
+//
+static void installValueMonitor(
+    riscvP         riscv,
+    riscvTLBP      tlb,
+    tlbEntryP      entry,
+    riscvPTWValueP value,
+    memDomainP     domain
+) {
+    riscvTLBVCxtP      cxt     = riscv->tlbVCxt;
+    vmiRangeTablePP    tablePA = &cxt->tlbValidatePA;
+    vmiRangeTablePP    tableNA = &cxt->tlbValidateNA;
+    Uns32              bytes   = value->bytes;
+    vmiMemWatchFn      watchCB = pageTableWriteMonitorCB;
+    riscvTLBEntryXRefP xRef    = STYPE_ALLOC(riscvTLBEntryXRef);
+    UnsPS              entryNA = (UnsPS)entry;
+    UnsPS              xRefUD  = (UnsPS)xRef;
+    Uns64              lowPA   = value->PA;
+    Uns64              highPA  = lowPA+bytes-1;
+
+    // add write callback on the physical address range
+    vmirtAddWriteCallback(domain, 0, lowPA, highPA, watchCB, riscv);
+
+    // fill TLB entry cross-reference object
+    xRef->domain = domain;
+    xRef->tlb    = tlb;
+    xRef->entry  = entry;
+    xRef->lowPA  = lowPA;
+    xRef->highPA = highPA;
+
+    // insert into SMP root range table keyed by physical address
+    vmirtInsertRangeEntry(tablePA, lowPA, highPA, xRefUD);
+
+    // insert into SMP root range table keyed by TLB entry native address
+    //(required when TLB entry is deleted)
+    vmirtInsertRangeEntry(tableNA, entryNA, entryNA, xRefUD);
+}
+
+//
+// Remove write monitor on a single page table address when the corresponding
+// TLB entry is being deleted
+//
+static void removeValueMonitor(riscvP riscv, vmiRangeEntryP thisNA) {
+
+    riscvTLBVCxtP      cxt     = riscv->tlbVCxt;
+    vmiRangeTablePP    tablePA = &cxt->tlbValidatePA;
+    vmiRangeTablePP    tableNA = &cxt->tlbValidateNA;
+    riscvTLBEntryXRefP xRef    = getTLBEntryXRef(thisNA);
+    vmiRangeEntryP     thisPA;
+
+    // locate matching physical address entry
+    for(
+        thisPA = vmirtGetFirstRangeEntry(tablePA, xRef->lowPA, xRef->highPA);
+        xRef != getTLBEntryXRef(thisPA);
+        thisPA = vmirtGetNextRangeEntry(tablePA, xRef->lowPA, xRef->highPA)
+    ) {}
+
+    // sanity check the value entry was found
+    VMI_ASSERT(thisPA, "failed to find TLB value entry at 0x"FMT_Ax, xRef->lowPA);
+
+    // remove from SMP root range table keyed by physical address
+    vmirtRemoveRangeEntry(tablePA, thisPA);
+
+    // remove from SMP root range table keyed by TLB entry native address
+    vmirtRemoveRangeEntry(tableNA, thisNA);
+
+    // if the last reference to this address has been found, remove the write
+    // monitor callback
+    if(!vmirtGetFirstRangeEntry(tablePA, xRef->lowPA, xRef->highPA)) {
+
+        vmiMemWatchFn watchCB = pageTableWriteMonitorCB;
+
+        vmirtRemoveWriteCallback(
+            xRef->domain, 0, xRef->lowPA, xRef->highPA, watchCB, riscv
+        );
+    }
+
+    // free the physical address cross-reference object
+    STYPE_FREE(xRef);
+}
+
+//
+// Install write callbacks on page table address used by the preceding page
+// table walk so that changes to it can be detected if required to validate
+// the given TLB entry
+//
+static void installEntryMonitor(riscvP riscv, riscvTLBP tlb, tlbEntryP entry) {
+
+    riscvTLBVCxtP cxt    = riscv->tlbVCxt;
+    Bool          isVS2  = activeTLBIsVS2(riscv);
+    riscvPTWSetP  ptwSet = &cxt->ptwSet[isVS2];
+    Uns32         stageIndex;
+
+    for(stageIndex=0; stageIndex<ptwSet->index; stageIndex++) {
+
+        riscvPTWValueP value = &ptwSet->v[stageIndex];
+
+        installValueMonitor(riscv, tlb, entry, value, ptwSet->domain);
+    }
+}
+
+//
+// Remove structures used to validate TLB mappings if required
+//
+static void removeEntryMonitor(riscvP riscv, tlbEntryP entry) {
+
+    riscvTLBVCxtP   cxt     = riscv->tlbVCxt;
+    vmiRangeTablePP tableNA = &cxt->tlbValidateNA;
+    UnsPS           entryNA = (UnsPS)entry;
+    vmiRangeEntryP  this;
+
+    // remove all value mappings for this TLB entry
+    for(
+        this = vmirtGetFirstRangeEntry(tableNA, entryNA, entryNA);
+        this;
+        this = vmirtGetNextRangeEntry(tableNA, entryNA, entryNA)
+    ) {
+        removeValueMonitor(riscv, this);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // PAGE TABLE WALK UTILITIES
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2422,10 +2761,23 @@ static Uns64 readPageTableEntry(
     Uns32     size,
     Uns32     level
 ) {
-    memDomainP domain = getPTWDomain(riscv);
-    memEndian  endian = riscvGetDataEndian(riscv, getSMode(mode));
-    ptwCxt     oldCxt = enterPTWContext(riscv, size, MEM_PRIV_R, level);
-    Uns64      result = 0;
+    riscvTLBVCxtP cxt    = riscv->tlbVCxt;
+    memDomainP    domain = getPTWDomain(riscv);
+    memEndian     endian = riscvGetDataEndian(riscv, getSMode(mode));
+    ptwCxt        oldCxt = enterPTWContext(riscv, size, MEM_PRIV_R, level);
+    Uns64         result = 0;
+
+    // include entry in monitored addresses if required
+    if(cxt) {
+
+        Bool          isVS2  = activeTLBIsVS2(riscv);
+        riscvPTWSetP  ptwSet = &cxt->ptwSet[isVS2];
+        Uns32         index  = ptwSet->index++;
+
+        ptwSet->domain = domain;
+        ptwSet->v[index].PA    = PTEAddr;
+        ptwSet->v[index].bytes = size;
+    }
 
     // read 4-byte or 8-byte entry
     if(size==4) {
@@ -2555,54 +2907,12 @@ typedef union SvVAU {
 //
 // Forward reference
 //
-static memPriv checkEntryPermission(
+static memPriv checkEntryPriv(
     riscvP    riscv,
     riscvMode mode,
     tlbEntryP entry,
     memPriv   requiredPriv
 );
-
-//
-// Is a virtual TLB active?
-//
-inline static Bool activeTLBIsVirtual(riscvP riscv) {
-    return (riscv->activeTLB!=RISCV_TLB_HS);
-}
-
-//
-// Is the VS stage 1 TLB active?
-//
-inline static Bool activeTLBIsVS1(riscvP riscv) {
-    return (riscv->activeTLB==RISCV_TLB_VS1);
-}
-
-//
-// Is the VS stage 2 TLB active?
-//
-inline static Bool activeTLBIsVS2(riscvP riscv) {
-    return (riscv->activeTLB==RISCV_TLB_VS2);
-}
-
-//
-// Return table entry implied global state
-//
-inline static Bool getG(riscvP riscv, Bool G) {
-    return G || activeTLBIsVS2(riscv) || !getASIDMask(riscv);
-}
-
-//
-// Is hardware update of PTE A bit supported?
-//
-inline static Bool updatePTEA(riscvP riscv) {
-    return riscv->configInfo.updatePTEA;
-}
-
-//
-// Is hardware update of PTE D bit supported?
-//
-inline static Bool updatePTED(riscvP riscv) {
-    return riscv->configInfo.updatePTED;
-}
 
 //
 // Return number of virtual address bits for the given mode
@@ -2791,7 +3101,7 @@ static pteError fillTLBEntry(
     entry->D    = PTE.fields.D;
 
     // return with page-fault exception if permissions are invalid
-    if(!checkEntryPermission(riscv, mode, entry, requiredPriv)) {
+    if(!checkEntryPriv(riscv, mode, entry, requiredPriv)) {
         return PTEE_PRIV;
     }
 
@@ -2897,35 +3207,39 @@ static riscvException getPTWException(
     // structure holding information about a specific error
     typedef struct pteErrorDescS {
         Bool         warn;      // whether to generate warning (otherwise, info)
+        rvCoverType  cover;     // equivalent coverage error
         pteException exception; // exception description
         const char  *desc;      // description
     } pteErrorDesc;
 
     // exception table
     static const pteErrorDesc map[] = {
-        [PTEE_VAEXTEND]  = {1, PTX_PAGE,         "VA has invalid extension" },
-        [PTEE_GPAEXTEND] = {1, PTX_PAGE,         "GPA has invalid extension"},
-        [PTEE_READ]      = {1, PTX_LOAD_ACCESS,  "load failed"              },
-        [PTEE_WRITE]     = {1, PTX_STORE_ACCESS, "store failed"             },
-        [PTEE_V0]        = {0, PTX_PAGE,         "V=0"                      },
-        [PTEE_R0W1]      = {1, PTX_PAGE,         "R=0 and W=1"              },
-        [PTEE_LEAF]      = {1, PTX_PAGE,         "must be leaf level"       },
-        [PTEE_ALIGN]     = {1, PTX_PAGE,         "is a misaligned superpage"},
-        [PTEE_PRIV]      = {0, PTX_PAGE,         "does not allow access"    },
-        [PTEE_A0]        = {0, PTX_PAGE,         "A=0"                      },
-        [PTEE_D0]        = {0, PTX_PAGE,         "D=0"                      },
-        [PTEE_RES0]      = {1, PTX_PAGE,         "reserved bits not zero"   },
-        [PTEE_D_NL]      = {1, PTX_PAGE,         "non-leaf and D!=0"        },
-        [PTEE_A_NL]      = {1, PTX_PAGE,         "non-leaf and A!=0"        },
-        [PTEE_U_NL]      = {1, PTX_PAGE,         "non-leaf and U!=0"        },
-        [PTEE_SVNAPOT]   = {1, PTX_PAGE,         "illegal Svnapot entry"    },
-        [PTEE_SVPBMT]    = {1, PTX_PAGE,         "illegal Svpbmt entry"     },
-        [PTEE_CUSTOM]    = {1, PTX_PAGE,         "custom entry check failed"},
+        [PTEE_VAEXTEND]  = {1, RVC_PTE_VAEXTEND,  PTX_PAGE,         "VA has invalid extension" },
+        [PTEE_GPAEXTEND] = {1, RVC_PTE_GPAEXTEND, PTX_PAGE,         "GPA has invalid extension"},
+        [PTEE_READ]      = {1, RVC_PTE_READ,      PTX_LOAD_ACCESS,  "load failed"              },
+        [PTEE_WRITE]     = {1, RVC_PTE_WRITE,     PTX_STORE_ACCESS, "store failed"             },
+        [PTEE_V0]        = {0, RVC_PTE_V0,        PTX_PAGE,         "V=0"                      },
+        [PTEE_R0W1]      = {1, RVC_PTE_R0W1,      PTX_PAGE,         "R=0 and W=1"              },
+        [PTEE_LEAF]      = {1, RVC_PTE_LEAF,      PTX_PAGE,         "must be leaf level"       },
+        [PTEE_ALIGN]     = {1, RVC_PTE_ALIGN,     PTX_PAGE,         "is a misaligned superpage"},
+        [PTEE_PRIV]      = {0, RVC_PTE_PRIV,      PTX_PAGE,         "does not allow access"    },
+        [PTEE_A0]        = {0, RVC_PTE_A0,        PTX_PAGE,         "A=0"                      },
+        [PTEE_D0]        = {0, RVC_PTE_D0,        PTX_PAGE,         "D=0"                      },
+        [PTEE_RES0]      = {1, RVC_PTE_RES0,      PTX_PAGE,         "reserved bits not zero"   },
+        [PTEE_D_NL]      = {1, RVC_PTE_D_NL,      PTX_PAGE,         "non-leaf and D!=0"        },
+        [PTEE_A_NL]      = {1, RVC_PTE_A_NL,      PTX_PAGE,         "non-leaf and A!=0"        },
+        [PTEE_U_NL]      = {1, RVC_PTE_U_NL,      PTX_PAGE,         "non-leaf and U!=0"        },
+        [PTEE_SVNAPOT]   = {1, RVC_PTE_SVNAPOT,   PTX_PAGE,         "illegal Svnapot entry"    },
+        [PTEE_SVPBMT]    = {1, RVC_PTE_SVPBMT,    PTX_PAGE,         "illegal Svpbmt entry"     },
+        [PTEE_CUSTOM]    = {1, RVC_PTE_CUSTOM,    PTX_PAGE,         "custom entry check failed"},
     };
 
     // get description for this error
     const pteErrorDesc *desc     = &map[error];
     const char         *severity = 0;
+
+    // cover error case
+    coverMem(riscv, desc->cover);
 
     // determine whether PTW exception should be reported, and with what
     // severity
@@ -3051,6 +3365,9 @@ static riscvException doPageTableWalkVA(
     ) {
         Uns32 offset = (VA.fields.VPN >> (i*vpnShift)) & vpnMask;
 
+        // cover walk level
+        coverMem(riscv, RVC_PTE_L0+i);
+
         // get next page table entry address
         PTEAddr = a + (offset*entryBytes);
 
@@ -3103,6 +3420,7 @@ static riscvException doPageTableWalkVA(
     if(error) {
         return getPTWException(riscv, entry, requiredPriv, PTEAddr, error);
     } else {
+        coverMem(riscv, RVC_PTE_OK);
         return 0;
     }
 }
@@ -3262,13 +3580,30 @@ static riscvException doPageTableLookup(
     tlbEntryP entry,
     memPriv   requiredPriv
 ) {
+    riscvTLBVCxtP  cxt    = riscv->tlbVCxt;
+    Bool           stage2 = activeTLBIsVS2(riscv);
     riscvException result;
 
-    if(activeTLBIsVS2(riscv)) {
+    // if TLB consistency checks are enabled, reset entry address index for
+    // this stage
+    if(cxt) {
+        cxt->ptwSet[stage2].index = 0;
+    }
+
+    // start page table walk
+    coverMem(riscv, RVC_PTE_START);
+    coverMem(riscv, RVC_PTE_HS+riscv->activeTLB);
+    coverMem(riscv, RVC_PTE_U+getBaseMode(mode));
+
+    // do stage 1 or stage 2 lookup
+    if(stage2) {
         result = doPageTableLookupGPA(riscv, mode, entry, requiredPriv);
     } else {
         result = doPageTableLookupVA(riscv, mode, entry, requiredPriv);
     }
+
+    // end page table walk
+    coverMem(riscv, RVC_PTE_END);
 
     return result;
 }
@@ -3583,15 +3918,16 @@ static riscvSimASID getSimASID(riscvP riscv) {
     };
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// TLB BEHAVIOR
+////////////////////////////////////////////////////////////////////////////////
+
 //
-// Validate entry access permissions
+// Get entry access permissions
 //
-static memPriv checkEntryPermission(
-    riscvP    riscv,
-    riscvMode mode,
-    tlbEntryP entry,
-    memPriv   requiredPriv
-) {
+static memPriv getEntryPriv(riscvP riscv, riscvMode mode, tlbEntryP entry) {
+
     memPriv priv = entry->priv;
     Bool    MXR  = RD_CSR_FIELDC(riscv, mstatus, MXR);
     Bool    SUM  = RD_CSR_FIELDC(riscv, mstatus, SUM);
@@ -3635,7 +3971,27 @@ static memPriv checkEntryPermission(
     }
 
     // indicate whether permission is allowed
-    return ((priv & requiredPriv) == requiredPriv) ? priv : MEM_PRIV_NONE;
+    return priv;
+}
+
+//
+// Validate entry access permissions
+//
+static memPriv checkEntryPriv(
+    riscvP    riscv,
+    riscvMode mode,
+    tlbEntryP entry,
+    memPriv   requiredPriv
+) {
+    memPriv priv = getEntryPriv(riscv, mode, entry);
+
+    // indicate whether permission is allowed
+    if((priv & requiredPriv) != requiredPriv) {
+        priv = MEM_PRIV_NONE;
+    }
+
+    // indicate whether permission is allowed
+    return priv;
 }
 
 //
@@ -3912,9 +4268,37 @@ static void unmapS1EntriesForS2Entry(riscvP riscv, tlbEntryP entryS2) {
 }
 
 //
+// Report TLB exception
+//
+static void reportTLBException(
+    riscvP         riscv,
+    riscvException exception,
+    const char    *prefix
+) {
+    vmiProcessorP      processor     = (vmiProcessorP)riscv;
+    const char        *exceptionName = 0;
+    vmiExceptionInfoCP info          = 0;
+
+    // map exception code to exception name
+    while(!exceptionName && (info=vmirtGetNextException(processor, info))) {
+        if(info->code==exception) {
+            exceptionName = info->name;
+        }
+    }
+
+    // report exception
+    vmiMessage("I", CPU_PREFIX "_TLB",
+        NO_SRCREF_FMT "%s%s",
+        NO_SRCREF_ARGS(riscv),
+        prefix ? : "",
+        exceptionName ? : "unknown exception"
+    );
+}
+
+//
 // Dump contents of the TLB entry
 //
-static void dumpTLBEntry(riscvP riscv, tlbEntryP entry) {
+static void dumpTLBEntry(riscvP riscv, tlbEntryP entry, const char *prefix) {
 
     // get entry bounds
     Uns64 entryLowVA     = getEntryLowVA(entry);
@@ -3935,9 +4319,11 @@ static void dumpTLBEntry(riscvP riscv, tlbEntryP entry) {
     }
 
     vmiMessage("I", CPU_PREFIX "_TLB",
-        NO_SRCREF_FMT "VA 0x"FMT_6408x":0x"FMT_6408x" PA 0x"FMT_6408x":0x"FMT_6408x
+        NO_SRCREF_FMT "%sVA 0x"FMT_6408x":0x"FMT_6408x
+        " PA 0x"FMT_6408x":0x"FMT_6408x
         " %s U=%u G=%u A=%u D=%u%s%s",
         NO_SRCREF_ARGS(riscv),
+        prefix ? : "",
         entryLowVA, entryHighVA, entryLowPA, entryHighPA,
         privName(entry->priv), entry->U, entry->G, entry->A, entry->D,
         vmidString, asidString
@@ -3954,7 +4340,7 @@ static void reportDeleteTLBEntry(riscvP riscv, tlbEntryP entry) {
             NO_SRCREF_ARGS(riscv),
             getTLBName(riscv, entry->tlb)
         );
-        dumpTLBEntry(riscv, entry);
+        dumpTLBEntry(riscv, entry, 0);
     }
 }
 
@@ -3962,6 +4348,11 @@ static void reportDeleteTLBEntry(riscvP riscv, tlbEntryP entry) {
 // Delete a TLB entry
 //
 static void deleteTLBEntry(riscvP riscv, riscvTLBP tlb, tlbEntryP entry) {
+
+    // remove structures used to validate TLB mappings if required
+    if(doValidateTLB(riscv)) {
+        removeEntryMonitor(riscv, entry);
+    }
 
     // remove entry mappings if required
     unmapTLBEntry(riscv, entry);
@@ -4179,6 +4570,12 @@ static void insertTLBEntry(riscvP riscv, riscvTLBP tlb, tlbEntryP entry) {
     entry->lutEntry = vmirtInsertRangeEntry(
         &tlb->lut, entry->lowVA, entry->highVA, (UnsPS)entry
     );
+
+    // enable validation of all addresses used to create the TLB entry if
+    // required
+    if(doValidateTLB(riscv)) {
+        installEntryMonitor(riscv, tlb, entry);
+    }
 }
 
 //
@@ -4207,10 +4604,10 @@ static tlbEntryP allocateTLBEntry(riscvP riscv, riscvTLBP tlb, tlbEntryP base) {
         vmiMessage("I", CPU_PREFIX "_TLB",
             NO_SRCREF_FMT "CREATE %s ENTRY:",
             NO_SRCREF_ARGS(riscv),
-            getTLBName(riscv, getTLBId(riscv, tlb))
+            getTLBName(riscv, entry->tlb)
         );
 
-        dumpTLBEntry(riscv, entry);
+        dumpTLBEntry(riscv, entry, 0);
     }
 
     // return the new entry
@@ -4228,6 +4625,21 @@ static void invalidateTLB(riscvP riscv, riscvTLBId id) {
         ITER_TLB_ENTRY_RANGE(
             riscv, tlb, 0, RISCV_MAX_ADDR, entry,
             deleteTLBEntry(riscv, tlb, entry)
+        );
+    }
+}
+
+//
+// Unmap all entries in the given TLB
+//
+static void unmapTLB(riscvP riscv, riscvTLBId id) {
+
+    riscvTLBP tlb = riscv->tlb[id];
+
+    if(tlb) {
+        ITER_TLB_ENTRY_RANGE(
+            riscv, tlb, 0, RISCV_MAX_ADDR, entry,
+            unmapTLBEntry(riscv, entry)
         );
     }
 }
@@ -4356,6 +4768,87 @@ static tlbEntryP findTLBEntry(riscvP riscv, riscvTLBP tlb, Uns64 VA) {
 }
 
 //
+// Validate contents of the TLB entry against the in-memory page table
+//
+static void validateTLBEntry(
+    riscvP    riscv,
+    riscvMode mode,
+    riscvTLBP tlb,
+    tlbEntryP entry1,
+    Uns64     VA
+) {
+    tlbEntry  raw    = {lowVA:VA};
+    tlbEntryP entry2 = &raw;
+    Bool      oldAA  = riscv->artifactAccess;
+
+    // indicate this is an artifact access (to prevent any exceptions)
+    riscv->artifactAccess = True;
+
+    // try to find entry with any permission recorded for the cached entry
+    riscvException exception = doPageTableLookup(
+        riscv, mode, entry2, entry1->priv & -entry1->priv
+    );
+
+    // restore artifactAccess
+    riscv->artifactAccess = oldAA;
+
+    // replicate ASID/VMID fields from the cached entry (ASID/VMID may not be
+    // the same as when the entry was created, but this is not an error)
+    entry2->simASID = entry1->simASID;
+
+    // replicate artifact fields from the cached entry
+    entry2->mapped   = entry1->mapped;
+    entry2->lutEntry = entry1->lutEntry;
+    entry2->artifact = entry1->artifact;
+
+    if(exception) {
+
+        vmiMessage("W", CPU_PREFIX"_TLBINVAL1",
+            NO_SRCREF_FMT "%s entry for address 0x"FMT_6408x" is not "
+            "consistent with page table in memory",
+            NO_SRCREF_ARGS(riscv),
+            getTLBName(riscv, entry1->tlb), VA
+        );
+
+        // show cached contents
+        dumpTLBEntry(riscv, entry1, "cached: ");
+        reportTLBException(riscv, exception, "memory: ");
+
+    } else if(memcmp(entry1, entry2, sizeof(*entry1))) {
+
+        vmiMessage("W", CPU_PREFIX"_TLBINVAL1",
+            NO_SRCREF_FMT "%s entry for address 0x"FMT_6408x" is not "
+            "consistent with page table in memory",
+            NO_SRCREF_ARGS(riscv),
+            getTLBName(riscv, entry1->tlb), VA
+        );
+
+        // show cached and memory contents
+        dumpTLBEntry(riscv, entry1, "cached: ");
+        dumpTLBEntry(riscv, entry2, "memory: ");
+    }
+}
+
+//
+// Return any TLB entry for the passed address which matches the current ASID
+// and VMID, performing coherence check if required
+//
+static tlbEntryP findCoherentTLBEntry(
+    riscvP    riscv,
+    riscvMode mode,
+    riscvTLBP tlb,
+    Uns64     VA
+) {
+    tlbEntryP entry = findTLBEntry(riscv, tlb, VA);
+
+    if(entry && doValidateTLB(riscv) && !entry->custom) {
+        validateTLBEntry(riscv, mode, tlb, entry, VA);
+    }
+
+    return entry;
+}
+
+//
 // Take exception on invalid access
 //
 static void handleInvalidAccess(
@@ -4410,8 +4903,8 @@ static tlbEntryP findOrCreateTLBEntry(
 ) {
     riscvTLBP tlb          = getActiveTLB(riscv);
     Uns64     VA           = miP->lowVA;
-    tlbEntryP entry        = findTLBEntry(riscv, tlb, VA);
     memPriv   requiredPriv = miP->priv;
+    tlbEntryP entry        = findCoherentTLBEntry(riscv, mode, tlb, VA);
     memPriv   priv;
 
     ////////////////////////////////////////////////////////////////////////////
@@ -4434,7 +4927,7 @@ static tlbEntryP findOrCreateTLBEntry(
         VMI_ASSERT(entry->custom, "not custom TLB entry");
         PAGE_FAULT(R0W1);
 
-    } else if(!(priv=checkEntryPermission(riscv, mode, entry, requiredPriv))) {
+    } else if(!(priv=checkEntryPriv(riscv, mode, entry, requiredPriv))) {
 
         // access permissions are insufficient
         PAGE_FAULT(PRIV);
@@ -4451,7 +4944,7 @@ static tlbEntryP findOrCreateTLBEntry(
         if(entry->custom || !updatePTED(riscv)) {
             PAGE_FAULT(D0);
         } else {
-            deleteTLBEntry(riscv, getActiveTLB(riscv), entry);
+            deleteTLBEntry(riscv, tlb, entry);
             entry = 0;
         }
     }
@@ -4474,7 +4967,7 @@ static tlbEntryP findOrCreateTLBEntry(
             // ignore first stage exception if second stage PTW already taken
         } else if(!exception) {
             entry = allocateTLBEntry(riscv, tlb, &tmp);
-            priv  = checkEntryPermission(riscv, mode, entry, requiredPriv);
+            priv  = getEntryPriv(riscv, mode, entry);
         } else {
             handleInvalidAccess(riscv, VA, exception);
         }
@@ -4855,7 +5348,7 @@ static void dumpTLB(riscvP riscv, riscvTLBP tlb) {
 
         ITER_TLB_ENTRY_RANGE(
             riscv, tlb, 0, RISCV_MAX_ADDR, entry,
-            dumpTLBEntry(riscv, entry)
+            dumpTLBEntry(riscv, entry, 0)
         );
     }
 }
@@ -4905,9 +5398,9 @@ static void createTLB(riscvP riscv, riscvTLBId id) {
     } tlbInfo;
 
     static const tlbInfo info[] = {
-        [RISCV_TLB_HS]  = {dumpHSTLBCommand,  "dumpTLB",    "show TLB contents"},
-        [RISCV_TLB_VS1] = {dumpVS1TLBCommand, "dumpVS1TLB", "show VS1 TLB contents"},
-        [RISCV_TLB_VS2] = {dumpVS2TLBCommand, "dumpVS2TLB", "show VS2 TLB contents"},
+        [RISCV_TLB_HS]  = {dumpHSTLBCommand,  "dumpTLB",    "Show TLB contents"},
+        [RISCV_TLB_VS1] = {dumpVS1TLBCommand, "dumpVS1TLB", "Show VS1 TLB contents"},
+        [RISCV_TLB_VS2] = {dumpVS2TLBCommand, "dumpVS2TLB", "Show VS2 TLB contents"},
     };
 
     // initialize TLB
@@ -4921,6 +5414,362 @@ static void createTLB(riscvP riscv, riscvTLBId id) {
         info[id].commandCB,
         VMI_CT_QUERY|VMI_CO_TLB|VMI_CA_QUERY
     );
+}
+
+//
+// Allocate TLB validation structures for the passed processor
+//
+static void newTLBValidate(riscvP riscv) {
+
+    // create TLB validation structures on SMP root if required
+    if(doValidateTLB(riscv)) {
+
+        riscvTLBVCxtP cxt = riscv->tlbVCxt = STYPE_CALLOC(riscvTLBVCxt);
+
+        vmirtNewRangeTable(&cxt->tlbValidatePA);
+        vmirtNewRangeTable(&cxt->tlbValidateNA);
+    }
+}
+
+//
+// Free TLB validation structures for the passed processor
+//
+static void freeTLBValidate(riscvP riscv) {
+
+    riscvTLBVCxtP cxt = riscv->tlbVCxt;
+
+    // delete TLB validation structures on SMP root if required
+    if(cxt) {
+        vmirtFreeRangeTable(&cxt->tlbValidatePA);
+        vmirtFreeRangeTable(&cxt->tlbValidateNA);
+        STYPE_FREE(cxt);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// STATIC PMA REGION ATTRIBUTES
+////////////////////////////////////////////////////////////////////////////////
+
+//
+// Encoding of cache management instructions for access checking
+//
+typedef enum cmoMaskE {
+    CMOM_Zicbom = 1<<30,    // cache management instructions
+    CMOM_Zicboz = 1<<31,    // cache zero instructions
+} cmoMask;
+
+//
+// Map from riscvMConstraint to memPriv
+//
+inline static memPriv mapConstraint(riscvMConstraint rvConstraint) {
+
+    static const memConstraint map[] = {
+        [RVMC_NONE]  = MEM_PRIV_NONE,
+        [RVMC_USER1] = MEM_PRIV_USER1,
+        [RVMC_USER2] = MEM_PRIV_USER2,
+    };
+
+    return map[rvConstraint];
+}
+
+//
+// Parse PMA region constraint string and return required access privilege
+// and any access size constraints
+//
+static Bool parsePMARegionAttrs(
+    riscvP      riscv,
+    const char *attrs,
+    memPriv    *privP,
+    Uns32      *sizeMaskP
+) {
+    Bool ok = True;
+    char ch;
+
+    while((ch=*attrs++)) {
+
+        switch(ch) {
+
+            case 'r':
+                *privP |= MEM_PRIV_R;
+                break;
+
+            case 'w':
+                *privP |= MEM_PRIV_W;
+                break;
+
+            case 'x':
+                *privP |= MEM_PRIV_X;
+                break;
+
+            case 'a':
+                *privP |= MEM_PRIV_ALIGN;
+                break;
+
+            case 'A':
+                *privP |= mapConstraint(riscv->configInfo.amo_constraint);
+                break;
+
+            case 'L':
+                *privP |= mapConstraint(riscv->configInfo.lr_sc_constraint);
+                break;
+
+            case 'P':
+                *privP |= mapConstraint(riscv->configInfo.push_pop_constraint);
+                break;
+
+            case 'V':
+                *privP |= mapConstraint(riscv->configInfo.vector_constraint);
+                break;
+
+            case 'M':
+                *sizeMaskP |= CMOM_Zicbom;
+                break;
+
+            case 'Z':
+                *sizeMaskP |= CMOM_Zicboz;
+                break;
+
+            case '1':
+            case '2':
+            case '4':
+            case '8':
+                *sizeMaskP |= (ch-'0');
+                break;
+
+            case ' ':
+            case '-':
+                break;
+
+            default:
+                vmiMessage("E", "IPMAC", "Illegal attribute character '%c'", ch);
+                ok = False;
+                break;
+        }
+    }
+
+    return ok;
+}
+
+//
+// Validate any PMA region access
+//
+static void checkPMA(
+    vmiProcessorP  processor,
+    Uns64          address,
+    Uns32          bytes,
+    void          *userData,
+    riscvException exception
+) {
+    riscvP riscv    = (riscvP)processor;
+    Uns32  sizeMask = (UnsPS)userData;
+
+    if(!riscv) {
+
+        // no action for artifact accesses
+
+    } else if(riscv->CMO==RISCV_CMO_ZERO) {
+
+        // test for illegal Zicboz instructions
+        if(sizeMask & CMOM_Zicboz) {
+            riscvTakeMemoryException(riscv, exception, address);
+        }
+
+    } else if(riscv->CMO) {
+
+        // test for illegal Zicbom instructions
+        if(sizeMask & CMOM_Zicbom) {
+            riscvTakeMemoryException(riscv, exception, address);
+        }
+
+    } else {
+
+        // test for size violation
+        if(!(sizeMask & bytes)) {
+            riscvTakeMemoryException(riscv, exception, address);
+        }
+    }
+}
+
+//
+// Validate PMA region read access size
+//
+static VMI_MEM_WATCH_FN(checkPMAR) {
+    checkPMA(processor, address, bytes, userData, riscv_E_LoadAccessFault);
+}
+
+//
+// Validate PMA region write access size
+//
+static VMI_MEM_WATCH_FN(checkPMAW) {
+    checkPMA(processor, address, bytes, userData, riscv_E_StoreAMOAccessFault);
+}
+
+//
+// Update PMA attributes for the given address range
+//
+static Bool setPMAInt(riscvP riscv, Uns64 lo, Uns64 hi, const char *attrs) {
+
+    Bool    ok       = False;
+    memPriv priv     = 0;
+    Uns32   sizeMask = 0;
+
+    if(lo>hi) {
+
+        vmiMessage("E", "IPMAS", "Illegal range 0x"FMT_Ax":0x"FMT_Ax, lo, hi);
+
+    } else if((ok=parsePMARegionAttrs(riscv, attrs, &priv, &sizeMask))) {
+
+        vmiProcessorP processor = (vmiProcessorP)riscv;
+        riscvMode     mode;
+
+        for(mode=RISCV_MODE_S; mode<RISCV_MODE_LAST_BASE; mode++) {
+
+            memDomainP domain = riscv->pmaDomains[mode][0];
+
+            if(domain) {
+
+                Uns32 oldMask;
+                Uns32 oldZM;
+
+                // update region privilege
+                vmirtProtectMemory(domain, lo, hi, priv, MEM_PRIV_SET);
+
+                // remove any existing check for illegal access size
+                for(oldMask=1; oldMask<15; oldMask++) {
+
+                    for(oldZM=0; oldZM<4; oldZM++) {
+
+                        Uns32 fullMask = oldMask;
+
+                        if(oldZM&1) {
+                            fullMask |= CMOM_Zicbom;
+                        }
+
+                        if(oldZM&2) {
+                            fullMask |= CMOM_Zicboz;
+                        }
+
+                        void *sizeMaskUD = (void*)(UnsPS)fullMask;
+
+                        vmirtRemoveReadCallback(
+                            domain, processor, lo, hi, checkPMAR, sizeMaskUD
+                        );
+                        vmirtRemoveWriteCallback(
+                            domain, processor, lo, hi, checkPMAW, sizeMaskUD
+                        );
+                    }
+                }
+
+                // allow all access sizes if unconstrained
+                if(!(sizeMask&15)) {
+                    sizeMask |= 15;
+                }
+
+                // add check for illegal access size if required
+                if(sizeMask!=15) {
+
+                    void *sizeMaskUD = (void*)(UnsPS)sizeMask;
+
+                    vmirtAddReadCallback(
+                        domain, processor, lo, hi, checkPMAR, sizeMaskUD
+                    );
+                    vmirtAddWriteCallback(
+                        domain, processor, lo, hi, checkPMAW, sizeMaskUD
+                    );
+                }
+            }
+        }
+    }
+
+    return ok;
+}
+
+//
+// PMA region attribute command
+//
+static VMIRT_COMMAND_PARSE_FN(setPMA) {
+
+    riscvP       riscv    = (riscvP)processor;
+    vmiArgValueP argLo    = vmirtFindArgValue(argc, argv, "lo");
+    vmiArgValueP argHi    = vmirtFindArgValue(argc, argv, "hi");
+    vmiArgValueP argAttrs = vmirtFindArgValue(argc, argv, "attributes");
+    Uns64        lo       = argLo->u.uns64;
+    Uns64        hi       = argHi->u.uns64;
+    const char  *attrs    = argAttrs->u.string;
+
+    return setPMAInt(riscv, lo, hi, attrs) ? "1" : 0;
+}
+
+//
+// Establish static PMA region properties as specified in configuration
+//
+static void applyPMAStaticRegions(riscvP riscv) {
+
+    riscvPMARegionCP region = riscv->configInfo.pmaStatic;
+
+    if(region) {
+
+        // remove all privileges
+        setPMAInt(riscv, 0, -1, "");
+
+        // add specified region privileges
+        while(region->lo || region->hi || region->attrs) {
+            setPMAInt(riscv, region->lo, region->hi, region->attrs);
+            region++;
+        }
+    }
+}
+
+//
+// Add command allowing PMA region attributes to be set
+//
+static void addPMAStaticRegionCommand(riscvP riscv) {
+
+    Bool addCommand = True;
+
+    // don't add static region commands if model already implements custom PMA
+    // extension
+    ITER_EXT_CB(riscv, extCB, PMACheck, addCommand=False)
+
+    if(addCommand) {
+
+        vmiCommandP setPMACmd = vmirtAddCommandParse(
+            (vmiProcessorP)riscv,
+            "setPMA",
+            "Set PMA region permissions and legal access sizes",
+            setPMA,
+            VMI_CT_MODE|VMI_CO_CPU|VMI_CA_CONTROL
+        );
+
+        vmirtAddArg(
+            setPMACmd,
+            "lo",
+            "low address",
+            VMI_CA_UNS64,
+            VMI_CAA_DEFAULT,
+            True,
+            0
+        );
+        vmirtAddArg(
+            setPMACmd,
+            "hi",
+            "high address",
+            VMI_CA_UNS64,
+            VMI_CAA_DEFAULT,
+            True,
+            0
+        );
+        vmirtAddArg(
+            setPMACmd,
+            "attributes",
+            "region attributes (string containing r, w, x, a, A, P, 1, 2, 4 or 8)",
+            VMI_CA_STRING,
+            VMI_CAA_DEFAULT,
+            True,
+            0
+        );
+    }
 }
 
 
@@ -5119,6 +5968,9 @@ static memDomainP createCLICDomain(riscvP riscv, memDomainP dataDomain) {
             RISCV_MODE_M, "CLIC", bits, False, False
         );
 
+        // save CLIC domain on cluster root
+        root->CLICDomain = CLICDomain;
+
         // create mapping to data domain
         vmirtAliasMemory(dataDomain, CLICDomain, 0, mask, 0, 0);
 
@@ -5129,11 +5981,8 @@ static memDomainP createCLICDomain(riscvP riscv, memDomainP dataDomain) {
 
         // create CLIC memory-mapped block if required
         if(CLICInternal(riscv)) {
-            riscvMapCLICDomain(riscv, CLICDomain);
+            riscvMapCLICDomain(riscv);
         }
-
-        // save CLIC domain on cluster root
-        root->CLICDomain = CLICDomain;
     }
 
     return root->CLICDomain;
@@ -5357,6 +6206,7 @@ VMI_VMINIT_FN(riscvVMInit) {
 
     // initialize HS TLB if required
     if(riscvHasMode(riscv, RISCV_MODE_S)) {
+        newTLBValidate(riscv);
         createTLB(riscv, RISCV_TLB_HS);
     }
 
@@ -5364,6 +6214,14 @@ VMI_VMINIT_FN(riscvVMInit) {
     if(riscvHasMode(riscv, RISCV_MODE_VS)) {
         createTLB(riscv, RISCV_TLB_VS1);
         createTLB(riscv, RISCV_TLB_VS2);
+    }
+
+    // establish PMA static region attributes
+    applyPMAStaticRegions(riscv);
+
+    // add commands to define PMA static region attributes if required
+    if(!isPSE(riscv)) {
+        addPMAStaticRegionCommand(riscv);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -5555,6 +6413,8 @@ void riscvVMFree(riscvP riscv) {
     for(id=0; id<RISCV_TLB_LAST; id++) {
         freeTLB(riscv, id);
     }
+
+    freeTLBValidate(riscv);
 }
 
 //
@@ -5792,6 +6652,16 @@ void riscvVMRefreshMPRVDomain(riscvP riscv) {
     // update load/store domain so that accesses are performed as if in the
     // given mode
     updateLdStDomainMode(riscv, mode);
+}
+
+//
+// Perform actions when the indicated TLB base register is updated
+//
+void riscvVMUpdateTableBase(riscvP riscv, riscvTLBId id) {
+
+    if(doValidateTLB(riscv)) {
+        unmapTLB(riscv, id);
+    }
 }
 
 
