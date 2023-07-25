@@ -981,6 +981,7 @@ typedef struct riscvInstrInfoS {
     Bool              doRet;            // do return (Zcea pop)
     Bool              Zmmul;            // whether affected by Zmmul
     Bool              embedded;         // whether embedded modifier required
+    Bool              cPrefix;          // whether compressed prefix enabled
 
 } riscvInstrInfo;
 

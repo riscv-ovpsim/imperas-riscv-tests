@@ -98,6 +98,7 @@ typedef struct riscvParamValuesS {
     // simulation controls
     VMI_ENUM_PARAM(variant);
     VMI_STRING_PARAM(clusterVariants);
+    VMI_STRING_PARAM(leaf_hart_prefix);
     VMI_BOOL_PARAM(use_hw_reg_names);
     VMI_BOOL_PARAM(no_pseudo_inst);
     VMI_BOOL_PARAM(show_c_prefix);
@@ -131,6 +132,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS64_PARAM(dexc_address);
     VMI_ENUM_PARAM(debug_eret_mode);
     VMI_ENUM_PARAM(debug_priority);
+    VMI_BOOL_PARAM(no_resethaltreq);
     VMI_UNS32_PARAM(dcsr_ebreak_mask);
     VMI_ENUM_PARAM(amo_constraint);
     VMI_ENUM_PARAM(lr_sc_constraint);
@@ -184,6 +186,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(minstret_undefined);
     VMI_BOOL_PARAM(hpmcounter_undefined);
     VMI_BOOL_PARAM(mhpmcounter_undefined);
+    VMI_BOOL_PARAM(tdata2_undefined);
+    VMI_BOOL_PARAM(tdata3_undefined);
     VMI_BOOL_PARAM(tinfo_undefined);
     VMI_BOOL_PARAM(tcontrol_undefined);
     VMI_BOOL_PARAM(mcontext_undefined);
@@ -191,6 +195,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(mscontext_undefined);
     VMI_BOOL_PARAM(hcontext_undefined);
     VMI_BOOL_PARAM(mnoise_undefined);
+    VMI_BOOL_PARAM(dscratch0_undefined);
+    VMI_BOOL_PARAM(dscratch1_undefined);
     VMI_BOOL_PARAM(amo_trigger);
     VMI_BOOL_PARAM(amo_aborts_lr_sc);
     VMI_BOOL_PARAM(no_hit);
@@ -202,7 +208,8 @@ typedef struct riscvParamValuesS {
     VMI_BOOL_PARAM(trap_preserves_lr);
     VMI_BOOL_PARAM(xret_preserves_lr);
     VMI_BOOL_PARAM(fence_g_preserves_vs);
-    VMI_BOOL_PARAM(require_vstart0);
+    VMI_BOOL_PARAM(vstart0_non_ld_st);
+    VMI_BOOL_PARAM(vstart0_ld_st);
     VMI_BOOL_PARAM(align_whole);
     VMI_BOOL_PARAM(vill_trap);
     VMI_UNS32_PARAM(ASID_cache_size);
@@ -215,6 +222,7 @@ typedef struct riscvParamValuesS {
     VMI_UNS32_PARAM(mvalue_bits);
     VMI_UNS32_PARAM(svalue_bits);
     VMI_UNS32_PARAM(mcontrol_maskmax);
+    VMI_ENUM_PARAM(chain_tval);
     VMI_UNS32_PARAM(VMID_bits);
     VMI_UNS32_PARAM(TW_time_limit);
     VMI_UNS32_PARAM(STO_time_limit);

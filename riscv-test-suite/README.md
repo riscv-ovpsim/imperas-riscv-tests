@@ -17,9 +17,9 @@
     #
     
 
-Free Public Test Suites : 82
-Test Files              : 6,175
-Total Instructions      : 9,261,088
+Test Suites : 84
+Test Files              : 6,187
+Total Instructions      : 9,290,980
 
 | Test Suites           |   Test Files   | Ins. Types | Unique Ins. | Total Ins. | Basic Coverage | Extended Coverage |
 | --------------------- | -------------- | ---------- | ----------- | ---------- | -------------- | ----------------- |
@@ -55,6 +55,7 @@ Total Instructions      : 9,261,088
 | rv32i_m/Zbkc          |              2 |          1 |           2 |      1,956 |        100.00% |             78.23 |
 | rv32i_m/Zbkx          |              0 |          1 |           0 |          0 |          0.00% |              0.00 |
 | rv32i_m/Zbs           |              8 |          2 |           8 |      6,864 |         99.38% |             78.14 |
+| rv32i_m/Zicsr         |              6 |          1 |           6 |      9,372 |        100.00% |             99.43 |
 | rv32i_m/Zk            |             31 |          9 |          14 |     30,650 |        100.00% |             98.95 |
 | rv32i_m/Zkn           |             31 |          9 |          25 |     30,650 |         99.90% |             92.78 |
 | rv32i_m/Zknd          |              4 |          2 |           2 |      5,024 |        100.00% |             99.26 |
@@ -90,6 +91,7 @@ Total Instructions      : 9,261,088
 | rv64i_m/Zbkc          |              2 |          1 |           2 |      4,812 |        100.00% |             73.77 |
 | rv64i_m/Zbkx          |              0 |          1 |           0 |          0 |          0.00% |              0.00 |
 | rv64i_m/Zbs           |              8 |          2 |           8 |     16,544 |         99.38% |             74.94 |
+| rv64i_m/Zicsr         |              6 |          1 |           6 |     20,520 |        100.00% |             99.86 |
 | rv64i_m/Zk            |             37 |          9 |          15 |     81,476 |        100.00% |             99.34 |
 | rv64i_m/Zkn           |             37 |          9 |          30 |     81,476 |         99.88% |             89.79 |
 | rv64i_m/Zknd          |             10 |          2 |           5 |     23,459 |        100.00% |             99.26 |

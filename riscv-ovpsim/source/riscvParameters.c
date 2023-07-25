@@ -283,6 +283,11 @@ static vmiEnumParameter compressedVariants[] = {
         .value       = RVCV_1_0_0_RC57,
         .description = "Compressed Architecture Version 1.0.0-RC5.7",
     },
+    {
+        .name        = "1.0",
+        .value       = RVCV_1_0,
+        .description = "Compressed Architecture Version 1.0",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -405,6 +410,11 @@ static vmiEnumParameter vcryptoVariants[] = {
         .name        = "0.5.2",
         .value       = RVKVV_0_5_2,
         .description = "Vector Cryptographic Architecture Version 0.5.2",
+    },
+    {
+        .name        = "1.0.0-rc1",
+        .value       = RVKVV_1_0_0_RC1,
+        .description = "Vector Cryptographic Architecture Version 1.0.0-rc1",
     },
     {
         .name        = "master",
@@ -532,6 +542,11 @@ static vmiEnumParameter AIAVariants[] = {
         .name        = "1.0-RC3",
         .value       = RVAIA_1_0_RC3,
         .description = "AIA Version 1.0-RC3",
+    },
+    {
+        .name        = "1.0-RC5",
+        .value       = RVAIA_1_0_RC5,
+        .description = "AIA Version 1.0-RC5",
     },
     {
         .name        = "master",
@@ -705,6 +720,11 @@ static vmiEnumParameter DMModes[] = {
         .value       = RVDM_HALT,
         .description = "Debug mode implemented by halt",
     },
+    {
+        .name        = "inject",
+        .value       = RVDM_INJECT,
+        .description = "Debug mode implemented using injected instructions",
+    },
     // KEEP LAST: terminator
     {0}
 };
@@ -770,6 +790,34 @@ static vmiEnumParameter DebugPriorities[] = {
         .name        = "halt_not_step",
         .value       = RVDP_HALT_NOT_STEP,
         .description = "legacy alias of ahsx",
+    },
+    // KEEP LAST: terminator
+    {0}
+};
+
+//
+// Specify relative priorities of simultaneous debug events
+//
+static vmiEnumParameter CTValues[] = {
+    [RVCT_FIRST] = {
+        .name        = "first",
+        .value       = RVCT_FIRST,
+        .description = "first matching trigger provides xtval",
+    },
+    [RVCT_LAST] = {
+        .name        = "last",
+        .value       = RVCT_LAST,
+        .description = "last matching trigger provides xtval",
+    },
+    [RVCT_FIRST_NON_EPC] = {
+        .name        = "first_non_epc",
+        .value       = RVCT_FIRST_NON_EPC,
+        .description = "first matching trigger provides xtval (prefer non-epc)",
+    },
+    [RVCT_LAST_NON_EPC] = {
+        .name        = "last_non_epc",
+        .value       = RVCT_LAST_NON_EPC,
+        .description = "last matching trigger provides xtval (prefer non-epc)",
     },
     // KEEP LAST: terminator
     {0}
@@ -870,6 +918,14 @@ typedef struct riscvParameterS {
     "parameter %s is not of "_NAME" type",          \
     _P->name                                        \
 )
+
+//
+// Set string parameter default
+//
+static void setStringParamDefault(vmiParameterP param, const char *value) {
+    CHECK_PARAM_TYPE(param, vmi_PT_STRING, "String");
+    param->u.stringParam.defaultValue = value;
+}
 
 //
 // Set enum parameter default
@@ -989,6 +1045,7 @@ static RISCV_ENUM_PDEFAULT_CFG_FN(lr_sc_constraint);
 static RISCV_ENUM_PDEFAULT_CFG_FN(amo_constraint);
 static RISCV_ENUM_PDEFAULT_CFG_FN(push_pop_constraint);
 static RISCV_ENUM_PDEFAULT_CFG_FN(vector_constraint);
+static RISCV_ENUM_PDEFAULT_CFG_FN(chain_tval);
 
 //
 // Set default value of raw Bool parameters
@@ -1014,6 +1071,8 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(instret_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(minstret_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(hpmcounter_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mhpmcounter_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(tdata2_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(tdata3_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tinfo_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(tcontrol_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mcontext_undefined);
@@ -1021,6 +1080,8 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(scontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mscontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(hcontext_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(mnoise_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(dscratch0_undefined);
+static RISCV_BOOL_PDEFAULT_CFG_FN(dscratch1_undefined);
 static RISCV_BOOL_PDEFAULT_CFG_FN(amo_trigger);
 static RISCV_BOOL_PDEFAULT_CFG_FN(amo_aborts_lr_sc);
 static RISCV_BOOL_PDEFAULT_CFG_FN(no_hit);
@@ -1031,7 +1092,8 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(enable_fflags_i);
 static RISCV_BOOL_PDEFAULT_CFG_FN(trap_preserves_lr);
 static RISCV_BOOL_PDEFAULT_CFG_FN(xret_preserves_lr);
 static RISCV_BOOL_PDEFAULT_CFG_FN(fence_g_preserves_vs);
-static RISCV_BOOL_PDEFAULT_CFG_FN(require_vstart0);
+static RISCV_BOOL_PDEFAULT_CFG_FN(vstart0_non_ld_st);
+static RISCV_BOOL_PDEFAULT_CFG_FN(vstart0_ld_st);
 static RISCV_BOOL_PDEFAULT_CFG_FN(align_whole);
 static RISCV_BOOL_PDEFAULT_CFG_FN(vill_trap);
 static RISCV_BOOL_PDEFAULT_CFG_FN(external_int_id);
@@ -1080,6 +1142,7 @@ static RISCV_BOOL_PDEFAULT_CFG_FN(no_pseudo_inst);
 static RISCV_BOOL_PDEFAULT_CFG_FN(show_c_prefix);
 static RISCV_BOOL_PDEFAULT_CFG_FN(lr_sc_match_size);
 static RISCV_BOOL_PDEFAULT_CFG_FN(ignore_non_leaf_DAU);
+static RISCV_BOOL_PDEFAULT_CFG_FN(no_resethaltreq);
 
 //
 // Set default value of raw negated Bool parameters
@@ -1132,6 +1195,13 @@ static RISCV_UNS64_PDEFAULT_CFG_FN(hviprio_mask)
 static RISCV_UNS64_PDEFAULT_CFG_FN(mclicbase)
 static RISCV_UNS64_PDEFAULT_CFG_FN(sclicbase)
 static RISCV_UNS64_PDEFAULT_CFG_FN(uclicbase)
+
+//
+// Specify default leaf hart prefix
+//
+static RISCV_PDEFAULT_FN(default_leaf_hart_prefix) {
+    setStringParamDefault(param, cfg->leaf_hart_prefix ? : "hart");
+}
 
 //
 // Specify whether full half-precision scalar floating point is implemented
@@ -1987,10 +2057,12 @@ static riscvParameter parameters[] = {
     {  RVPV_DEBUG,   0,         default_debug_eret_mode,      VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_eret_mode,         DERETModes,                RV_GROUP(DBG),   "Specify behavior for MRET, SRET or URET in Debug mode (nop, jump to dexc_address or trap to dexc_address)")},
     {  RVPV_DEBUG,   0,         default_debug_priority,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, debug_priority,          DebugPriorities,           RV_GROUP(DBG),   "Specify relative priorities of simultaneous debug events")},
     {  RVPV_DEBUG,   0,         default_dcsr_ebreak_mask,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, dcsr_ebreak_mask,        0, 0,          63,         RV_GROUP(DBG),   "Specify mask of dcsr.ebreak fields that reset to 1 (ebreak instructions enter Debug mode)")},
+    {  RVPV_DEBUG,   0,         default_no_resethaltreq,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_resethaltreq,         False,                     RV_GROUP(DBG),   "Specify that haltreq (code 3) should be reported when resethaltreq signal is applied at reset")},
     {  RVPV_A,       0,         default_lr_sc_constraint,     VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, lr_sc_constraint,        memoryConstraints,         RV_GROUP(MEM),   "Specify memory constraint for LR/SC instructions")},
     {  RVPV_A,       0,         default_amo_constraint,       VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, amo_constraint,          memoryConstraints,         RV_GROUP(MEM),   "Specify memory constraint for AMO instructions")},
     {  RVPV_C_CNEW,  0,         default_push_pop_constraint,  VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, push_pop_constraint,     memoryConstraints,         RV_GROUP(MEM),   "Specify memory constraint for PUSH/POP instructions")},
     {  RVPV_V,       0,         default_vector_constraint,    VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, vector_constraint,       memoryConstraints,         RV_GROUP(MEM),   "Specify memory constraint for vector load/store instructions")},
+    {  RVPV_MPCORE , 0,         default_leaf_hart_prefix,     VMI_STRING_GROUP_PARAM_SPEC(riscvParamValues, leaf_hart_prefix,        0,                         RV_GROUP(ARTIF), "Specify string name prefix for harts in a cluster")},
     {  RVPV_ALL,     0,         default_use_hw_reg_names,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, use_hw_reg_names,        False,                     RV_GROUP(ARTIF), "Specify whether to use hardware register names x0-x31 and f0-f31 instead of ABI register names")},
     {  RVPV_ALL,     0,         default_no_pseudo_inst,       VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_pseudo_inst,          False,                     RV_GROUP(ARTIF), "Specify whether pseudo-instructions should not be reported in trace and disassembly")},
     {  RVPV_C,       0,         default_show_c_prefix,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, show_c_prefix,           False,                     RV_GROUP(ARTIF), "Specify whether compressed instruction prefix should be reported in trace and disassembly")},
@@ -2048,6 +2120,8 @@ static riscvParameter parameters[] = {
     {  RVPV_ALL,     0,         default_minstret_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, minstret_undefined,      False,                     RV_GROUP(ICSRB), "Specify that the minstret CSR is undefined")},
     {  RVPV_U,       0,         default_hpmcounter_undefined, VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, hpmcounter_undefined,    False,                     RV_GROUP(ICSRB), "Specify that the hpmcounter CSRs are undefined")},
     {  RVPV_ALL,     0,         default_mhpmcounter_undefined,VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mhpmcounter_undefined,   False,                     RV_GROUP(ICSRB), "Specify that the mhpmcounter CSRs are undefined")},
+    {  RVPV_TRIG,    0,         default_tdata2_undefined,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tdata2_undefined,        False,                     RV_GROUP(TRIG),  "Specify that the tdata2 CSR is undefined")},
+    {  RVPV_TRIG,    0,         default_tdata3_undefined,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tdata3_undefined,        False,                     RV_GROUP(TRIG),  "Specify that the tdata3 CSR is undefined")},
     {  RVPV_TRIG,    0,         default_tinfo_undefined,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tinfo_undefined,         False,                     RV_GROUP(TRIG),  "Specify that the tinfo CSR is undefined")},
     {  RVPV_TRIG,    0,         default_tcontrol_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, tcontrol_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the tcontrol CSR is undefined")},
     {  RVPV_TRIG,    0,         default_mcontext_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mcontext_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the mcontext CSR is undefined")},
@@ -2055,6 +2129,8 @@ static riscvParameter parameters[] = {
     {  RVPV_TRIG,    0,         default_mscontext_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mscontext_undefined,     False,                     RV_GROUP(TRIG),  "Specify that the mscontext CSR is undefined (Debug Version 0.14.0 and later)")},
     {  RVPV_TRIG_H,  0,         default_hcontext_undefined,   VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, hcontext_undefined,      False,                     RV_GROUP(TRIG),  "Specify that the hcontext CSR is undefined")},
     {  RVPV_K,       0,         default_mnoise_undefined,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, mnoise_undefined,        False,                     RV_GROUP(K),     "Specify that the mnoise CSR is undefined")},
+    {  RVPV_DEBUG,   0,         default_dscratch0_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, dscratch0_undefined,     False,                     RV_GROUP(DBG),   "Specify that the dscratch0 CSR is undefined")},
+    {  RVPV_DEBUG,   0,         default_dscratch1_undefined,  VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, dscratch1_undefined,     False,                     RV_GROUP(DBG),   "Specify that the dscratch1 CSR is undefined")},
     {  RVPV_TRIG,    0,         default_amo_trigger,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, amo_trigger,             False,                     RV_GROUP(TRIG),  "Specify whether AMO load/store operations activate triggers")},
     {  RVPV_A,       0,         default_amo_aborts_lr_sc,     VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, amo_aborts_lr_sc,        False,                     RV_GROUP(MEM),   "Specify whether AMO operations abort any active LR/SC pair")},
     {  RVPV_TRIG,    0,         default_no_hit,               VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, no_hit,                  False,                     RV_GROUP(TRIG),  "Specify that tdata1.hit* bits are unimplemented")},
@@ -2066,7 +2142,8 @@ static riscvParameter parameters[] = {
     {  RVPV_A,       0,         default_trap_preserves_lr,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, trap_preserves_lr,       False,                     RV_GROUP(INTXC), "Whether a trap preserves active LR/SC state")},
     {  RVPV_A,       0,         default_xret_preserves_lr,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, xret_preserves_lr,       False,                     RV_GROUP(INTXC), "Whether an xret instruction preserves active LR/SC state")},
     {  RVPV_H,       0,         default_fence_g_preserves_vs, VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, fence_g_preserves_vs,    False,                     RV_GROUP(H),     "Whether G-stage fence instruction HFENCE.GVMA preserves VS-stage TLB mappings")},
-    {  RVPV_V,       0,         default_require_vstart0,      VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, require_vstart0,         False,                     RV_GROUP(V),     "Whether CSR vstart must be 0 for non-interruptible vector instructions")},
+    {  RVPV_V,       0,         default_vstart0_non_ld_st,    VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, vstart0_non_ld_st,       False,                     RV_GROUP(V),     "Whether CSR vstart must be 0 for non-load/store vector instructions")},
+    {  RVPV_V,       0,         default_vstart0_ld_st,        VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, vstart0_ld_st,           False,                     RV_GROUP(V),     "Whether CSR vstart must be 0 for load/store vector instructions")},
     {  RVPV_V,       0,         default_align_whole,          VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, align_whole,             False,                     RV_GROUP(V),     "Whether whole-register load addresses must be aligned using the encoded EEW")},
     {  RVPV_V,       0,         default_vill_trap,            VMI_BOOL_GROUP_PARAM_SPEC  (riscvParamValues, vill_trap,               False,                     RV_GROUP(V),     "Whether illegal vtype values cause trap instead of setting vtype.vill")},
     {  RVPV_S,       0,         0,                            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_cache_size,         8, 0,          256,        RV_GROUP(ARTIF), "Specify the number of different ASIDs for which TLB entries are cached; a value of 0 implies no limit")},
@@ -2078,6 +2155,7 @@ static riscvParameter parameters[] = {
     {  RVPV_TRIG,    0,         default_mvalue_bits,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mvalue_bits,             0, 0,          0,          RV_GROUP(TRIG),  "Specify the number of implemented bits in textra.mvalue (if zero, textra.mselect is tied to zero)")},
     {  RVPV_TRIG_S,  0,         default_svalue_bits,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, svalue_bits,             0, 0,          0,          RV_GROUP(TRIG),  "Specify the number of implemented bits in textra.svalue (if zero, textra.sselect is tied to zero)")},
     {  RVPV_TRIG,    0,         default_mcontrol_maskmax,     VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, mcontrol_maskmax,        0, 0,          63,         RV_GROUP(TRIG),  "Specify mcontrol.maskmax value")},
+    {  RVPV_TRIG,    0,         default_chain_tval,           VMI_ENUM_GROUP_PARAM_SPEC  (riscvParamValues, chain_tval,              CTValues,                  RV_GROUP(TRIG),  "Specify which trigger provides xtval when triggers are chained")},
     {  RVPV_S,       0,         default_ASID_bits,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, ASID_bits,               0, 0,          0,          RV_GROUP(MEM),   "Specify the number of implemented ASID bits")},
     {  RVPV_H,       0,         default_VMID_bits,            VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, VMID_bits,               0, 0,          0,          RV_GROUP(H),     "Specify the number of implemented VMID bits")},
     {  RVPV_A,       0,         default_lr_sc_grain,          VMI_UNS32_GROUP_PARAM_SPEC (riscvParamValues, lr_sc_grain,             1, 1,          (1<<16),    RV_GROUP(MEM),   "Specify byte granularity of LR/SC lock region (constrained to a power of two)")},
@@ -3025,10 +3103,12 @@ void riscvFreeParameters(riscvP riscv) {
 
     if(riscv->variantList) {
         STYPE_FREE(riscv->variantList);
+        riscv->variantList = 0;
     }
 
     if(riscv->parameters) {
         STYPE_FREE(riscv->parameters);
+        riscv->parameters = 0;
     }
 }
 

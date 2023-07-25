@@ -26,7 +26,11 @@
 //
 // Code generation actions
 //
-#define RISCV_DERIVED_MORPH_FN(_NAME) void _NAME(riscvP riscv, void *clientData)
+#define RISCV_DERIVED_MORPH_FN(_NAME) void _NAME( \
+    riscvP riscv,       \
+    void  *clientData,  \
+    Uns64  thisPC       \
+)
 typedef RISCV_DERIVED_MORPH_FN((*riscvDerivedMorphFn));
 
 //
@@ -40,6 +44,7 @@ typedef RISCV_DERIVED_MORPH_FN((*riscvDerivedMorphFn));
     Bool          isRead,       \
     Bool          isWrite,      \
     Bool          useRS1,       \
+    Bool          useC,         \
     Uns32         c             \
 )
 typedef RISCV_EMIT_CSR_CHECK_FN((*riscvEmitCSRCheckFn));

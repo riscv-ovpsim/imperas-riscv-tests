@@ -905,6 +905,16 @@ static void trapM(riscvP riscv, trapCxtP cxt) {
 }
 
 //
+// Take pending fetch exception
+//
+static void takePendingFetchException(riscvP riscv, Uns64 tval) {
+
+    riscvTakeException(riscv, riscv->exceptionFetch, tval);
+
+    riscv->exceptionFetch = 0;
+}
+
+//
 // Get CLIC vectored handler address at the given memory address
 //
 static Bool getCLICVPC(riscvP riscv, Uns64 address, Uns64 *handlerPCP) {
@@ -915,7 +925,7 @@ static Bool getCLICVPC(riscvP riscv, Uns64 address, Uns64 *handlerPCP) {
     memDomainP     domain       = vectorTableDomain(riscv, memAttrs);
     riscvException oldException = riscv->exception;
     Bool           ok           = False;
-    Uns64          handlerPC;
+    Uns64          handlerPC    = 0;
 
     // clear exception indication
     riscv->exception = 0;
@@ -924,7 +934,9 @@ static Bool getCLICVPC(riscvP riscv, Uns64 address, Uns64 *handlerPCP) {
     riscv->inhv = True;
 
     // read 4-byte or 8-byte entry
-    if(riscvGetXlenMode(riscv)==32) {
+    if(riscv->exceptionFetch) {
+        takePendingFetchException(riscv, address);
+    } else if(riscvGetXlenMode(riscv)==32) {
         handlerPC = vmirtRead4ByteDomain(domain, address, endian, memAttrs);
     } else {
         handlerPC = vmirtRead8ByteDomain(domain, address, endian, memAttrs);
@@ -1013,7 +1025,7 @@ static customHAction getCustomHandlerPC(
 inline static void notifyTrapDerived(riscvP riscv, riscvMode mode) {
     ITER_EXT_CB(
         riscv, extCB, trapNotifier,
-        extCB->trapNotifier(riscv, mode, extCB->clientData);
+        extCB->trapNotifier(riscv, mode, ERT_NA, extCB->clientData);
     )
 }
 
@@ -1023,17 +1035,21 @@ inline static void notifyTrapDerived(riscvP riscv, riscvMode mode) {
 inline static void preNotifyTrapDerived(riscvP riscv, riscvMode mode) {
     ITER_EXT_CB(
         riscv, extCB, trapPreNotifier,
-        extCB->trapPreNotifier(riscv, mode, extCB->clientData);
+        extCB->trapPreNotifier(riscv, mode, ERT_NA, extCB->clientData);
     )
 }
 
 //
 // Notify a derived model of exception return if required
 //
-inline static void notifyERETDerived(riscvP riscv, riscvMode mode) {
+inline static void notifyERETDerived(
+    riscvP        riscv,
+    riscvMode     mode,
+    riscvERETType eretType
+) {
     ITER_EXT_CB(
         riscv, extCB, ERETNotifier,
-        extCB->ERETNotifier(riscv, mode, extCB->clientData);
+        extCB->ERETNotifier(riscv, mode, eretType, extCB->clientData);
     )
 }
 
@@ -1109,9 +1125,6 @@ void riscvTakeException(
     // indicate the taken exception
     riscv->exception = exception;
 
-    // clear active HLV/HLVX/HSV indication and atomic state
-    clearVirtualAtomic(riscv);
-
     // indicate any executing instruction will not retire
     riscvNoRetire(riscv);
 
@@ -1122,7 +1135,7 @@ void riscvTakeException(
     if(!riscv->configInfo.defer_step_bug) {
         riscv->stepICount--;
     }
-    
+
     if(inDebugMode(riscv)) {
 
         // terminate execution of program buffer
@@ -1134,6 +1147,9 @@ void riscvTakeException(
         Bool  shv   = riscv->clic.sel.shv;
         Uns32 ecode = getExceptionCode(exception);
         Bool  inhv  = riscv->inhv;
+
+        // clear active HLV/HLVX/HSV indication and atomic state
+        clearVirtualAtomic(riscv);
 
         // set trap context information
         trapCxt cxt = {
@@ -1299,6 +1315,20 @@ void riscvTakeAsynchonousException(
     // is now masked)
     if(riscv->pendEnab.id!=RV_NO_INT) {
         riscvRefreshPendingAndEnabled(riscv);
+    }
+}
+
+//
+// Specify any exception to be taken on the next instruction fetch
+//
+void riscvPendFetchException(
+    riscvP         riscv,
+    riscvException exception
+) {
+    riscv->exceptionFetch = exception;
+
+    if(exception) {
+        doSynchronousInterrupt(riscv);
     }
 }
 
@@ -1799,8 +1829,13 @@ static void clearMPRV(riscvP riscv, riscvMode newMode) {
 //
 // Do common actions when returning from an exception
 //
-static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc, Bool inhv) {
-
+static void doERETCommon(
+    riscvP        riscv,
+    riscvMode     newMode,
+    riscvERETType eretType,
+    Uns64         epc,
+    Bool          inhv
+) {
     riscvMode oldMode = getCurrentMode5(riscv);
 
     // switch to User or Supervisor mode on a machine with PMP when no regions
@@ -1839,7 +1874,7 @@ static void doERETCommon(riscvP riscv, riscvMode newMode, Uns64 epc, Bool inhv) 
     }
 
     // notify derived model of exception return if required
-    notifyERETDerived(riscv, oldMode);
+    notifyERETDerived(riscv, oldMode, eretType);
 
     // check for pending interrupts
     riscvTestInterrupt(riscv);
@@ -1924,7 +1959,7 @@ void riscvMNRET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, mnstatus, NMIE, 1);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_M(riscv, mnepc), False);
+    doERETCommon(riscv, newMode, ERT_MN, RD_CSR_M(riscv, mnepc), False);
 }
 
 //
@@ -1976,7 +2011,7 @@ void riscvMRET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, tcontrol, mte, RD_CSR_FIELDC(riscv, tcontrol, mpte));
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_M(riscv, mepc), inhv);
+    doERETCommon(riscv, newMode, ERT_M, RD_CSR_M(riscv, mepc), inhv);
 }
 
 //
@@ -2024,7 +2059,7 @@ void riscvHSRET(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_S(riscv, sepc), inhv);
+    doERETCommon(riscv, newMode, ERT_S, RD_CSR_S(riscv, sepc), inhv);
 }
 
 //
@@ -2062,7 +2097,7 @@ void riscvVSRET(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_VS(riscv, vsepc), inhv);
+    doERETCommon(riscv, newMode, ERT_VS, RD_CSR_VS(riscv, vsepc), inhv);
 }
 
 //
@@ -2094,7 +2129,7 @@ void riscvURET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, mstatus, UPIE, 1);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_U(riscv, uepc), inhv);
+    doERETCommon(riscv, newMode, ERT_U, RD_CSR_U(riscv, uepc), inhv);
 }
 
 //
@@ -2121,7 +2156,7 @@ void riscvVURET(riscvP riscv) {
     WR_CSR_FIELDC(riscv, vsstatus, UPIE, 1);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_VU(riscv, uepc), inhv);
+    doERETCommon(riscv, newMode, ERT_VU, RD_CSR_VU(riscv, uepc), inhv);
 }
 
 
@@ -2222,6 +2257,10 @@ static void enterDM(riscvP riscv, dmCause cause) {
 
     } else {
 
+        // set exception PC to the current simulated address (to cause any
+        // exception watchpoints to be triggered)
+        setPCException(riscv, RD_CSR_M(riscv, dpc));
+
         // halt or restart processor if required
         updateDMStall(riscv, True);
     }
@@ -2247,7 +2286,7 @@ static void leaveDM(riscvP riscv) {
     clearMPRV(riscv, newMode);
 
     // do common return actions
-    doERETCommon(riscv, newMode, RD_CSR_M(riscv, dpc), False);
+    doERETCommon(riscv, newMode, ERT_D, RD_CSR_M(riscv, dpc), False);
 
     // set step breakpoint if required
     riscvSetStepBreakpoint(riscv);
@@ -2843,6 +2882,23 @@ VMI_RD_WR_SNAP_FN(riscvWrSnap) {
 }
 
 //
+// Apply any externally-signalled pending fetch exception
+//
+static riscvException pendingFetchException(
+    riscvP riscv,
+    Uns64  thisPC,
+    Bool   complete
+) {
+    riscvException pending = riscv->exceptionFetch;
+
+    if(pending && complete) {
+        takePendingFetchException(riscv, thisPC);
+    }
+
+    return pending;
+}
+
+//
 // Validate instruction fetch from the passed address
 //
 static Bool validateFetchAddressInt(
@@ -2891,7 +2947,12 @@ static Bool validateFetchAddress(
     Uns64      thisPC,
     Bool       complete
 ) {
-    if(!validateFetchAddressInt(riscv, domain, thisPC, complete)) {
+    if(pendingFetchException(riscv, thisPC, complete)) {
+
+        // pending fetch exception (handled in pendingFetchException)
+        return False;
+
+    } else if(!validateFetchAddressInt(riscv, domain, thisPC, complete)) {
 
         // fetch exception (handled in validateFetchAddressInt)
         return False;
@@ -3052,6 +3113,12 @@ static Bool getPendingLocallyEnabledBasic(
         // injected using hvictl
         ip |= (intState->hvictl = (VTI && (IID!=seiid)));
     }
+
+    // do custom interrupt assignment if required
+    ITER_EXT_CB(
+        riscv, extCB, customIAssign,
+        ip = extCB->customIAssign(riscv, ip, intState, extCB->clientData);
+    )
 
     return ip;
 }
@@ -3749,8 +3816,9 @@ static Bool doHaltReq(riscvP riscv, Bool complete) {
 
         // enter Debug mode out of reset
         if(complete) {
+            Bool no_resethaltreq = riscv->configInfo.no_resethaltreq;
             riscv->netValue.resethaltreqS = False;
-            enterDM(riscv, DMC_RESETHALTREQ);
+            enterDM(riscv, no_resethaltreq ? DMC_HALTREQ : DMC_RESETHALTREQ);
         }
 
         didHaltReq = True;
@@ -4246,6 +4314,7 @@ Bool riscvResumeFromWFI(riscvP riscv) {
     riscvBasicIntState intState;
 
     return (
+        riscv->netValue.restartwfi                      ||
         getPendingLocallyEnabledBasic(riscv, &intState) ||
         getPendingLocallyEnabledCLIC(riscv)             ||
         inDebugMode(riscv)                              ||
@@ -4493,6 +4562,13 @@ void riscvTestInterrupt(riscvP riscv) {
 //
 void riscvReset(riscvP riscv) {
 
+    // notify dependent model of reset event (called before any state changes
+    // in case current state is logged by the notifier)
+    ITER_EXT_CB(
+        riscv, extCB, resetNotifier,
+        extCB->resetNotifier(riscv, extCB->clientData);
+    )
+
     // enable interrupts that would be blocked by RNMI state if RNMI is absent,
     // otherwise disable those interrupts if RNMI version exceeds 0.2.1
     // (mnstatus.NMIE explicitly resets to 0 from that version, but otherwise
@@ -4519,12 +4595,6 @@ void riscvReset(riscvP riscv) {
 
     // reset internal timer state
     riscvUpdateTimer(riscv);
-
-    // notify dependent model of reset event
-    ITER_EXT_CB(
-        riscv, extCB, resetNotifier,
-        extCB->resetNotifier(riscv, extCB->clientData);
-    )
 
     // indicate no taken exception
     riscv->exception = 0;
@@ -5070,6 +5140,23 @@ static VMI_NET_CHANGE_FN(deferintPortCB) {
 }
 
 //
+// Artifact signal causing restart from WFI state when high
+//
+static VMI_NET_CHANGE_FN(restartwfiPortCB) {
+
+    riscvInterruptInfoP ii       = userData;
+    riscvP              riscv    = ii->hart;
+    Bool                oldValue = riscv->netValue.restartwfi;
+
+    riscv->netValue.restartwfi = newValue;
+
+    // handle possible interrupt when signal is released
+    if(posedge(oldValue, newValue)) {
+        riscvTestInterrupt(riscv);
+    }
+}
+
+//
 // Raise Illegal Instruction externally to the model.
 //
 static VMI_NET_CHANGE_FN(illegalInstrPortCB) {
@@ -5185,8 +5272,9 @@ typedef enum riscvPortIdE {
     RVP_coverpoint,
     RVP_readcsr,
 
-    // WFI notification port
+    // WFI notification and restart ports
     RVP_core_wfi_mode,
+    RVP_restart_wfi,
 
 } riscvPortId;
 
@@ -5244,6 +5332,7 @@ static const vmiNetPort netPorts[] = {
 
     // WFI notification port
     PORT_O(core_wfi_mode,wfiHandle,           0, "WFI is active"),
+    PORT_I(restart_wfi,  restartwfiPortCB,    0, "Artifact signal causing restart from WFI state when high"),
 };
 
 //
@@ -5539,9 +5628,9 @@ void riscvNewNetPorts(riscvP riscv) {
     // allocate artifact ports
     tail = newNetPortsTemplate(riscv, tail, RVP_illegalinstr, RVP_readcsr);
 
-    // WFI notification port
+    // WFI notification and restart ports
     if(!riscv->configInfo.wfi_is_nop) {
-        tail = newNetPortTemplate(riscv, tail, RVP_core_wfi_mode);
+        tail = newNetPortsTemplate(riscv, tail, RVP_core_wfi_mode, RVP_restart_wfi);
     }
 }
 
@@ -5554,7 +5643,12 @@ void riscvFreeNetPorts(riscvP riscv) {
     riscvNetPortP this;
 
     // free interrupt port state
-    STYPE_FREE(riscv->ip);
+    if(riscv->ip) {
+
+        STYPE_FREE(riscv->ip);
+
+        riscv->ip = 0;
+    }
 
     // free ports
     while((this=next)) {
@@ -5641,15 +5735,19 @@ void riscvFreeTimers(riscvP riscv) {
 
     if(riscv->mtime) {
         vmirtDeleteModelTimer(riscv->mtime);
+        riscv->mtime = 0;
     }
     if(riscv->stepTimer) {
         vmirtDeleteModelTimer(riscv->stepTimer);
+        riscv->stepTimer = 0;
     }
     if(riscv->twTimer) {
         vmirtDeleteModelTimer(riscv->twTimer);
+        riscv->twTimer = 0;
     }
     if(riscv->ackTimer) {
         vmirtDeleteModelTimer(riscv->ackTimer);
+        riscv->ackTimer = 0;
     }
 }
 

@@ -222,6 +222,7 @@ typedef enum riscvArchitectureE {
     RVANYCI  = RVANYC|RVANYI|ISA_and,
     RVANYCM  = RVANYC|RVANYM|ISA_and,
     RVANYVA  = RVANYV|RVANYA|ISA_and,
+    RVANYVF  = RVANYV|RVANYF|ISA_and,
     RVANYVK  = RVANYV|RVANYK|ISA_and,
     RVANYBK  = RVANYB|RVANYK,
 
@@ -302,7 +303,7 @@ typedef enum riscvVectorSetE {
     RVVS_Application = 0,               // application processor profile
     RVVS_Embedded    = (1<<0),          // embedded processor profile
     RVVS_EEW64       = (1<<1),          // EEW=64 supported
-    RVVS_H           = (1<<2),          // FP32 supported
+    RVVS_H           = (1<<2),          // FP16 supported
     RVVS_F           = (1<<3),          // FP32 supported
     RVVS_D           = (1<<4),          // FP64 supported
 
@@ -406,7 +407,8 @@ typedef enum riscvCompressVerE {
     RVCV_0_70_1,                        // Zc version 0.70.1
     RVCV_0_70_5,                        // Zc version 0.70.5
     RVCV_1_0_0_RC57,                    // Zc version 1.0.0-RC5.7
-    RVCV_DEFAULT = RVCV_1_0_0_RC57,     // default version
+    RVCV_1_0,                           // Zc version 1.0 (ratified)
+    RVCV_DEFAULT = RVCV_1_0,            // default version
 } riscvCompressVer;
 
 //
@@ -451,8 +453,8 @@ typedef enum riscvCryptoVerE {
 //
 // Date and tag of Vector Cryptographic Architecture master version
 //
-#define RVKVV_MASTER_DATE    "13 April 2023"
-#define RVKVV_MASTER_TAG     "f6b6365"
+#define RVKVV_MASTER_DATE    "3 July 2023"
+#define RVKVV_MASTER_TAG     "e2ba7f6"
 
 //
 // Supported Vector Cryptographic Architecture versions
@@ -460,9 +462,10 @@ typedef enum riscvCryptoVerE {
 typedef enum riscvVCryptoVerE {
     RVKVV_0_3_0,                        // version 0.3.0
     RVKVV_0_5_2,                        // version 0.5.2
+    RVKVV_1_0_0_RC1,                    // version 1.0.0-rc1
     RVKVV_MASTER,                       // version master
     RVKVV_LAST,                         // for sizing
-    RVKVV_DEFAULT = RVKVV_0_5_2,        // default version
+    RVKVV_DEFAULT = RVKVV_1_0_0_RC1,    // default version
 } riscvVCryptoVer;
 
 //
@@ -559,8 +562,8 @@ typedef enum riscvCLICVerE {
 //
 // Date and tag of AIA master version
 //
-#define RVAIA_MASTER_DATE    "22 January 2023"
-#define RVAIA_MASTER_TAG     "3cadacb"
+#define RVAIA_MASTER_DATE    "12 June 2023"
+#define RVAIA_MASTER_TAG     "f7b2499"
 
 //
 // Supported AIA version
@@ -568,8 +571,9 @@ typedef enum riscvCLICVerE {
 typedef enum riscvAIAVerE {
     RVAIA_1_0_RC1,                      // 1.0-RC1
     RVAIA_1_0_RC3,                      // 1.0-RC3
+    RVAIA_1_0_RC5,                      // 1.0-RC3
     RVAIA_MASTER,                       // master branch
-    RVAIA_DEFAULT = RVAIA_1_0_RC3,      // default version
+    RVAIA_DEFAULT = RVAIA_1_0_RC5,      // default version
 } riscvAIAVer;
 
 //
@@ -621,6 +625,7 @@ typedef enum riscvDMModeE {
     RVDM_VECTOR,                        // Debug mode causes execution at vector
     RVDM_INTERRUPT,                     // Debug mode implemented as interrupt
     RVDM_HALT,                          // Debug mode implemented as halt
+    RVDM_INJECT                         // Debug mode uses injected instructions
 } riscvDMMode;
 
 //
@@ -650,6 +655,21 @@ typedef enum riscvDPriorityE {
     RVDP_HALT_NOT_STEP = RVDP_A_H_S_X,
 
 } riscvDPriority;
+
+//
+// When chained trigger module triggers are supported, this specified which
+// trigger provides the value reported in xtval if there is more than one match
+//
+typedef enum riscvChainTVALE {
+
+    RVCT_FIRST         = 0x0,     // use tval from first chained trigger
+    RVCT_LAST          = 0x1,     // use tval from last chained trigger
+    RVCT_NON_EPC       = 0x2,     // prefer non-epc
+
+    RVCT_FIRST_NON_EPC = RVCT_FIRST|RVCT_NON_EPC,
+    RVCT_LAST_NON_EPC  = RVCT_LAST |RVCT_NON_EPC,
+
+} riscvChainTVAL;
 
 //
 // Supported RNMI versions
@@ -774,6 +794,7 @@ typedef enum riscvVFeatureE {
     RVVF_SETVLZ_ILLEGAL,    // setvl* preserving vl illegal if preserve fails
     RVVF_NO_VMSF_OVERLAP,   // no overlap with any source for vmfif/vmsbf/mvsof
     RVVF_VLM_VSM,           // use vlm/vsm syntax?
+    RVVF_V_REQUIRES_FD,     // does V extension require F and possibly D?
     RVVF_LAST,              // for sizing
 } riscvVFeature;
 

@@ -36,54 +36,54 @@ Other instructions (those not the focus of this suite)
   mret : 64
   lui : 18,713
   slli : 38,098
-  aes64ds : 109
-  sd : 11,498
-  c-sdsp : 124
+  c-slli : 8,883
+  aes64im : 259
+  sw : 2,377
   c-addi : 691
+  c-addiw : 275
+  c-li : 338
   fence : 64
   ecall : 64
-  c-li : 338
   beq : 192
-  aes64dsm : 109
-  aes64es : 109
-  c-slli : 8,883
   xor : 774
-  c-addiw : 275
+  aes64dsm : 109
+  sd : 11,498
   c-xor : 28
   aes64esm : 109
-  aes64ks1i : 86
-  andn : 524
-  ld : 308
-  aes64im : 259
+  aes64es : 109
+  aes64ds : 109
+  c-sdsp : 124
   xori : 594
   add : 594
   clmul : 525
-  clmulh : 525
   aes64ks2 : 220
-  sw : 2,377
+  clmulh : 525
+  ld : 308
+  aes64ks1i : 86
+  andn : 524
   orn : 525
-  packh : 525
   pack : 524
+  packh : 525
   packw : 525
   grevi : 780
   rol : 525
   rolw : 525
   rori : 289
   ror : 525
+  roriw : 286
   rorw : 525
   sha256sig0 : 259
-  roriw : 286
   sha256sig1 : 259
   sha256sum0 : 259
-  sha512sum0 : 259
   sha256sum1 : 259
   c-swsp : 53
-  sha512sig1 : 259
   sha512sig0 : 259
+  sha512sig1 : 259
+  sha512sum0 : 259
   sha512sum1 : 259
   sm3p0 : 259
   sm3p1 : 259
+  sm4ed : 385
   sm4ks : 385
   xnor : 525
-  sm4ed : 385
 

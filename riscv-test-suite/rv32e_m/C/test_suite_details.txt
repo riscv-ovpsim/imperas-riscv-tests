@@ -24,8 +24,8 @@ Architectural Test Suite Data for RV32C Base Embedded (Integer) Instruction Set:
 
 Instruction category: arithmetic 
   c-lui : 1,523
-  c-addi : 888
   c-li : 3,035
+  c-addi : 888
   c-mv : 242
   c-add : 841
   c-sub : 168
@@ -41,16 +41,16 @@ Instruction category: OPI_IMN
 Instruction category: jump 
   c-j : 193
   c-jal : 168
-  c-jr : 168
   c-jalr : 168
+  c-jr : 168
 Instruction category: load 
   c-lwsp : 168
 Instruction category: store 
   c-swsp : 599
 Instruction category: shift 
+  c-srli : 168
   c-slli : 168
   c-srai : 168
-  c-srli : 168
 
 Other instructions (those not the focus of this suite)
   addi : 5,222

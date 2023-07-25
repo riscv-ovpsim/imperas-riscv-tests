@@ -43,11 +43,11 @@ Other instructions (those not the focus of this suite)
   bge : 20
   bne : 18
   fence : 16
-  bgeu : 1
-  xori : 3
-  bltu : 1
   ebreak : 1
-  sh : 1
   lh : 1
+  xori : 3
+  sh : 1
+  bltu : 1
+  bgeu : 1
   lhu : 1
 

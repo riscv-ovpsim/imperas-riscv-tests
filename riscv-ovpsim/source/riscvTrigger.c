@@ -432,7 +432,8 @@ static Bool matchTriggerADMATCHValue(
             Uns32 maskH  = getAddressMask(shift);
             Uns32 value1 = valueM  & maskH & (tdata2>>shift);
             Uns32 value2 = tdata2M & maskH;
-            return (value1==value2);
+            match = (value1==value2);
+            break;
         }
 
         case 5: case 13: {
@@ -440,7 +441,8 @@ static Bool matchTriggerADMATCHValue(
             Uns32 maskH  = getAddressMask(shift);
             Uns32 value1 = ((value&tdata2)>>shift) & maskBits;
             Uns32 value2 = tdata2M & maskH;
-            return (value1==value2);
+            match = (value1==value2);
+            break;
         }
     }
 
@@ -546,18 +548,24 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta, Bool complete) {
         doBKPT = RD_CSR_FIELDC(riscv, mstatus, MIE);
     }
 
+    // reset trigger state
     for(i=0; i<numTriggers(riscv); i++) {
 
-        riscvTriggerP this  = &riscv->triggers[i];
-        riscvTriggerP last  = 0;
-        Bool          after = getTriggerAfter(this);
-        Uns32         action;
+        riscvTriggerP this = &riscv->triggers[i];
 
         // indicate not triggered initially
         this->triggered = False;
 
         // assume this is not a matching instruction count trigger
         this->tdata1UP.icmatch = False;
+    }
+
+    for(i=0; i<numTriggers(riscv); i++) {
+
+        riscvTriggerP this  = &riscv->triggers[i];
+        riscvTriggerP last  = 0;
+        Bool          after = getTriggerAfter(this);
+        Uns32         action;
 
         if(!firstInChain(riscv, this)) {
             // no action
@@ -597,7 +605,9 @@ static triggerAction getActiveAction(riscvP riscv, Uns32 delta, Bool complete) {
 //
 static void doTriggerAction(riscvP riscv, triggerAction action) {
 
-    Uns64 tval = getPC(riscv);
+    Uns64 epc     = getPC(riscv);
+    Uns64 tval    = epc;
+    Bool  tvalSet = False;
     Uns32 i;
 
     for(i=0; i<numTriggers(riscv); i++) {
@@ -612,9 +622,36 @@ static void doTriggerAction(riscvP riscv, triggerAction action) {
         }
 
         // use any tval associated with the trigger
-        if(this->triggered && this->tvalValid) {
+        if(this->triggered) {
+
+            Bool useThis = False;
+
+            // handle first/last
+            if(!this->tvalValid) {
+                // trigger does not provide tval
+            } else if(!(riscv->configInfo.chain_tval & RVCT_LAST)) {
+                useThis = !tvalSet;
+            } else {
+                useThis = True;
+            }
+
+            // prefer non-epc values for tval if required (since epc is reported
+            // in xepc already)
+            if(!(riscv->configInfo.chain_tval & RVCT_NON_EPC)) {
+                // no action
+            } else if(this->tval == epc) {
+                useThis = False;
+            }
+
+            // use this value if selected
+            if(useThis) {
+                tval    = this->tval;
+                tvalSet = True;
+            }
+
+            // reset triggered state and tvalValid
             this->triggered = False;
-            tval            = this->tval;
+            this->tvalValid = False;
         }
     }
 

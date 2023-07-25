@@ -43,10 +43,10 @@ Instruction category: OPV_SLIDE slide
   vslideup.vi : 336
   vslideup.vx : 336
 Instruction category: OPV_VMV whole vector register move
+  vmv2r.v : 32
   vmv1r.v : 32
   vmv4r.v : 32
   vmv8r.v : 16
-  vmv2r.v : 32
 
 Other instructions (those not the focus of this suite)
   jal : 184

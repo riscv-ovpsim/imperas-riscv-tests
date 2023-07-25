@@ -8155,6 +8155,7 @@ static void interpretInstruction(
     riscvRListDesc rlist = getRList(info, attrs->rlist);
 
     // fill other fields from instruction
+    info->cPrefix   = riscv->configInfo.show_c_prefix;
     info->unsExt    = getUnsExt(riscv, info, attrs->unsExt);
     info->csr       = getCSR(riscv, info, attrs->csr);
     info->csrUpdate = getCSRUpdate(riscv, info, attrs->csrUpdate);

@@ -33,12 +33,13 @@ typedef enum riscvRegDescE {
     RV_RD_INDEX_MASK = 0x01f,               // mask to select register index
 
                                             // REGISTER SIZE (in bits)
-    RV_RD_8          = RV_RD_INDEX_MASK+1,  // 8-bit
+    RV_RD_4          = RV_RD_INDEX_MASK+1,  // 4-bit
+    RV_RD_8          = RV_RD_4 *2,          // 8-bit
     RV_RD_16         = RV_RD_8 *2,          // 16-bit
     RV_RD_32         = RV_RD_16*2,          // 32-bit
     RV_RD_64         = RV_RD_32*2,          // 64-bit
     RV_RD_128        = RV_RD_64*2,          // 128-bit
-    RV_RD_BITS_MASK  = (RV_RD_8|RV_RD_16|RV_RD_32|RV_RD_64|RV_RD_128),
+    RV_RD_BITS_MASK  = (RV_RD_4|RV_RD_8|RV_RD_16|RV_RD_32|RV_RD_64|RV_RD_128),
 
                                             // REGISTER TYPE
     RV_RD_X          = RV_RD_128*2,         // integer (X) register
@@ -139,14 +140,14 @@ inline static Uns32 getRIndex(riscvRegDesc r) {
 // Return register size in bits
 //
 inline static Uns32 getRBits(riscvRegDesc r) {
-    return (r&RV_RD_BITS_MASK)>>2;
+    return (r&RV_RD_BITS_MASK)>>3;
 }
 
 //
 // Set register size in bits
 //
 inline static riscvRegDesc setRBits(riscvRegDesc r, Uns32 bits) {
-    return (r&~RV_RD_BITS_MASK) | (bits<<2);
+    return (r&~RV_RD_BITS_MASK) | (bits<<3);
 }
 
 //

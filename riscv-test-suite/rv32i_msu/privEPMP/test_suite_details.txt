@@ -28,11 +28,11 @@ Other instructions (those not the focus of this suite)
   or : 5,628
   beq : 252
   jalr : 661
+  csrrc : 28
   sw : 5,376
   bne : 9,588
   lw : 1,344
   FETCH : 795
-  fence : 28
   ecall : 84
-  csrrc : 28
+  fence : 28
 

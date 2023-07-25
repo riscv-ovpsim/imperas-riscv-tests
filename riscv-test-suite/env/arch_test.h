@@ -891,6 +891,28 @@ RVTEST_SIGUPD_F(swreg,destreg,flagreg,offset)
     csrr DEST_REG,ADDRESS;\
     RVTEST_SIGUPD(BASE_REG,DEST_REG,OFFSET)
 
+#define TEST_CSR_OP(inst, destreg, reg1, index, correctval, correctcsr, val1, val2, tmpreg, swreg, offset, testreg) \
+    LI(reg1, val1);\
+    LI(tmpreg, val2);\
+    LI(destreg, val1);\
+    csrw index, tmpreg;\
+    inst destreg, index, reg1;\
+    csrr tmpreg, index;\
+    RVTEST_SIGUPD(swreg,tmpreg,offset); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, tmpreg, correctcsr) \
+    RVTEST_SIGUPD(swreg,destreg,offset); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, destreg, correctval)
+
+#define TEST_CSR_IMM_OP(inst, destreg, imm, index, correctval, correctcsr, val1, val2, tmpreg, swreg, offset, testreg) \
+    LI(tmpreg, val2);\
+    LI(destreg, val1);\
+    csrw index, tmpreg;\
+    inst destreg, index, imm;\
+    csrr tmpreg, index;\
+    RVTEST_SIGUPD(swreg,tmpreg,offset); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, tmpreg, correctcsr) \
+    RVTEST_SIGUPD(swreg,destreg,offset); \
+    RVMODEL_IO_ASSERT_GPR_EQ(testreg, destreg, correctval)
 
 #define TEST_CASE(testreg, destreg, correctval, swreg, offset, code... ) \
     code; \

@@ -25,7 +25,7 @@
 //
 // Specify named variant
 //
-#define RISC_VARIANT(_NAME, _PMP_REGS, _Zfinx, _Zcea, _Zceb, _Zcee, _ARCH) {    \
+#define RISC_VARIANT(_NAME, _PMP_REGS, _Zfinx, _Zcea, _Zceb, _Zcee, _ARCH) { \
     .name                = _NAME,                                   \
     .arch                = _ARCH,                                   \
     .archMask            = RV_ARCH_MASK_DEFAULT,                    \
@@ -65,6 +65,58 @@
     .mvalue_bits         = ((_ARCH)&RV64) ? 13 : 6,                 \
     .svalue_bits         = ((_ARCH)&RV64) ? 34 : 16,                \
     .mcontrol_maskmax    = 63,                                      \
+    .posedge_0_63        = 0x000f,                                  \
+    .amo_constraint      = RVMC_USER1,                              \
+    .lr_sc_constraint    = RVMC_USER1,                              \
+    .push_pop_constraint = RVMC_USER2,                              \
+}
+
+//
+// Specify named profile variant
+//
+#define RISC_PROFILE(_NAME, _Zic, _Zfhmin, _Svpbmt, _Svinval, _UV, _PV, _ARCH) { \
+    .name                = _NAME,                                   \
+    .arch                = _ARCH,                                   \
+    .archMask            = RV_ARCH_MASK_DEFAULT,                    \
+    .counteren_mask      = -1,                                      \
+    .user_version        = _UV,                                     \
+    .priv_version        = _PV,                                     \
+    .bitmanip_version    = RVBV_DEFAULT,                            \
+    .compress_version    = RVCV_DEFAULT,                            \
+    .crypto_version      = RVKV_DEFAULT,                            \
+    .vcrypto_version     = RVKVV_DEFAULT,                           \
+    .hyp_version         = RVHV_DEFAULT,                            \
+    .vect_version        = RVVV_DEFAULT,                            \
+    .dbg_version         = RVDBG_DEFAULT,                           \
+    .CLIC_version        = RVCLC_DEFAULT,                           \
+    .AIA_version         = RVAIA_DEFAULT,                           \
+    .debug_priority      = RVDP_DEFAULT,                            \
+    .bitmanip_absent     = ~(RVBS_Zba|RVBS_Zbb|RVBS_Zbs),           \
+    .Sv_modes            = ((1<<0)+(1<<8)),                         \
+    .Svpbmt              = _Svpbmt,                                 \
+    .Svinval             = _Svinval,                                \
+    .updatePTEA          = False,                                   \
+    .updatePTED          = False,                                   \
+    .lr_sc_grain         = 64,                                      \
+    .unaligned           = True,                                    \
+    .unalignedV          = True,                                    \
+    .CLICSELHVEC         = True,                                    \
+    .CSIP_present        = True,                                    \
+    .Zicbom              = _Zic,                                    \
+    .Zicbop              = _Zic,                                    \
+    .Zicboz              = _Zic,                                    \
+    .cmomp_bytes         = 64,                                      \
+    .cmoz_bytes          = 64,                                      \
+    .Zfhmin              = _Zfhmin,                                 \
+    .Zvlsseg             = 1,                                       \
+    .Zvamo               = 1,                                       \
+    .Zvediv              = 0,                                       \
+    .Zvqmac              = 0,                                       \
+    .PMP_registers       = 0,                                       \
+    .tval_ii_code        = True,                                    \
+    .ASID_bits           = ((_ARCH)&RV64) ? 16 : 9,                 \
+    .VMID_bits           = ((_ARCH)&RV64) ? 14 : 7,                 \
+    .numHarts            = RV_NUMHARTS_0,                           \
     .posedge_0_63        = 0x000f,                                  \
     .amo_constraint      = RVMC_USER1,                              \
     .lr_sc_constraint    = RVMC_USER1,                              \
@@ -112,11 +164,21 @@ static const riscvConfig configList[] = {
     RISC_VARIANT("RV64GCV",     16, 0, 0, 0, 0, ISA_U|ISA_S|RV64GCV ),
 
     // RV32 base variants (no User/Supervisor modes or PMP implemented)
-    RISC_VARIANT("RVB32I",      0,  0, 0, 0, 0,             RV32I   ),
-    RISC_VARIANT("RVB32E",      0,  0, 0, 0, 0,             RV32E   ),
+    RISC_VARIANT("RVB32I",       0, 0, 0, 0, 0,             RV32I   ),
+    RISC_VARIANT("RVB32E",       0, 0, 0, 0, 0,             RV32E   ),
 
     // RV64 base variants (no User/Supervisor modes or PMP implemented)
-    RISC_VARIANT("RVB64I",      0,  0, 0, 0, 0,             RV64I   ),
+    RISC_VARIANT("RVB64I",       0, 0, 0, 0, 0,             RV64I   ),
+
+    // 2020 profile variants
+    RISC_PROFILE("RVI20U32",     0, 0, 0, 0, RVUV_20191213, RVPV_20190608, ISA_U|      RV32GC),
+    RISC_PROFILE("RVI20U64",     0, 0, 0, 0, RVUV_20191213, RVPV_20190608, ISA_U|      RV64GC),
+    RISC_PROFILE("RVA20U64",     0, 0, 0, 0, RVUV_20191213, RVPV_20190608, ISA_U|      RV64GC),
+    RISC_PROFILE("RVA20S64",     0, 0, 0, 0, RVUV_20191213, RVPV_20190608, ISA_U|ISA_S|RV64GC),
+
+    // 2022 profile variants
+    RISC_PROFILE("RVA22U64",     1, 1, 1, 1, RVUV_20191213, RVPV_20211203, ISA_U|      RV64GCB),
+    RISC_PROFILE("RVA22S64",     1, 1, 1, 1, RVUV_20191213, RVPV_20211203, ISA_U|ISA_S|RV64GCB),
 
     {0} // null terminator
 };

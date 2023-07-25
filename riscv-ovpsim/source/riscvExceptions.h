@@ -87,6 +87,14 @@ void riscvTakeAsynchonousException(
 );
 
 //
+// Specify any exception to be taken on the next instruction fetch
+//
+void riscvPendFetchException(
+    riscvP         riscv,
+    riscvException exception
+);
+
+//
 // Take processor exception because of memory access error which could be
 // suppressed for a fault-only-first instruction or other custom reason using
 // the given GVA value

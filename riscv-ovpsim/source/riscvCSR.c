@@ -179,11 +179,15 @@ inline static Uns64 maskVSXLEN(riscvP riscv) {
 
 //
 // Trigger Illegal Instruction or Virtual Instruction exception depending on
-// whether the processor is currently in a virtual mode
+// whether the processor is currently in a virtual mode and whether the register
+// being accessed is reserved or inaccessible
 //
-static void virtualOrIllegalMessage(riscvP riscv, const char *reason) {
-
-    if(inVMode(riscv)) {
+static void virtualOrIllegalMessage(
+    riscvP      riscv,
+    const char *reason,
+    Bool        reserved
+) {
+    if(!reserved && inVMode(riscv)) {
         riscvVirtualInstructionMessage(riscv, reason);
     } else {
         riscvIllegalInstructionMessage(riscv, reason);
@@ -312,6 +316,25 @@ static RISCV_CSR_WRITEFN(misaW) {
         } else {
             newValue &= ~ISA_D;
         }
+    }
+
+    if(!(newValue&ISA_V)) {
+
+        // no action unless V extension is enabled
+
+    } else if(!riscvVFSupport(riscv, RVVF_V_REQUIRES_FD)) {
+
+        // no dependency on F and D extensions
+
+    } else if((riscv->configInfo.vect_profile&RVVS_F) && !(newValue&ISA_F)) {
+
+        // V feature depends upon F feature
+        newValue &= ~ISA_V;
+
+    } else if((riscv->configInfo.vect_profile&RVVS_D) && !(newValue&ISA_D)) {
+
+        // V feature depends upon D feature
+        newValue &= ~ISA_V;
     }
 
     // update the CSR
@@ -770,20 +793,19 @@ static void updateEndian(riscvP riscv) {
 static void postStatusW(riscvP riscv, Uns64 oldValue, Uns64 newValue) {
 
     // detect any change in IE and BE bits
-    Uns32 oldIE = oldValue & WM_mstatus_IE;
-    Uns64 oldBE = oldValue & WM_mstatus_BE;
-    Uns64 oldXL = oldValue & WM_mstatus_XL;
-    Uns32 newIE = newValue & WM_mstatus_IE;
-    Uns64 newBE = newValue & WM_mstatus_BE;
-    Uns64 newXL = newValue & WM_mstatus_XL;
+    Uns32 oldIE     = oldValue & WM_mstatus_IE;
+    Uns32 newIE     = newValue & WM_mstatus_IE;
+    Uns64 changed   = oldValue ^ newValue;
+    Bool  changedBE = changed & WM_mstatus_BE;
+    Bool  changedXL = changed & WM_mstatus_XL;
 
     // refresh XLEN mask and current mode when required
-    if(!riscv->xlenMask || (oldXL!=newXL)) {
+    if(!riscv->xlenMask || changedXL) {
         riscvRefreshXLEN(riscv);
     }
 
     // handle update of endianness if required
-    if(oldBE!=newBE) {
+    if(changedBE) {
         updateEndian(riscv);
     }
 
@@ -1771,8 +1793,9 @@ static Bool xiselectValid(
     riscvMode   mode,
     const char *badReason
 ) {
-    Bool V     = modeIsVirtual(mode);
-    Bool valid = False;
+    Bool V        = modeIsVirtual(mode);
+    Bool valid    = False;
+    Bool reserved = False;
 
     if(xiselectIsIPRIO(xiselect)) {
 
@@ -1802,11 +1825,18 @@ static Bool xiselectValid(
             valid     = checkAIAAccess(riscv, bit_stateen_IMSIC);
             badReason = 0;
         }
+
+    } else if(RISCV_AIA_VERSION(riscv)>=RVAIA_1_0_RC5) {
+
+        // from RC5, when vsiselect has a reserved value, attempts to access
+        // sireg from VS mode or VU mode raise an Illegal Instruction exception
+        // instead of a Virtual Instruction exception
+        reserved = True;
     }
 
     // take trap if required
     if(badReason && !riscv->artifactAccess) {
-        virtualOrIllegalMessage(riscv, badReason);
+        virtualOrIllegalMessage(riscv, badReason, reserved);
     }
 
     return valid;
@@ -2231,7 +2261,7 @@ static RISCV_CSR_READFN(vstopeiR) {
     if(riscv->artifactAccess || !(error=accessVSModeInterruptFile(riscv))) {
         result = xtopeiR(riscv->aia->vseiprio);
     } else {
-        virtualOrIllegalMessage(riscv, error);
+        virtualOrIllegalMessage(riscv, error, False);
     }
 
     return result;
@@ -6078,6 +6108,20 @@ inline static RISCV_CSR_PRESENTFN(triggerP) {
 }
 
 //
+// Is tdata2 register present?
+//
+inline static RISCV_CSR_PRESENTFN(tdata2P) {
+    return getTriggerNum(riscv) && !riscv->configInfo.tdata2_undefined;
+}
+
+//
+// Is tdata3 register present?
+//
+inline static RISCV_CSR_PRESENTFN(tdata3P) {
+    return getTriggerNum(riscv) && !riscv->configInfo.tdata3_undefined;
+}
+
+//
 // Is tinfo register present?
 //
 inline static RISCV_CSR_PRESENTFN(tinfoP) {
@@ -6526,6 +6570,20 @@ static void resetTriggers(riscvP riscv) {
 //
 inline static RISCV_CSR_PRESENTFN(debugP) {
     return riscv->configInfo.debug_mode;
+}
+
+//
+// Is dscratch0 register present?
+//
+inline static RISCV_CSR_PRESENTFN(dscratch0P) {
+    return debugP(attrs, riscv) && !riscv->configInfo.dscratch0_undefined;
+}
+
+//
+// Is dscratch1 register present?
+//
+inline static RISCV_CSR_PRESENTFN(dscratch1P) {
+    return debugP(attrs, riscv) && !riscv->configInfo.dscratch1_undefined;
 }
 
 //
@@ -8234,8 +8292,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     //                name          num    arch         access      version     attrs    Smstateen             description                                              present      wState       rCB            rwCB      wCB
     CSR_ATTR_T__     (tselect,      0x7A0, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Trigger Register Select",                               triggerP,    0,           0,             0,        tselectW      ),
     CSR_ATTR_P__     (tdata1,       0x7A1, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Data 1",                                        triggerP,    0,           tdata1R,       0,        tdata1W       ),
-    CSR_ATTR_P__     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Data 2",                                        triggerP,    0,           tdata2R,       0,        tdata2W       ),
-    CSR_ATTR_P__     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Data 3",                                        triggerP,    0,           tdata3R,       0,        tdata3W       ),
+    CSR_ATTR_P__     (tdata2,       0x7A2, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Data 2",                                        tdata2P,     0,           tdata2R,       0,        tdata2W       ),
+    CSR_ATTR_P__     (tdata3,       0x7A3, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Data 3",                                        tdata3P,     0,           tdata3R,       0,        tdata3W       ),
     CSR_ATTR_P__     (tinfo,        0x7A4, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Info",                                          tinfoP,      0,           tinfoR,        0,        0             ),
     CSR_ATTR_TV_     (tcontrol,     0x7A5, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Trigger Control",                                       tcontrolP,   0,           0,             0,        0             ),
     CSR_ATTR_P__     (mcontext,     0x7A8, 0,           0,          1_10,   0,0,0,0,1,0, 0,                    "Trigger Machine Context",                               mcontextP,   0,           mcontextR,     0,        mcontextW     ),
@@ -8247,8 +8305,8 @@ static const riscvCSRAttrs csrs[CSR_ID(LAST)] = {
     //                name          num    arch         access      version     attrs    Smstateen             description                                              present      wState       rCB            rwCB      wCB
     CSR_ATTR_TV_     (dcsr,         0x7B0, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Control and Status",                              debugP,      0,           0,             0,        dcsrW         ),
     CSR_ATTR_TV_     (dpc,          0x7B1, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug PC",                                              debugP,      0,           dpcR,          0,        0             ),
-    CSR_ATTR_T__     (dscratch0,    0x7B2, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 0",                                       debugP,      0,           0,             0,        0             ),
-    CSR_ATTR_T__     (dscratch1,    0x7B3, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 1",                                       debugP,      0,           0,             0,        0             ),
+    CSR_ATTR_T__     (dscratch0,    0x7B2, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 0",                                       dscratch0P,  0,           0,             0,        0             ),
+    CSR_ATTR_T__     (dscratch1,    0x7B3, 0,           0,          1_10,   0,0,0,0,0,0, 0,                    "Debug Scratch 1",                                       dscratch1P,  0,           0,             0,        0             ),
 };
 
 
@@ -8644,7 +8702,7 @@ void riscvNewCSR(
     riscvP          riscv,
     vmiosObjectP    object
 ) {
-    if(!src) {
+    if(!src || !src->name) {
 
         // no action
 
@@ -8985,11 +9043,6 @@ void riscvCSRReset(riscvP riscv) {
 #if(ENABLE_SSMPU)
     riscvVMResetMPU(riscv);
 #endif
-
-    // reset ePMP state
-    WR_CSR_FIELDC(riscv, mseccfg, MML,  0);
-    WR_CSR_FIELDC(riscv, mseccfg, MMWP, 0);
-    WR_CSR_FIELDC(riscv, mseccfg, RLB,  0);
 
     // reset Smstateen state
     for(i=0; i<4; i++) {
@@ -9912,11 +9965,8 @@ void riscvCSRInit(riscvP riscv) {
     WR_CSR_FIELDC(riscv, dcsr, xdebugver, 4);
 
     //--------------------------------------------------------------------------
-    // mseccfg CSR and write mask
+    // mseccfg write mask
     //--------------------------------------------------------------------------
-
-    // Copy full 64 bit value regardless of XLEN
-    riscv->csr.mseccfg = cfg->csr.mseccfg;
 
     if(!mseccfg_cryptoP(riscv)) {
 
@@ -9978,10 +10028,14 @@ void riscvCSRInit(riscvP riscv) {
 void riscvCSRFree(riscvP riscv) {
 
     // free CSR lookup table
-    vmirtFreeRangeTable(&riscv->csrTable);
+    if(riscv->csrTable) {
+        vmirtFreeRangeTable(&riscv->csrTable);
+    }
 
     // free CSR message range table
-    vmirtFreeRangeTable(&riscv->csrUIMessage);
+    if(riscv->csrUIMessage) {
+        vmirtFreeRangeTable(&riscv->csrUIMessage);
+    }
 
     // free CSR aliases
     freeCSRRemap(riscv);
@@ -9989,11 +10043,13 @@ void riscvCSRFree(riscvP riscv) {
     // free trigger structures if required
     if(riscv->triggers) {
         STYPE_FREE(riscv->triggers);
+        riscv->triggers = 0;
     }
 
     // free AIA structures if required
     if(riscv->aia) {
         STYPE_FREE(riscv->aia);
+        riscv->aia = 0;
     }
 }
 
@@ -10655,7 +10711,7 @@ static VMIRT_COMMAND_PARSE_FN(getCSRIndex) {
 
     // scan for first CSR with matching name
     while(!match && (attrs=getNextCSR(riscv, &csrNum))) {
-        if(checkCSRPresent(attrs, riscv)) {
+        if(checkCSRPresent(attrs, riscv) && attrs->name) {
             match = !strcmp(name, attrs->name);
         }
     }

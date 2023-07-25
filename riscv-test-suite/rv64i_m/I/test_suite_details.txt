@@ -40,11 +40,11 @@ Instruction category: logical
   and : 301
 Instruction category: branch 
   beq : 482
-  bne : 302
-  blt : 333
-  bge : 302
-  bltu : 302
   bgeu : 302
+  bge : 302
+  blt : 333
+  bne : 302
+  bltu : 302
 Instruction category: OPI_IMN 
   ecall : 61
   ebreak : 1
@@ -57,33 +57,33 @@ Instruction category: load
   lb : 298
   lw : 303
   lh : 302
-  lbu : 303
-  lhu : 303
   ld : 1,494
+  lhu : 303
+  lbu : 303
   lwu : 297
 Instruction category: store 
   sd : 14,996
   sb : 297
-  sw : 485
   sh : 301
+  sw : 485
 Instruction category: shift 
   slli : 17,385
-  sll : 301
   srli : 299
   srai : 299
-  sra : 301
-  slliw : 298
+  sll : 301
+  srl : 301
+  sraiw : 298
   srliw : 298
+  slliw : 298
+  sra : 301
   sraw : 300
   sllw : 300
   srlw : 300
-  sraiw : 298
-  srl : 301
 Instruction category: compare 
   slti : 299
-  sltu : 301
   sltiu : 299
   slt : 301
+  sltu : 301
 
 Other instructions (those not the focus of this suite)
   csrrs : 253

@@ -62,11 +62,11 @@ Other instructions (those not the focus of this suite)
   fnmsub.s : 56,528
   fsgnj.s : 576
   fmv.s : 2
-  fsgnjn.s : 576
-  fneg.s : 2
+  fsqrt.s : 483
   fsgnjx.s : 576
   fabs.s : 2
-  fsqrt.s : 483
+  fsgnjn.s : 576
+  fneg.s : 2
   fsub.s : 11,525
   sub : 32
 

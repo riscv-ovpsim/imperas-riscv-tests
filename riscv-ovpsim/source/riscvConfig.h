@@ -86,7 +86,7 @@ typedef struct riscvPMARegionS {
 //
 typedef struct riscvConfigS {
 
-    const char       *name;             // variant name
+    const char       *name;                 // variant name
 
     // fundamental variant configuration
     riscvArchitecture arch;                 // variant architecture
@@ -121,7 +121,9 @@ typedef struct riscvConfigS {
     riscvDMMode       debug_mode      : 8;  // is Debug mode implemented?
     riscvDERETMode    debug_eret_mode : 8;  // debug mode MRET/SRET/DRET action
     riscvDPriority    debug_priority  : 8;  // simultaneous debug event priority
+    riscvChainTVAL    chain_tval      : 8;  // chained trigger tval to select
     const char      **members;              // cluster member variants
+    const char       *leaf_hart_prefix;     // prefix for hart in cluster
 
     // instruction memory constraints
     riscvMConstraint amo_constraint      : 2;   // AMO memory constraint
@@ -255,6 +257,8 @@ typedef struct riscvConfigS {
     Bool  minstret_undefined   : 1;     // whether minstret CSR undefined
     Bool  hpmcounter_undefined : 1;     // whether hpmcounter* CSRs undefined
     Bool  mhpmcounter_undefined: 1;     // whether mhpmcounter* CSRs undefined
+    Bool  tdata2_undefined     : 1;     // whether tdata2 CSR is undefined
+    Bool  tdata3_undefined     : 1;     // whether tdata3 CSR is undefined
     Bool  tinfo_undefined      : 1;     // whether tinfo CSR is undefined
     Bool  tcontrol_undefined   : 1;     // whether tcontrol CSR is undefined
     Bool  mcontext_undefined   : 1;     // whether mcontext CSR is undefined
@@ -263,6 +267,8 @@ typedef struct riscvConfigS {
     Bool  scontext_0x5A8       : 1;     // whether scontext explicitly at 0x5A8
     Bool  hcontext_undefined   : 1;     // whether hcontext CSR is undefined
     Bool  mnoise_undefined     : 1;     // whether mnoise CSR is undefined
+    Bool  dscratch0_undefined  : 1;     // whether dscratch0 CSR is undefined
+    Bool  dscratch1_undefined  : 1;     // whether dscratch1 CSR is undefined
     Bool  amo_trigger          : 1;     // whether triggers used with AMO
     Bool  amo_aborts_lr_sc     : 1;     // whether AMO aborts active LR/SC
     Bool  lr_sc_match_size     : 1;     // whether LR/SC size must match
@@ -275,7 +281,8 @@ typedef struct riscvConfigS {
     Bool  trap_preserves_lr    : 1;     // whether trap preserves active LR/SC
     Bool  xret_preserves_lr    : 1;     // whether xret preserves active LR/SC
     Bool  fence_g_preserves_vs : 1;     // whether G-stage fence preserves VS-stage
-    Bool  require_vstart0      : 1;     // require vstart 0 if uninterruptible?
+    Bool  vstart0_non_ld_st    : 1;     // require vstart 0 for non-load-store?
+    Bool  vstart0_ld_st        : 1;     // require vstart 0 for load-store?
     Bool  align_whole          : 1;     // whole register load aligned to hint?
     Bool  vill_trap            : 1;     // trap instead of setting vill?
     Bool  enable_CSR_bus       : 1;     // enable CSR implementation bus
@@ -295,6 +302,7 @@ typedef struct riscvConfigS {
     Bool  tval_zero_ebreak     : 1;     // whether [smu]tval always zero on ebreak
     Bool  tval_ii_code         : 1;     // instruction bits in [smu]tval for
                                         // illegal instruction exception?
+    Bool  no_resethaltreq      : 1;     // resethaltreq gives haltreq reason
     Bool  defer_step_bug       : 1;     // defer step breakpoint for one
                                         // instruction when interrupt on return
                                         // from debug mode (hardware bug)

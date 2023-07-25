@@ -12,6 +12,40 @@ NOTE: X-commit messages below refer to git commits in the following
   V-commit: https://github.com/riscv/riscv-v-spec
   C-commit: https://github.com/riscv/riscv-fast-interrupt
 
+- When WFI is not a NOP (wfi_is_nop is False), new input signal restart_wfi
+  causes a hart to resume from WFI state when high.
+- Vector Cryptographic Extension vaeskf2.vi instruction behavior has been
+  changed to reflect bug fix in commit e2ba7f6.
+- New parameter chain_tval specifies which trigger is used to provide xtval
+  in an implementation with chained triggers.
+- AIA version 1.0-RC5 has been implemented.
+- Vector Extension parameter require_vstart0 has been renamed vstart0_non_ld_st
+  to clarify that the vstart constraint applies to vector instructions that are
+  not load/store instructions.
+- New parameter vstart0_ld_st specifies whether vector load/store instructions
+  require CSR vstart to be zero.
+- From Vector Extension 1.0-rc1-20210608 onwards, misa.V may not be set if
+  misa.F and misa.D are not also set, if those bits can be set to non-zero.
+- New parameter leaf_hart_prefix specifies the prefix reported for a multi-hart
+  core member. The default is "hart", meaning that the name reported for a hart
+  in a cluster will be:
+      <base>_hart<index>
+- New parameter tdata2_undefined specifies that the Debug mode tdata2 CSR
+  is undefined.
+- New parameter tdata3_undefined specifies that the Debug mode tdata3 CSR
+  is undefined.
+- New parameter dscratch0_undefined specifies that the Debug mode dscratch0 CSR
+  is undefined.
+- New parameter dscratch1_undefined specifies that the Debug mode dscratch1 CSR
+  is undefined.
+- New parameter no_resethaltreq controls the reason reported in the dcsr CSR
+  when signal "resethaltreq" is applied at reset. If False, dcsr will report 
+  reason 5, otherwise it will report reason 3 (the code for haltreq).
+
+Date 2023-April-26 
+Release 20230425.0 
+===
+
 - Vector Cryptographic Extension master version has been modified to reflect
   changes up to April 13th 2023. This specification is currently unstable;
   the "master" version is subject to change.

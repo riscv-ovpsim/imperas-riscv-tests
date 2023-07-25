@@ -24,8 +24,8 @@ Architectural Test Suite Data for RV32ZBA B Bit Manipulation:
 
 Instruction category: OPB_ADDR Address Calculation
   sh1add : 172
-  sh2add : 172
   sh3add : 172
+  sh2add : 172
 
 Other instructions (those not the focus of this suite)
   jal : 3

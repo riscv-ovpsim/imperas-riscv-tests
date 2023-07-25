@@ -39,15 +39,15 @@ Other instructions (those not the focus of this suite)
   ecall : 62
   beq : 186
   aes32dsi : 385
+  clmulh : 269
   aes32esi : 383
+  grevi : 264
+  andn : 269
   aes32esmi : 384
+  clmul : 269
   orn : 269
   packh : 269
-  andn : 269
-  grevi : 264
   pack : 269
-  clmulh : 269
-  clmul : 269
   rol : 269
   ror : 269
   rori : 158
@@ -57,16 +57,16 @@ Other instructions (those not the focus of this suite)
   add : 648
   lw : 492
   sha256sig1 : 195
-  sha256sum0 : 195
   sha256sum1 : 195
   sha512sig0h : 227
+  sha256sum0 : 195
   sha512sig0l : 229
   sha512sig1h : 228
   sha512sig1l : 229
-  sha512sum0r : 229
   sha512sum1r : 228
-  sm3p0 : 195
+  sha512sum0r : 229
   sm3p1 : 195
+  sm3p0 : 195
   sm4ed : 383
   sm4ks : 383
   unshfli : 132

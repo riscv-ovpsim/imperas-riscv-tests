@@ -23,209 +23,209 @@ Architectural Test Suite Data for RV64P P DSP:
     727,374 total instructions
 
 Instruction category: OPP_SIMD SIMD Instructions (P-DSP)
-  add64 : 299
-  bpick : 75
-  clrs16 : 298
-  ave : 300
-  clrs8 : 298
-  add16 : 300
   add8 : 300
+  add16 : 300
   bitrev : 300
+  ave : 300
+  add64 : 299
   clrs32 : 298
-  clz8 : 298
-  clo16 : 298
+  clrs16 : 298
+  clrs8 : 298
+  clo8 : 298
+  bpick : 75
+  clz32 : 298
+  cmpeq8 : 300
   clz16 : 298
   clo32 : 298
-  clo8 : 298
-  cmpeq8 : 300
-  clz32 : 298
-  cmpeq16 : 300
+  clo16 : 298
+  clz8 : 298
   cras16 : 300
+  cmpeq16 : 300
+  insb : 298
+  kabsw : 298
+  kabs8 : 298
+  kadd8 : 300
+  kadd16 : 300
+  kaddw : 300
+  kcras16 : 300
   crsa16 : 300
   kabs16 : 298
-  kabsw : 298
-  insb : 298
-  kadd16 : 300
-  kadd64 : 299
-  kadd8 : 300
-  kabs8 : 298
-  kaddw : 300
-  kaddh : 300
-  kcras16 : 300
   kdmbb : 300
-  kcrsa16 : 300
+  kaddh : 300
   kdmbt : 300
+  kadd64 : 299
+  kcrsa16 : 300
   kdmtt : 300
-  kdmabb : 300
   kdmabt : 300
+  kdmabb : 300
   kdmatt : 300
-  khmx8 : 300
+  khm8 : 300
   khm16 : 300
   khmbb : 300
-  khm8 : 300
-  khmbt : 300
-  khmx16 : 300
-  khmtt : 300
   kmabb : 300
-  kmatt : 300
-  kmads : 300
+  khmx16 : 300
+  khmx8 : 300
   kmabt : 300
-  kmaxds : 300
-  kmar64 : 300
-  kmda : 300
+  kmatt : 300
   kmada : 300
-  kmaxda : 300
-  kmxda : 300
+  khmbt : 300
+  khmtt : 300
+  kmads : 300
+  kmar64 : 300
+  kmaxds : 300
   kmadrs : 300
+  kmaxda : 300
+  kmda : 300
+  kmxda : 300
   kmmac : 300
   kmmac.u : 300
+  kmmawb2 : 300
   kmmawb.u : 300
   kmmawb : 300
-  kmmawb2 : 300
+  kmmawt2 : 300
   kmmawt : 300
   kmmawb2.u : 300
-  kmmawt2 : 300
-  kmmawt2.u : 300
   kmmawt.u : 300
-  kmmsb.u : 300
-  kmmsb : 300
-  kmmwb2 : 300
+  kmmwt2 : 300
   kmmwb2.u : 300
   kmmwt2.u : 300
-  kmsxda : 300
-  kmmwt2 : 300
+  kmmsb : 300
+  kmmsb.u : 300
+  kmmawt2.u : 300
   kmsda : 300
+  kmsxda : 300
+  kmmwb2 : 300
   kmsr64 : 300
-  ksllw : 300
   kslliw : 298
+  ksll8 : 300
   ksll16 : 300
   kslli8 : 298
-  ksll8 : 300
-  kslra8.u : 300
-  kslli16 : 298
-  kslra16.u : 300
+  ksllw : 300
   kslra8 : 300
-  kslraw : 300
-  kslraw.u : 300
+  kslli16 : 298
   kslra16 : 300
-  ksub8 : 300
+  kslraw : 300
   kstas16 : 300
   kstsa16 : 300
+  kslra8.u : 300
+  ksub8 : 300
+  kslraw.u : 300
+  kslra16.u : 300
   ksub16 : 300
-  ksubh : 300
-  kwmmul : 300
-  ksubw : 300
   ksub64 : 299
-  kwmmul.u : 300
-  maddr32 : 300
-  minw : 300
-  maxw : 300
-  msubr32 : 300
-  pbsad : 300
+  ksubh : 300
   mulr64 : 300
-  pkbb16 : 300
+  ksubw : 300
+  maddr32 : 300
+  msubr32 : 300
+  minw : 300
+  kwmmul : 300
+  kwmmul.u : 300
+  maxw : 300
   mulsr64 : 300
+  pbsada : 300
+  pkbb16 : 300
+  pbsad : 300
   pkbt16 : 300
   pktt16 : 300
-  pbsada : 300
-  radd8 : 300
   pktb16 : 300
+  radd8 : 300
   raddw : 300
-  radd16 : 300
   rcrsa16 : 300
+  radd16 : 300
   radd64 : 299
-  rcras16 : 300
-  rstas16 : 300
-  rsub64 : 299
-  rsub8 : 300
-  rsub16 : 300
   rstsa16 : 300
-  rsubw : 300
-  scmple8 : 300
-  sclip32 : 298
+  rsub8 : 300
+  rstas16 : 300
+  rcras16 : 300
+  rsub16 : 300
+  rsub64 : 299
   sclip8 : 298
-  scmple16 : 300
+  rsubw : 300
   sclip16 : 298
+  sclip32 : 298
+  scmple16 : 300
+  scmple8 : 300
   scmplt8 : 300
-  scmplt16 : 300
   sll16 : 300
-  sll8 : 300
-  slli16 : 298
   slli8 : 298
-  smal : 299
-  smaltt : 300
-  smalda : 300
-  smalxda : 300
-  smalbb : 300
+  scmplt16 : 300
+  slli16 : 298
   smalbt : 300
+  sll8 : 300
+  smalbb : 300
+  smal : 299
+  smalds : 300
+  smalxds : 300
   smaldrs : 300
   smar64 : 300
-  smalxds : 300
-  smalds : 300
-  smaqa.su : 300
-  smaqa : 300
+  smalda : 300
+  smalxda : 300
+  smaltt : 300
   smax8 : 300
+  smaqa : 300
+  smaqa.su : 300
   smax16 : 300
-  smbb16 : 300
-  smtt16 : 300
-  smdrs : 300
   smbt16 : 300
-  smxds : 300
-  smin8 : 300
+  smbb16 : 300
   smds : 300
-  smmul.u : 300
-  smmwb.u : 300
-  smmul : 300
+  smdrs : 300
+  smtt16 : 300
+  smxds : 300
   smin16 : 300
+  smmul.u : 300
+  smin8 : 300
   smmwb : 300
+  smmwb.u : 300
   smmwt : 300
-  smmwt.u : 300
   smslda : 300
-  smul16 : 300
-  smul8 : 300
+  smmul : 300
   smslxda : 300
+  smmwt.u : 300
+  smsr64 : 300
+  smul8 : 300
   smulx8 : 300
+  smul16 : 300
   smulx16 : 300
   sra.u : 300
-  smsr64 : 300
   sra8 : 300
-  sra8.u : 300
   srai.u : 298
   srai8.u : 298
+  sra8.u : 300
   sra16 : 300
+  sra16.u : 300
   srai16 : 298
   srai8 : 298
-  sra16.u : 300
+  srl8 : 300
   srai16.u : 298
+  srl16 : 300
+  srl8.u : 300
   srli8 : 298
   srli8.u : 298
-  srl8 : 300
-  srl8.u : 300
-  srl16.u : 300
-  srl16 : 300
   srli16 : 298
-  stsa16 : 300
+  srl16.u : 300
   stas16 : 300
-  sub8 : 300
-  sub64 : 299
   srli16.u : 298
+  sub8 : 300
+  stsa16 : 300
   sub16 : 300
   sunpkd810 : 298
   sunpkd820 : 298
   sunpkd830 : 298
+  sub64 : 299
   sunpkd831 : 298
-  uclip8 : 298
-  swap8 : 298
   sunpkd832 : 298
+  swap8 : 298
   swap16 : 298
-  uclip32 : 298
+  uclip8 : 298
   uclip16 : 298
   ucmple8 : 300
+  uclip32 : 298
   ucmple16 : 300
-  ukadd8 : 300
-  ucmplt16 : 300
-  ukadd16 : 300
   ucmplt8 : 300
+  ucmplt16 : 300
+  ukadd8 : 300
+  ukadd16 : 300
   ukadd64 : 299
   ukaddh : 300
   ukaddw : 300
@@ -234,113 +234,113 @@ Instruction category: OPP_SIMD SIMD Instructions (P-DSP)
   ukmar64 : 300
   ukmsr64 : 300
   ukstas16 : 300
-  uksub8 : 300
   ukstsa16 : 300
+  uksub8 : 300
   uksub16 : 300
   uksub64 : 299
   uksubh : 300
-  umar64 : 300
+  uksubw : 300
   umaqa : 300
   umax16 : 300
-  umax8 : 300
-  umin16 : 300
   umin8 : 300
-  uksubw : 300
+  umin16 : 300
   umsr64 : 300
-  umulx8 : 300
-  umul16 : 300
   umul8 : 300
-  umulx16 : 300
+  umulx8 : 300
+  umar64 : 300
+  umax8 : 300
   uradd16 : 300
+  umul16 : 300
+  umulx16 : 300
   uradd8 : 300
-  uraddw : 300
   uradd64 : 299
+  uraddw : 300
   urcras16 : 300
   urcrsa16 : 300
+  urstas16 : 300
   urstsa16 : 300
   ursub8 : 300
+  ursub16 : 300
   ursub64 : 299
+  wexti : 298
   ursubw : 300
-  urstas16 : 300
   wext : 299
   zunpkd810 : 298
   zunpkd820 : 298
-  wexti : 298
-  ursub16 : 300
   zunpkd830 : 298
   zunpkd831 : 298
-  add32 : 300
   zunpkd832 : 298
+  add32 : 300
   cras32 : 300
   crsa32 : 300
-  kadd32 : 300
   kabs32 : 298
+  kadd32 : 300
   kcras32 : 300
   kcrsa32 : 300
   kmabb32 : 300
+  kmabt32 : 300
   kmatt32 : 300
-  kmda32 : 300
-  kmxda32 : 300
   kmaxda32 : 300
+  kmxda32 : 300
+  kmda32 : 300
   kmads32 : 300
   kmadrs32 : 300
-  kmabt32 : 300
   kmaxds32 : 300
   kmsda32 : 300
   kmsxda32 : 300
-  ksll32 : 300
-  kslli32 : 298
   kslra32 : 300
+  kslli32 : 298
+  ksll32 : 300
+  kstas32 : 300
   kslra32.u : 300
   kstsa32 : 300
-  kstas32 : 300
   ksub32 : 300
   pkbb32 : 300
   pkbt32 : 300
   pktt32 : 300
+  pktb32 : 300
   radd32 : 300
+  rcras32 : 300
   rcrsa32 : 300
   rstas32 : 300
-  rsub32 : 300
   rstsa32 : 300
-  pktb32 : 300
-  sll32 : 300
+  rsub32 : 300
   slli32 : 298
-  rcras32 : 300
+  sll32 : 300
   smax32 : 300
-  smbb32 : 300
   smbt32 : 300
-  smtt32 : 300
+  smbb32 : 300
   smds32 : 300
+  smtt32 : 300
   smdrs32 : 300
-  smin32 : 300
   smxds32 : 300
+  smin32 : 300
   sra32 : 300
   sra32.u : 300
   srai32 : 298
-  srl32 : 300
-  srl32.u : 300
   srai32.u : 298
+  sraiw.u : 298
+  srl32 : 300
   srli32 : 298
+  srl32.u : 300
   srli32.u : 298
   stas32 : 300
-  sraiw.u : 298
+  stsa32 : 300
   sub32 : 300
-  ukcras32 : 300
   ukadd32 : 300
+  ukcras32 : 300
   ukcrsa32 : 300
   ukstas32 : 300
-  stsa32 : 300
   ukstsa32 : 300
   uksub32 : 300
   umax32 : 300
-  uradd32 : 300
   umin32 : 300
+  uradd32 : 300
   urcras32 : 300
-  urstsa32 : 300
-  ursub32 : 300
   urstas32 : 300
+  urstsa32 : 300
   urcrsa32 : 300
+  ursub32 : 300
 
 Other instructions (those not the focus of this suite)
   jal : 318

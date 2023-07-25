@@ -474,9 +474,8 @@ void riscvFillCLINT(riscvP riscv) {
 //
 // Free CLINT data structures
 //
-void riscvFreeCLINT(riscvP riscv) {
+void riscvFreeCLINT(riscvP root) {
 
-    riscvP  root  = getCLINTRoot(riscv);
     riscvPP clint = root->clint;
 
     if(clint) {

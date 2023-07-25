@@ -26,11 +26,11 @@ Architectural Test Suite Data for RV64ZKND K Crypto/Scalar:
 
 Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
   aes64im : 554
-  aes64dsm : 556
   aes64ds : 556
+  aes64dsm : 556
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
-  aes64ks1i : 554
   aes64ks2 : 556
+  aes64ks1i : 554
 
 Other instructions (those not the focus of this suite)
   c-j : 10

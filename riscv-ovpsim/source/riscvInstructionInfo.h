@@ -2832,7 +2832,7 @@
 //
 #define ATTR16_ADD(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_R3,      \
+    format : FMT_R1_R2NC_R3,    \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_11_7,         \
@@ -2846,7 +2846,7 @@
 //
 #define ATTR16_AND(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_R3,      \
+    format : FMT_R1_R2NC_R3,    \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -2860,7 +2860,7 @@
 //
 #define ATTR16_ADDW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_R3,      \
+    format : FMT_R1_R2NC_R3,    \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -2941,7 +2941,7 @@
 //
 #define ATTR16_EXT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2,         \
+    format : FMT_R1_R2NC,       \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -2956,7 +2956,7 @@
 //
 #define ATTR16_NOT_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2,         \
+    format : FMT_R1_R2NC,       \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -3012,7 +3012,7 @@
 //
 #define ATTR16_MUL_ZC(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_R3,      \
+    format : FMT_R1_R2NC_R3,    \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -3244,7 +3244,7 @@
 //
 #define ATTR16_ADDI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_SIMM,    \
+    format : FMT_R1_R2NC_SIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_11_7,         \
@@ -3258,7 +3258,7 @@
 //
 #define ATTR16_ADDI16SP(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_SIMM,    \
+    format : FMT_R1_R2NC_SIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_SP,           \
@@ -3288,7 +3288,7 @@
 //
 #define ATTR16_ADDIW(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_SIMM,    \
+    format : FMT_R1_R2NC_SIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_11_7,         \
@@ -3303,7 +3303,7 @@
 //
 #define ATTR16_ANDI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_SIMM,    \
+    format : FMT_R1_R2NC_SIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \
@@ -3317,7 +3317,7 @@
 //
 #define ATTR16_SLLI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_XIMM,    \
+    format : FMT_R1_R2NC_XIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_11_7,         \
@@ -3331,7 +3331,7 @@
 //
 #define ATTR16_SRAI(_NAME, _GENERIC, _ARCH, _OPCODE, _ZC) [IT16_##_NAME] = { \
     opcode : _OPCODE,           \
-    format : FMT_R1_R2_XIMM,    \
+    format : FMT_R1_R2NC_XIMM,  \
     type   : RV_IT_##_GENERIC,  \
     arch   : _ARCH,             \
     r1     : RS_X_9_7_P8,       \

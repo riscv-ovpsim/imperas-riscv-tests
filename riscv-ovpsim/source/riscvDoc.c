@@ -1038,7 +1038,7 @@ static void docCLIC(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "- if the hart is currently running at privilege mode x, an "
-                "MRET, SRET, DRET or MNRET instruction that changes privilege "
+                "mret, sret, dret or mnret instruction that changes privilege "
                 "mode sets xintthresh=0."
             );
         }
@@ -1427,6 +1427,29 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // AIA VERSION 1.0-RC5
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                AIA, "Version 1.0-RC5"
+            );
+
+            vmidocAddText(
+                Version,
+                "1.0-RC5 version of June 12 2023, with these changes "
+                "compared to version 1.0-RC3:"
+            );
+            vmidocAddText(
+                Version,
+                "- When \"vsiselect\" has a reserved value, attempts to access "
+                "\"sireg\" from VS mode or VU mode raise an Illegal "
+                "Instruction exception instead of a Virtual Instruction "
+                "exception."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // AIA VERSION master
         ////////////////////////////////////////////////////////////////////////
 
@@ -1438,7 +1461,7 @@ static void docAIA(riscvP riscv, vmiDocNodeP Root) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVAIA_MASTER_DATE" (commit "
-                RVAIA_MASTER_TAG"), currently identical to 1.0-RC3."
+                RVAIA_MASTER_TAG"), currently identical to 1.0-RC5."
             );
         }
     }
@@ -1957,7 +1980,13 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 vmidocAddText(
                     sub,
                     "Output signal \"core_wfi_mode\" indicates whether the "
-                    "core is currently in WFI state."
+                    "processor is currently in WFI state."
+                );
+
+                vmidocAddText(
+                    sub,
+                    "Input signal \"restart_wfi\" will cause the processor to "
+                    "restart from WFI state when high."
                 );
             }
 
@@ -2300,10 +2329,9 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // COMPRESSED EXTENSION
+    // CODE SIZE REDUCTION EXTENSION
     ////////////////////////////////////////////////////////////////////////////
 
-    // floating point configuration
     if(cfg->arch&ISA_C) {
 
         vmiDocNodeP      extC    = vmidocAddSection(Root, "Compressed Extension");
@@ -2491,6 +2519,19 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "- Zcmb and Zcmpe subsets removed."
             );
         }
+
+        ////////////////////////////////////////////////////////////////////////
+        // COMPRESSED EXTENSION VERSION 1.0
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(extC, "Version 1.0");
+
+            vmidocAddText(
+                Version,
+                "Ratified version 1.0, identical to version 1.0.0-RC5.7."
+            );
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -2519,45 +2560,6 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "of the F extension. Set parameter \"d_requires_f\""
                 "to \"T\" to specify that the D extension requires the "
                 "F extension to be enabled."
-            );
-        }
-
-        // document 16-bit floating point support
-        if(cfg->fp16_version==RVFP16_DYNAMIC) {
-
-            vmidocAddText(
-                Features,
-                "Dynamic 16-bit floating floating point is implemented. Use "
-                "parameter \"fp16_version\" to disable this if required."
-            );
-
-            vmidocAddText(
-                Features,
-                "Artifact register \"fp16Format\" indicates the format to be "
-                "used for 16-bit floating point operations. Writes to this "
-                "register allow the format to be changed dynamically."
-            );
-
-            vmidocAddText(Features, "0: use IEEE 754 half-precision format;");
-            vmidocAddText(Features, "1: use BFLOAT16 format.");
-
-        } else if(cfg->fp16_version) {
-
-            snprintf(
-                SNPRINTF_TGT(string),
-                "16-bit floating point is implemented (%s format). Use "
-                "parameter \"Zfh\" to disable this if required.",
-                riscvGetFP16VersionDesc(riscv)
-            );
-
-            vmidocAddText(Features, string);
-
-        } else {
-
-            vmidocAddText(
-                Features,
-                "Half precision floating point is not implemented. Use "
-                "parameter \"Zfh\" to enable this if required."
             );
         }
 
@@ -2640,8 +2642,47 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(Features, string);
         }
 
+        // document 16-bit floating point support
+        if(cfg->fp16_version==RVFP16_DYNAMIC) {
+
+            vmidocAddText(
+                Features,
+                "Dynamic 16-bit floating floating point is implemented. Use "
+                "parameter \"fp16_version\" to disable this if required."
+            );
+
+            vmidocAddText(
+                Features,
+                "Artifact register \"fp16Format\" indicates the format to be "
+                "used for 16-bit floating point operations. Writes to this "
+                "register allow the format to be changed dynamically."
+            );
+
+            vmidocAddText(Features, "0: use IEEE 754 half-precision format;");
+            vmidocAddText(Features, "1: use BFLOAT16 format.");
+
+        } else if(cfg->fp16_version) {
+
+            snprintf(
+                SNPRINTF_TGT(string),
+                "16-bit floating point is implemented (%s format). Use "
+                "parameter \"Zfh\" to disable this if required.",
+                riscvGetFP16VersionDesc(riscv)
+            );
+
+            vmidocAddText(Features, string);
+
+        } else {
+
+            vmidocAddText(
+                Features,
+                "Half precision floating point is not implemented. Use "
+                "parameter \"Zfh\" to enable this if required."
+            );
+        }
+
         // document Zfhmin
-        if(riscv->configInfo.fp16_version) {
+        if(cfg->fp16_version) {
 
             Bool param = cfg->Zfhmin;
 
@@ -3621,13 +3662,23 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             );
             vmidocAddText(Parameters, string);
 
-            // document require_vstart0
+            // document vstart0_non_ld_st
             snprintf(
                 SNPRINTF_TGT(string),
-                "Parameter require_vstart0 is used to specify whether non-"
-                "interruptible vector instructions require vstart=0. By "
-                "default, require_vstart0 is set to %u in this variant.",
-                riscv->configInfo.require_vstart0
+                "Parameter vstart0_non_ld_st is used to specify whether non-"
+                "load/store vector instructions require vstart=0. By "
+                "default, vstart0_non_ld_st is set to %u in this variant.",
+                riscv->configInfo.vstart0_non_ld_st
+            );
+            vmidocAddText(Parameters, string);
+
+            // document vstart0_ld_st
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter vstart0_non_ld_st is used to specify whether "
+                "load/store vector instructions require vstart=0. By "
+                "default, vstart0_ld_st is set to %u in this variant.",
+                riscv->configInfo.vstart0_ld_st
             );
             vmidocAddText(Parameters, string);
 
@@ -4149,7 +4200,12 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 Version,
                 "- whole-register load/store instructions now use the EEW "
                 "encoded in the instruction to determine element size "
-                "(previously, this was a hint and element size 8 was used)."
+                "(previously, this was a hint and element size 8 was used);"
+            );
+            vmidocAddText(
+                Version,
+                "- misa.V explicitly depends on misa.F and misa.D, if those "
+                "bits are present."
             );
         }
 
@@ -4299,7 +4355,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 Version,
-                "Version 0.3.0 as of 06 February 2023"
+                "Version 0.3.0 as of 6 February 2023"
             );
         }
 
@@ -4328,6 +4384,23 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         }
 
         ////////////////////////////////////////////////////////////////////////
+        // VECTOR CRYPTOGRAPHIC EXTENSION VERSION 1.0.0-rc1
+        ////////////////////////////////////////////////////////////////////////
+
+        {
+            vmiDocNodeP Version = vmidocAddSection(
+                extK, "Version 1.0.0-rc1"
+            );
+
+            vmidocAddText(
+                Version,
+                "Version 1.0.0-rc1 as of 3 July 2023, currently identical to "
+                "0.5.2. Note that the bug fix to instruction vaeskf2.vi in "
+                "commit e2ba7f6 is included in this and all previous versions."
+            );
+        }
+
+        ////////////////////////////////////////////////////////////////////////
         // VECTOR CRYPTOGRAPHIC EXTENSION VERSION master
         ////////////////////////////////////////////////////////////////////////
 
@@ -4339,7 +4412,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             vmidocAddText(
                 Version,
                 "Unstable master version as of "RVKVV_MASTER_DATE" (commit "
-                RVKVV_MASTER_TAG"), currently identical to 0.5.2"
+                RVKVV_MASTER_TAG"), currently identical to 1.0.0-rc1"
             );
         }
     }
@@ -4765,7 +4838,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             LRSC,
             "Irrespective of whether LR/SC locking is implemented internally "
             "or externally, taking any exception or interrupt or executing "
-            "exception-return instructions (e.g. MRET) will always mark any "
+            "exception-return instructions (e.g. mret) will always mark any "
             "active LR/SC transaction as invalid."
         );
         snprintf(
@@ -4893,7 +4966,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
         );
         vmidocAddText(
             debugMode,
-            "Parameter \"debug_mode\" can be used to specify three different "
+            "Parameter \"debug_mode\" can be used to specify four different "
             "behaviors, as follows:"
         );
         vmidocAddText(
@@ -4923,6 +4996,18 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
             "might be implemented by another platform component which then "
             "restarts the debugged processor again."
         );
+        vmidocAddText(
+            debugMode,
+            "4. If set to value \"inject\", then operations that would cause "
+            "entry to Debug mode result in the processor continuing to execute "
+            "from the current address in Debug mode. The harness should detect "
+            "that Debug mode has been entered by monitoring the \"DM\" "
+            "integration support register, and inject Debug-mode instructions "
+            "one at a time using function opProcessorSimulateInstruction. "
+            "Debug mode is exited by either an explicit write of False to the "
+            "\"DM\" register or by execution of an injected \"dret\" "
+            "instruction, as described by \"Debug State Exit\" below."
+        );
 
         ////////////////////////////////////////////////////////////////////////
         // DEBUG STATE ENTRY
@@ -4949,37 +5034,43 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 StateEntry,
                 "1. By writing True to register \"DM\" (e.g. using "
                 "opProcessorRegWrite) followed by simulation of at least one "
-                "cycle (e.g. using opProcessorSimulate), "
-                "dcsr cause will be reported as trigger;"
+                "cycle (e.g. using opProcessorSimulate) - in this case, "
+                "dcsr.cause will report a cause of trigger (2);"
             );
             vmidocAddText(
                 StateEntry,
                 "2. By writing a 1 then 0 to net \"haltreq\" (using "
-                "opNetWrite) followed by simulation of at least one  cycle "
-                "(e.g. using opProcessorSimulate);"
+                "opNetWrite) followed by simulation of at least one cycle "
+                "(e.g. using opProcessorSimulate) - in this case, "
+                "dcsr.cause will report a cause of haltreq (3);"
             );
             vmidocAddText(
                 StateEntry,
                 "3. By writing a 1 to net \"resethaltreq\" (using opNetWrite) "
                 "while the \"reset\" signal undergoes a negedge transition, "
                 "followed by simulation of at least one cycle (e.g. using "
-                "opProcessorSimulate);"
+                "opProcessorSimulate) - in this case, dcsr.cause will report "
+                "a cause of resethaltreq (5) or haltreq (3), depending on the "
+                "value of parameter \"no_resethaltreq\";"
             );
             vmidocAddText(
                 StateEntry,
                 "4. By executing an \"ebreak\" instruction when Debug mode "
                 "entry for the current processor mode is enabled by "
-                "dcsr.ebreakm, dcsr.ebreaks or dcsr.ebreaku;"
+                "dcsr.ebreakm, dcsr.ebreaks or dcsr.ebreaku - in this case, "
+                "dcsr.cause will report a cause of ebreak (1);"
             );
             vmidocAddText(
                 StateEntry,
-                "5. By executing single instruction when Debug mode entry for "
-                "the current processor mode is enabled by dcsr.step;"
+                "5. By executing a single instruction when Debug mode entry "
+                "for the current processor mode is enabled by dcsr.step - in "
+                "this case, dcsr.cause will report a cause of step (4);"
             );
             vmidocAddText(
                 StateEntry,
                 "6. By a Trigger Module trigger, when that trigger is "
-                "configured to enter Debug mode."
+                "configured to enter Debug mode - in this case, dcsr.cause "
+                "will report a cause of trigger (2)."
             );
             vmidocAddText(
                 StateEntry,
@@ -5000,7 +5091,7 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 StateExit,
-                "Exit from Debug mode can be performed in any of these ways:"
+                "Exit from Debug mode can be performed in either of these ways:"
             );
             vmidocAddText(
                 StateExit,
@@ -5030,16 +5121,39 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
 
             vmidocAddText(
                 Registers,
-                "When Debug mode is enabled, registers \"dcsr\", \"dpc\", "
-                "\"dscratch0\" and \"dscratch1\" are implemented as described "
-                "in the specification. These may be manipulated externally by "
-                "a Debug Module using opProcessorRegRead or "
+                "When Debug mode is enabled, registers \"dcsr\" and \"dpc\" "
+                "are implemented as described in the specification. Registers "
+                "\"dscratch0\" and \"dscratch1\" may also be implemented (see "
+                "parameters below). Implemented registers may be manipulated "
+                "externally by a Debug Module using opProcessorRegRead or "
                 "opProcessorRegWrite; for example, the Debug Module could "
                 "write \"dcsr\" to enable \"ebreak\" instruction behavior as "
                 "described above, or read and write \"dpc\" to emulate "
                 "stepping over an \"ebreak\" instruction prior to resumption "
                 "from Debug mode."
             );
+
+            // document dscratch0_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"dscratch0_undefined\" is used to specify whether "
+                "the \"dscratch0\" CSR is undefined, in which case accesses to "
+                "it trap to Machine mode. In this variant, "
+                "\"dscratch0_undefined\" is %u.",
+                riscv->configInfo.dscratch0_undefined
+            );
+            vmidocAddText(Registers, string);
+
+            // document dscratch1_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"dscratch1_undefined\" is used to specify whether "
+                "the \"dscratch1\" CSR is undefined, in which case accesses to "
+                "it trap to Machine mode. In this variant, "
+                "\"dscratch1_undefined\" is %u.",
+                riscv->configInfo.dscratch1_undefined
+            );
+            vmidocAddText(Registers, string);
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -5332,6 +5446,28 @@ static vmiDocNodeP docSMP(riscvP rootProcessor) {
                 "triggers of types 0, 2 and 3 are supported. In this variant, "
                 "\"trigger_match\" is 0x%04x.",
                 riscv->configInfo.trigger_match
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tdata2_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"tdata2_undefined\" is used to specify whether the "
+                "\"tdata2\" register is undefined, in which case reads of it "
+                "trap to Machine mode. In this variant, \"tdata2_undefined\" "
+                "is %u.",
+                riscv->configInfo.tdata2_undefined
+            );
+            vmidocAddText(Parameters, string);
+
+            // document tdata3_undefined
+            snprintf(
+                SNPRINTF_TGT(string),
+                "Parameter \"tdata3_undefined\" is used to specify whether the "
+                "\"tdata3\" register is undefined, in which case reads of it "
+                "trap to Machine mode. In this variant, \"tdata3_undefined\" "
+                "is %u.",
+                riscv->configInfo.tdata3_undefined
             );
             vmidocAddText(Parameters, string);
 

@@ -671,7 +671,7 @@ static void putOpcode(char **result, riscvP riscv, riscvInstrInfoP info) {
     Uns32        i;
 
     // emit compressed prefix if required
-    if(info->bytes==2) {
+    if(info->cPrefix && (info->bytes==2)) {
         putString(result, riscvGetCPrefix(riscv, info->Zc));
     }
 
@@ -952,6 +952,11 @@ static void disassembleFormat(
                     putReg(result, riscv, info->r[0], opt, uncooked);
                     break;
                 case EMIT_R2:
+                    putUncookedKey(result, " R2", uncooked);
+                    putReg(result, riscv, info->r[1], opt, uncooked);
+                    break;
+                case EMIT_R2NC:
+                    if(info->cPrefix) break;
                     putUncookedKey(result, " R2", uncooked);
                     putReg(result, riscv, info->r[1], opt, uncooked);
                     break;

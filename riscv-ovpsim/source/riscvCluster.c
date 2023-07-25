@@ -340,16 +340,19 @@ void riscvFreeClusterVariants(riscvP cluster) {
     // free clusterVariants string
     if(cluster->clusterVariants) {
         STYPE_FREE(cluster->clusterVariants);
+        cluster->clusterVariants = 0;
     }
 
     // free unique indices for same-type members (for naming)
     if(cluster->uniqueIndices) {
         STYPE_FREE(cluster->uniqueIndices);
+        cluster->uniqueIndices = 0;
     }
 
     // free unique indices for same-type members (for naming)
     if(cluster->memberNumHarts) {
         STYPE_FREE(cluster->memberNumHarts);
+        cluster->memberNumHarts = 0;
     }
 
     // free cluster members list
@@ -363,6 +366,7 @@ void riscvFreeClusterVariants(riscvP cluster) {
         }
 
         STYPE_FREE(cluster->configInfo.members);
+        cluster->configInfo.members = 0;
     }
 }
 

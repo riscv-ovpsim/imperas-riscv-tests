@@ -628,7 +628,7 @@ static void doVAESKF2(
     if(rnd & 1) {
         w.u32[0] = rkb.u32[0] ^ aes_subword_fwd(crk.u32[3]);
     } else {
-        Uns32 rc = round_consts[rnd>>1];
+        Uns32 rc = round_consts[(rnd>>1)-1];
         w.u32[0] = rkb.u32[0] ^ aes_subword_fwd(ROR32(crk.u32[3],8)) ^ rc;
     }
 
@@ -1816,36 +1816,40 @@ Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op) {
 // Entries with subset only, version-invariant
 //
 #define VKOPENTRYxV_S(_NAME, _S) [RVVKOP_##_NAME] = { \
-    [RVKVV_0_3_0]  = OPENTRY_S(_S),             \
-    [RVKVV_0_5_2]  = OPENTRY_S(_S),             \
-    [RVKVV_MASTER] = OPENTRY_S(_S),             \
+    [RVKVV_0_3_0]     = OPENTRY_S(_S),              \
+    [RVKVV_0_5_2]     = OPENTRY_S(_S),              \
+    [RVKVV_1_0_0_RC1] = OPENTRY_S(_S),              \
+    [RVKVV_MASTER]    = OPENTRY_S(_S),              \
 }
 
 //
 // Entries with subset only, version-dependent
 //
-#define VKOPENTRYxV_SxV(_NAME, _0_3_0, _0_5_2, _MASTER) [RVVKOP_##_NAME] = { \
-    [RVKVV_0_3_0]  = OPENTRY_S(_0_3_0),         \
-    [RVKVV_0_5_2]  = OPENTRY_S(_0_5_2),         \
-    [RVKVV_MASTER] = OPENTRY_S(_MASTER),        \
+#define VKOPENTRYxV_SxV(_NAME, _0_3_0, _0_5_2, _1_0_0_RC1, _MASTER) [RVVKOP_##_NAME] = { \
+    [RVKVV_0_3_0]     = OPENTRY_S(_0_3_0),          \
+    [RVKVV_0_5_2]     = OPENTRY_S(_0_5_2),          \
+    [RVKVV_1_0_0_RC1] = OPENTRY_S(_1_0_0_RC1),      \
+    [RVKVV_MASTER]    = OPENTRY_S(_MASTER),         \
 }
 
 //
 // Entries with subset and 32/64 bit callbacks, version-invariant
 //
 #define VKOPENTRYxV_S_CB(_NAME, _S, _CB) [RVVKOP_##_NAME] = { \
-    [RVKVV_0_3_0]  = OPENTRY_S_CB(_S, _CB),     \
-    [RVKVV_0_5_2]  = OPENTRY_S_CB(_S, _CB),     \
-    [RVKVV_MASTER] = OPENTRY_S_CB(_S, _CB),     \
+    [RVKVV_0_3_0]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKVV_0_5_2]     = OPENTRY_S_CB(_S, _CB),      \
+    [RVKVV_1_0_0_RC1] = OPENTRY_S_CB(_S, _CB),      \
+    [RVKVV_MASTER]    = OPENTRY_S_CB(_S, _CB),      \
 }
 
 //
 // Entries with subset and 32 bit callback only, version-invariant
 //s
 #define VKOPENTRYxV_S_CB32(_NAME, _S, _CB32) [RVVKOP_##_NAME] = { \
-    [RVKVV_0_3_0]  = OPENTRY_S_CB32(_S, _CB32), \
-    [RVKVV_0_5_2]  = OPENTRY_S_CB32(_S, _CB32), \
-    [RVKVV_MASTER] = OPENTRY_S_CB32(_S, _CB32), \
+    [RVKVV_0_3_0]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKVV_0_5_2]     = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKVV_1_0_0_RC1] = OPENTRY_S_CB32(_S, _CB32),  \
+    [RVKVV_MASTER]    = OPENTRY_S_CB32(_S, _CB32),  \
 }
 
 //
@@ -1853,28 +1857,28 @@ Bool riscvValidateKExtSubset(riscvP riscv, riscvKExtOp op) {
 //
 static const opDesc vkopInfo[RVVKOP_LAST][RVKVV_LAST] = {
 
-    VKOPENTRYxV_SxV    (Zvbb,       Zvkb, Zvbb, Zvbb),
-    VKOPENTRYxV_SxV    (Zvbb_0_4_5, Zk_,  Zvbb, Zvbb),
-    VKOPENTRYxV_SxV    (Zvbc,       Zvkb, Zvbc, Zvbc),
-    VKOPENTRYxV_SxV    (Zvkg,       Zvkg, Zvkg, Zvkg),
-    VKOPENTRYxV_S      (Zvknha,     Zvknha          ),
-    VKOPENTRYxV_S      (Zvknhb,     Zvknhb          ),
-    VKOPENTRYxV_S      (Zvkned,     Zvkned          ),
-    VKOPENTRYxV_S      (Zvksed,     Zvksed          ),
-    VKOPENTRYxV_S      (Zvksh,      Zvksh           ),
+    VKOPENTRYxV_SxV    (Zvbb,       Zvkb, Zvbb, Zvbb, Zvbb),
+    VKOPENTRYxV_SxV    (Zvbb_0_4_5, Zk_,  Zvbb, Zvbb, Zvbb),
+    VKOPENTRYxV_SxV    (Zvbc,       Zvkb, Zvbc, Zvbc, Zvbc),
+    VKOPENTRYxV_SxV    (Zvkg,       Zvkg, Zvkg, Zvkg, Zvkg),
+    VKOPENTRYxV_S      (Zvknha,     Zvknha                ),
+    VKOPENTRYxV_S      (Zvknhb,     Zvknhb                ),
+    VKOPENTRYxV_S      (Zvkned,     Zvkned                ),
+    VKOPENTRYxV_S      (Zvksed,     Zvksed                ),
+    VKOPENTRYxV_S      (Zvksh,      Zvksh                 ),
 
     // vector operations implemented as callbacks
-    VKOPENTRYxV_S_CB32 (VAESKF1,    Zvkned, VAESKF1 ),
-    VKOPENTRYxV_S_CB32 (VAESKF2,    Zvkned, VAESKF2 ),
-    VKOPENTRYxV_S_CB32 (VGMUL,      Zvkg,   VGMUL   ),
-    VKOPENTRYxV_S_CB32 (VGHSH,      Zvkg,   VGHSH   ),
-    VKOPENTRYxV_S_CB32 (VSM3ME,     Zvksh,  VSM3ME  ),
-    VKOPENTRYxV_S_CB32 (VSM3C,      Zvksh,  VSM3C   ),
-    VKOPENTRYxV_S_CB32 (VSM4K,      Zvksed, VSM4K   ),
-    VKOPENTRYxV_S_CB32 (VSM4R,      Zvksed, VSM4R   ),
-    VKOPENTRYxV_S_CB   (VSHA2MS,    Zvknha, VSHA2MS ),
-    VKOPENTRYxV_S_CB   (VSHA2CL,    Zvknha, VSHA2C  ),
-    VKOPENTRYxV_S_CB   (VSHA2CH,    Zvknha, VSHA2C  ),
+    VKOPENTRYxV_S_CB32 (VAESKF1,    Zvkned, VAESKF1       ),
+    VKOPENTRYxV_S_CB32 (VAESKF2,    Zvkned, VAESKF2       ),
+    VKOPENTRYxV_S_CB32 (VGMUL,      Zvkg,   VGMUL         ),
+    VKOPENTRYxV_S_CB32 (VGHSH,      Zvkg,   VGHSH         ),
+    VKOPENTRYxV_S_CB32 (VSM3ME,     Zvksh,  VSM3ME        ),
+    VKOPENTRYxV_S_CB32 (VSM3C,      Zvksh,  VSM3C         ),
+    VKOPENTRYxV_S_CB32 (VSM4K,      Zvksed, VSM4K         ),
+    VKOPENTRYxV_S_CB32 (VSM4R,      Zvksed, VSM4R         ),
+    VKOPENTRYxV_S_CB   (VSHA2MS,    Zvknha, VSHA2MS       ),
+    VKOPENTRYxV_S_CB   (VSHA2CL,    Zvknha, VSHA2C        ),
+    VKOPENTRYxV_S_CB   (VSHA2CH,    Zvknha, VSHA2C        ),
 };
 
 //

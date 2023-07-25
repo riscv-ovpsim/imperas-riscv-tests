@@ -24,44 +24,46 @@
 //
 #define EMIT_R1         '\001'
 #define EMIT_R2         '\002'
-#define EMIT_R3         '\003'
-#define EMIT_R4         '\004'
-#define EMIT_CS         '\005'
-#define EMIT_CX         '\006'
-#define EMIT_CF         '\007'
-#define EMIT_UI         '\010'
-#define EMIT_TGT        '\011'
-#define EMIT_CSR        '\012'
-#define EMIT_PRED       '\013'
-#define EMIT_SUCC       '\014'
-#define EMIT_VTYPE      '\015'
-#define EMIT_RM         '\016'
-#define EMIT_RMR        '\017'
-#define EMIT_RLIST      '\020'
-#define EMIT_ALIST      '\021'
-#define EMIT_RETVAL     '\022'
+#define EMIT_R2NC       '\003'
+#define EMIT_R3         '\004'
+#define EMIT_R4         '\005'
+#define EMIT_CS         '\006'
+#define EMIT_CX         '\007'
+#define EMIT_CF         '\010'
+#define EMIT_UI         '\011'
+#define EMIT_TGT        '\012'
+#define EMIT_CSR        '\013'
+#define EMIT_PRED       '\014'
+#define EMIT_SUCC       '\015'
+#define EMIT_VTYPE      '\016'
+#define EMIT_RM         '\017'
+#define EMIT_RMR        '\020'
+#define EMIT_RLIST      '\021'
+#define EMIT_ALIST      '\022'
+#define EMIT_RETVAL     '\023'
 
 //
 // These are placeholders in disassembly format strings
 //
 #define EMIT_R1_S       "\001"
 #define EMIT_R2_S       "\002"
-#define EMIT_R3_S       "\003"
-#define EMIT_R4_S       "\004"
-#define EMIT_CS_S       "\005"
-#define EMIT_CX_S       "\006"
-#define EMIT_CF_S       "\007"
-#define EMIT_UI_S       "\010"
-#define EMIT_TGT_S      "\011"
-#define EMIT_CSR_S      "\012"
-#define EMIT_PRED_S     "\013"
-#define EMIT_SUCC_S     "\014"
-#define EMIT_VTYPE_S    "\015"
-#define EMIT_RM_S       "\016"
-#define EMIT_RMR_S      "\017"
-#define EMIT_RLIST_S    "\020"
-#define EMIT_ALIST_S    "\021"
-#define EMIT_RETVAL_S   "\022"
+#define EMIT_R2NC_S     "\003"
+#define EMIT_R3_S       "\004"
+#define EMIT_R4_S       "\005"
+#define EMIT_CS_S       "\006"
+#define EMIT_CX_S       "\007"
+#define EMIT_CF_S       "\010"
+#define EMIT_UI_S       "\011"
+#define EMIT_TGT_S      "\012"
+#define EMIT_CSR_S      "\013"
+#define EMIT_PRED_S     "\014"
+#define EMIT_SUCC_S     "\015"
+#define EMIT_VTYPE_S    "\016"
+#define EMIT_RM_S       "\017"
+#define EMIT_RMR_S      "\020"
+#define EMIT_RLIST_S    "\021"
+#define EMIT_ALIST_S    "\022"
+#define EMIT_RETVAL_S   "\023"
 
 //
 // These are disassembly format strings
@@ -70,19 +72,23 @@
 #define FMT_SIMM                EMIT_CS_S
 #define FMT_R1                  EMIT_R1_S
 #define FMT_R1_R2               EMIT_R1_S "," EMIT_R2_S
+#define FMT_R1_R2NC             EMIT_R1_S "," EMIT_R2NC_S
 #define FMT_R3_R4               EMIT_R3_S "," EMIT_R4_S
 #define FMT_R1NZ_R2             "*" EMIT_R1_S "," EMIT_R2_S
 #define FMT_R1_SIMM             EMIT_R1_S "," EMIT_CS_S
 #define FMT_R1_FIMM             EMIT_R1_S "," EMIT_CF_S
 #define FMT_R1_R3               EMIT_R1_S "," EMIT_R3_S
 #define FMT_R1_R2_R3            EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S
+#define FMT_R1_R2NC_R3          EMIT_R1_S "," EMIT_R2NC_S "," EMIT_R3_S
 #define FMT_R1_R2_RMR           EMIT_R1_S "," EMIT_R2_S "," EMIT_RMR_S
 #define FMT_R1_R2_R3_R4         EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S "," EMIT_R4_S
 #define FMT_R1_R2_R3_RMR        EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S "," EMIT_RMR_S
 #define FMT_R1_R2_SIMM          EMIT_R1_S "," EMIT_R2_S "," EMIT_CS_S
+#define FMT_R1_R2NC_SIMM        EMIT_R1_S "," EMIT_R2NC_S "," EMIT_CS_S
 #define FMT_R1_R3_SIMM          EMIT_R1_S "," EMIT_R3_S "," EMIT_CS_S
 #define FMT_R1_R2_R3_SIMM       EMIT_R1_S "," EMIT_R2_S "," EMIT_R3_S "," EMIT_CS_S
 #define FMT_R1_R2_XIMM          EMIT_R1_S "," EMIT_R2_S "," EMIT_CX_S
+#define FMT_R1_R2NC_XIMM        EMIT_R1_S "," EMIT_R2NC_S "," EMIT_CX_S
 #define FMT_R1_R2_TGT           EMIT_R1_S "," EMIT_R2_S "," EMIT_TGT_S
 #define FMT_R1_SIMM_TGT         EMIT_R1_S "," EMIT_CS_S "," EMIT_TGT_S
 #define FMT_R1_R2_VTYPE         EMIT_R1_S "," EMIT_R2_S "," EMIT_VTYPE_S

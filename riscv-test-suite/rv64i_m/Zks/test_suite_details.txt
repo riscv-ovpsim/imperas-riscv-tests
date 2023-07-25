@@ -29,17 +29,17 @@ Instruction category: OPB_LWNE Logic With Negate
   orn : 300
   xnor : 300
 Instruction category: OPB_CLML Carry-less Multiply
-  clmulh : 300
   clmul : 300
+  clmulh : 300
 Instruction category: OPB_PACK Packing
-  packh : 300
   pack : 300
+  packh : 300
   packw : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
   ror : 300
-  rori : 298
   rol : 300
+  rori : 298
   rorw : 300
   rolw : 300
   roriw : 298
@@ -62,14 +62,14 @@ Other instructions (those not the focus of this suite)
   mret : 21
   lui : 4,545
   slli : 9,433
-  c-slli : 669
   sd : 5,842
-  c-addiw : 120
-  c-addi : 224
   c-sdsp : 360
-  c-li : 144
+  c-addi : 224
   fence : 21
   ecall : 21
+  c-li : 144
   beq : 63
+  c-slli : 669
+  c-addiw : 120
   grevi : 298
 

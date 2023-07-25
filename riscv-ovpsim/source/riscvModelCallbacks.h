@@ -223,6 +223,15 @@ typedef RISCV_ILLEGAL_CUSTOM_FN((*riscvIllegalCustomFn));
 typedef RISCV_TAKE_EXCEPTION_FN((*riscvTakeExceptionFn));
 
 //
+// Pend a fetch exception on the next processor fetch
+//
+#define RISCV_PEND_FETCH_EXCEPTION_FN(_NAME) void _NAME( \
+    riscvP         riscv,       \
+    riscvException exception    \
+)
+typedef RISCV_PEND_FETCH_EXCEPTION_FN((*riscvPendFetchExceptionFn));
+
+//
 // Take processor reset
 //
 #define RISCV_TAKE_RESET_FN(_NAME) void _NAME(riscvP riscv)
@@ -561,12 +570,24 @@ typedef RISCV_SUPPRESS_MEM_EXCEPT_FN((*riscvSuppressMemExceptFn));
 typedef RISCV_CUSTOM_NMI_FN((*riscvCustomNMIFn));
 
 //
+// Implementation-specific interrupt assignment
+//
+#define RISCV_CUSTOM_IASSIGN_FN(_NAME) Uns64 _NAME( \
+    riscvP              riscv,      \
+    Uns64               ip,         \
+    riscvBasicIntStateP intState,   \
+    void               *clientData  \
+)
+typedef RISCV_CUSTOM_IASSIGN_FN((*riscvCustomIAssignFn));
+
+//
 // Notifier called on trap entry or exception return
 //
 #define RISCV_TRAP_NOTIFIER_FN(_NAME) void _NAME( \
-    riscvP    riscv,            \
-    riscvMode mode,             \
-    void     *clientData        \
+    riscvP        riscv,        \
+    riscvMode     mode,         \
+    riscvERETType eretType,     \
+    void         *clientData    \
 )
 typedef RISCV_TRAP_NOTIFIER_FN((*riscvTrapNotifierFn));
 
@@ -809,6 +830,7 @@ typedef struct riscvModelCBS {
     riscvIllegalVerboseFn     virtualVerbose;
     riscvIllegalCustomFn      illegalCustom;
     riscvTakeExceptionFn      takeException;
+    riscvPendFetchExceptionFn pendFetchException;
     riscvTakeResetFn          takeReset;
 
     // from riscvDecode.h
@@ -873,6 +895,7 @@ typedef struct riscvExtCBS {
     // exception actions
     riscvSuppressMemExceptFn  suppressMemExcept;
     riscvCustomNMIFn          customNMI;
+    riscvCustomIAssignFn      customIAssign;
     riscvTrapNotifierFn       trapNotifier;
     riscvTrapNotifierFn       trapPreNotifier;
     riscvTrapNotifierFn       ERETNotifier;

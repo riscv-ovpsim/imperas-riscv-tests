@@ -25,17 +25,17 @@ Architectural Test Suite Data for RV32ZBKB K Crypto/Scalar:
     9,810 total instructions
 
 Instruction category: OPB_LWNE Logic With Negate
-  orn : 172
   andn : 172
   xnor : 172
+  orn : 172
 Instruction category: OPB_PACK Packing
   pack : 172
   packh : 172
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
+  rol : 172
   ror : 172
   rori : 170
-  rol : 172
 
 Other instructions (those not the focus of this suite)
   jal : 11
@@ -50,6 +50,6 @@ Other instructions (those not the focus of this suite)
   ecall : 11
   beq : 33
   grevi : 170
-  unshfli : 170
   shfli : 170
+  unshfli : 170
 

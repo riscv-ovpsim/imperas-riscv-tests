@@ -31,36 +31,36 @@ Instruction category: OPK_Zknd NIST Suite AES Decryption instructions
 Instruction category: OPK_Zkne NIST Suite AES Encryption instructions
   aes64es : 556
   aes64ks1i : 554
-  aes64esm : 556
   aes64ks2 : 556
+  aes64esm : 556
 Instruction category: OPB_LWNE Logic With Negate
   andn : 300
   orn : 300
   xnor : 300
 Instruction category: OPB_CLML Carry-less Multiply
-  clmul : 300
   clmulh : 300
+  clmul : 300
 Instruction category: OPB_PACK Packing
-  packh : 300
-  pack : 300
   packw : 300
+  pack : 300
+  packh : 300
 Instruction category: OPB_SEXT Sign Extend
 Instruction category: OPB_ROTS Rotations
-  rol : 300
   ror : 300
   rori : 298
+  rol : 300
   rolw : 300
-  rorw : 300
   roriw : 298
+  rorw : 300
 Instruction category: OPK_Zknh NIST Suite Hash Function instructions
   sha256sig0 : 298
   sha256sig1 : 298
   sha256sum0 : 298
   sha256sum1 : 298
-  sha512sig0 : 298
   sha512sig1 : 298
-  sha512sum0 : 298
   sha512sum1 : 298
+  sha512sum0 : 298
+  sha512sig0 : 298
 Instruction category: OPB_XBAR Crossbar Permutation
 
 Other instructions (those not the focus of this suite)
@@ -76,11 +76,11 @@ Other instructions (those not the focus of this suite)
   slli : 13,741
   sd : 10,061
   c-sdsp : 705
-  c-addi : 719
   fence : 37
   ecall : 37
   c-li : 381
   beq : 111
+  c-addi : 719
   c-slli : 2,742
   c-addiw : 400
   grevi : 298

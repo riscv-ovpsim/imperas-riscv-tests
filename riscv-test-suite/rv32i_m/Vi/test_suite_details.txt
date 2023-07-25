@@ -150,8 +150,8 @@ Instruction category: OPV_IAW widening integer arithmetic
   vwaddu.wx : 160
   vwsub.vv : 160
   vwsub.vx : 160
-  vwsub.wx : 160
   vwsub.wv : 160
+  vwsub.wx : 160
   vwsubu.vv : 160
   vwsubu.vx : 160
   vwsubu.wv : 160
@@ -181,14 +181,14 @@ Other instructions (those not the focus of this suite)
   csrrw : 4,206
   mret : 1,402
   vsetvli : 189,768
-  vle16.v : 40,320
+  vle8.v : 31,640
   add : 155,776
-  vse16.v : 10,576
+  vse8.v : 18,176
   fence : 1,402
   ecall : 1,402
   beq : 4,206
-  vle8.v : 31,640
-  vse8.v : 18,176
+  vle16.v : 40,320
+  vse16.v : 10,576
   vle32.v : 40,560
   vse32.v : 10,192
 

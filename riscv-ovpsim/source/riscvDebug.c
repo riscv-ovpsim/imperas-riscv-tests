@@ -178,7 +178,7 @@ static ISR_PRESENT_FN(presentDM) {
 // Is DMStall artifact register present?
 //
 static ISR_PRESENT_FN(presentDMStall) {
-    return riscv->configInfo.debug_mode>=RVDM_HALT;
+    return riscv->configInfo.debug_mode==RVDM_HALT;
 }
 
 //
@@ -860,8 +860,8 @@ static vmiRegInfoCP getRegisters(riscvP riscv, Bool normal) {
             dst->group    = RV_GROUP(CORE);
             dst->bits     = XLEN;
             dst->gdbIndex = i;
-            dst->access   = i ? vmi_RA_RW : vmi_RA_R;
-            dst->raw      = RISCV_GPR(i);
+            dst->access   = i ? vmi_RA_RW    : vmi_RA_R;
+            dst->raw      = i ? RISCV_GPR(i) : VMI_NOREG;
             dst->usage    = getGPRUsage(i);
             dst++;
         }

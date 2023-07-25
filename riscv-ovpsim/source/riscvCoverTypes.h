@@ -71,7 +71,15 @@ typedef enum rvCoverTypeE {
     //////////////////////////////// PMP ///////////////////////////////////////
 
                             // PMP START INDICATORS
-    RVC_PMP_START,          // start lookup
+    RVC_PMP_START_R,        // start lookup for read permission
+    RVC_PMP_START_W,        // start lookup for write permission
+    RVC_PMP_START_X,        // start lookup for execute permission
+
+                            // PMP UNMATCHED MODE INDICATORS
+    RVC_PMP_UM_M_BASE,      // base specification M-mode
+    RVC_PMP_UM_M_MMWP,      // mseccfg.MMWP=1, M-mode
+    RVC_PMP_UM_MML,         // mseccfg.MML=1, M-mode
+    RVC_PMP_UM_SU,          // S/U-mode
 
                             // PMP REGION TYPES
     RVC_PMP_NA4,            // NA4 region

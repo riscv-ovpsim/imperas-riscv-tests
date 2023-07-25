@@ -56,26 +56,26 @@ Other instructions (those not the focus of this suite)
   fcvt.w.d : 373
   fcvt.wu.d : 373
   fdiv.d : 7,529
-  feq.d : 1,677
   fle.d : 1,677
+  feq.d : 1,677
   flt.d : 1,729
   fmadd.d : 4,612
-  fmax.d : 1,693
   fmin.d : 1,676
+  fmax.d : 1,693
   fmsub.d : 4,613
   fmul.d : 6,605
-  fmv.x.d : 228
   fmv.d.x : 97
+  fmv.x.d : 228
   fnmadd.d : 4,610
   fnmsub.d : 4,612
   fmv.s.x : 32
   sub : 32
   fsgnj.d : 576
   fmv.d : 2
+  fsgnjx.d : 576
+  fabs.d : 2
   fsgnjn.d : 576
   fneg.d : 2
   fsqrt.d : 761
-  fsgnjx.d : 576
-  fabs.d : 2
   fsub.d : 15,722
 

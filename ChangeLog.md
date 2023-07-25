@@ -7,8 +7,10 @@ This CHANGELOG contains information for the Imperas RISC-V test framework and te
 See the ChangeLog.md files in the simulator directories for their changes. 
 
 ---
-Date 2023-March-01 
-Release 20230228.0 
+Date 2023-June-26
+Release 20230626.0 
+
+Added new test suites for the Zicsr instructions making use of the mscratch CSR. These tests are for the instructions and not the CSRs themselves.
 
 ---
 Date 2023-March-01 

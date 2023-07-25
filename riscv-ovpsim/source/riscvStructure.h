@@ -79,6 +79,7 @@ typedef struct riscvNetValueS {
     Bool resethaltreq  : 1; // resethaltreq (Debug mode)
     Bool resethaltreqS : 1; // resethaltreq (Debug mode, sampled at reset)
     Bool deferint      : 1; // defer taking interrupts (artifact)
+    Bool restartwfi    : 1; // restart from WFI state (artifact)
     Bool enableCLIC    : 1; // is CLIC enabled?
     Bool illegalInst   : 1; // whether Illegal Instruction raised
     Uns8 triggerAfter  : 4; // pending trigger after (Trigger module)
@@ -114,7 +115,7 @@ typedef struct riscvPendEnabS {
 typedef struct riscvBasicIntStateS {
     Uns64 ip[RISCV_MODE_LAST];  // pending and enabled interrupts per mode
     Bool  hvictl;               // whether hvictl-injected interrupt
-} riscvBasicIntState, *riscvBasicIntStateP;
+} riscvBasicIntState;
 
 //
 // This holds processor and vector information for an interrupt
@@ -309,6 +310,7 @@ typedef struct riscvS {
     riscvCLIC          clic;            // CLIC state
     riscvException     exception;       // last activated exception
     riscvExceptionDtl  exceptionDetail; // exception detail
+    riscvException     exceptionFetch;  // pending fetch exception
     Uns32              threshOnes: 8;   // all-ones bits in xintthresh
     riscvICMode        MIMode    : 2;   // custom M interrupt mode
     riscvICMode        SIMode    : 2;   // custom S interrupt mode
@@ -793,13 +795,6 @@ inline static Bool bitmanipEnabled(riscvP riscv) {
 //
 inline static Bool cryptoEnabled(riscvP riscv) {
     return riscv->currentArch & ISA_K;
-}
-
-//
-// Is atomic extension enabled?
-//
-inline static Bool atomicEnabled(riscvP riscv) {
-    return riscv->currentArch & ISA_A;
 }
 
 //

@@ -196,6 +196,22 @@ typedef enum riscvExceptionDtlS {
 } riscvExceptionDtl;
 
 //
+// Legacy access fault detailed reason support (backwards-compatibility only)
+//
+typedef riscvExceptionDtl riscvAccessFault;
+#define AFErrorIn            exceptionDetail
+#define riscv_AFault_None    riscv_ED_None
+#define riscv_AFault_PMP     riscv_ED_PMP
+#define riscv_AFault_Bus     riscv_ED_Bus
+#define riscv_AFault_Atomic  riscv_ED_Atomic
+#define riscv_AFault_Device  riscv_ED_Device
+#define riscv_AFault_Custom1 riscv_ED_Custom1
+#define riscv_AFault_Custom2 riscv_ED_Custom2
+#define riscv_AFault_Custom3 riscv_ED_Custom3
+#define riscv_AFault_Custom4 riscv_ED_Custom4
+#define riscv_AFault_LAST    riscv_ED_LAST
+
+//
 // Specify enabled interrupt mode
 //
 typedef enum riscvICModeE {
@@ -210,6 +226,21 @@ typedef enum riscvICModeE {
     riscv_int_CLIC_Vectored = (riscv_int_CLIC|riscv_int_Vectored),
 
 } riscvICMode;
+
+//
+// In a trap/exception return notifier callback, this specifies the exception
+// return instruction variant executed (or ERT_NA is not an exception return)
+//
+typedef enum riscvERETTypeE {
+    ERT_NA,     // not an exception return instruction
+    ERT_M,      // mret instruction
+    ERT_D,      // dret instruction
+    ERT_MN,     // mnret instruction (from resumable NMI)
+    ERT_S,      // sret (from S/HS mode)
+    ERT_VS,     // sret (from VS mode)
+    ERT_U,      // uret (from U/HU mode)
+    ERT_VU,     // uret (from VU mode)
+} riscvERETType;
 
 //
 // Return exception code for interrupt number

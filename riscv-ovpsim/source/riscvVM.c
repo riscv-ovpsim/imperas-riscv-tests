@@ -966,6 +966,9 @@ void riscvVMResetPMP(riscvP riscv) {
             riscv->romask_pmpcfg.u32[i] = cfgRomask[i].u32.bits;
         }
     }
+
+    // reset ePMP mseccfg (full 64-bit value, regardless of XLEN)
+    WR_CSR64(riscv, mseccfg, riscv->configInfo.csr.mseccfg.u64.bits);
 }
 
 //
@@ -1052,23 +1055,51 @@ static void refinePMPRegionRange(
 #define MAX_PMP_STRADDLE_NUM 16
 
 //
+// This describes cases when no PMP region matches
+//
+typedef enum unmatchedPMPModeE {
+    PMPU_M_BASE,        // base specification M-mode
+    PMPU_M_MMWP,        // mseccfg.MMWP=1, M-mode
+    PMPU_M_MML,         // mseccfg.MML=1, M-mode
+    PMPU_SU,            // U-mode or S-mode
+} unmatchedPMPMode;
+
+//
 // Return PMP privileges for regions with no match
 //
-static memPriv getPMPUnmatchedPriv(riscvP riscv, riscvMode mode) {
+static unmatchedPMPMode getPMPUnmatchedMode(riscvP riscv, riscvMode mode) {
 
-    memPriv priv;
+    unmatchedPMPMode result;
 
     if(mode!=RISCV_MODE_M) {
-        priv = MEM_PRIV_NONE;
+        result = PMPU_SU;
     } else if(RD_CSR_FIELDC(riscv, mseccfg, MMWP)) {
-        priv = MEM_PRIV_NONE;
+        result = PMPU_M_MMWP;
     } else if(RD_CSR_FIELDC(riscv, mseccfg, MML)) {
-        priv = MEM_PRIV_RW;
+        result = PMPU_M_MML;
     } else {
-        priv = MEM_PRIV_RWX;
+        result = PMPU_M_BASE;
     }
 
-    return priv;
+    return result;
+}
+
+//
+// Return PMP lookup start type
+//
+static rvCoverType getPMPCoverStartType(memPriv requiredPriv) {
+
+    rvCoverType result;
+
+    if(requiredPriv & MEM_PRIV_R) {
+        result = RVC_PMP_START_R;
+    } else if(requiredPriv & MEM_PRIV_W) {
+        result = RVC_PMP_START_W;
+    } else {
+        result = RVC_PMP_START_X;
+    }
+
+    return result;
 }
 
 //
@@ -1083,19 +1114,37 @@ static void mapPMP(
 ) {
     Uns32 numRegs = getNumPMPs(riscv);
 
+    // this gives privileges and cover point for unmatched PMP mode
+    typedef struct defaultPMPActionS {
+        rvCoverType type;   // coverage point type
+        memPriv     priv;   // access permissions
+    } defaultPMPAction;
+
+    // this gives privileges and cover point for each unmatched PMP mode
+    static const defaultPMPAction map[] = {
+        [PMPU_M_BASE] = {RVC_PMP_UM_M_BASE, MEM_PRIV_RWX },
+        [PMPU_M_MMWP] = {RVC_PMP_UM_M_MMWP, MEM_PRIV_NONE},
+        [PMPU_M_MML]  = {RVC_PMP_UM_MML,    MEM_PRIV_RW  },
+        [PMPU_SU]     = {RVC_PMP_UM_SU,     MEM_PRIV_NONE},
+    };
+
     if(numRegs) {
 
-        Uns64       thisPA  = lowPA;
-        Uns64       maxPA   = getAddressMask(riscv->extBits);
-        memPriv     priv    = getPMPUnmatchedPriv(riscv, mode);
-        Bool        aligned = !(lowPA & (highPA-lowPA));
-        Uns32       mapNum  = 0;
-        Bool        mapDone = False;
-        rvCoverType type    = RVC_PMP_MAPPED;
-        PMPMap      maps[MAX_PMP_STRADDLE_NUM];
+        Uns64            thisPA  = lowPA;
+        Uns64            maxPA   = getAddressMask(riscv->extBits);
+        unmatchedPMPMode ummode  = getPMPUnmatchedMode(riscv, mode);
+        memPriv          priv    = map[ummode].priv;
+        Bool             aligned = !(lowPA & (highPA-lowPA));
+        Uns32            mapNum  = 0;
+        Bool             mapDone = False;
+        rvCoverType      type    = RVC_PMP_MAPPED;
+        PMPMap           maps[MAX_PMP_STRADDLE_NUM];
 
         // indicate start of PMP lookup
-        coverMem(riscv, RVC_PMP_START);
+        coverMem(riscv, getPMPCoverStartType(requiredPriv));
+
+        // indicate mode when no region matches
+        coverMem(riscv, map[ummode].type);
 
         // continue while regions remain unprocessed and no PMP fault pending
         while(!mapDone && (type==RVC_PMP_MAPPED)) {
@@ -2108,9 +2157,12 @@ void riscvVMFreeMPU(riscvP riscv) {
 
     if(riscv->mpucfg.u64) {
         STYPE_FREE(riscv->mpucfg.u64);
+        riscv->mpucfg.u64 = 0;
     }
+
     if(riscv->mpuaddr) {
         STYPE_FREE(riscv->mpuaddr);
+        riscv->mpuaddr = 0;
     }
 }
 
@@ -5595,14 +5647,14 @@ static void checkPMA(
 // Validate PMA region read access size
 //
 static VMI_MEM_WATCH_FN(checkPMAR) {
-    checkPMA(processor, address, bytes, userData, riscv_E_LoadAccessFault);
+    checkPMA(processor, VA, bytes, userData, riscv_E_LoadAccessFault);
 }
 
 //
 // Validate PMA region write access size
 //
 static VMI_MEM_WATCH_FN(checkPMAW) {
-    checkPMA(processor, address, bytes, userData, riscv_E_StoreAMOAccessFault);
+    checkPMA(processor, VA, bytes, userData, riscv_E_StoreAMOAccessFault);
 }
 
 //

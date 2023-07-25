@@ -404,12 +404,11 @@ DEFINE_CS(extCSRAttrs);
 }
 
 //
-// This macro declares a CSR that has a value implemented by a field in the
-// extension object with no write mask constraints. The value field is the high
-// half of a second CSR. There can optionally be read or write callbacks.
+// Same as XCSR_ATTR_P__, but includes a constructor phase
+// callback to specify whether the register is present
 //
-#define XCSR_ATTR_TH_( \
-    _ID, _ID2, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
+#define XCSR_ATTR_PP_( \
+    _ID, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB, _PCB \
 ) [XCSR_ID(_ID)] = { \
     .extension = _EXT,                              \
     .baseAttrs = {                                  \
@@ -424,7 +423,34 @@ DEFINE_CS(extCSRAttrs);
         readCB        : _RCB,                       \
         readWriteCB   : _RWCB,                      \
         writeCB       : _WCB,                       \
-        reg           : XCSR_REG64H_MT(_ID2),       \
+        writeMaskC32  : -1,                         \
+        writeMaskC64  : -1,                         \
+        presentCB     : _PCB                        \
+    }                                               \
+}
+
+//
+// This macro declares a CSR that has a value implemented by a field in the
+// extension object with no write mask constraints. The value field is the high
+// half of a second CSR. There can optionally be read or write callbacks.
+//
+#define XCSR_ATTR_TH_( \
+    _ID, _SUFFIX, _NUM, _ARCH, _EXT, _ENDB,_ENDRM,_NOTR,_TRAP, _DESC, _RCB, _RWCB, _WCB \
+) [XCSR_ID(_ID##_SUFFIX)] = { \
+    .extension = _EXT,                              \
+    .baseAttrs = {                                  \
+        name          : #_ID#_SUFFIX,               \
+        desc          : _DESC,                      \
+        csrNum        : _NUM,                       \
+        arch          : _ARCH,                      \
+        wEndBlock     : _ENDB,                      \
+        wEndRM        : _ENDRM,                     \
+        noTraceChange : _NOTR,                      \
+        trap          : _TRAP,                      \
+        readCB        : _RCB,                       \
+        readWriteCB   : _RWCB,                      \
+        writeCB       : _WCB,                       \
+        reg           : XCSR_REG64H_MT(_ID),        \
         writeMaskC32  : -1,                         \
         writeMaskC64  : -1                          \
     }                                               \

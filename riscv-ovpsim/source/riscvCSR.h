@@ -2771,6 +2771,90 @@ typedef struct riscvCSRMasksS {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// SYSTEM REGISTER ACCESS MACROS, VARIABLE FIELD POSITION BASED ON CURRENT XLEN
+////////////////////////////////////////////////////////////////////////////////
+
+// macro indicating if current XLEN is 32
+#define RISCV_XLEN_IS_32C(_CPU) \
+    (((_CPU)->currentArch & ISA_XLEN_32) && True)
+
+// macro returning current XLEN in bytes
+#define RISCV_XLEN_BYTESC(_CPU) \
+    (RISCV_XLEN_IS_32C(_CPU) ? 4 : 8)
+
+// get raw value using current XLEN
+#define RD_RAW_CUR(_CPU, _R) ( \
+    RISCV_XLEN_IS_32C(_CPU) ? RD_RAW32(_R) : RD_RAW64(_R))
+
+// get CSR value using current XLEN
+#define RD_CSR_CUR(_CPU, _RNAME) \
+    RD_RAW(_CPU, (_CPU)->csr._RNAME)
+
+// get CSR mask value using current XLEN
+#define RD_CSR_MASK_CUR(_CPU, _RNAME) \
+    RD_RAW(_CPU, (_CPU)->csrMask._RNAME)
+
+// set raw value using current XLEN
+#define WR_RAW_CUR(_CPU, _R, _VALUE) \
+    if(RISCV_XLEN_IS_32C(_CPU)) {                       \
+        WR_RAW32(_R, _VALUE);                           \
+    } else {                                            \
+        WR_RAW64(_R, _VALUE);                           \
+    }
+
+// bitwise-and raw value using current XLEN
+#define AND_RAW_CUR(_CPU, _R, _VALUE) \
+    if(RISCV_XLEN_IS_32C(_CPU)) {                       \
+        AND_RAW32(_R, _VALUE);                          \
+    } else {                                            \
+        AND_RAW64(_R, _VALUE);                          \
+    }
+
+// bitwise-or raw value using current XLEN
+#define OR_RAW_CUR(_CPU, _R, _VALUE) \
+    if(RISCV_XLEN_IS_32C(_CPU)) {                       \
+        OR_RAW32(_R, _VALUE);                           \
+    } else {                                            \
+        OR_RAW64(_R, _VALUE);                           \
+    }
+
+// set CSR value using current XLEN
+#define WR_CSR_CUR(_CPU, _RNAME, _VALUE) \
+    WR_RAW(_CPU, (_CPU)->csr._RNAME, _VALUE)
+
+// get raw field using current XLEN
+#define RD_RAW_FIELD_CUR(_CPU, _R, _FIELD) ( \
+    (RISCV_XLEN_IS_32C(_CPU) ?                          \
+        (_R).u32.fields._FIELD :                        \
+        (_R).u64.fields._FIELD)                         \
+)
+
+// set raw field using current XLEN
+#define WR_RAW_FIELD_CUR(_CPU, _R, _FIELD, _VALUE) \
+    if(RISCV_XLEN_IS_32C(_CPU)) {                       \
+        (_R).u32.fields._FIELD = _VALUE;                \
+    } else {                                            \
+        (_R).u64.fields._FIELD = _VALUE;                \
+    }
+
+// get CSR field using current XLEN
+#define RD_CSR_FIELD_CUR(_CPU, _RNAME, _FIELD) \
+    RD_RAW_FIELD_CUR(_CPU, (_CPU)->csr._RNAME, _FIELD)
+
+// set CSR field using current XLEN
+#define WR_CSR_FIELD_CUR(_CPU, _RNAME, _FIELD, _VALUE) \
+    WR_RAW_FIELD_CUR(_CPU, (_CPU)->csr._RNAME, _FIELD, _VALUE)
+
+// get CSR mask field using current XLEN
+#define RD_CSR_MASK_FIELD_CUR(_CPU, _RNAME, _FIELD) \
+    RD_RAW_FIELD_CUR(_CPU, (_CPU)->csrMask._RNAME, _FIELD)
+
+// set CSR mask field using current XLEN
+#define WR_CSR_MASK_FIELD_CUR(_CPU, _RNAME, _FIELD, _VALUE) \
+    WR_RAW_FIELD_CUR(_CPU, (_CPU)->csrMask._RNAME, _FIELD, _VALUE)
+
+
+////////////////////////////////////////////////////////////////////////////////
 // SYSTEM REGISTER ACCESS MACROS, VARIABLE FIELD POSITION BASED ON MODAL XLEN
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2817,9 +2901,9 @@ typedef struct riscvCSRMasksS {
 // bitwise-or raw value using modal XLEN
 #define OR_RAW_MODE(_CPU, _MODE, _R, _VALUE) \
     if(RISCV_XLEN_IS_32M(_CPU, _MODE)) {                \
-        OR_RAW32(_R, _VALUE);                          \
+        OR_RAW32(_R, _VALUE);                           \
     } else {                                            \
-        OR_RAW64(_R, _VALUE);                          \
+        OR_RAW64(_R, _VALUE);                           \
     }
 
 // set CSR value using modal XLEN

@@ -43,7 +43,6 @@ typedef enum riscvVShapeE {
     RVVW_V1I_V1I_V1I_ST,    // vector store operations
     RVVW_V1I_V1I_V1I_SAT,   // saturating result
     RVVW_V1I_V1I_V1I_VXRM,  // uses vxrm
-    RVVW_V1I_V1I_V1I_SEW8,  // uses SEW8 and current LMUL
     RVVW_V1I_S1I_V1I,       // src1 is scalar
     RVVW_S1I_V1I_V1I,       // Vd is scalar
     RVVW_P1I_V1I_V1I,       // Vd is predicate

@@ -24,6 +24,7 @@
 
 DEFINE_S (riscv);
 DEFINE_S (riscvAIA);
+DEFINE_S (riscvBasicIntState);
 DEFINE_S (riscvBlockState);
 DEFINE_S (riscvBusPort);
 DEFINE_U (riscvCLICIntState);

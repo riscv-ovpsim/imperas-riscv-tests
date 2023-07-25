@@ -190,6 +190,7 @@ static void initLeafModelCBs(riscvP riscv) {
     riscv->cb.virtualVerbose     = riscvVirtualInstructionMessage;
     riscv->cb.illegalCustom      = riscvIllegalCustom;
     riscv->cb.takeException      = riscvTakeAsynchonousException;
+    riscv->cb.pendFetchException = riscvPendFetchException;
     riscv->cb.takeReset          = riscvReset;
 
     // from riscvDecode.h
@@ -301,7 +302,7 @@ VMI_SMP_NAME_FN(riscvGetSMPName) {
     Uns32         index;
 
     if(!riscvIsCluster(rvParent)) {
-        sprintf(name, "%s_hart%u", baseName, smpIndex);
+        sprintf(name, "%s_%s%u", baseName, cfg->leaf_hart_prefix, smpIndex);
     } else if((index=rvParent->uniqueIndices[smpIndex])) {
         sprintf(name, "%s_%s_%u", baseName, cfg->members[smpIndex], index-1);
     } else {
@@ -459,9 +460,9 @@ static Uns32 getSExtendBits(Bool sext, Int64 mask) {
 static const char *VNames[] = {
     [RVVS_Zve32x] ="Zve32x",
     [RVVS_Zve32f] ="Zve32f",
-    [RVVS_Zve64x] ="Zve32x",
-    [RVVS_Zve64f] ="Zve32f",
-    [RVVS_Zve64d] ="Zve32d",
+    [RVVS_Zve64x] ="Zve64x",
+    [RVVS_Zve64f] ="Zve64f",
+    [RVVS_Zve64d] ="Zve64d",
 };
 
 //
@@ -789,6 +790,7 @@ static void applyParamsSMP(
     // get uninterpreted architectural configuration parameters
     cfg->enable_expanded      = params->enable_expanded;
     cfg->endianFixed          = params->endianFixed;
+    cfg->leaf_hart_prefix     = params->leaf_hart_prefix;
     cfg->use_hw_reg_names     = params->use_hw_reg_names;
     cfg->no_pseudo_inst       = params->no_pseudo_inst;
     cfg->show_c_prefix        = params->show_c_prefix;
@@ -826,6 +828,7 @@ static void applyParamsSMP(
     cfg->mvalue_bits          = params->mvalue_bits;
     cfg->svalue_bits          = params->svalue_bits;
     cfg->mcontrol_maskmax     = params->mcontrol_maskmax;
+    cfg->chain_tval           = params->chain_tval;
     cfg->dcsr_ebreak_mask     = params->dcsr_ebreak_mask;
 #if(ENABLE_SSMPU)
     cfg->MPU_grain            = params->MPU_grain;
@@ -853,7 +856,7 @@ static void applyParamsSMP(
     cfg->cmomp_bytes          = powerOfTwo(params->cmomp_bytes, "cmomp_bytes");
     cfg->cmoz_bytes           = powerOfTwo(params->cmoz_bytes,  "cmoz_bytes");
     cfg->Sv_modes             = params->Sv_modes | RISCV_VMM_BARE;
-    cfg->Smstateen            = params->Smstateen;
+    cfg->Smstateen            = params->Smstateen && (RISCV_PRIV_VERSION(riscv)>=RVPV_1_12);
     cfg->Sstc                 = params->Sstc;
     cfg->Svpbmt               = params->Svpbmt;
     cfg->Svinval              = params->Svinval;
@@ -878,6 +881,7 @@ static void applyParamsSMP(
     cfg->dexc_address         = params->dexc_address;
     cfg->debug_eret_mode      = params->debug_eret_mode;
     cfg->debug_priority       = params->debug_priority;
+    cfg->no_resethaltreq      = params->no_resethaltreq;
     cfg->updatePTEA           = params->updatePTEA;
     cfg->updatePTED           = params->updatePTED;
     cfg->unaligned_low_pri    = params->unaligned_low_pri;
@@ -904,6 +908,8 @@ static void applyParamsSMP(
     cfg->minstret_undefined   = params->minstret_undefined;
     cfg->hpmcounter_undefined = params->hpmcounter_undefined;
     cfg->mhpmcounter_undefined= params->mhpmcounter_undefined;
+    cfg->tdata2_undefined     = params->tdata2_undefined;
+    cfg->tdata3_undefined     = params->tdata3_undefined;
     cfg->tinfo_undefined      = params->tinfo_undefined;
     cfg->tcontrol_undefined   = params->tcontrol_undefined;
     cfg->mcontext_undefined   = params->mcontext_undefined;
@@ -911,6 +917,8 @@ static void applyParamsSMP(
     cfg->mscontext_undefined  = params->mscontext_undefined;
     cfg->hcontext_undefined   = params->hcontext_undefined;
     cfg->mnoise_undefined     = params->mnoise_undefined;
+    cfg->dscratch0_undefined  = params->dscratch0_undefined;
+    cfg->dscratch1_undefined  = params->dscratch1_undefined;
     cfg->amo_trigger          = params->amo_trigger;
     cfg->amo_aborts_lr_sc     = params->amo_aborts_lr_sc;
     cfg->no_hit               = params->no_hit;
@@ -921,7 +929,8 @@ static void applyParamsSMP(
     cfg->trap_preserves_lr    = params->trap_preserves_lr;
     cfg->xret_preserves_lr    = params->xret_preserves_lr;
     cfg->fence_g_preserves_vs = params->fence_g_preserves_vs;
-    cfg->require_vstart0      = params->require_vstart0;
+    cfg->vstart0_non_ld_st    = params->vstart0_non_ld_st;
+    cfg->vstart0_ld_st        = params->vstart0_ld_st;
     cfg->align_whole          = params->align_whole;
     cfg->vill_trap            = params->vill_trap;
     cfg->mstatus_FS_zero      = params->mstatus_FS_zero;
@@ -1629,9 +1638,9 @@ VMI_POST_CONSTRUCTOR_FN(riscvPostConstructor) {
 }
 
 //
-// Processor destructor
+// Processor destructor (all levels)
 //
-VMI_DESTRUCTOR_FN(riscvDestructor) {
+static VMI_SMP_ITER_FN(perProcessorDestructor) {
 
     riscvP riscv = (riscvP)processor;
 
@@ -1662,9 +1671,6 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
     // free timers
     riscvFreeTimers(riscv);
 
-    // free CLINT data structures
-    riscvFreeCLINT(riscv);
-
     // free CLIC data structures
     riscvFreeCLIC(riscv);
 
@@ -1678,6 +1684,20 @@ VMI_DESTRUCTOR_FN(riscvDestructor) {
 
     // free cluster variant structures
     riscvFreeClusterVariants(riscv);
+}
+
+//
+// Processor destructor
+//
+VMI_DESTRUCTOR_FN(riscvDestructor) {
+
+    riscvP root = (riscvP)processor;
+
+    // free CLINT data structures
+    riscvFreeCLINT(root);
+
+    // do initial reset of each hart
+    vmirtIterAllProcessors(processor, perProcessorDestructor, 0);
 }
 
 
